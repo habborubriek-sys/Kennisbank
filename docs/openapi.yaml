@@ -1,0 +1,717 @@
+openapi: 3.0.3
+info:
+  title: Kennisbank API
+  version: 1.0.0
+  description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
+    en de koppeling met het zaaksysteem.'
+paths:
+  /api/v1/artikelen:
+    get:
+      operationId: v1_artikelen_list
+      summary: Artikelen zoeken en filteren
+      parameters:
+      - in: query
+        name: cluster
+        schema:
+          type: string
+      - in: query
+        name: omgeving
+        schema:
+          type: string
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: Zoektekst
+      - in: query
+        name: registreer
+        schema:
+          type: string
+        description: '''1'' = zoekterm meetellen in de statistiek'
+      - in: query
+        name: soort
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+      - in: query
+        name: tag
+        schema:
+          type: array
+          items:
+            type: string
+      - in: query
+        name: zaaktype
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ArtikelKort'
+          description: ''
+  /api/v1/artikelen/{slug}:
+    get:
+      operationId: v1_artikelen_retrieve
+      summary: Eén artikel met secties
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Artikel'
+          description: ''
+  /api/v1/artikelen/{slug}/favoriet:
+    put:
+      operationId: v1_artikelen_favoriet_update
+      summary: Favoriet aan (PUT) of uit (DELETE)
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+    delete:
+      operationId: v1_artikelen_favoriet_destroy
+      summary: Favoriet aan (PUT) of uit (DELETE)
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/artikelen/{slug}/versies:
+    get:
+      operationId: v1_artikelen_versies_retrieve
+      summary: Versiegeschiedenis van een artikel (redacteuren)
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/artikelen/{slug}/weergave:
+    post:
+      operationId: v1_artikelen_weergave_create
+      summary: Weergave registreren (statistiek en 'recent bezocht')
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/assistent:
+    post:
+      operationId: v1_assistent_create
+      summary: Vraag stellen aan de assistent
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssistentVraagRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AssistentVraagRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssistentVraagRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistentAntwoord'
+          description: ''
+  /api/v1/ik:
+    get:
+      operationId: v1_ik_retrieve
+      summary: Huidige gebruiker (GET) en voorkeuren wijzigen (PATCH)
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ik'
+          description: ''
+    patch:
+      operationId: v1_ik_partial_update
+      summary: Huidige gebruiker (GET) en voorkeuren wijzigen (PATCH)
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedIkWijzigenRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedIkWijzigenRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedIkWijzigenRequest'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ik'
+          description: ''
+  /api/v1/keuzelijsten:
+    get:
+      operationId: v1_keuzelijsten_retrieve
+      summary: Keuzelijsten voor filters (clusters, soorten, tags, zaaktypen)
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/statistieken:
+    get:
+      operationId: v1_statistieken_retrieve
+      summary: Gebruiksstatistieken (redacteuren). Geaggregeerd, zonder persoonsgegevens.
+      parameters:
+      - in: query
+        name: dagen
+        schema:
+          type: integer
+        description: Periode, standaard 30
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/voorstellen:
+    get:
+      operationId: v1_voorstellen_list
+      summary: 'Verbetervoorstellen: lijst (GET) of indienen (POST)'
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Voorstel'
+          description: ''
+    post:
+      operationId: v1_voorstellen_create
+      summary: 'Verbetervoorstellen: lijst (GET) of indienen (POST)'
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoorstelRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VoorstelRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VoorstelRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Voorstel'
+          description: ''
+  /api/v1/voorstellen/{id}:
+    patch:
+      operationId: v1_voorstellen_partial_update
+      summary: Verbetervoorstel behandelen (redacteuren)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedVoorstelBehandelRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedVoorstelBehandelRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedVoorstelBehandelRequest'
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Voorstel'
+          description: ''
+  /api/v1/zaaktypen/{code}/artikelen:
+    get:
+      operationId: v1_zaaktypen_artikelen_list
+      description: Geeft de gepubliceerde artikelen die aan dit zaaktype zijn gekoppeld.
+        Gebruik `code` zoals het zaaksysteem het zaaktype identificeert.
+      summary: Artikelen bij een zaaktype (voor het zaaksysteem)
+      parameters:
+      - in: path
+        name: code
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ArtikelKort'
+          description: ''
+components:
+  schemas:
+    Artikel:
+      type: object
+      properties:
+        slug:
+          type: string
+          description: Deel van de link naar het artikel.
+          maxLength: 120
+          pattern: ^[-a-zA-Z0-9_]+$
+        titel:
+          type: string
+          maxLength: 200
+        samenvatting:
+          type: string
+          description: 'Eén of twee zinnen: waar gaat dit artikel over?'
+        soort:
+          $ref: '#/components/schemas/SoortEnum'
+        status:
+          $ref: '#/components/schemas/ArtikelStatusEnum'
+        omgeving:
+          type: string
+          readOnly: true
+        clusters:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        tags:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        zaaktypen:
+          type: array
+          items:
+            type: string
+            description: De identificatie die het zaaksysteem gebruikt, bijv. de zaaktype-omschrijving
+              of -code.
+          readOnly: true
+        versie:
+          type: integer
+          readOnly: true
+        gepubliceerd_op:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        eigenaar:
+          type: string
+          maxLength: 120
+        url:
+          type: string
+          readOnly: true
+        secties:
+          type: array
+          items:
+            $ref: '#/components/schemas/Sectie'
+          readOnly: true
+        gerelateerd:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+        bewerk_url:
+          type: string
+          nullable: true
+          readOnly: true
+      required:
+      - bewerk_url
+      - clusters
+      - gepubliceerd_op
+      - gerelateerd
+      - omgeving
+      - samenvatting
+      - secties
+      - slug
+      - tags
+      - titel
+      - url
+      - versie
+      - zaaktypen
+    ArtikelKort:
+      type: object
+      properties:
+        slug:
+          type: string
+          description: Deel van de link naar het artikel.
+          maxLength: 120
+          pattern: ^[-a-zA-Z0-9_]+$
+        titel:
+          type: string
+          maxLength: 200
+        samenvatting:
+          type: string
+          description: 'Eén of twee zinnen: waar gaat dit artikel over?'
+        soort:
+          $ref: '#/components/schemas/SoortEnum'
+        status:
+          $ref: '#/components/schemas/ArtikelStatusEnum'
+        omgeving:
+          type: string
+          readOnly: true
+        clusters:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        tags:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        zaaktypen:
+          type: array
+          items:
+            type: string
+            description: De identificatie die het zaaksysteem gebruikt, bijv. de zaaktype-omschrijving
+              of -code.
+          readOnly: true
+        versie:
+          type: integer
+          readOnly: true
+        gepubliceerd_op:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        eigenaar:
+          type: string
+          maxLength: 120
+        url:
+          type: string
+          readOnly: true
+      required:
+      - clusters
+      - gepubliceerd_op
+      - omgeving
+      - samenvatting
+      - slug
+      - tags
+      - titel
+      - url
+      - versie
+      - zaaktypen
+    ArtikelStatusEnum:
+      enum:
+      - concept
+      - gepubliceerd
+      - gearchiveerd
+      type: string
+      description: |-
+        * `concept` - Concept
+        * `gepubliceerd` - Gepubliceerd
+        * `gearchiveerd` - Gearchiveerd
+    AssistentAntwoord:
+      type: object
+      properties:
+        html:
+          type: string
+        bronnen:
+          type: array
+          items: {}
+        modus:
+          type: string
+        melding:
+          type: string
+      required:
+      - bronnen
+      - html
+      - melding
+      - modus
+    AssistentVraagRequest:
+      type: object
+      properties:
+        vraag:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        zaaktype:
+          type: string
+          maxLength: 80
+      required:
+      - vraag
+    Ik:
+      type: object
+      properties:
+        naam:
+          type: string
+        is_redacteur:
+          type: boolean
+        onboarding:
+          type: boolean
+        favorieten:
+          type: array
+          items: {}
+        recent:
+          type: array
+          items: {}
+        uitlog_url:
+          type: string
+      required:
+      - favorieten
+      - is_redacteur
+      - naam
+      - onboarding
+      - recent
+      - uitlog_url
+    PatchedIkWijzigenRequest:
+      type: object
+      properties:
+        onboarding:
+          type: boolean
+    PatchedVoorstelBehandelRequest:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/VoorstelStatusEnum'
+        terugkoppeling:
+          type: string
+          maxLength: 4000
+    Sectie:
+      type: object
+      properties:
+        kop:
+          type: string
+          maxLength: 200
+        inhoud_html:
+          type: string
+          readOnly: true
+        onboarding_html:
+          type: string
+          readOnly: true
+      required:
+      - inhoud_html
+      - kop
+      - onboarding_html
+    SoortEnum:
+      enum:
+      - werkinstructie
+      - werkafspraak
+      - proces
+      type: string
+      description: |-
+        * `werkinstructie` - Werkinstructie
+        * `werkafspraak` - Werkafspraak
+        * `proces` - Proces
+    Voorstel:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        artikel:
+          type: string
+          description: Deel van de link naar het artikel.
+        artikel_titel:
+          type: string
+          readOnly: true
+        artikel_versie:
+          type: integer
+          readOnly: true
+          description: Versie van het artikel bij indienen.
+        citaat:
+          type: string
+          description: De tekst die de indiener had geselecteerd.
+        tekst:
+          type: string
+        status:
+          allOf:
+          - $ref: '#/components/schemas/VoorstelStatusEnum'
+          readOnly: true
+        terugkoppeling:
+          type: string
+          readOnly: true
+        ingediend_op:
+          type: string
+          format: date-time
+          readOnly: true
+        ingediend_door:
+          type: string
+          readOnly: true
+        van_mij:
+          type: boolean
+          readOnly: true
+        behandeld_op:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - artikel
+      - artikel_titel
+      - artikel_versie
+      - behandeld_op
+      - id
+      - ingediend_door
+      - ingediend_op
+      - status
+      - tekst
+      - terugkoppeling
+      - van_mij
+    VoorstelRequest:
+      type: object
+      properties:
+        artikel:
+          type: string
+          minLength: 1
+          description: Deel van de link naar het artikel.
+        citaat:
+          type: string
+          description: De tekst die de indiener had geselecteerd.
+        tekst:
+          type: string
+          minLength: 1
+      required:
+      - artikel
+      - tekst
+    VoorstelStatusEnum:
+      enum:
+      - nieuw
+      - in_behandeling
+      - verwerkt
+      - afgewezen
+      type: string
+      description: |-
+        * `nieuw` - Nieuw
+        * `in_behandeling` - In behandeling
+        * `verwerkt` - Verwerkt
+        * `afgewezen` - Afgewezen
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"

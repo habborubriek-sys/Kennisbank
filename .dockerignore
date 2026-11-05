@@ -1,0 +1,8 @@
+.venv
+.git
+**/__pycache__
+*.pyc
+staticfiles
+.env
+*.sqlite3
+docs/schermafbeeldingen

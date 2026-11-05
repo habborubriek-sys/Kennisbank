@@ -1,0 +1,6 @@
+{% load static %}<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ingelogd</title><link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}"><link rel="stylesheet" href="{% static 'kennisbank/app.css' %}">
+<script src="{% static 'kennisbank/login_voltooid.js' %}" defer></script></head>
+<body><main class="main"><div class="embed-login" id="login-voltooid" data-start="{{ request.GET.start|default:'' }}" data-auth="{% if request.user.is_authenticated %}1{% else %}0{% endif %}">
+<h1>Inloggen…</h1><p class="lead">Dit venster sluit vanzelf. Gebeurt dat niet, sluit het dan en vernieuw de kennisbank.</p></div></main></body></html>

@@ -1,0 +1,22 @@
+{% load static %}<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inloggen – {{ app_naam }}</title>
+<link rel="icon" href="{% static 'kennisbank/favicon.svg' %}" type="image/svg+xml">
+<link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}"><link rel="stylesheet" href="{% static 'kennisbank/app.css' %}"></head>
+<body>
+<header class="top"><div class="brand"><span class="mark" aria-hidden="true">K</span>{{ app_naam }}</div></header>
+<main class="main" id="main">
+  <form method="post" class="modal login" action="{% url 'inloggen' %}">
+    {% csrf_token %}
+    <h1>Inloggen</h1>
+    {% if form.errors %}<p class="fout" role="alert">Gebruikersnaam of wachtwoord klopt niet.</p>{% endif %}
+    <label for="id_username">Gebruikersnaam</label>
+    <input class="veld" id="id_username" name="username" autocomplete="username" required autofocus>
+    <label for="id_password">Wachtwoord</label>
+    <input class="veld" id="id_password" name="password" type="password" autocomplete="current-password" required>
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="row"><button type="submit" class="tb primary">Inloggen</button></div>
+    {% if demo %}<p class="hint">Demo-omgeving: log in als <b>medewerker</b>, <b>redacteur</b> of <b>beheerder</b>.</p>{% endif %}
+  </form>
+</main>
+</body></html>

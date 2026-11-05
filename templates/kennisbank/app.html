@@ -1,0 +1,70 @@
+{% load static %}<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ app_naam }}</title>
+<link rel="icon" href="{% static 'kennisbank/favicon.svg' %}" type="image/svg+xml">
+<link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}">
+<link rel="stylesheet" href="{% static 'kennisbank/app.css' %}">
+<script src="{% static 'kennisbank/app.js' %}" defer></script>
+</head>
+<body class="{% if embed %}embed{% endif %}" data-embed="{{ embed|yesno:'1,0' }}" data-zaaktype="{{ zaaktype }}" data-app-naam="{{ app_naam }}">
+<a class="skip" href="#main">Naar de inhoud</a>
+<header class="top">
+  <div class="brand"><a href="/"><span class="mark" aria-hidden="true">K</span><span>{{ app_naam }}</span></a>{% if demo %} <span class="proto">Demo</span>{% endif %}</div>
+  <form class="search" role="search" id="zoekform">
+    <span aria-hidden="true">⌕</span>
+    <label for="q" class="visually-hidden">Zoeken</label>
+    <input id="q" type="search" placeholder="Zoek in artikelen, werkafspraken, processen…" autocomplete="off">
+    <span class="kbd" aria-hidden="true">/</span>
+  </form>
+  <div class="topbtns">
+    <button class="tb side-toggle on-accent" id="sideToggle" type="button" aria-controls="side" aria-expanded="false">Menu</button>
+    <button class="toggle" id="onbToggle" type="button" aria-pressed="false" title="Toon extra uitleg voor nieuwe collega's"><span class="sw" aria-hidden="true"></span>Onboarding</button>
+    <span class="user" id="user"></span>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="side" id="side">
+    <nav class="nav" aria-label="Hoofdnavigatie">
+      <button type="button" data-view="recent">Recent bezocht <span class="count" id="cRec"></span></button>
+      <button type="button" data-view="artikelen">Alle artikelen <span class="count" id="cAll"></span></button>
+      <button type="button" data-view="favorieten">Favorieten <span class="count" id="cFav"></span></button>
+      <button type="button" data-view="voorstellen">Verbetervoorstellen <span class="count" id="cProp"></span></button>
+      <button type="button" data-view="statistieken" id="navStats" hidden>Gebruiksstatistieken</button>
+    </nav>
+    <div><h2 class="side-h">Cluster</h2><div class="chips" id="fCluster"></div></div>
+    <div><h2 class="side-h">Soort</h2><div class="chips" id="fType"></div></div>
+    <div class="meer" id="meer"></div>
+  </aside>
+
+  <main class="main" id="main" tabindex="-1"><p class="loading">Laden…</p></main>
+</div>
+
+<button class="selbtn" id="selBtn" type="button">✎ Verbetervoorstel over deze tekst</button>
+<button class="btn-chat" id="chatBtn" type="button" aria-controls="drawer" aria-expanded="false"><span class="ic" aria-hidden="true">✦</span>Assistent</button>
+
+<aside class="drawer" id="drawer" aria-label="Assistent" hidden>
+  <header><b><span aria-hidden="true">✦</span> Assistent</b><button class="x" id="chatClose" type="button" aria-label="Assistent sluiten">×</button></header>
+  <div class="sim" id="aiNote"></div>
+  <div class="msgs" id="msgs" aria-live="polite"></div>
+  <div class="sugg" id="sugg"></div>
+  <form class="chatform" id="chatform"><label for="chatIn" class="visually-hidden">Je vraag</label><input id="chatIn" placeholder="Stel een vraag over je werk…" autocomplete="off" maxlength="1000"><button type="submit">Vraag</button></form>
+</aside>
+
+<div class="backdrop" id="backdrop">
+  <form class="modal" id="propForm" role="dialog" aria-modal="true" aria-labelledby="propTitel">
+    <h2 id="propTitel">Verbetervoorstel indienen</h2>
+    <div id="propArt" class="art-line"></div>
+    <blockquote id="propQuote"></blockquote>
+    <label for="propText">Wat kan beter?</label>
+    <textarea id="propText" required maxlength="4000" placeholder="Beschrijf wat onduidelijk, verouderd of onjuist is en wat je zou voorstellen."></textarea>
+    <div class="row"><button type="button" class="tb" id="propCancel">Annuleren</button><button type="submit" class="tb primary">Indienen</button></div>
+  </form>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

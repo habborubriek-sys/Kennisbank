@@ -1,0 +1,55 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: {POSTGRES_DB: kennisbank, POSTGRES_USER: kennisbank, POSTGRES_PASSWORD: kennisbank}
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U kennisbank" --health-interval 5s --health-retries 20
+    env:
+      KB_DEBUG: "1"
+      KB_DATABASE_URL: postgres://kennisbank:kennisbank@localhost:5432/kennisbank
+      KB_ALLOWED_HOSTS: testserver,localhost
+      KB_LOG_NIVEAU: WARNING
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13"}
+      - run: pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check .
+      - name: Migraties compleet
+        run: python manage.py makemigrations --check --dry-run
+      - name: Tests
+        run: python manage.py test kennisbank
+      - name: Kwetsbaarheden in afhankelijkheden
+        run: pip-audit -r requirements.txt
+      - name: SBOM (CycloneDX)
+        run: cyclonedx-py requirements requirements.txt -o sbom.cdx.json
+      - uses: actions/upload-artifact@v4
+        with: {name: sbom, path: sbom.cdx.json}
+
+  image:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t kennisbank:${{ github.sha }} .
+      - name: Rooktest container
+        run: |
+          docker network create kb
+          docker run -d --name db --network kb -e POSTGRES_DB=kennisbank -e POSTGRES_USER=kennisbank -e POSTGRES_PASSWORD=kennisbank postgres:16-alpine
+          sleep 8
+          docker run -d --name app --network kb -p 8000:8000 \
+            -e KB_DATABASE_URL=postgres://kennisbank:kennisbank@db:5432/kennisbank \
+            -e KB_SECRET_KEY=ci-test-sleutel -e KB_DEMO_MODUS=aan -e KB_COOKIES_SECURE=nee \
+            kennisbank:${{ github.sha }}
+          for i in $(seq 1 30); do curl -fs localhost:8000/readyz && break; sleep 2; done
+          curl -fs localhost:8000/readyz
+          docker logs app | tail -20

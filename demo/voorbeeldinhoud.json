@@ -1,0 +1,343 @@
+{
+  "formaat": "kennisbank-import",
+  "versie": 1,
+  "omgeving": {
+    "slug": "handhaving",
+    "naam": "Handhaving",
+    "beschrijving": "Werkinstructies, werkafspraken en processen van Handhaving. Voorbeeldinhoud."
+  },
+  "clusters": [
+    "Nat beheer",
+    "Droog beheer",
+    "Lozingen",
+    "Ontgrondingen",
+    "Bodem",
+    "Nautisch"
+  ],
+  "zaaktypen": [
+    {
+      "code": "Melding",
+      "naam": "Melding"
+    },
+    {
+      "code": "Melding Omgevingswet",
+      "naam": "Melding Omgevingswet"
+    },
+    {
+      "code": "Object",
+      "naam": "Object"
+    },
+    {
+      "code": "Toezicht",
+      "naam": "Toezicht"
+    },
+    {
+      "code": "Vergunningcontrole",
+      "naam": "Vergunningcontrole"
+    }
+  ],
+  "artikelen": [
+    {
+      "slug": "melding-registreren",
+      "titel": "Melding registreren in het zaaksysteem",
+      "samenvatting": "Hoe je een binnengekomen melding dezelfde dag vastlegt, zodat de zaak compleet en vindbaar is voor de behandelaar.",
+      "soort": "werkinstructie",
+      "status": "gepubliceerd",
+      "clusters": [],
+      "tags": [
+        "zaaksysteem",
+        "melding",
+        "intake"
+      ],
+      "zaaktypen": [
+        "Melding"
+      ],
+      "secties": [
+        {
+          "kop": "Wanneer gebruik je deze instructie",
+          "inhoud": "Elke melding die binnenkomt via de gezamenlijke mailbox, de telefoon of het meldformulier wordt dezelfde werkdag geregistreerd. Ook als nog niet duidelijk is of we de melding oppakken.",
+          "onboarding": "Twijfel je of iets een melding is? Registreer het dan toch. Een zaak die later wordt afgewezen is beter dan een melding die kwijtraakt."
+        },
+        {
+          "kop": "Stap 1 — Zaak aanmaken",
+          "inhoud": "Kies zaaktype **Melding**. Vul melder, locatie en onderwerp in. De locatie gaat altijd in het locatieveld, nooit in het onderwerp.",
+          "onboarding": "Klik linksboven op **Nieuwe zaak**. Het locatieveld accepteert een hectometerpaal (bijv. A2 L 57,3) of een adres. Onbekend? Laat het veld leeg en zet een opmerking in het logboek."
+        },
+        {
+          "kop": "Stap 2 — Verplichte velden",
+          "inhoud": "Vul **Cluster**, **Prioriteit** en **Bron** in. Zonder deze drie velden telt de zaak niet goed mee in de rapportage en de werkvoorraad.\n\n- Cluster: het cluster waar het object of de activiteit onder valt (Nat beheer, Droog beheer, Lozingen, Ontgrondingen, Bodem of Nautisch).\n- Bron: kies de werkelijke bron (e-mail, telefoon, formulier, eigen waarneming).",
+          "onboarding": "Prioriteit: **Hoog** = direct gevaar voor verkeer of water, **Midden** = binnen een week oppakken, **Laag** = planbaar."
+        },
+        {
+          "kop": "Stap 3 — Toewijzen",
+          "inhoud": "Wijs de zaak toe aan een behandelaar volgens het clusterrooster. Wijs een zaak niet aan jezelf toe om hem te parkeren; gebruik daarvoor de status **Wacht op beoordeling**.",
+          "onboarding": ""
+        },
+        {
+          "kop": "Veelgemaakte fouten",
+          "inhoud": "- Locatie in het onderwerpsveld in plaats van het locatieveld.\n- Bron op *Overig* terwijl het een e-mail was.\n- Dubbele zaken: zoek eerst op locatie voordat je aanmaakt.",
+          "onboarding": ""
+        }
+      ]
+    },
+    {
+      "slug": "melding-oppakken",
+      "titel": "Wordt een melding opgepakt?",
+      "samenvatting": "De afspraak over hoe we besluiten of een melding wordt opgepakt, doorgezet of afgewezen, en waarom we ook vastleggen wat we niet doen.",
+      "soort": "werkafspraak",
+      "status": "gepubliceerd",
+      "clusters": [],
+      "tags": [
+        "melding",
+        "prioritering",
+        "afwijsredenen",
+        "werkvoorraad"
+      ],
+      "zaaktypen": [
+        "Melding"
+      ],
+      "secties": [
+        {
+          "kop": "Uitgangspunt",
+          "inhoud": "Elke melding krijgt een besluit: **oppakken**, **doorzetten** naar een andere partij, of **niet oppakken**. Een melding die we niet oppakken wordt niet verwijderd maar afgesloten met een afwijsreden.",
+          "onboarding": ""
+        },
+        {
+          "kop": "Afwijsredenen",
+          "inhoud": "- Geen bevoegdheid Rijkswaterstaat (doorzetten naar bevoegd gezag)\n- Dubbele melding (koppelen aan bestaande zaak)\n- Onvoldoende informatie, ook na één verzoek aan de melder\n- Geen overtreding geconstateerd\n- Te gering belang in verhouding tot de inzet",
+          "onboarding": "Kies altijd de reden die het dichtst bij de werkelijkheid ligt, ook als dat even puzzelen is. Deze redenen worden landelijk vergeleken."
+        },
+        {
+          "kop": "Wie besluit",
+          "inhoud": "De behandelaar beoordeelt. Bij twijfel legt de behandelaar de melding voor aan de coördinator. Het besluit staat in het logboek van de zaak.",
+          "onboarding": ""
+        },
+        {
+          "kop": "Waarom we vastleggen wat we niet doen",
+          "inhoud": "Zonder registratie is de werkvoorraad onvolledig. We kunnen dan niet onderbouwen waar capaciteit tekortschiet en welke meldingen structureel blijven liggen.",
+          "onboarding": ""
+        }
+      ]
+    },
+    {
+      "slug": "rappel-versturen",
+      "titel": "Rappel versturen bij uitblijvende reactie",
+      "samenvatting": "Termijnen en stappen voor het eerste en tweede rappel wanneer een initiatiefnemer niet reageert op een verzoek.",
+      "soort": "werkinstructie",
+      "status": "gepubliceerd",
+      "clusters": [
+        "Droog beheer",
+        "Lozingen"
+      ],
+      "tags": [
+        "rappel",
+        "Omgevingswet",
+        "termijnen",
+        "brief"
+      ],
+      "zaaktypen": [
+        "Melding Omgevingswet",
+        "Vergunningcontrole"
+      ],
+      "secties": [
+        {
+          "kop": "Termijnen",
+          "inhoud": "- Reactietermijn verzoek: 4 weken\n- Eerste rappel: direct na het verstrijken van de termijn\n- Tweede rappel: 2 weken na het eerste rappel\n- Geen reactie na het tweede rappel: start handhavingstraject",
+          "onboarding": ""
+        },
+        {
+          "kop": "Brief opstellen",
+          "inhoud": "Gebruik het sjabloon **Rappel 1** of **Rappel 2** uit het zaaksysteem. Wijzig alleen de gele velden; de juridische tekst blijft staan.",
+          "onboarding": "Sjablonen vind je onder **Documenten → Nieuw document → Sjabloon**. Controleer of het zaakkenmerk is overgenomen in de brief."
+        },
+        {
+          "kop": "Registreren",
+          "inhoud": "Zet na verzending de taak **Reactie afwachten** op de nieuwe termijn en noteer de verzenddatum in het logboek.",
+          "onboarding": ""
+        },
+        {
+          "kop": "Toekomstige wijziging",
+          "inhoud": "Zodra de rappelautomatisering actief is, vervalt de stap Registreren: de taak wordt dan automatisch gezet.",
+          "onboarding": ""
+        }
+      ]
+    },
+    {
+      "slug": "zwerfboot",
+      "titel": "Zwerfboot aangetroffen: registratie en opvolging",
+      "samenvatting": "Wat je doet bij een onbeheerd vaartuig: vastleggen in het objectregister, stickeren en de verwijderingstermijn bewaken.",
+      "soort": "werkinstructie",
+      "status": "gepubliceerd",
+      "clusters": [
+        "Nat beheer",
+        "Nautisch"
+      ],
+      "tags": [
+        "zwerfboten",
+        "object",
+        "locatie",
+        "vaarweg"
+      ],
+      "zaaktypen": [
+        "Melding",
+        "Object"
+      ],
+      "secties": [
+        {
+          "kop": "Veiligheid eerst",
+          "inhoud": "Ligt het vaartuig in de vaargeul of belemmert het de scheepvaart? Meld dit direct bij de verkeerspost voordat je iets registreert.",
+          "onboarding": ""
+        },
+        {
+          "kop": "Registratie in het objectregister",
+          "inhoud": "Maak een object aan met foto, coördinaten en kenmerken: lengte, kleur, type en registratienummer als dat zichtbaar is.",
+          "onboarding": "Coördinaten haal je uit de app op de diensttelefoon. RD of WGS84 is allebei goed, zolang je vermeldt welk stelsel je gebruikt."
+        },
+        {
+          "kop": "Opvolging",
+          "inhoud": "1. Sticker aanbrengen met datum en zaaknummer.\n2. Termijn van 2 weken instellen.\n3. Geen eigenaar gemeld: verwijderingsbesluit opstellen.",
+          "onboarding": ""
+        }
+      ]
+    },
+    {
+      "slug": "dossier-afsluiten",
+      "titel": "Dossier afsluiten en kwaliteitscontrole",
+      "samenvatting": "Waar een zaak aan moet voldoen voordat je hem afsluit, en hoe de maandelijkse steekproef werkt.",
+      "soort": "proces",
+      "status": "gepubliceerd",
+      "clusters": [],
+      "tags": [
+        "dossier",
+        "kwaliteit",
+        "afsluiten",
+        "controle"
+      ],
+      "zaaktypen": [
+        "Melding",
+        "Vergunningcontrole",
+        "Toezicht"
+      ],
+      "secties": [
+        {
+          "kop": "Voordat je afsluit",
+          "inhoud": "- Alle documenten zitten in de zaak, niet in je mailbox.\n- Einddatum en resultaat zijn ingevuld.\n- Het logboek sluit aan op het resultaat.",
+          "onboarding": ""
+        },
+        {
+          "kop": "Steekproef door procesmanagement",
+          "inhoud": "Procesmanagement controleert maandelijks een steekproef van afgesloten zaken aan de hand van de checklist. Afwijkingen worden teruggekoppeld aan de behandelaar en gebruikt om de instructies te verbeteren, niet om personen te beoordelen.",
+          "onboarding": ""
+        },
+        {
+          "kop": "Checklist (verkort)",
+          "inhoud": "1. Verplichte velden gevuld\n2. Locatie in het juiste veld\n3. Besluit en reden in logboek\n4. Documenten compleet\n5. Termijnen gehaald of toegelicht",
+          "onboarding": "De volledige checklist staat als bijlage bij dit artikel. Je hoeft hem niet uit je hoofd te kennen: loop hem na bij je eerste tien zaken."
+        }
+      ]
+    },
+    {
+      "slug": "mailbox",
+      "titel": "Gezamenlijke mailbox: wie pakt wat op",
+      "samenvatting": "Afspraken over het gebruik van de gezamenlijke mailbox en de persoonlijke werkmail, en wie de mailbox dagelijks verdeelt.",
+      "soort": "werkafspraak",
+      "status": "gepubliceerd",
+      "clusters": [],
+      "tags": [
+        "e-mail",
+        "mailbox",
+        "intake"
+      ],
+      "zaaktypen": [],
+      "secties": [
+        {
+          "kop": "Uitgangspunt",
+          "inhoud": "Alle mail over zaken loopt via de gezamenlijke mailbox. De persoonlijke werkmail is voor persoonlijke zaken en interne afstemming. Zo blijft een zaak bereikbaar als een collega afwezig is.",
+          "onboarding": ""
+        },
+        {
+          "kop": "Dagelijkse verdeling",
+          "inhoud": "De dienstdoende collega categoriseert de mailbox vóór 10:00 uur en koppelt elk bericht aan een zaak of maakt een nieuwe zaak aan.",
+          "onboarding": "Het rooster voor de dienstdoende collega staat in de teamagenda. Je eerste twee weken loop je mee met de dienstdoende collega."
+        },
+        {
+          "kop": "Mappen",
+          "inhoud": "- **Te verwerken** — nog niet gekoppeld\n- **Gekoppeld** — in het zaaksysteem verwerkt\n- **Geen actie** — informatief, geen zaak",
+          "onboarding": ""
+        }
+      ]
+    },
+    {
+      "slug": "procesoverzicht",
+      "titel": "Van melding tot afhandeling",
+      "samenvatting": "Het hoofdproces in vijf stappen, met de doorlooptijdnormen en de datumvelden waarop we meten.",
+      "soort": "proces",
+      "status": "gepubliceerd",
+      "clusters": [],
+      "tags": [
+        "proces",
+        "doorlooptijd",
+        "overzicht"
+      ],
+      "zaaktypen": [
+        "Melding"
+      ],
+      "secties": [
+        {
+          "kop": "Processtappen",
+          "inhoud": "**Intake** → **Beoordeling** → **Behandeling** → **Afronding** → **Kwaliteitscontrole**\n\nElke stap heeft een eigen artikel in de kennisbank. Dit overzicht laat zien hoe ze op elkaar aansluiten.",
+          "onboarding": ""
+        },
+        {
+          "kop": "Doorlooptijdnormen",
+          "inhoud": "- Intake: 1 werkdag\n- Beoordeling: 5 werkdagen\n- Behandeling: afhankelijk van zaaktype (zie zaaktypekaart)\n- Afronding: 5 werkdagen na laatste actie",
+          "onboarding": ""
+        },
+        {
+          "kop": "Meetpunten",
+          "inhoud": "De doorlooptijd wordt gemeten op de datumvelden **Ontvangen**, **Beoordeeld**, **In behandeling** en **Afgesloten**. Vul deze velden daarom op de dag zelf in; een datum achteraf corrigeren vervuilt de meting.",
+          "onboarding": "Deze velden staan rechtsboven in de zaak onder **Voortgang**. Het systeem vult **Ontvangen** automatisch; de rest vul je zelf in."
+        }
+      ]
+    },
+    {
+      "slug": "toezichtbezoek",
+      "titel": "Toezichtbezoek voorbereiden en verslaan",
+      "samenvatting": "Checklist voor, tijdens en na een toezichtbezoek, inclusief de termijn voor het verslag.",
+      "soort": "werkinstructie",
+      "status": "gepubliceerd",
+      "clusters": [
+        "Lozingen",
+        "Ontgrondingen",
+        "Bodem"
+      ],
+      "tags": [
+        "toezicht",
+        "bezoek",
+        "verslag",
+        "vergunning"
+      ],
+      "zaaktypen": [
+        "Vergunningcontrole",
+        "Toezicht"
+      ],
+      "secties": [
+        {
+          "kop": "Voorbereiding",
+          "inhoud": "- Lees de vergunning en eerdere bezoeken in de zaak.\n- Leg vast wat je gaat controleren (controlepunten).\n- Kondig het bezoek aan, tenzij onaangekondigd toezicht is afgesproken.",
+          "onboarding": ""
+        },
+        {
+          "kop": "Tijdens het bezoek",
+          "inhoud": "Werk de controlepunten af, maak foto's met locatie en tijd, en benoem geconstateerde afwijkingen ter plekke aan de vergunninghouder.",
+          "onboarding": "Neem de eerste bezoeken een ervaren collega mee. Spreek vooraf af wie het gesprek voert en wie vastlegt."
+        },
+        {
+          "kop": "Verslag",
+          "inhoud": "Het verslag staat binnen **5 werkdagen** in de zaak, met het sjabloon **Toezichtverslag**. Afwijkingen leiden tot een vervolgzaak of een rappel.",
+          "onboarding": ""
+        }
+      ]
+    }
+  ]
+}

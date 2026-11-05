@@ -1,0 +1,33 @@
+# Draai deze Job bij elke nieuwe versie vóór de uitrol (of laat de CD-pipeline dat doen).
+# Een Job is onveranderlijk: verwijder de vorige eerst (kubectl delete job kennisbank-migreer).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kennisbank-migreer
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      restartPolicy: Never
+      containers:
+        - name: migreer
+          image: kennisbank
+          args: ["migreer"]
+          envFrom:
+            - configMapRef: {name: kennisbank-config}
+            - secretRef: {name: kennisbank-geheimen}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {medium: Memory, sizeLimit: 64Mi}

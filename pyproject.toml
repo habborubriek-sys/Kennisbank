@@ -1,0 +1,19 @@
+[project]
+name = "kennisbank"
+version = "1.0.0"
+description = "Kennisbank voor werkinstructies, werkafspraken en processen, met assistent en koppeling met het zaaksysteem"
+license = "EUPL-1.2"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["kennisbank/migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "DJ"]
+ignore = ["S101", "S308", "E731", "DJ001", "DJ008", "DJ012"]
+
+[tool.ruff.lint.per-file-ignores]
+"kennisbank/tests/*" = ["S", "SIM115", "B"]
+"config/settings.py" = ["S105"]

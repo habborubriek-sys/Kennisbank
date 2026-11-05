@@ -1,0 +1,36 @@
+stages: [test, bouw]
+
+test:
+  stage: test
+  image: python:3.13-slim
+  services:
+    - name: postgres:16-alpine
+      alias: db
+  variables:
+    POSTGRES_DB: kennisbank
+    POSTGRES_USER: kennisbank
+    POSTGRES_PASSWORD: kennisbank
+    KB_DEBUG: "1"
+    KB_DATABASE_URL: postgres://kennisbank:kennisbank@db:5432/kennisbank
+    KB_ALLOWED_HOSTS: testserver,localhost
+    KB_LOG_NIVEAU: WARNING
+  script:
+    - pip install -r requirements-dev.txt
+    - ruff check .
+    - python manage.py makemigrations --check --dry-run
+    - python manage.py test kennisbank
+    - pip-audit -r requirements.txt
+    - cyclonedx-py requirements requirements.txt -o sbom.cdx.json
+  artifacts:
+    paths: [sbom.cdx.json]
+
+image:
+  stage: bouw
+  image: docker:27
+  services: [docker:27-dind]
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" .
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

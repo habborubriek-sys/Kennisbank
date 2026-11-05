@@ -1,0 +1,34 @@
+{
+  "voorstellen": [
+    {
+      "id": "p1",
+      "art": "rappel-versturen",
+      "quote": "Tweede rappel: 2 weken na het eerste rappel",
+      "text": "In de praktijk hanteren we bij Droog beheer 3 weken omdat de post traag is. Klopt de 2 weken nog?",
+      "by": "Behandelaar Droog beheer",
+      "date": "2026-10-03",
+      "status": "behandeling",
+      "fb": "We checken dit met de juridische collega's; terugkoppeling volgt voor 24 oktober."
+    },
+    {
+      "id": "p2",
+      "art": "melding-registreren",
+      "quote": "Bron: kies de werkelijke bron",
+      "text": "Er mist een optie voor meldingen via de landelijke meldkamer.",
+      "by": "Behandelaar Nat beheer",
+      "date": "2026-09-26",
+      "status": "verwerkt",
+      "fb": "Toegevoegd als bron 'Meldkamer' in versie 1.3 van dit artikel."
+    }
+  ],
+  "weergaven": {
+    "melding-registreren": 412,
+    "melding-oppakken": 268,
+    "rappel-versturen": 190,
+    "zwerfboot": 97,
+    "dossier-afsluiten": 233,
+    "mailbox": 154,
+    "procesoverzicht": 301,
+    "toezichtbezoek": 121
+  }
+}

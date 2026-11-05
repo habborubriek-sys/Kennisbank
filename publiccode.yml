@@ -1,0 +1,36 @@
+# Beschrijving volgens de publiccode.yml-standaard (Developers.Italia / developer.overheid.nl)
+publiccodeYmlVersion: "0.4"
+name: Kennisbank
+url: https://example.nl/kennisbank.git   # aanpassen bij publicatie
+softwareVersion: "1.0.0"
+releaseDate: "2026-11-05"
+platforms: [web]
+categories: [knowledge-management, document-management]
+developmentStatus: beta
+softwareType: standalone/web
+description:
+  nl:
+    shortDescription: Kennisbank voor werkinstructies, werkafspraken en processen, met assistent en zaaksysteemkoppeling.
+    longDescription: >
+      Eén centrale plek waar medewerkers werkinstructies, werkafspraken en processen vinden.
+      Met inklapbare artikelen, extra uitleg voor nieuwe collega's, favorieten, verbetervoorstellen
+      op geselecteerde tekst, een assistent die alleen antwoordt uit de kennisbank, versiegeschiedenis,
+      rollen per omgeving via OIDC en een koppeling met het zaaksysteem per zaaktype.
+    features:
+      - Artikelen met inklapbare secties en onboarding-uitleg
+      - Zoeken met Nederlandse woordstammen
+      - Verbetervoorstellen met terugkoppeling
+      - AI-assistent met bronvermelding (optioneel taalmodel)
+      - Versiegeschiedenis van gepubliceerde artikelen
+      - Inbedden in het zaaksysteem per zaaktype
+legal:
+  license: EUPL-1.2
+maintenance:
+  type: internal
+localisation:
+  localisationReady: false
+  availableLanguages: [nl]
+dependsOn:
+  open:
+    - name: PostgreSQL
+      versionMin: "14"

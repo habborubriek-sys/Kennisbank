@@ -1,0 +1,24 @@
+{% load static %}<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demo zaaksysteem – {{ app_naam }}</title>
+<link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}"><link rel="stylesheet" href="{% static 'kennisbank/app.css' %}">
+<script src="{% static 'kennisbank/demo_zaaksysteem.js' %}" defer></script></head>
+<body>
+<header class="top"><div class="brand"><span class="mark" aria-hidden="true">Z</span>Zaaksysteem <span class="proto">Simulatie</span></div></header>
+<main class="main" id="main"><div class="view">
+<h1>Zo ziet de koppeling eruit</h1>
+<p class="lead">Links een nagebootst zaakscherm, rechts de kennisbank zoals het zaaksysteem die in een iframe toont: <code>/zaaktype/&lt;code&gt;</code>. Kies een ander zaaktype en het paneel ververst.</p>
+<div class="demo-zs zs">
+ <div class="case"><div class="bar2"><span>Zaak 2026-04817</span><span>Behandelaar: jij</span></div>
+  <div class="fields">
+   <div><label for="zsType">Zaaktype</label><select id="zsType">
+     <option>Melding</option><option>Melding Omgevingswet</option><option>Vergunningcontrole</option><option>Toezicht</option><option>Object</option></select></div>
+   <div><label for="zsStatus">Status</label><input id="zsStatus" value="In behandeling" readonly></div>
+   <div><label for="zsLoc">Locatie</label><input id="zsLoc" value="Amsterdam-Rijnkanaal, km 23,4" readonly></div>
+   <div><label for="zsOntv">Ontvangen</label><input id="zsOntv" value="2026-10-14" readonly></div>
+   <div class="volle-breedte"><label for="zsOnd">Onderwerp</label><input id="zsOnd" value="Melding onbeheerd vaartuig nabij oever" readonly></div>
+  </div>
+  <div class="logrow">Logboek · 2026-10-14 Zaak aangemaakt via gezamenlijke mailbox · 2026-10-15 Toegewezen</div>
+ </div>
+ <iframe id="kb" title="Kennisbank bij dit zaaktype" src="/zaaktype/Melding"></iframe>
+</div></div></main></body></html>

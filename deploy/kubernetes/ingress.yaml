@@ -1,0 +1,17 @@
+# Voorbeeld; pas ingressClassName en TLS aan op het platform.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kennisbank
+spec:
+  tls:
+    - hosts: [kennisbank.example.nl]
+      secretName: kennisbank-tls
+  rules:
+    - host: kennisbank.example.nl
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: kennisbank, port: {name: http}}

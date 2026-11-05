@@ -1,0 +1,34 @@
+# Voert dagelijks de bewaartermijnen uit (AVG): recent bezocht, statistieken, anonimiseren voorstellen.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kennisbank-opschonen
+spec:
+  schedule: "17 3 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            seccompProfile: {type: RuntimeDefault}
+          restartPolicy: OnFailure
+          containers:
+            - name: opschonen
+              image: kennisbank
+              args: ["opschonen"]
+              envFrom:
+                - configMapRef: {name: kennisbank-config}
+                - secretRef: {name: kennisbank-geheimen}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: [ALL]}
+              volumeMounts:
+                - {name: tmp, mountPath: /tmp}
+          volumes:
+            - name: tmp
+              emptyDir: {medium: Memory, sizeLimit: 64Mi}

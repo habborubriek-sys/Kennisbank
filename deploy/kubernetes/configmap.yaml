@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kennisbank-config
+data:
+  KB_ALLOWED_HOSTS: kennisbank.example.nl
+  KB_CSRF_TRUSTED_ORIGINS: https://kennisbank.example.nl
+  KB_BASIS_URL: https://kennisbank.example.nl
+  KB_AUTH_MODUS: oidc
+  KB_OIDC_GEBRUIKERSNAAM_CLAIM: oid
+  KB_OIDC_GROEPEN_CLAIM: groups
+  KB_FRAME_ANCESTORS: "'self' https://zaaksysteem.example.nl"
+  KB_HSTS_SECONDEN: "31536000"
+  KB_AI_PROVIDER: uit
+  KB_MIGREER_BIJ_START: nee   # migraties lopen via de Job, niet bij elke pod-start
+  KB_WORKERS: "3"

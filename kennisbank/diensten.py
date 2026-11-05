@@ -1,0 +1,145 @@
+"""Bedrijfslogica die vanuit meerdere plekken (beheerscherm, API, import) wordt gebruikt."""
+
+import logging
+
+from django.conf import settings
+from django.core.mail import send_mail
+from django.db import transaction
+from django.db.models import F
+from django.utils import timezone
+
+from .models import (
+    Artikel,
+    ArtikelVersie,
+    Favoriet,
+    Profiel,
+    RecentBezocht,
+    Rol,
+    Status,
+    WeergaveTelling,
+    ZoekTelling,
+)
+
+log = logging.getLogger("kennisbank")
+
+
+def momentopname(artikel: Artikel) -> dict:
+    return {
+        "titel": artikel.titel,
+        "samenvatting": artikel.samenvatting,
+        "soort": artikel.soort,
+        "eigenaar": artikel.eigenaar,
+        "omgeving": artikel.omgeving.slug,
+        "clusters": sorted(artikel.clusters.values_list("naam", flat=True)),
+        "tags": sorted(artikel.tags.values_list("naam", flat=True)),
+        "zaaktypen": sorted(artikel.zaaktypen.values_list("code", flat=True)),
+        "secties": [{"kop": s.kop, "inhoud": s.inhoud, "onboarding": s.onboarding} for s in artikel.secties.all()],
+    }
+
+
+@transaction.atomic
+def registreer_publicatie(artikel: Artikel, gebruiker=None, toelichting: str = "") -> ArtikelVersie | None:
+    """Leg een nieuwe versie vast als een gepubliceerd artikel inhoudelijk is gewijzigd.
+
+    Wordt aangeroepen na elke opslag. Concepten krijgen geen versie; bij elke wijziging
+    van een gepubliceerd artikel ontstaat er wel één. Ongewijzigd opslaan levert niets op.
+    """
+    if artikel.status != Status.GEPUBLICEERD:
+        return None
+    artikel = Artikel.objects.select_for_update().get(pk=artikel.pk)
+    inhoud = momentopname(artikel)
+    laatste = artikel.versies.order_by("-versie").first()
+    if laatste and laatste.inhoud == inhoud:
+        return None
+    nieuw_nummer = (laatste.versie if laatste else 0) + 1
+    nu = timezone.now()
+    versie = ArtikelVersie.objects.create(
+        artikel=artikel,
+        versie=nieuw_nummer,
+        inhoud=inhoud,
+        toelichting=toelichting[:300],
+        gepubliceerd_door=gebruiker if gebruiker and gebruiker.is_authenticated else None,
+        gepubliceerd_op=nu,
+    )
+    Artikel.objects.filter(pk=artikel.pk).update(versie=nieuw_nummer, gepubliceerd_op=nu)
+    log.info("artikel gepubliceerd", extra={"artikel": artikel.slug, "versie": nieuw_nummer})
+    return versie
+
+
+def profiel(gebruiker) -> Profiel:
+    p, _ = Profiel.objects.get_or_create(gebruiker=gebruiker)
+    return p
+
+
+def registreer_weergave(gebruiker, artikel: Artikel):
+    vandaag = timezone.localdate()
+    telling, _ = WeergaveTelling.objects.get_or_create(artikel=artikel, datum=vandaag)
+    WeergaveTelling.objects.filter(pk=telling.pk).update(aantal=F("aantal") + 1)
+
+    RecentBezocht.objects.update_or_create(
+        gebruiker=gebruiker, artikel=artikel, defaults={"bezocht_op": timezone.now()}
+    )
+    oud = RecentBezocht.objects.filter(gebruiker=gebruiker).order_by("-bezocht_op")[settings.KB_RECENT_MAX :]
+    RecentBezocht.objects.filter(pk__in=[r.pk for r in oud]).delete()
+
+
+def registreer_zoekopdracht(term: str, aantal_resultaten: int):
+    term = " ".join(term.lower().split())[:100]
+    if len(term) < 2:
+        return
+    telling, _ = ZoekTelling.objects.get_or_create(term=term, datum=timezone.localdate())
+    ZoekTelling.objects.filter(pk=telling.pk).update(
+        aantal=F("aantal") + 1,
+        zonder_resultaat=F("zonder_resultaat") + (1 if aantal_resultaten == 0 else 0),
+    )
+
+
+def zet_favoriet(gebruiker, artikel: Artikel, aan: bool):
+    if aan:
+        Favoriet.objects.get_or_create(gebruiker=gebruiker, artikel=artikel)
+    else:
+        Favoriet.objects.filter(gebruiker=gebruiker, artikel=artikel).delete()
+
+
+# --- Meldingen per e-mail (alleen als KB_EMAIL_HOST is ingesteld) ----------------------
+
+
+def _mail(onderwerp, tekst, ontvangers):
+    ontvangers = sorted({o for o in ontvangers if o})
+    if not settings.KB_EMAIL_AAN or not ontvangers:
+        return
+    try:
+        send_mail(onderwerp, tekst, None, ontvangers, fail_silently=False)
+    except Exception:  # noqa: BLE001 - een mislukte mail mag de gebruiker niet blokkeren
+        log.exception("versturen e-mail mislukt", extra={"onderwerp": onderwerp})
+
+
+def meld_nieuw_voorstel(voorstel):
+    from django.contrib.auth import get_user_model
+
+    redacteuren = (
+        get_user_model()
+        .objects.filter(
+            groups__kennisbank_toegang__omgeving=voorstel.artikel.omgeving,
+            groups__kennisbank_toegang__rol=Rol.REDACTEUR,
+            is_active=True,
+        )
+        .values_list("email", flat=True)
+    )
+    _mail(
+        f"Nieuw verbetervoorstel: {voorstel.artikel.titel}",
+        f"Er is een verbetervoorstel ingediend bij '{voorstel.artikel.titel}'.\n\n"
+        f"{voorstel.tekst}\n\nBehandelen: {settings.KB_BASIS_URL}/voorstellen",
+        redacteuren,
+    )
+
+
+def meld_terugkoppeling(voorstel):
+    if not voorstel.ingediend_door:
+        return
+    _mail(
+        f"Terugkoppeling op je verbetervoorstel: {voorstel.artikel.titel}",
+        f"Status: {voorstel.get_status_display()}\n\n{voorstel.terugkoppeling}\n\n"
+        f"Bekijk: {settings.KB_BASIS_URL}/voorstellen",
+        [voorstel.ingediend_door.email],
+    )

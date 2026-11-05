@@ -1,0 +1,51 @@
+# Kennisbank – direct proberen:   docker compose up
+# Daarna: http://localhost:8000  (demo-accounts: medewerker / redacteur / beheerder, wachtwoord: demo)
+#
+# Dit bestand is bedoeld om te proberen en te testen. Voor productie: zie docs/installatie-en-beheer.md.
+name: kennisbank
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: kennisbank
+      POSTGRES_USER: kennisbank
+      POSTGRES_PASSWORD: ${KB_DB_WACHTWOORD:-kennisbank}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kennisbank -d kennisbank"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    image: kennisbank:1.0.0
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${KB_HOST_POORT:-8000}:8000"
+    environment:
+      KB_DATABASE_URL: postgres://kennisbank:${KB_DB_WACHTWOORD:-kennisbank}@db:5432/kennisbank
+      KB_SECRET_KEY: ${KB_SECRET_KEY:-demo-sleutel-vervang-mij-in-productie-0123456789}
+      KB_ALLOWED_HOSTS: ${KB_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      KB_CSRF_TRUSTED_ORIGINS: ${KB_CSRF_TRUSTED_ORIGINS:-http://localhost:8000,http://127.0.0.1:8000}
+      KB_BASIS_URL: ${KB_BASIS_URL:-http://localhost:8000}
+      KB_AUTH_MODUS: ${KB_AUTH_MODUS:-lokaal}
+      KB_DEMO_MODUS: ${KB_DEMO_MODUS:-aan}
+      KB_COOKIES_SECURE: ${KB_COOKIES_SECURE:-nee}   # alleen omdat de demo over http draait
+      KB_AI_PROVIDER: ${KB_AI_PROVIDER:-uit}
+      KB_AI_BASE_URL: ${KB_AI_BASE_URL:-}
+      KB_AI_API_KEY: ${KB_AI_API_KEY:-}
+      KB_AI_MODEL: ${KB_AI_MODEL:-}
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+
+volumes:
+  db-data:

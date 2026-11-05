@@ -1,0 +1,14 @@
+SPDX-License-Identifier: EUPL-1.2
+
+Kennisbank
+Licentie: European Union Public Licence v. 1.2 (EUPL-1.2)
+
+De volledige licentietekst, in alle officiële EU-talen waaronder het Nederlands, staat op:
+https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+
+Voeg vóór publicatie de officiële licentietekst toe aan dit bestand.
+
+Onderdelen van derden:
+- Lettertypes Source Sans 3 en Source Serif 4: SIL Open Font License 1.1
+  (kennisbank/static/kennisbank/fonts/OFL-LICENSE.txt)
+- Python-pakketten: zie requirements.txt en sbom.cdx.json voor naam, versie en licentie.
