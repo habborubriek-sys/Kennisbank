@@ -33,9 +33,22 @@ def momentopname(artikel: Artikel) -> dict:
         "clusters": sorted(artikel.clusters.values_list("naam", flat=True)),
         "tags": sorted(artikel.tags.values_list("naam", flat=True)),
         "zaaktypen": sorted(artikel.zaaktypen.values_list("code", flat=True)),
-        "formaat": "html",
-        "secties": [{"kop": s.kop, "inhoud": s.inhoud} for s in artikel.secties.all()],
+        "formaat": "artikel-html",
+        "inhoud": artikel.inhoud,
     }
+
+
+def herbouw_secties(artikel: Artikel) -> int:
+    """Bouw de afgeleide sectietabel opnieuw op uit Artikel.inhoud. Geeft het aantal secties terug."""
+    from .inhoud import splits_secties
+    from .models import Sectie
+
+    inleiding, secties = splits_secties(artikel.inhoud)
+    rijen = [Sectie(artikel=artikel, volgorde=0, kop="", inhoud=inleiding)]
+    rijen += [Sectie(artikel=artikel, volgorde=i + 1, kop=kop, inhoud=tekst) for i, (kop, tekst) in enumerate(secties)]
+    artikel.secties.all().delete()
+    Sectie.objects.bulk_create(rijen)
+    return len(secties)
 
 
 @transaction.atomic

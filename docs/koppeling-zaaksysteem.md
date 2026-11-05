@@ -33,11 +33,11 @@ Authorization: Token <token>
 
 Antwoord (ingekort):
 ```json
-[{"slug": "melding-registreren", "titel": "Melding registreren in het zaaksysteem",
-  "samenvatting": "…", "soort": "werkinstructie", "versie": 3, "url": "/artikel/melding-registreren"}]
+[{"id": 412, "slug": "melding-registreren", "titel": "Melding registreren in het zaaksysteem",
+  "samenvatting": "…", "soort": "werkinstructie", "versie": 3, "url": "/artikel/412/melding-registreren"}]
 ```
 
-Ook beschikbaar: `GET /api/v1/artikelen?zaaktype=…&q=…` en `POST /api/v1/assistent` met `{"vraag": "…", "zaaktype": "…"}`. De volledige specificatie staat in [openapi.yaml](openapi.yaml) en op `/api/docs/`.
+Gebruik `url` (of `id`) om naar het artikel te linken: het nummer is blijvend, de naam erachter is alleen leesbaar. Ook beschikbaar: `GET /api/v1/artikelen/<id>`, `GET /api/v1/artikelen?zaaktype=…&q=…` en `POST /api/v1/assistent` met `{"vraag": "…", "zaaktype": "…"}`. De volledige specificatie staat in [openapi.yaml](openapi.yaml) en op `/api/docs/`.
 
 **Token voor een koppeling aanmaken.** Maak een technisch account met leesrechten:
 

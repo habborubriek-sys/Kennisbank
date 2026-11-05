@@ -11,14 +11,13 @@ from django.utils import timezone
 
 from kennisbank import diensten
 from kennisbank.auth import KennisbankOIDCBackend
-from kennisbank.inhoud import onboarding_blokken, schoon, zonder_onboarding
+from kennisbank.inhoud import onboarding_blokken, schoon, splits_secties, zonder_onboarding
 from kennisbank.models import (
     Artikel,
     ArtikelVersie,
     Omgeving,
     RecentBezocht,
     Rol,
-    Sectie,
     Status,
     Toegang,
     Verbetervoorstel,
@@ -29,6 +28,12 @@ from kennisbank.uitwisseling import exporteer, importeer
 from kennisbank.word_import import lees_docx
 
 User = get_user_model()
+
+
+def pk_van(slug):
+    return Artikel.objects.get(slug=slug).pk
+
+
 DEMO = json.loads((Path(settings.BASE_DIR) / "demo" / "voorbeeldinhoud.json").read_text(encoding="utf-8"))
 
 
@@ -54,12 +59,13 @@ class Basis(TestCase):
         cls.buitenstaander.groups.add(anderen)
         cls.concept = Artikel.objects.create(
             omgeving=cls.hh,
-            slug="concept-artikel",
             titel="Geheim concept",
             samenvatting="Nog niet af",
             status=Status.CONCEPT,
         )
-        Sectie.objects.create(artikel=cls.concept, kop="Inhoud", inhoud="Concepttekst over rappel")
+        cls.concept.inhoud = '<h2 class="sectie">Inhoud</h2><p>Concepttekst over rappel</p>'
+        cls.concept.save()
+        diensten.herbouw_secties(cls.concept)
 
     def als(self, gebruiker):
         self.client.force_login(gebruiker)
@@ -70,18 +76,18 @@ class RechtenTests(Basis):
     def test_lezer_ziet_alleen_gepubliceerde_artikelen(self):
         slugs = [a["slug"] for a in self.als(self.lezer).get("/api/v1/artikelen").json()]
         self.assertEqual(len(slugs), 8)
-        self.assertNotIn("concept-artikel", slugs)
-        self.assertEqual(self.client.get("/api/v1/artikelen/concept-artikel").status_code, 404)
+        self.assertNotIn("geheim-concept", slugs)
+        self.assertEqual(self.client.get(f"/api/v1/artikelen/{self.concept.pk}").status_code, 404)
 
     def test_redacteur_ziet_concepten(self):
         slugs = [a["slug"] for a in self.als(self.redacteur).get("/api/v1/artikelen").json()]
-        self.assertIn("concept-artikel", slugs)
-        r = self.client.get("/api/v1/artikelen/concept-artikel").json()
+        self.assertIn("geheim-concept", slugs)
+        r = self.client.get(f"/api/v1/artikelen/{self.concept.pk}").json()
         self.assertTrue(r["bewerk_url"])
 
     def test_andere_omgeving_ziet_niets(self):
         self.assertEqual(self.als(self.buitenstaander).get("/api/v1/artikelen").json(), [])
-        self.assertEqual(self.client.get("/api/v1/artikelen/rappel-versturen").status_code, 404)
+        self.assertEqual(self.client.get(f"/api/v1/artikelen/{pk_van('rappel-versturen')}").status_code, 404)
 
     def test_niet_ingelogd_geen_toegang(self):
         self.assertIn(self.client.get("/api/v1/artikelen").status_code, (401, 403))
@@ -115,9 +121,8 @@ class VersieTests(Basis):
     def test_wijziging_maakt_nieuwe_versie_en_ongewijzigd_niet(self):
         a = Artikel.objects.get(slug="rappel-versturen")
         self.assertIsNone(diensten.registreer_publicatie(a, self.redacteur))
-        s = a.secties.first()
-        s.inhoud += "\n\nExtra regel."
-        s.save()
+        a.inhoud += "<p>Extra regel.</p>"
+        a.save()
         v = diensten.registreer_publicatie(a, self.redacteur, "Regel toegevoegd")
         self.assertEqual(v.versie, 2)
         a.refresh_from_db()
@@ -129,8 +134,9 @@ class VersieTests(Basis):
         self.assertIsNone(diensten.registreer_publicatie(self.concept))
 
     def test_versiegeschiedenis_api(self):
-        self.assertEqual(self.als(self.lezer).get("/api/v1/artikelen/rappel-versturen/versies").status_code, 403)
-        r = self.als(self.redacteur).get("/api/v1/artikelen/rappel-versturen/versies")
+        pk = pk_van("rappel-versturen")
+        self.assertEqual(self.als(self.lezer).get(f"/api/v1/artikelen/{pk}/versies").status_code, 403)
+        r = self.als(self.redacteur).get(f"/api/v1/artikelen/{pk}/versies")
         self.assertEqual(r.json()[0]["versie"], 1)
 
 
@@ -175,6 +181,7 @@ class AssistentTests(Basis):
         self.assertEqual(a["modus"], "zoeken")
         self.assertEqual(a["bronnen"][0]["slug"], "rappel-versturen")
         self.assertEqual(a["bronnen"][0]["sectie"], "Termijnen")
+        self.assertEqual(a["bronnen"][0]["sectie_index"], 1)
         self.assertIn("2 weken", a["html"])
 
     def test_geen_bron_geen_antwoord(self):
@@ -188,7 +195,7 @@ class AssistentTests(Basis):
             .post("/api/v1/assistent", {"vraag": "Concepttekst"}, content_type="application/json")
             .json()
         )
-        self.assertNotIn("concept-artikel", [b["slug"] for b in a["bronnen"]])
+        self.assertNotIn(self.concept.pk, [b["id"] for b in a["bronnen"]])
 
     @override_settings(KB_AI_PROVIDER="openai", KB_AI_BASE_URL="https://llm.example/v1", KB_AI_MODEL="m")
     def test_met_ai_bronverwijzingen_worden_links(self):
@@ -197,7 +204,7 @@ class AssistentTests(Basis):
             post.return_value = mock.Mock(json=lambda: antwoord, raise_for_status=lambda: None)
             a = self.vraag("Wanneer stuur ik een tweede rappel?")
         self.assertEqual(a["modus"], "ai")
-        self.assertIn('data-open="rappel-versturen"', a["html"])
+        self.assertIn(f'data-open="{pk_van("rappel-versturen")}"', a["html"])
         self.assertNotIn("<script>", a["html"])
         verstuurd = post.call_args.kwargs["json"]
         self.assertEqual(verstuurd["model"], "m")
@@ -216,7 +223,7 @@ class VoorstelTests(Basis):
     def test_indienen_en_behandelen(self):
         r = self.als(self.lezer).post(
             "/api/v1/voorstellen",
-            {"artikel": "rappel-versturen", "citaat": "2 weken", "tekst": "Moet 3 weken zijn"},
+            {"artikel": pk_van("rappel-versturen"), "citaat": "2 weken", "tekst": "Moet 3 weken zijn"},
             content_type="application/json",
         )
         self.assertEqual(r.status_code, 201)
@@ -250,7 +257,7 @@ class VoorstelTests(Basis):
 
     def test_geen_voorstel_bij_onzichtbaar_artikel(self):
         r = self.als(self.lezer).post(
-            "/api/v1/voorstellen", {"artikel": "concept-artikel", "tekst": "x"}, content_type="application/json"
+            "/api/v1/voorstellen", {"artikel": self.concept.pk, "tekst": "x"}, content_type="application/json"
         )
         self.assertEqual(r.status_code, 403)
 
@@ -260,7 +267,7 @@ class VoorstelTests(Basis):
 
         self.als(self.lezer).post(
             "/api/v1/voorstellen",
-            {"artikel": "mailbox", "tekst": "Graag aanvullen"},
+            {"artikel": pk_van("mailbox"), "tekst": "Graag aanvullen"},
             content_type="application/json",
         )
         self.assertEqual(mail.outbox[0].to, ["pm@example.org"])
@@ -269,12 +276,13 @@ class VoorstelTests(Basis):
 class GebruikTests(Basis):
     def test_weergave_favoriet_en_onboarding(self):
         c = self.als(self.lezer)
-        self.assertEqual(c.post("/api/v1/artikelen/zwerfboot/weergave").status_code, 204)
-        self.assertEqual(c.put("/api/v1/artikelen/zwerfboot/favoriet").status_code, 204)
+        pk = pk_van("zwerfboot")
+        self.assertEqual(c.post(f"/api/v1/artikelen/{pk}/weergave").status_code, 204)
+        self.assertEqual(c.put(f"/api/v1/artikelen/{pk}/favoriet").status_code, 204)
         c.patch("/api/v1/ik", {"onboarding": True}, content_type="application/json")
         ik = c.get("/api/v1/ik").json()
-        self.assertEqual(ik["favorieten"], ["zwerfboot"])
-        self.assertEqual(ik["recent"][0]["slug"], "zwerfboot")
+        self.assertEqual(ik["favorieten"], [pk])
+        self.assertEqual(ik["recent"][0]["id"], pk)
         self.assertTrue(ik["onboarding"])
         self.assertEqual(WeergaveTelling.objects.get().aantal, 1)
 
@@ -338,15 +346,53 @@ class InhoudTests(TestCase):
             }
         ]
         importeer(data)
-        inhoud = Sectie.objects.get(artikel__slug="oud").inhoud
-        self.assertIn("<li><strong>vet</strong></li>", inhoud)
-        self.assertIn('<div class="onboarding"><p>Extra <em>uitleg</em></p></div>', inhoud)
+        a = Artikel.objects.get(slug="oud")
+        self.assertIn('<h2 class="sectie">K</h2>', a.inhoud)
+        self.assertIn("<li><strong>vet</strong></li>", a.inhoud)
+        self.assertIn('<div class="onboarding"><p>Extra <em>uitleg</em></p></div>', a.inhoud)
+        self.assertEqual([s.kop for s in a.secties.all()], ["", "K"])
 
-    def test_sectie_wordt_bij_opslaan_opgeschoond(self):
+    def test_artikel_wordt_bij_opslaan_opgeschoond(self):
         importeer(DEMO)
         a = Artikel.objects.get(slug="mailbox")
-        s = Sectie.objects.create(artikel=a, kop="x", inhoud="<p onclick='a'>t</p><script>1</script>")
-        self.assertEqual(s.inhoud, "<p>t</p>")
+        a.inhoud = "<p onclick='a'>t</p><script>1</script>"
+        a.save()
+        self.assertEqual(a.inhoud, "<p>t</p>")
+
+    def test_secties_uit_tekst_en_lege_kop(self):
+        html = (
+            '<p>Intro</p><h2 class="sectie">A</h2><p>a</p><h2>gewone kop</h2>'
+            '<h2 class="sectie"></h2><p>a2</p><h2 class="sectie">B</h2><div class="onboarding"><p>u</p></div>'
+        )
+        intro, secties = splits_secties(html)
+        self.assertEqual(intro, "<p>Intro</p>")
+        self.assertEqual([k for k, _ in secties], ["A", "B"])
+        self.assertEqual(secties[0][1], "<p>a</p><h3>gewone kop</h3><p>a2</p>")
+
+    def test_oude_link_wordt_doorverwezen(self):
+        importeer(DEMO)
+        a = Artikel.objects.get(slug="mailbox")
+        r = self.client.get("/artikel/mailbox")
+        self.assertEqual(r.status_code, 302)  # eerst inloggen
+        self.client.force_login(User.objects.create_user("l2", password="x"))
+        self.assertEqual(self.client.get("/artikel/mailbox").status_code, 404)  # geen rechten → niets verraden
+        u = User.objects.create_user("l3", password="x")
+        g = Group.objects.create(name="g3")
+        u.groups.add(g)
+        Toegang.objects.create(omgeving=a.omgeving, groep=g, rol=Rol.LEZER)
+        self.client.force_login(u)
+        r = self.client.get("/artikel/mailbox")
+        self.assertEqual((r.status_code, r["Location"]), (301, a.get_absolute_url()))
+        self.assertEqual(self.client.get(f"/artikel/{a.pk}/willekeurige-naam").status_code, 200)
+
+    def test_zelfde_titel_in_twee_omgevingen(self):
+        importeer(DEMO)
+        o2 = Omgeving.objects.create(slug="o2", naam="O2")
+        a = Artikel.objects.create(omgeving=o2, titel="Gezamenlijke mailbox: wie pakt wat op", samenvatting="x")
+        b = Artikel.objects.get(slug="mailbox")
+        self.assertEqual(a.slug, "gezamenlijke-mailbox-wie-pakt-wat-op")
+        self.assertNotEqual(a.pk, b.pk)
+        self.assertNotEqual(a.get_absolute_url(), b.get_absolute_url())
 
     def test_import_export_rondgang(self):
         importeer(DEMO)
@@ -401,6 +447,7 @@ def _docx(paragrafen):
 
     d = docx.Document()
     d.styles.add_style("Onboarding", WD_STYLE_TYPE.PARAGRAPH).base_style = d.styles["Normal"]
+    d.styles.add_style("Sectie", WD_STYLE_TYPE.PARAGRAPH).base_style = d.styles["Normal"]
     for stijl, tekst in paragrafen:
         if stijl.startswith("Heading"):
             d.add_heading(tekst, level=int(stijl[-1]))
@@ -413,17 +460,19 @@ def _docx(paragrafen):
 
 
 class WordImportTests(Basis):
-    def test_koppen_worden_secties_en_onboarding_stijl(self):
+    def test_sectie_stijl_wordt_sectiekop_en_koppen_blijven_koppen(self):
         a = lees_docx(
             _docx(
                 [
                     ("Heading 1", "Rappel versturen"),
                     ("Normal", "Korte samenvatting."),
-                    ("Heading 2", "Termijnen"),
+                    ("Normal", "Inleidende tekst."),
+                    ("Sectie", "Termijnen"),
                     ("List Bullet", "4 weken"),
                     ("Onboarding", "Vraag je buddy."),
                     ("Onboarding", "Tweede alinea."),
-                    ("Heading 2", "Brief"),
+                    ("Heading 2", "Gewone kop"),
+                    ("Sectie", "Brief"),
                     ("Normal", "Gebruik het sjabloon."),
                 ]
             ),
@@ -431,22 +480,29 @@ class WordImportTests(Basis):
         )
         self.assertEqual(a.titel, "Rappel versturen")
         self.assertEqual(a.samenvatting, "Korte samenvatting.")
-        self.assertEqual([s.kop for s in a.secties], ["Termijnen", "Brief"])
-        self.assertIn("<li>4 weken</li>", a.secties[0].inhoud)
-        self.assertEqual(onboarding_blokken(a.secties[0].inhoud), ["<p>Vraag je buddy.</p><p>Tweede alinea.</p>"])
+        self.assertEqual(a.aantal_secties, 2)
+        intro, secties = splits_secties(a.inhoud)
+        self.assertEqual(intro, "<p>Inleidende tekst.</p>")
+        self.assertEqual([k for k, _ in secties], ["Termijnen", "Brief"])
+        self.assertIn("<li>4 weken</li>", secties[0][1])
+        self.assertIn("<h3>Gewone kop</h3>", secties[0][1])
+        self.assertEqual(onboarding_blokken(secties[0][1]), ["<p>Vraag je buddy.</p><p>Tweede alinea.</p>"])
         self.assertEqual(a.meldingen, [])
 
-    def test_zonder_titelkop_worden_kop1_secties(self):
+    def test_meerdere_kop1_blijven_koppen_in_tekst(self):
         a = lees_docx(
             _docx([("Heading 1", "A"), ("Normal", "a"), ("Heading 1", "B"), ("Normal", "b")]), "mijn-instructie.docx"
         )
         self.assertEqual(a.titel, "mijn instructie")
-        self.assertEqual([s.kop for s in a.secties], ["A", "B"])
+        self.assertEqual(a.aantal_secties, 0)
+        self.assertIn("<h3>A</h3>", a.inhoud)
+        self.assertIn("<h3>B</h3>", a.inhoud)
+        self.assertTrue(any("Geen sectiekoppen" in m for m in a.meldingen))
 
-    def test_geen_koppen(self):
+    def test_zonder_koppen(self):
         a = lees_docx(_docx([("Normal", "Alleen tekst."), ("Normal", "Meer tekst.")]), "los.docx")
-        self.assertEqual(len(a.secties), 1)
-        self.assertTrue(any("Geen koppen" in m for m in a.meldingen))
+        self.assertEqual(a.samenvatting, "Alleen tekst.")
+        self.assertEqual(a.inhoud, "<p>Meer tekst.</p>")
 
     def test_geen_docx(self):
         import io
@@ -467,7 +523,7 @@ class WordImportTests(Basis):
             [
                 ("Heading 1", "Nieuw uit Word"),
                 ("Normal", "Samenvatting."),
-                ("Heading 2", "Stap 1"),
+                ("Sectie", "Stap 1"),
                 ("Normal", "Doe dit."),
             ]
         )
@@ -480,7 +536,7 @@ class WordImportTests(Basis):
         a = Artikel.objects.get(slug="nieuw-uit-word")
         self.assertEqual(a.status, Status.CONCEPT)
         self.assertEqual(a.omgeving, self.hh)
-        self.assertEqual([s.kop for s in a.secties.all()], ["Stap 1"])
+        self.assertEqual([s.kop for s in a.secties.all()], ["", "Stap 1"])
         # Lezers mogen niet importeren
         werk_staf_status_bij(self.lezer)
         self.assertIn(self.als(self.lezer).get("/beheer/kennisbank/artikel/importeren-word/").status_code, (302, 403))
@@ -495,16 +551,14 @@ class WordImportTests(Basis):
         self.assertContains(r, 'value="e-mail, intake, mailbox"')
         data = {
             "titel": a.titel,
-            "slug": a.slug,
             "samenvatting": a.samenvatting,
+            "inhoud": a.inhoud,
             "soort": a.soort,
             "omgeving": a.omgeving_id,
             "eigenaar": a.eigenaar,
             "status": a.status,
             "tags_tekst": "Mailbox, Nieuwe Tag , nieuwe tag,",
             "wijzigingstoelichting": "",
-            "secties-TOTAL_FORMS": "0",
-            "secties-INITIAL_FORMS": "0",
             "versies-TOTAL_FORMS": "0",
             "versies-INITIAL_FORMS": "0",
         }

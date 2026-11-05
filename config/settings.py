@@ -197,7 +197,7 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Kennisbank API",
     "DESCRIPTION": "API van de Kennisbank: artikelen, zoeken, assistent, "
     "verbetervoorstellen en de koppeling met het zaaksysteem.",
-    "VERSION": "1.1.0",
+    "VERSION": "1.2.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     # Documentatiepagina zonder externe CDN

@@ -50,10 +50,12 @@ def _bron(sectie, nummer):
     a = sectie.artikel
     return {
         "nummer": nummer,
+        "id": a.pk,
         "slug": a.slug,
+        "url": a.get_absolute_url(),
         "titel": a.titel,
-        "sectie": sectie.kop,
-        "sectie_index": list(a.secties.values_list("pk", flat=True)).index(sectie.pk),
+        "sectie": sectie.kop or "Inleiding",
+        "sectie_index": sectie.volgorde,  # 0 = inleiding, 1.. = secties
         "versie": a.versie,
     }
 
@@ -113,7 +115,7 @@ def _koppel_bronnen(antwoord_html: str, bronnen) -> str:
         if not b:
             return m.group(0)
         return (
-            f'<a class="bronref" href="/artikel/{b["slug"]}" data-open="{b["slug"]}" '
+            f'<a class="bronref" href="{b["url"]}" data-open="{b["id"]}" '
             f'data-sectie="{b["sectie_index"]}" title="{html.escape(b["titel"])} – '
             f'{html.escape(b["sectie"])}">[{b["nummer"]}]</a>'
         )

@@ -4,7 +4,7 @@ Doel: **WCAG 2.1 niveau AA**, de norm uit het Besluit digitale toegankelijkheid 
 
 ## Geautomatiseerde test
 
-Getest met axe-core 4.10 (regels `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) in Chromium, op de draaiende container, bij oplevering van versie 1.1.0:
+Getest met axe-core 4.10 (regels `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) in Chromium, op de draaiende container, bij oplevering van versie 1.2.0:
 
 | Scherm | Licht | Donker |
 |---|---|---|

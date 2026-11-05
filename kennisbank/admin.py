@@ -11,7 +11,6 @@ from django.shortcuts import redirect, render
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
-from django.utils.text import slugify
 
 from . import diensten
 from .models import (
@@ -19,7 +18,6 @@ from .models import (
     ArtikelVersie,
     Cluster,
     Omgeving,
-    Sectie,
     Soort,
     Status,
     Tag,
@@ -59,31 +57,6 @@ class RedactieRechtenMixin:
 
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
-
-
-class SectieInline(admin.StackedInline):
-    model = Sectie
-    extra = 0
-    fields = ["volgorde", "kop", "inhoud"]
-
-    def formfield_for_dbfield(self, db_field, request, **kwargs):
-        veld = super().formfield_for_dbfield(db_field, request, **kwargs)
-        if db_field.name == "inhoud":
-            # Wordt door beheer-editor.js vervangen door de opmaak-editor.
-            veld.widget.attrs.update({"class": "kb-editor", "rows": 10})
-        return veld
-
-    def has_add_permission(self, request, obj=None):
-        return True
-
-    def has_change_permission(self, request, obj=None):
-        return True
-
-    def has_delete_permission(self, request, obj=None):
-        return True
-
-    def has_view_permission(self, request, obj=None):
-        return True
 
 
 class VersieInline(admin.TabularInline):
@@ -142,7 +115,8 @@ class ArtikelForm(forms.ModelForm):
 
     class Meta:
         model = Artikel
-        fields = ["titel", "slug", "samenvatting", "soort", "omgeving", "eigenaar", "clusters", "zaaktypen", "status"]
+        fields = ["titel", "samenvatting", "inhoud", "soort", "omgeving", "eigenaar", "clusters", "zaaktypen", "status"]
+        widgets = {"inhoud": forms.Textarea(attrs={"class": "kb-editor", "rows": 24})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -169,17 +143,17 @@ class WordImportForm(forms.Form):
 @admin.register(Artikel)
 class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     form = ArtikelForm
-    list_display = ["titel", "soort", "status", "versie_label", "omgeving", "gepubliceerd_op", "bekijk"]
+    list_display = ["titel", "nummer", "soort", "status", "versie_label", "omgeving", "gepubliceerd_op", "bekijk"]
     list_filter = ["status", "soort", "omgeving", "clusters", "zaaktypen"]
-    search_fields = ["titel", "samenvatting", "secties__inhoud"]
-    prepopulated_fields = {"slug": ["titel"]}
+    search_fields = ["titel", "samenvatting", "inhoud", "=id"]
     filter_horizontal = ["clusters", "zaaktypen"]
-    inlines = [SectieInline, VersieInline]
-    readonly_fields = ["versie", "gepubliceerd_op"]
+    inlines = [VersieInline]
+    readonly_fields = ["versie", "gepubliceerd_op", "link"]
     actions = ["publiceren", "archiveren"]
     change_list_template = "admin/kennisbank/artikel/change_list.html"
     fieldsets = [
-        (None, {"fields": ["titel", "slug", "samenvatting", "soort", "omgeving", "eigenaar"]}),
+        (None, {"fields": ["titel", "samenvatting", "inhoud"]}),
+        ("Eigenschappen", {"fields": ["soort", "omgeving", "eigenaar", "link"]}),
         ("Vindbaarheid", {"fields": ["clusters", "tags_tekst", "zaaktypen"]}),
         ("Publicatie", {"fields": ["status", "wijzigingstoelichting", "versie", "gepubliceerd_op"]}),
     ]
@@ -215,21 +189,16 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             else:
                 artikel = Artikel.objects.create(
                     omgeving=form.cleaned_data["omgeving"],
-                    slug=self._vrije_slug(gelezen.titel),
                     titel=gelezen.titel,
                     samenvatting=gelezen.samenvatting or "(vul een samenvatting in)",
+                    inhoud=gelezen.inhoud,
                     soort=form.cleaned_data["soort"],
                     status=Status.CONCEPT,
                 )
-                Sectie.objects.bulk_create(
-                    [
-                        Sectie(artikel=artikel, volgorde=i, kop=s.kop, inhoud=s.inhoud)
-                        for i, s in enumerate(gelezen.secties)
-                    ]
-                )
+                aantal = diensten.herbouw_secties(artikel)
                 messages.success(
                     request,
-                    f"'{gelezen.titel}' is ingelezen als concept met {len(gelezen.secties)} sectie(s). "
+                    f"'{gelezen.titel}' is ingelezen als concept met {aantal} sectie(s). "
                     "Controleer de tekst, vul tags en zaaktypen in en zet de status op 'Gepubliceerd'.",
                 )
                 for m in gelezen.meldingen:
@@ -243,13 +212,15 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         }
         return render(request, "admin/kennisbank/artikel/importeren_word.html", ctx)
 
-    @staticmethod
-    def _vrije_slug(titel: str) -> str:
-        basis = slugify(titel)[:100] or "artikel"
-        slug, n = basis, 2
-        while Artikel.objects.filter(slug=slug).exists():
-            slug, n = f"{basis}-{n}", n + 1
-        return slug
+    @admin.display(description="Nr.", ordering="id")
+    def nummer(self, obj):
+        return obj.pk
+
+    @admin.display(description="Link")
+    def link(self, obj):
+        if not obj.pk:
+            return "Wordt toegekend bij opslaan (het nummer in de link verandert daarna nooit meer)."
+        return format_html('<a href="{0}" target="_blank">{0}</a>', obj.get_absolute_url())
 
     @admin.display(description="Versie")
     def versie_label(self, obj):
@@ -266,6 +237,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
+        diensten.herbouw_secties(form.instance)
         form.instance.tags.set(
             [Tag.objects.get_or_create(naam=n)[0] for n in tags_uit_tekst(form.cleaned_data.get("tags_tekst", ""))]
         )

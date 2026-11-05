@@ -41,6 +41,20 @@ def ingebed(request, code):
     return _shell(request, embed=True, zaaktype=code)
 
 
+@login_required
+def oude_artikel_link(request, slug):
+    """Links van vóór versie 1.2 (/artikel/<slug>) doorverwijzen naar de nieuwe link op nummer."""
+    from django.shortcuts import redirect
+
+    from .models import Artikel
+    from .rechten import rechten
+
+    kandidaten = [a for a in Artikel.objects.filter(slug=slug) if rechten(request).mag_lezen(a)]
+    if len(kandidaten) == 1:
+        return redirect(kandidaten[0].get_absolute_url(), permanent=True)
+    raise Http404
+
+
 def login_voltooid(request):
     """Wordt in een popup geopend vanuit de ingebedde weergave; meldt de login terug aan het iframe."""
     if not request.user.is_authenticated:

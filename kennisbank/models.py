@@ -101,9 +101,19 @@ class ArtikelQuerySet(models.QuerySet):
 
 class Artikel(models.Model):
     omgeving = models.ForeignKey(Omgeving, on_delete=models.PROTECT, related_name="artikelen")
-    slug = models.SlugField(unique=True, max_length=120, help_text="Deel van de link naar het artikel.")
+    slug = models.SlugField(
+        max_length=120,
+        db_index=True,
+        editable=False,
+        help_text="Leesbaar deel van de link; wordt uit de titel afgeleid. De link werkt op het nummer.",
+    )
     titel = models.CharField(max_length=200)
     samenvatting = models.TextField(help_text="Eén of twee zinnen: waar gaat dit artikel over?")
+    inhoud = models.TextField(
+        blank=True,
+        help_text="De tekst van het artikel. Markeer een regel als 'Sectiekop' om een in- en uitklapbare sectie te "
+        "beginnen; markeer alinea's als 'Onboarding' om ze alleen aan nieuwe collega's te tonen.",
+    )
     soort = models.CharField(max_length=20, choices=Soort.choices, default=Soort.WERKINSTRUCTIE)
     clusters = models.ManyToManyField(
         Cluster, blank=True, help_text="Leeg laten als het artikel voor alle clusters geldt."
@@ -130,23 +140,30 @@ class Artikel(models.Model):
         return self.titel
 
     def get_absolute_url(self):
-        return f"/artikel/{self.slug}"
+        return f"/artikel/{self.pk}/{self.slug}" if self.slug else f"/artikel/{self.pk}"
+
+    def save(self, *args, **kwargs):
+        from django.utils.text import slugify
+
+        from .inhoud import schoon
+
+        if not self.slug:
+            self.slug = slugify(self.titel)[:120] or "artikel"
+        self.inhoud = schoon(self.inhoud)
+        super().save(*args, **kwargs)
 
 
 class Sectie(models.Model):
-    """Een in- en uitklapbaar onderdeel van een artikel.
+    """Afgeleide tabel: de secties van een artikel, opgebouwd uit Artikel.inhoud (zie diensten.herbouw_secties).
 
-    `inhoud` is HTML uit de editor (of uit een Word-import) en wordt bij opslaan en bij weergave
-    opgeschoond (zie inhoud.py). Onboarding-uitleg zit in de inhoud als <div class="onboarding">.
+    Wordt gebruikt voor zoeken en voor de assistent (per sectie een treffer). Niet handmatig bewerken.
+    volgorde 0 is de inleiding (tekst vóór de eerste sectiekop), met een lege kop.
     """
 
     artikel = models.ForeignKey(Artikel, on_delete=models.CASCADE, related_name="secties")
     volgorde = models.PositiveIntegerField(default=0)
-    kop = models.CharField(max_length=200)
-    inhoud = models.TextField(
-        blank=True,
-        help_text="Markeer alinea's met de knop 'Onboarding' om ze alleen aan nieuwe collega's te tonen.",
-    )
+    kop = models.CharField(max_length=200, blank=True)
+    inhoud = models.TextField(blank=True)
 
     class Meta:
         verbose_name = "sectie"
@@ -154,13 +171,7 @@ class Sectie(models.Model):
         ordering = ["volgorde", "id"]
 
     def __str__(self):
-        return self.kop
-
-    def save(self, *args, **kwargs):
-        from .inhoud import schoon
-
-        self.inhoud = schoon(self.inhoud)
-        super().save(*args, **kwargs)
+        return self.kop or "(inleiding)"
 
 
 class ArtikelVersie(models.Model):

@@ -5,11 +5,8 @@ Als **redacteur** schrijf en onderhoud je de artikelen in jouw omgeving, behande
 ## Een artikel schrijven of wijzigen
 
 1. Ga naar **Beheer** (link links onderin de kennisbank) → *Artikelen*, of klik in een artikel op **Bewerken**.
-2. Vul in: titel, link-naam (`slug`, wordt automatisch voorgesteld), samenvatting, soort, cluster(s), tags en zaaktypen.
-   - Geen cluster gekozen = het artikel geldt voor alle clusters.
-   - **Tags** typ je gescheiden door komma's (bijv. `rappel, termijnen, brief`). Bestaande tags worden voorgesteld terwijl je typt; nieuwe tags worden automatisch aangemaakt.
-   - Zaaktypen bepalen bij welke zaken het artikel in het zaaksysteem verschijnt.
-3. Voeg **secties** toe. Elke sectie is een in- en uitklapbaar blok met een kop en inhoud. De inhoud bewerk je in een editor met een werkbalk zoals in Word:
+2. Vul de **titel** en de **samenvatting** in (één of twee zinnen; staat bovenaan het artikel en in de lijst).
+3. Schrijf de **tekst** in de editor. De werkbalk werkt zoals in Word:
 
    | Knop | Doet |
    |---|---|
@@ -18,16 +15,34 @@ Als **redacteur** schrijf en onderhoud je de artikelen in jouw omgeving, behande
    | Lijsten, inspringen | Opsomming, genummerde lijst, inspringing |
    | Link, tabel, lijn | Hyperlink, tabel invoegen, scheidingslijn |
    | Gum | Opmaak van de selectie wissen |
-   | **Onboarding** | Markeer de geselecteerde alinea's als uitleg voor nieuwe collega's (zie hieronder) |
+   | **Sectiekop** | Maakt van de huidige regel een sectiekop (zie hieronder) |
+   | **Onboarding** | Markeert de geselecteerde alinea's als uitleg voor nieuwe collega's (zie hieronder) |
 
    Plakken uit Word werkt: de opmaak wordt opgeschoond, vet/cursief/lijsten/tabellen blijven staan.
-4. Kies de **status**:
+4. Vul onder *Eigenschappen* en *Vindbaarheid* in: soort, omgeving, cluster(s), tags en zaaktypen.
+   - Geen cluster gekozen = het artikel geldt voor alle clusters.
+   - **Tags** typ je gescheiden door komma's (bijv. `rappel, termijnen, brief`). Bestaande tags worden voorgesteld; nieuwe worden automatisch aangemaakt.
+   - Zaaktypen bepalen bij welke zaken het artikel in het zaaksysteem verschijnt.
+5. Kies de **status**:
    - *Concept*: alleen zichtbaar voor redacteuren.
    - *Gepubliceerd*: zichtbaar voor iedereen in de omgeving.
    - *Gearchiveerd*: niet meer zichtbaar; de versiegeschiedenis blijft bewaard.
-5. Vul bij een wijziging de **toelichting** in, bijvoorbeeld "Termijn tweede rappel aangepast n.a.v. voorstel". Die komt in de versiegeschiedenis.
+6. Vul bij een wijziging de **toelichting** in, bijvoorbeeld "Termijn tweede rappel aangepast n.a.v. voorstel". Die komt in de versiegeschiedenis.
 
 Elke keer dat je een gepubliceerd artikel inhoudelijk wijzigt, ontstaat automatisch een nieuwe versie. Onderaan het artikel in het beheer zie je alle versies: wanneer, door wie en waarom. Oude versies zijn niet te wijzigen of te verwijderen.
+
+**De link van een artikel** wordt bij het opslaan toegekend en heeft de vorm `/artikel/412/melding-registreren`. Het nummer is wat telt: dat verandert nooit, ook niet als je de titel aanpast of het artikel naar een andere omgeving verhuist. De naam erachter is alleen voor de leesbaarheid. Twee afdelingen kunnen dus gerust een artikel met dezelfde titel hebben.
+
+## Secties
+
+Een artikel is één doorlopende tekst. Een **sectie** is een in- en uitklapbaar blok daarin:
+
+1. Zet de cursor op de regel die de naam van de sectie moet worden en klik op **Sectiekop** in de werkbalk. De regel krijgt een blauwe streep en het label "Sectie".
+2. Alles wat daaronder staat, tot de volgende sectiekop, hoort bij die sectie. De volgorde van de secties is simpelweg de volgorde in de tekst.
+3. Tekst **vóór de eerste sectiekop** is de inleiding: die staat altijd open, boven de secties.
+4. Nogmaals klikken op **Sectiekop** maakt er weer een gewone regel van.
+
+Gewone koppen (via ¶ → Kop of Subkop) zijn koppen *binnen* de tekst en maken geen sectie. Zo kies je zelf wat een sectie wordt en wat niet.
 
 ## Onboarding-uitleg
 
@@ -37,7 +52,7 @@ Nieuwe collega's hebben meer uitleg nodig dan ervaren collega's. Die extra uitle
 2. De alinea's krijgen een geel kader "Voor nieuwe collega's". In de kennisbank zijn ze alleen zichtbaar als de lezer de schakelaar *Onboarding* aanzet.
 3. Nogmaals klikken op **Onboarding** haalt de markering weer weg.
 
-Een sectie mag meerdere onboarding-blokken bevatten, dus je kunt bij elke stap een verdieping geven. De assistent gebruikt de onboarding-uitleg ook, als extra context.
+Dit kan zo vaak als je wilt, ook in de inleiding, dus je kunt bij elke stap een verdieping geven. De assistent gebruikt de onboarding-uitleg ook, als extra context.
 
 ## Een Word-document importeren
 
@@ -50,12 +65,15 @@ Zo wordt het document gelezen:
 
 | In Word | In de kennisbank |
 |---|---|
-| Eén *Kop 1* bovenaan | De titel |
-| *Kop 2*-koppen (of alle *Kop 1*-koppen als er geen titel is) | De secties |
-| Eerste alinea vóór de eerste kop | De samenvatting |
+| Stijl *Titel*, of één *Kop 1* helemaal bovenaan | De titel |
+| De eerste alinea | De samenvatting |
+| Alinea's met de stijl **Sectie** (zit in het sjabloon) | Sectiekoppen |
 | Alinea's met de stijl **Onboarding** (zit in het sjabloon) | Onboarding-uitleg |
+| Gewone koppen (Kop 1, 2, 3) | Koppen in de tekst; ze maken géén sectie |
 | Vet, cursief, onderstreept, lijsten, tabellen, links | Blijven behouden |
 | Afbeeldingen | Worden overgeslagen (nog niet ondersteund) |
+
+Secties bepaal je dus bewust, met de stijl *Sectie* in Word of met de knop *Sectiekop* in de editor; een kopje in Word wordt nooit per ongeluk een sectie.
 
 Een `.doc` of PDF upload je niet rechtstreeks: open het in Word en sla het op als `.docx`. Bij een PDF gaat de structuur (koppen, lijsten) meestal verloren, dus controleer het resultaat extra goed.
 

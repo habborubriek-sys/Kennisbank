@@ -42,7 +42,7 @@ erDiagram
   OMGEVING ||--o{ ARTIKEL : bevat
   OMGEVING ||--o{ TOEGANG : "regelt"
   GROEP ||--o{ TOEGANG : "krijgt rol"
-  ARTIKEL ||--o{ SECTIE : "bestaat uit"
+  ARTIKEL ||--o{ SECTIE : "afgeleid uit inhoud"
   ARTIKEL ||--o{ ARTIKELVERSIE : "onveranderlijke versies"
   ARTIKEL }o--o{ CLUSTER : ""
   ARTIKEL }o--o{ TAG : ""
@@ -56,7 +56,9 @@ erDiagram
 
 - **Omgeving**: afgeschermd deel van de kennisbank (bijv. per afdeling). Hiermee kan de applicatie later ook buiten één afdeling worden gebruikt zonder dat artikelen door elkaar lopen.
 - **Toegang**: groep uit de identity provider + rol (*lezer* of *redacteur*) per omgeving. Functioneel beheerders (`KB_BEHEERDERS_GROEPEN`) mogen alles.
-- **Artikel** met **secties**: de inhoud van een sectie is HTML uit de editor of uit een Word-import, en wordt bij opslaan én bij tonen opgeschoond met een allowlist (`inhoud.py`). Extra uitleg voor nieuwe collega's staat als `<div class="onboarding">`-blokken in de inhoud; een sectie kan er meerdere bevatten en de frontend toont ze alleen met de onboarding-schakelaar aan.
+- **Artikel**: één HTML-tekst (`inhoud`) uit de editor of uit een Word-import, bij opslaan én bij tonen opgeschoond met een allowlist (`inhoud.py`). Daarin zijn `<h2 class="sectie">` sectiekoppen (alles tot de volgende sectiekop is een in- en uitklapbare sectie; de tekst ervoor is de inleiding) en `<div class="onboarding">` blokken met uitleg voor nieuwe collega's, die de frontend alleen met de onboarding-schakelaar toont.
+- **Sectie** is een *afgeleide* tabel: bij elke opslag opnieuw opgebouwd uit `inhoud` (`diensten.herbouw_secties`), zodat zoeken en de assistent per sectie kunnen werken. Volgorde 0 is de inleiding.
+- **Links** werken op het nummer van het artikel: `/artikel/412/melding-registreren`. De naam (`slug`) is alleen leesbaar en hoeft niet uniek te zijn; twee omgevingen kunnen dezelfde titel gebruiken. Links van vóór versie 1.2 (`/artikel/<slug>`) worden doorverwezen.
 - **Artikelversie**: elke wijziging van een gepubliceerd artikel levert een onveranderlijke momentopname op, met wie, wanneer en waarom. Zo is altijd te reconstrueren welke instructie op welk moment gold.
 - **Tellingen** (weergaven, zoektermen, assistentgebruik) zijn per dag geaggregeerd en bevatten geen gebruikers.
 

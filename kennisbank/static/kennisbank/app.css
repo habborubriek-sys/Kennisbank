@@ -310,3 +310,8 @@ body.embed .view h1{font-size:1.3rem}
 .msg blockquote{margin:6px 0;padding:6px 10px;border-left:3px solid var(--accent);background:var(--surface);border-radius:0 6px 6px 0}
 .msg blockquote ul,.msg blockquote ol{margin:0;padding-left:18px}
 .msg blockquote p{margin:0 0 4px}
+.art .inleiding{max-width:70ch;margin:0 0 16px}
+.art .inleiding p{margin:0 0 10px}
+.art .inleiding h3{font-size:1.05rem;margin:14px 0 6px}
+.art .inleiding div.onboarding{margin:6px 0 10px}
+.msg a.src{text-decoration:none}

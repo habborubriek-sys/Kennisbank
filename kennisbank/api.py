@@ -50,6 +50,7 @@ class ArtikelKortSerializer(serializers.ModelSerializer):
     class Meta:
         model = Artikel
         fields = [
+            "id",
             "slug",
             "titel",
             "samenvatting",
@@ -71,19 +72,27 @@ class SectieSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Sectie
-        fields = ["kop", "inhoud_html"]
+        fields = ["volgorde", "kop", "inhoud_html"]
 
     def get_inhoud_html(self, obj) -> str:
         return schoon(obj.inhoud)
 
 
 class ArtikelSerializer(ArtikelKortSerializer):
-    secties = SectieSerializer(many=True, read_only=True)
+    inleiding_html = serializers.SerializerMethodField()
+    secties = serializers.SerializerMethodField()
     gerelateerd = serializers.SerializerMethodField()
     bewerk_url = serializers.SerializerMethodField()
 
     class Meta(ArtikelKortSerializer.Meta):
-        fields = ArtikelKortSerializer.Meta.fields + ["secties", "gerelateerd", "bewerk_url"]
+        fields = ArtikelKortSerializer.Meta.fields + ["inleiding_html", "secties", "gerelateerd", "bewerk_url"]
+
+    def get_inleiding_html(self, obj) -> str:
+        eerste = next((s for s in obj.secties.all() if s.volgorde == 0), None)
+        return schoon(eerste.inhoud) if eerste else ""
+
+    def get_secties(self, obj) -> list[dict]:
+        return SectieSerializer([s for s in obj.secties.all() if s.volgorde > 0], many=True).data
 
     def get_gerelateerd(self, obj) -> list[dict]:
         r = self.context["rechten"]
@@ -95,7 +104,7 @@ class ArtikelSerializer(ArtikelKortSerializer):
             .annotate(overlap=Count("tags"))
             .order_by("-overlap", "titel")[:3]
         )
-        return [{"slug": a.slug, "titel": a.titel} for a in qs]
+        return [{"id": a.pk, "slug": a.slug, "titel": a.titel, "url": a.get_absolute_url()} for a in qs]
 
     def get_bewerk_url(self, obj) -> str | None:
         if self.context["rechten"].mag_redigeren(obj):
@@ -104,7 +113,8 @@ class ArtikelSerializer(ArtikelKortSerializer):
 
 
 class VoorstelSerializer(serializers.ModelSerializer):
-    artikel = serializers.SlugRelatedField(slug_field="slug", queryset=Artikel.objects.all())
+    artikel = serializers.PrimaryKeyRelatedField(queryset=Artikel.objects.all())
+    artikel_url = serializers.CharField(source="artikel.get_absolute_url", read_only=True)
     artikel_titel = serializers.CharField(source="artikel.titel", read_only=True)
     ingediend_door = serializers.SerializerMethodField()
     van_mij = serializers.SerializerMethodField()
@@ -115,6 +125,7 @@ class VoorstelSerializer(serializers.ModelSerializer):
             "id",
             "artikel",
             "artikel_titel",
+            "artikel_url",
             "artikel_versie",
             "citaat",
             "tekst",
@@ -183,12 +194,12 @@ def _filter(qs, params):
     return qs.distinct()
 
 
-def _artikel_of_404(request, slug):
+def _artikel_of_404(request, pk):
     artikel = get_object_or_404(
         Artikel.objects.select_related("omgeving").prefetch_related(
             "clusters", "tags", "zaaktypen", Prefetch("secties", Sectie.objects.order_by("volgorde", "id"))
         ),
-        slug=slug,
+        pk=pk,
     )
     if not rechten(request).mag_lezen(artikel):
         # 404 in plaats van 403: verraad niet dat het artikel bestaat.
@@ -243,10 +254,10 @@ def ik(request):
             "onboarding": p.onboarding,
             "favorieten": list(
                 Favoriet.objects.filter(gebruiker=request.user, artikel__in=zichtbaar).values_list(
-                    "artikel__slug", flat=True
+                    "artikel_id", flat=True
                 )
             ),
-            "recent": [{"slug": x.artikel.slug, "bezocht_op": x.bezocht_op} for x in recent],
+            "recent": [{"id": x.artikel_id, "bezocht_op": x.bezocht_op} for x in recent],
             "beheer_url": "/beheer/" if request.user.is_staff else None,
             "uitlog_url": "/oidc/logout/" if settings.KB_AUTH_MODUS == "oidc" else "/uitloggen/",
             "ai_aan": settings.KB_AI_PROVIDER != "uit",
@@ -299,31 +310,31 @@ def artikelen(request):
 
 @extend_schema(summary="Eén artikel met secties", responses=ArtikelSerializer)
 @api_view(["GET"])
-def artikel(request, slug):
-    a = _artikel_of_404(request, slug)
+def artikel(request, pk):
+    a = _artikel_of_404(request, pk)
     return Response(ArtikelSerializer(a, context=_ctx(request)).data)
 
 
 @extend_schema(summary="Weergave registreren (statistiek en 'recent bezocht')", request=None, responses={204: None})
 @api_view(["POST"])
-def weergave(request, slug):
-    a = _artikel_of_404(request, slug)
+def weergave(request, pk):
+    a = _artikel_of_404(request, pk)
     diensten.registreer_weergave(request.user, a)
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @extend_schema(summary="Favoriet aan (PUT) of uit (DELETE)", request=None, responses={204: None})
 @api_view(["PUT", "DELETE"])
-def favoriet(request, slug):
-    a = _artikel_of_404(request, slug)
+def favoriet(request, pk):
+    a = _artikel_of_404(request, pk)
     diensten.zet_favoriet(request.user, a, request.method == "PUT")
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @extend_schema(summary="Versiegeschiedenis van een artikel (redacteuren)", responses=OpenApiTypes.OBJECT)
 @api_view(["GET"])
-def versies(request, slug):
-    a = _artikel_of_404(request, slug)
+def versies(request, pk):
+    a = _artikel_of_404(request, pk)
     if not rechten(request).mag_redigeren(a):
         raise PermissionDenied
     return Response(
@@ -415,7 +426,9 @@ def statistieken(request):
     rijen = sorted(
         (
             {
+                "id": a.pk,
                 "slug": a.slug,
+                "url": a.get_absolute_url(),
                 "titel": a.titel,
                 "soort": a.soort,
                 "status": a.status,

@@ -2,6 +2,9 @@
  *
  * - Werkbalk met de basisopmaak uit Word: koppen, vet, cursief, onderstreept, doorgehaald,
  *   lijsten, inspringen, link, tabel, citaat, opmaak wissen, ongedaan maken.
+ * - Knop "Sectiekop": maakt van de huidige regel een sectiekop (<h2 class="sectie">). Alles tot de
+ *   volgende sectiekop wordt in de kennisbank een in- en uitklapbare sectie. Nogmaals klikken maakt
+ *   er weer een gewone alinea van.
  * - Knop "Onboarding": markeert de geselecteerde alinea's als uitleg voor nieuwe collega's
  *   (<div class="onboarding">). Nogmaals klikken haalt de markering weg.
  * - Plakken uit Word wordt opgeschoond. De server schoont daarna nog een keer op (inhoud.py).
@@ -11,6 +14,26 @@
   if (!window.Jodit) return;
 
   var ONB = "onboarding";
+  var SEC = "sectie";
+
+  function sectiekopToggle(editor) {
+    var root = editor.editor;
+    var blok = blokVan(editor.s.range.startContainer, root);
+    if (!blok) { alert("Zet de cursor in de regel die een sectiekop moet worden."); return; }
+    var doc = root.ownerDocument;
+    if (blok.tagName === "H2" && blok.classList.contains(SEC)) {
+      var p = doc.createElement("p"); p.innerHTML = blok.innerHTML; blok.parentNode.replaceChild(p, blok);
+    } else {
+      // Een sectiekop staat altijd op het hoogste niveau (niet in een onboarding-blok of lijst).
+      var top = blok.parentNode === root ? blok : blok.parentNode;
+      var h = doc.createElement("h2"); h.className = SEC;
+      h.textContent = (blok.textContent || "").replace(/\s+/g, " ").trim() || "Nieuwe sectie";
+      if (top === blok) blok.parentNode.replaceChild(h, blok);
+      else { top.parentNode.insertBefore(h, top); blok.parentNode.removeChild(blok); if (!top.textContent.trim()) top.parentNode.removeChild(top); }
+    }
+    editor.synchronizeValues();
+    editor.setEditorValue(editor.value);
+  }
 
   function blokVan(node, root) {
     // Dichtstbijzijnde alinea-achtig element binnen de editor.
@@ -57,8 +80,8 @@
   var config = {
     language: "nl",
     enter: "p",
-    height: 320,
-    minHeight: 200,
+    height: 560,
+    minHeight: 300,
     toolbarAdaptive: false,
     toolbarSticky: false,
     statusbar: false,
@@ -81,6 +104,12 @@
       "paragraph", "|", "bold", "italic", "underline", "strikethrough", "superscript", "|",
       "ul", "ol", "outdent", "indent", "|", "link", "table", "hr", "|", "eraser", "undo", "redo", "|",
       {
+        name: "sectiekop",
+        tooltip: "Sectiekop: deze regel begint een in- en uitklapbare sectie",
+        text: "Sectiekop",
+        exec: sectiekopToggle
+      },
+      {
         name: "onboarding",
         tooltip: "Onboarding: markeer deze alinea('s) als uitleg voor nieuwe collega's",
         text: "Onboarding",
@@ -93,7 +122,7 @@
       allowTags: {
         p: true, br: true, strong: true, b: true, em: true, i: true, u: true, s: true, strike: true, sub: true, sup: true,
         ul: true, ol: { start: true }, li: true, a: { href: true, title: true }, code: true, pre: true, blockquote: true,
-        h1: true, h2: true, h3: true, h4: true, h5: true, h6: true,
+        h1: true, h2: { class: true }, h3: true, h4: true, h5: true, h6: true,
         table: true, thead: true, tbody: true, tr: true, th: { colspan: true, rowspan: true, scope: true }, td: { colspan: true, rowspan: true },
         hr: true, div: { class: true }, span: true
       }

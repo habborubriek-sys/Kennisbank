@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.1.0
+  version: 1.2.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -60,15 +60,15 @@ paths:
                 items:
                   $ref: '#/components/schemas/ArtikelKort'
           description: ''
-  /api/v1/artikelen/{slug}:
+  /api/v1/artikelen/{id}:
     get:
       operationId: v1_artikelen_retrieve
       summary: Eén artikel met secties
       parameters:
       - in: path
-        name: slug
+        name: id
         schema:
-          type: string
+          type: integer
         required: true
       tags:
       - v1
@@ -82,15 +82,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/Artikel'
           description: ''
-  /api/v1/artikelen/{slug}/favoriet:
+  /api/v1/artikelen/{id}/favoriet:
     put:
       operationId: v1_artikelen_favoriet_update
       summary: Favoriet aan (PUT) of uit (DELETE)
       parameters:
       - in: path
-        name: slug
+        name: id
         schema:
-          type: string
+          type: integer
         required: true
       tags:
       - v1
@@ -105,9 +105,9 @@ paths:
       summary: Favoriet aan (PUT) of uit (DELETE)
       parameters:
       - in: path
-        name: slug
+        name: id
         schema:
-          type: string
+          type: integer
         required: true
       tags:
       - v1
@@ -117,15 +117,15 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/v1/artikelen/{slug}/versies:
+  /api/v1/artikelen/{id}/versies:
     get:
       operationId: v1_artikelen_versies_retrieve
       summary: Versiegeschiedenis van een artikel (redacteuren)
       parameters:
       - in: path
-        name: slug
+        name: id
         schema:
-          type: string
+          type: integer
         required: true
       tags:
       - v1
@@ -140,15 +140,15 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
-  /api/v1/artikelen/{slug}/weergave:
+  /api/v1/artikelen/{id}/weergave:
     post:
       operationId: v1_artikelen_weergave_create
       summary: Weergave registreren (statistiek en 'recent bezocht')
       parameters:
       - in: path
-        name: slug
+        name: id
         schema:
-          type: string
+          type: integer
         required: true
       tags:
       - v1
@@ -379,10 +379,14 @@ components:
     Artikel:
       type: object
       properties:
+        id:
+          type: integer
+          readOnly: true
         slug:
           type: string
-          description: Deel van de link naar het artikel.
-          maxLength: 120
+          readOnly: true
+          description: Leesbaar deel van de link; wordt uit de titel afgeleid. De
+            link werkt op het nummer.
           pattern: ^[-a-zA-Z0-9_]+$
         titel:
           type: string
@@ -428,10 +432,14 @@ components:
         url:
           type: string
           readOnly: true
+        inleiding_html:
+          type: string
+          readOnly: true
         secties:
           type: array
           items:
-            $ref: '#/components/schemas/Sectie'
+            type: object
+            additionalProperties: {}
           readOnly: true
         gerelateerd:
           type: array
@@ -448,6 +456,8 @@ components:
       - clusters
       - gepubliceerd_op
       - gerelateerd
+      - id
+      - inleiding_html
       - omgeving
       - samenvatting
       - secties
@@ -460,10 +470,14 @@ components:
     ArtikelKort:
       type: object
       properties:
+        id:
+          type: integer
+          readOnly: true
         slug:
           type: string
-          description: Deel van de link naar het artikel.
-          maxLength: 120
+          readOnly: true
+          description: Leesbaar deel van de link; wordt uit de titel afgeleid. De
+            link werkt op het nummer.
           pattern: ^[-a-zA-Z0-9_]+$
         titel:
           type: string
@@ -512,6 +526,7 @@ components:
       required:
       - clusters
       - gepubliceerd_op
+      - id
       - omgeving
       - samenvatting
       - slug
@@ -596,18 +611,6 @@ components:
         terugkoppeling:
           type: string
           maxLength: 4000
-    Sectie:
-      type: object
-      properties:
-        kop:
-          type: string
-          maxLength: 200
-        inhoud_html:
-          type: string
-          readOnly: true
-      required:
-      - inhoud_html
-      - kop
     SoortEnum:
       enum:
       - werkinstructie
@@ -625,9 +628,11 @@ components:
           type: integer
           readOnly: true
         artikel:
-          type: string
-          description: Deel van de link naar het artikel.
+          type: integer
         artikel_titel:
+          type: string
+          readOnly: true
+        artikel_url:
           type: string
           readOnly: true
         artikel_versie:
@@ -664,6 +669,7 @@ components:
       required:
       - artikel
       - artikel_titel
+      - artikel_url
       - artikel_versie
       - behandeld_op
       - id
@@ -677,9 +683,7 @@ components:
       type: object
       properties:
         artikel:
-          type: string
-          minLength: 1
-          description: Deel van de link naar het artikel.
+          type: integer
         citaat:
           type: string
           description: De tekst die de indiener had geselecteerd.

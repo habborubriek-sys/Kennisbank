@@ -3,11 +3,18 @@
 from django.db import transaction
 
 from . import diensten
-from .inhoud import markdown_naar_html, onboarding_blok, schoon
-from .models import Artikel, Cluster, Omgeving, Sectie, Soort, Status, Tag, Zaaktype
+from .inhoud import markdown_naar_html, onboarding_blok, schoon, sectiekop
+from .models import Artikel, Cluster, Omgeving, Soort, Status, Tag, Zaaktype
 
 FORMAAT = "kennisbank-import"
-VERSIE = 2  # 1 = inhoud in Markdown met apart onboarding-veld; 2 = inhoud in HTML
+VERSIE = 3  # 1 = secties in Markdown + onboarding-veld; 2 = secties in HTML; 3 = één artikeltekst (HTML)
+
+
+def _artikel_inhoud(a: dict, versie: int) -> str:
+    """De artikeltekst uit het importbestand: versie 3 heeft 'inhoud'; oudere versies hebben 'secties'."""
+    if versie >= 3 or "inhoud" in a:
+        return schoon(a.get("inhoud", ""))
+    return "".join(sectiekop(s["kop"]) + _sectie_inhoud(s, versie) for s in a.get("secties", []))
 
 
 def _sectie_inhoud(s: dict, versie: int) -> str:
@@ -30,16 +37,18 @@ class ImportFout(ValueError):
 def _controleer(data):
     if data.get("formaat") != FORMAAT:
         raise ImportFout(f"Onbekend formaat; verwacht 'formaat': '{FORMAAT}'.")
-    if data.get("versie", 1) not in (1, 2):
-        raise ImportFout("Onbekende versie van het importformaat; ondersteund: 1 en 2.")
+    if data.get("versie", 1) not in (1, 2, 3):
+        raise ImportFout("Onbekende versie van het importformaat; ondersteund: 1, 2 en 3.")
     if not data.get("omgeving", {}).get("slug"):
         raise ImportFout("'omgeving.slug' ontbreekt.")
     soorten = {s.value for s in Soort}
     statussen = {s.value for s in Status}
     for i, a in enumerate(data.get("artikelen", []), 1):
-        for veld in ("slug", "titel", "samenvatting", "secties"):
+        for veld in ("slug", "titel", "samenvatting"):
             if not a.get(veld):
                 raise ImportFout(f"Artikel {i}: '{veld}' ontbreekt.")
+        if not a.get("inhoud") and not a.get("secties"):
+            raise ImportFout(f"Artikel {a['slug']}: 'inhoud' ontbreekt.")
         if a.get("soort", "werkinstructie") not in soorten:
             raise ImportFout(f"Artikel {a['slug']}: onbekende soort '{a['soort']}'.")
         if a.get("status", "concept") not in statussen:
@@ -48,7 +57,7 @@ def _controleer(data):
 
 @transaction.atomic
 def importeer(data, gebruiker=None, toelichting="Import") -> dict:
-    """Voegt artikelen toe of werkt ze bij (op basis van slug). Geeft tellingen terug."""
+    """Voegt artikelen toe of werkt ze bij (op basis van omgeving + slug). Geeft tellingen terug."""
     _controleer(data)
     versie = int(data.get("versie", 1))
     o = data["omgeving"]
@@ -63,10 +72,11 @@ def importeer(data, gebruiker=None, toelichting="Import") -> dict:
     telling = {"nieuw": 0, "bijgewerkt": 0, "nieuwe_versies": 0}
     for a in data.get("artikelen", []):
         artikel, nieuw = Artikel.objects.update_or_create(
+            omgeving=omgeving,
             slug=a["slug"],
             defaults={
-                "omgeving": omgeving,
                 "titel": a["titel"],
+                "inhoud": _artikel_inhoud(a, versie),
                 "samenvatting": a["samenvatting"],
                 "soort": a.get("soort", Soort.WERKINSTRUCTIE),
                 "status": a.get("status", Status.CONCEPT),
@@ -79,13 +89,7 @@ def importeer(data, gebruiker=None, toelichting="Import") -> dict:
         artikel.zaaktypen.set(
             [Zaaktype.objects.get_or_create(code=c, defaults={"naam": c})[0] for c in a.get("zaaktypen", [])]
         )
-        artikel.secties.all().delete()
-        Sectie.objects.bulk_create(
-            [
-                Sectie(artikel=artikel, volgorde=i, kop=s["kop"], inhoud=_sectie_inhoud(s, versie))
-                for i, s in enumerate(a["secties"])
-            ]
-        )
+        diensten.herbouw_secties(artikel)
         if diensten.registreer_publicatie(artikel, gebruiker, toelichting):
             telling["nieuwe_versies"] += 1
     return telling
@@ -94,8 +98,8 @@ def importeer(data, gebruiker=None, toelichting="Import") -> dict:
 def exporteer(omgeving: Omgeving) -> dict:
     artikelen = (
         Artikel.objects.filter(omgeving=omgeving)
-        .prefetch_related("clusters", "tags", "zaaktypen", "secties")
-        .order_by("slug")
+        .prefetch_related("clusters", "tags", "zaaktypen")
+        .order_by("slug", "id")
     )
     return {
         "formaat": FORMAAT,
@@ -114,7 +118,7 @@ def exporteer(omgeving: Omgeving) -> dict:
                 "clusters": [c.naam for c in a.clusters.all()],
                 "tags": [t.naam for t in a.tags.all()],
                 "zaaktypen": [z.code for z in a.zaaktypen.all()],
-                "secties": [{"kop": s.kop, "inhoud": s.inhoud} for s in a.secties.all()],
+                "inhoud": a.inhoud,
             }
             for a in artikelen
         ],

@@ -72,7 +72,7 @@
   let zoekT, registreerT, zoekVolgnr = 0;
 
   const isPM = () => !!(ik && ik.is_redacteur);
-  const artBySlug = (slug) => artikelen.find((a) => a.slug === slug);
+  const artById = (id) => artikelen.find((a) => a.id === Number(id));
   const clusterLabel = (a) => (a.clusters.length ? a.clusters.join(", ") : "Alle clusters");
   const soortLabel = (w) => { const s = lijsten.soorten.find((x) => x.waarde === w); return s ? s.label : w; };
   const VOORSTEL_LABEL = { nieuw: "Nieuw", in_behandeling: "In behandeling", verwerkt: "Verwerkt", afgewezen: "Afgewezen" };
@@ -83,15 +83,16 @@
   function leesUrl() {
     if (EMBED) return;
     const pad = location.pathname.replace(/\/+$/, "");
-    const m = pad.match(/^\/artikel\/([\w-]+)$/);
-    state.artikel = m ? m[1] : null;
+    const m = pad.match(/^\/artikel\/(\d+)(?:\/[\w-]*)?$/);
+    state.artikel = m ? Number(m[1]) : null;
     const v = pad.replace(/^\//, "");
     if (!m) state.view = VIEWS.includes(v) ? v : (ik && ik.recent.length ? "recent" : "artikelen");
   }
 
   function zetUrl(vervang) {
     if (EMBED) return;
-    const pad = state.artikel ? "/artikel/" + state.artikel : "/" + (state.view === "recent" ? "" : state.view);
+    const a = state.artikel ? (huidigArtikel && huidigArtikel.id === state.artikel ? huidigArtikel : artById(state.artikel)) : null;
+    const pad = state.artikel ? (a ? a.url : "/artikel/" + state.artikel) : "/" + (state.view === "recent" ? "" : state.view);
     if (location.pathname !== pad) {
       try { history[vervang ? "replaceState" : "pushState"](null, "", pad); } catch (e) { /* bijv. sandbox */ }
     }
@@ -136,10 +137,11 @@
     try {
       if (!ik) { m.innerHTML = renderLogin(); wireLogin(); return; }
       if (state.artikel) {
-        if (!huidigArtikel || huidigArtikel.slug !== state.artikel) {
+        if (!huidigArtikel || huidigArtikel.id !== state.artikel) {
           m.innerHTML = '<p class="loading">Laden…</p>';
           huidigArtikel = await api("artikelen/" + encodeURIComponent(state.artikel));
-          registreerWeergave(huidigArtikel.slug);
+          registreerWeergave(huidigArtikel.id);
+          zetUrl(true);  // slug in de adresbalk aanvullen
         }
         m.innerHTML = renderArticle(huidigArtikel);
         wireArticle();
@@ -168,11 +170,11 @@
     let bron, titel, leeg = "", when = null;
     if (zoekend) { bron = state.zoekresultaat || []; titel = "Zoekresultaten"; }
     else if (state.view === "favorieten") {
-      bron = artikelen.filter((a) => favs.has(a.slug)); titel = "Favorieten";
+      bron = artikelen.filter((a) => favs.has(a.id)); titel = "Favorieten";
       leeg = '<div class="empty">Nog geen favorieten. Open een artikel en klik op de ster om het hier vast te zetten.</div>';
     } else if (state.view === "recent") {
-      bron = ik.recent.map((r) => artBySlug(r.slug)).filter(Boolean); titel = "Recent bezocht";
-      when = Object.fromEntries(ik.recent.map((r) => [r.slug, ago(r.bezocht_op)]));
+      bron = ik.recent.map((r) => artById(r.id)).filter(Boolean); titel = "Recent bezocht";
+      when = Object.fromEntries(ik.recent.map((r) => [r.id, ago(r.bezocht_op)]));
       leeg = '<div class="empty">Hier verschijnen de artikelen die je het laatst hebt geopend.<br><br>Zoek hierboven op een trefwoord, of <button class="tb" type="button" data-nav="artikelen">bekijk alle artikelen</button></div>';
     } else { bron = artikelen; titel = "Alle artikelen"; }
     return renderList(filtered(bron), titel, when, leeg, zoekend && state.zoekresultaat === null);
@@ -186,8 +188,8 @@
     }
     if (when) meta.push((isPM() ? "<span>·</span>" : "") + `<span class="when">${esc(when)}</span>`);
     return `<article class="card">
-      <button class="star" type="button" data-fav="${esc(a.slug)}" aria-pressed="${favs.has(a.slug)}" aria-label="${favs.has(a.slug) ? "Verwijder uit favorieten" : "Voeg toe aan favorieten"}: ${esc(a.titel)}">${favs.has(a.slug) ? "★" : "☆"}</button>
-      <h2><a href="${esc(a.url)}" data-open="${esc(a.slug)}" class="linkbtn card-link">${esc(a.titel)}</a></h2>
+      <button class="star" type="button" data-fav="${a.id}" aria-pressed="${favs.has(a.id)}" aria-label="${favs.has(a.id) ? "Verwijder uit favorieten" : "Voeg toe aan favorieten"}: ${esc(a.titel)}">${favs.has(a.id) ? "★" : "☆"}</button>
+      <h2><a href="${esc(a.url)}" data-open="${a.id}" class="linkbtn card-link">${esc(a.titel)}</a></h2>
       <p>${esc(a.samenvatting)}</p>
       ${meta.length ? `<div class="meta">${meta.join("")}</div>` : ""}
     </article>`;
@@ -198,7 +200,7 @@
     const filterend = active.length || state.q.trim();
     let inhoud;
     if (laden) inhoud = '<p class="loading">Zoeken…</p>';
-    else if (list.length) inhoud = `<div class="cards">${list.map((a) => cardHTML(a, whenMap && whenMap[a.slug])).join("")}</div>`;
+    else if (list.length) inhoud = `<div class="cards">${list.map((a) => cardHTML(a, whenMap && whenMap[a.id])).join("")}</div>`;
     else if (emptyHtml && !filterend) inhoud = emptyHtml;
     else inhoud = '<div class="empty">Geen artikelen gevonden. Probeer een ander trefwoord of wis de filters.<br><br>Mis je een artikel? <button class="tb" type="button" id="askBot">Vraag het de assistent</button></div>';
     return `<div class="view"><h1>${esc(title)}</h1>
@@ -214,7 +216,7 @@
       ${a.status !== "gepubliceerd" ? `<div class="concept-banner">Dit artikel is <b>${esc(a.status)}</b> en niet zichtbaar voor medewerkers.</div>` : ""}
       <div class="head">${isPM() ? `<span class="type ${esc(a.soort)}">${esc(soortLabel(a.soort))}</span>` : ""}
        <div class="toolbar">
-        <button class="tb" type="button" id="favBtn" aria-pressed="${favs.has(a.slug)}">${favs.has(a.slug) ? "★ Favoriet" : "☆ Favoriet"}</button>
+        <button class="tb" type="button" id="favBtn" aria-pressed="${favs.has(a.id)}">${favs.has(a.id) ? "★ Favoriet" : "☆ Favoriet"}</button>
         <button class="tb" type="button" id="shareBtn">⤴ Delen</button>
         ${EMBED ? `<a class="tb" href="${esc(a.url)}" target="_blank" rel="noopener">↗ Open in kennisbank</a>` : ""}
         ${a.bewerk_url ? `<a class="tb primary" href="${esc(a.bewerk_url)}" ${EMBED ? 'target="_blank" rel="noopener"' : ""}>Bewerken</a>` : ""}
@@ -222,10 +224,11 @@
       <h1 id="artTitel">${esc(a.titel)}</h1>
       <p class="summary">${esc(a.samenvatting)}</p>
       <p class="docline">${esc(clusterLabel(a))} · ${zt} · versie ${a.versie}, bijgewerkt ${datum(a.gepubliceerd_op)} · eigenaar ${esc(a.eigenaar)}</p>
-      <div class="secbar"><button class="tb" type="button" id="toggleAll">Alles uitklappen</button></div>
-      <div class="sections">${a.secties.map((s, i) => `<details class="sec" id="sectie-${i}" ${i === 0 ? "open" : ""}><summary>${esc(s.kop)}</summary><div class="body">${s.inhoud_html}</div></details>`).join("")}</div>
+      ${a.secties.length ? '<div class="secbar"><button class="tb" type="button" id="toggleAll">Alles uitklappen</button></div>' : ""}
+      ${a.inleiding_html ? `<div class="inleiding">${a.inleiding_html}</div>` : ""}
+      <div class="sections">${a.secties.map((s, i) => `<details class="sec" id="sectie-${s.volgorde}" ${i === 0 ? "open" : ""}><summary>${esc(s.kop)}</summary><div class="body">${s.inhoud_html}</div></details>`).join("")}</div>
       <div class="foot">
-       ${a.gerelateerd.length ? `<div class="related"><h2 class="stats-h">Gerelateerd</h2><ul>${a.gerelateerd.map((r) => `<li><button type="button" data-open="${esc(r.slug)}">${esc(r.titel)}</button></li>`).join("")}</ul></div>` : ""}
+       ${a.gerelateerd.length ? `<div class="related"><h2 class="stats-h">Gerelateerd</h2><ul>${a.gerelateerd.map((r) => `<li><a href="${esc(r.url)}" data-open="${r.id}" class="linkbtn">${esc(r.titel)}</a></li>`).join("")}</ul></div>` : ""}
        <div class="chips" aria-label="Tags">${a.tags.map((t) => `<button class="chip" type="button" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</div>
        <p class="hint">Klopt iets niet of mis je iets? Selecteer de tekst, of <button class="link" type="button" id="propBtn">dien een verbetervoorstel in</button>.</p>
       </div>
@@ -239,7 +242,7 @@
       : "Jouw voorstellen, met de terugkoppeling van procesmanagement.";
     return `<div class="view"><h1>Verbetervoorstellen</h1><p class="lead">${lead}</p>
      ${lijst.length ? `<div class="props">${lijst.map((p) => `<div class="prop">
-      <div class="ph"><span><button class="tb" type="button" data-open="${esc(p.artikel)}">${esc(p.artikel_titel)}</button> &nbsp;${esc(p.van_mij ? "Jij" : p.ingediend_door)} · ${datum(p.ingediend_op)} · bij versie ${p.artikel_versie}</span><span class="status ${esc(p.status)}">${esc(VOORSTEL_LABEL[p.status] || p.status)}</span></div>
+      <div class="ph"><span><a class="tb" href="${esc(p.artikel_url)}" data-open="${p.artikel}">${esc(p.artikel_titel)}</a> &nbsp;${esc(p.van_mij ? "Jij" : p.ingediend_door)} · ${datum(p.ingediend_op)} · bij versie ${p.artikel_versie}</span><span class="status ${esc(p.status)}">${esc(VOORSTEL_LABEL[p.status] || p.status)}</span></div>
       ${p.citaat ? `<blockquote>“${esc(p.citaat)}”</blockquote>` : ""}
       <div>${esc(p.tekst)}</div>
       ${p.terugkoppeling ? `<div class="fb"><b>Terugkoppeling procesmanagement</b>${esc(p.terugkoppeling)}</div>` : ""}
@@ -259,7 +262,7 @@
       <div class="tile"><b>${s.assistent_vragen}</b><span>vragen aan de assistent</span></div>
      </div>
      <div class="table-wrap"><table><caption class="visually-hidden">Weergaven per artikel</caption><thead><tr><th scope="col">Artikel</th><th scope="col">Soort</th><th scope="col" class="num">Weergaven</th><th scope="col"><span class="visually-hidden">Verhouding</span></th><th scope="col" class="num">Voorstellen</th></tr></thead><tbody>
-     ${s.artikelen.map((a) => `<tr><td><button type="button" class="linkbtn" data-open="${esc(a.slug)}">${esc(a.titel)}</button>${a.status !== "gepubliceerd" ? ` <span class="versie-badge">(${esc(a.status)})</span>` : ""}</td><td><span class="type ${esc(a.soort)}">${esc(soortLabel(a.soort))}</span></td><td class="num">${a.weergaven}</td><td><div class="bar" aria-hidden="true"><i data-w="${Math.round((a.weergaven / max) * 100)}"></i></div></td><td class="num">${a.voorstellen}</td></tr>`).join("")}
+     ${s.artikelen.map((a) => `<tr><td><a href="${esc(a.url)}" class="linkbtn" data-open="${a.id}">${esc(a.titel)}</a>${a.status !== "gepubliceerd" ? ` <span class="versie-badge">(${esc(a.status)})</span>` : ""}</td><td><span class="type ${esc(a.soort)}">${esc(soortLabel(a.soort))}</span></td><td class="num">${a.weergaven}</td><td><div class="bar" aria-hidden="true"><i data-w="${Math.round((a.weergaven / max) * 100)}"></i></div></td><td class="num">${a.voorstellen}</td></tr>`).join("")}
      </tbody></table></div>
      <h2 class="stats-h">Meest gezochte termen</h2>
      ${s.zoektermen.length ? `<div class="table-wrap"><table><thead><tr><th scope="col">Zoekterm</th><th scope="col" class="num">Zoekopdrachten</th><th scope="col"><span class="visually-hidden">Verhouding</span></th></tr></thead><tbody>${s.zoektermen.map((t) => `<tr><td>${esc(t.term)}</td><td class="num">${t.aantal}</td><td><div class="bar" aria-hidden="true"><i data-w="${Math.round((t.aantal / maxT) * 100)}"></i></div></td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">Nog geen zoekopdrachten in deze periode.</div>'}
@@ -291,29 +294,31 @@
   });
 
   /* ---------- Gedrag ---------- */
-  function openArticle(slug, sectie) {
-    state.artikel = slug;
+  function openArticle(id, sectie) {
+    state.artikel = Number(id);
     zetUrl();
     render(true).then(() => {
       if (sectie == null) return;
       const d = document.getElementById("sectie-" + sectie);
       if (d) { d.open = true; d.scrollIntoView({ block: "start" }); d.querySelector("summary").focus(); }
+      else if (Number(sectie) === 0) window.scrollTo(0, 0);
     });
   }
 
-  async function registreerWeergave(slug) {
+  async function registreerWeergave(id) {
     try {
-      await api("artikelen/" + encodeURIComponent(slug) + "/weergave", { method: "POST" });
-      ik.recent = [{ slug, bezocht_op: new Date().toISOString() }, ...ik.recent.filter((r) => r.slug !== slug)].slice(0, 10);
+      await api("artikelen/" + id + "/weergave", { method: "POST" });
+      ik.recent = [{ id, bezocht_op: new Date().toISOString() }, ...ik.recent.filter((r) => r.id !== id)].slice(0, 10);
       renderFilters();
     } catch (e) { /* statistiek is niet kritisch */ }
   }
 
-  async function toggleFav(slug) {
-    const aan = !favs.has(slug);
+  async function toggleFav(id) {
+    id = Number(id);
+    const aan = !favs.has(id);
     try {
-      await api("artikelen/" + encodeURIComponent(slug) + "/favoriet", { method: aan ? "PUT" : "DELETE" });
-      aan ? favs.add(slug) : favs.delete(slug);
+      await api("artikelen/" + id + "/favoriet", { method: aan ? "PUT" : "DELETE" });
+      aan ? favs.add(id) : favs.delete(id);
       render(false);
       toast(aan ? "Toegevoegd aan favorieten" : "Verwijderd uit favorieten");
     } catch (e) { toast("Opslaan van favoriet is mislukt"); }
@@ -344,9 +349,9 @@
       state.artikel = null; huidigArtikel = null;
       if (EMBED) { state.view = "zaaktype"; render(true); } else if (history.length > 1 && document.referrer.startsWith(location.origin)) history.back(); else ga(state.view);
     });
-    $("#favBtn").addEventListener("click", () => toggleFav(a.slug));
+    $("#favBtn").addEventListener("click", () => toggleFav(a.id));
     $("#shareBtn").addEventListener("click", () => {
-      const url = location.origin + a.url;
+      const url = location.origin + a.url;  // /artikel/<nummer>/<naam>: het nummer maakt de link blijvend
       const klaar = () => toast("Link gekopieerd");
       if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(klaar).catch(() => toast("Link: " + url));
       else toast("Link: " + url);
@@ -448,7 +453,7 @@
     const knop = e.submitter || $("#propForm [type=submit]");
     knop.disabled = true;
     try {
-      const v = await api("voorstellen", { method: "POST", body: { artikel: huidigArtikel.slug, citaat: $("#propQuote").hidden ? "" : $("#propQuote").textContent, tekst: $("#propText").value.trim() } });
+      const v = await api("voorstellen", { method: "POST", body: { artikel: huidigArtikel.id, citaat: $("#propQuote").hidden ? "" : $("#propQuote").textContent, tekst: $("#propText").value.trim() } });
       voorstellen = [v, ...voorstellen];
       closeProp();
       renderFilters();
@@ -494,8 +499,8 @@
       let html = a.html;
       if (a.bronnen.length) {
         const uniek = [];
-        a.bronnen.forEach((b) => { if (!uniek.some((u) => u.slug === b.slug && u.sectie === b.sectie)) uniek.push(b); });
-        html += `<div class="bronnen">${uniek.slice(0, 3).map((b) => `<button class="src" type="button" data-open="${esc(b.slug)}" data-sectie="${b.sectie_index}">↗ ${esc(b.titel)} – ${esc(b.sectie)}</button>`).join("")}</div>`;
+        a.bronnen.forEach((b) => { if (!uniek.some((u) => u.id === b.id && u.sectie === b.sectie)) uniek.push(b); });
+        html += `<div class="bronnen">${uniek.slice(0, 3).map((b) => `<a class="src" href="${esc(b.url)}" data-open="${b.id}" data-sectie="${b.sectie_index}">↗ ${esc(b.titel)} – ${esc(b.sectie)}</a>`).join("")}</div>`;
       }
       if (a.melding) html += `<p class="melding">${esc(a.melding)}</p>`;
       wacht.remove();
@@ -572,7 +577,7 @@
     onboarding = ik.onboarding;
     body.classList.toggle("onboarding", onboarding);
     $("#onbToggle").setAttribute("aria-pressed", String(onboarding));
-    favs = new Set(ik.favorieten);
+    favs = new Set(ik.favorieten.map(Number));
     [lijsten, artikelen] = await Promise.all([api("keuzelijsten"), api("artikelen")]);
     await laadVoorstellen();
     if (EMBED) state.view = "zaaktype"; else leesUrl();
