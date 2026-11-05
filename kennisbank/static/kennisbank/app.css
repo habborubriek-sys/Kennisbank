@@ -133,9 +133,17 @@ details.sec .body{padding:0 16px 14px 32px;max-width:70ch}
 details.sec .body p{margin:0 0 10px}
 details.sec .body ul,details.sec .body ol{margin:0 0 10px;padding-left:22px}
 details.sec .body li{margin-bottom:4px}
-.onb{display:none;background:var(--onb);border-left:3px solid var(--onb-line);border-radius:0 6px 6px 0;padding:8px 12px;margin:6px 0 10px;font-size:.95rem}
-.onb b{display:block;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
-body.onboarding .onb{display:block}
+/* Onboarding-blokken: <div class="onboarding"> in de inhoud; alleen zichtbaar met de schakelaar aan. */
+div.onboarding{display:none;background:var(--onb);border-left:3px solid var(--onb-line);border-radius:0 6px 6px 0;padding:8px 12px;margin:6px 0 10px;font-size:.95rem}
+div.onboarding::before{content:"Voor nieuwe collega's";display:block;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px;font-weight:700}
+div.onboarding p:last-child{margin-bottom:0}
+body.onboarding div.onboarding{display:block}
+details.sec .body h3{font-size:1.05rem;margin:14px 0 6px}
+details.sec .body h4{font-size:.95rem;margin:12px 0 4px}
+details.sec .body td,details.sec .body th{border:1px solid var(--line);padding:6px 10px}
+details.sec .body table{border-collapse:collapse;width:auto}
+details.sec .body blockquote{margin:0 0 10px;padding:6px 12px;border-left:3px solid var(--line);color:var(--fg-muted)}
+details.sec .body u{text-decoration-thickness:1px}
 .flow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:4px 0 12px}
 .flow span{background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:4px 10px;font-weight:600;font-size:.9rem}
 .flow i{color:var(--fg-muted);font-style:normal}

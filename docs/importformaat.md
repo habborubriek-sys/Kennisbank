@@ -12,7 +12,7 @@ Bestaande artikelen (zelfde `slug`) worden bijgewerkt. Als een gepubliceerd arti
 ```json
 {
   "formaat": "kennisbank-import",
-  "versie": 1,
+  "versie": 2,
   "omgeving": {"slug": "handhaving", "naam": "Handhaving", "beschrijving": "…"},
   "clusters": ["Nat beheer", "Droog beheer"],
   "zaaktypen": [{"code": "Melding", "naam": "Melding"}],
@@ -30,8 +30,7 @@ Bestaande artikelen (zelfde `slug`) worden bijgewerkt. Als een gepubliceerd arti
       "secties": [
         {
           "kop": "Termijnen",
-          "inhoud": "- Reactietermijn verzoek: 4 weken\n- Tweede rappel: 2 weken na het eerste",
-          "onboarding": "Twijfel je over de termijn? Vraag het je buddy."
+          "inhoud": "<ul><li>Reactietermijn verzoek: 4 weken</li><li>Tweede rappel: 2 weken na het eerste</li></ul><div class=\"onboarding\"><p>Twijfel je over de termijn? Vraag het je buddy.</p></div>"
         }
       ]
     }
@@ -47,6 +46,7 @@ Bestaande artikelen (zelfde `slug`) worden bijgewerkt. Als een gepubliceerd arti
 | `status` | nee | `concept` (standaard), `gepubliceerd`, `gearchiveerd` |
 | `clusters` | nee | leeg = geldt voor alle clusters |
 | `tags`, `zaaktypen` | nee | worden aangemaakt als ze nog niet bestaan |
-| `secties[].inhoud`, `secties[].onboarding` | | Markdown: `**vet**`, `- lijst`, `1. stappen`, `[link](https://…)`, tabellen |
+| `secties[].inhoud` | | HTML (wordt opgeschoond tot: p, strong, em, u, s, sub, sup, ul, ol, li, a, h3, h4, table, blockquote, code, hr). Onboarding-uitleg als `<div class="onboarding">…</div>`, meerdere per sectie toegestaan. |
+| `versie` | | `2` = inhoud in HTML (huidig). `1` = inhoud in Markdown met een apart veld `onboarding` per sectie; wordt bij import omgezet. |
 
-Een voorbeeld met acht artikelen staat in [demo/voorbeeldinhoud.json](../demo/voorbeeldinhoud.json). Bestaande werkinstructies in Word kunnen met een conversie naar Markdown (bijv. pandoc) in dit formaat worden gezet.
+Een voorbeeld met acht artikelen staat in [demo/voorbeeldinhoud.json](../demo/voorbeeldinhoud.json). Losse Word-documenten importeer je eenvoudiger via **Beheer → Artikelen → Importeren uit Word** (zie [functioneel-beheer](functioneel-beheer.md)); dit JSON-formaat is bedoeld voor bulk en voor uitwisseling tussen installaties.

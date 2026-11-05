@@ -33,7 +33,8 @@ def momentopname(artikel: Artikel) -> dict:
         "clusters": sorted(artikel.clusters.values_list("naam", flat=True)),
         "tags": sorted(artikel.tags.values_list("naam", flat=True)),
         "zaaktypen": sorted(artikel.zaaktypen.values_list("code", flat=True)),
-        "secties": [{"kop": s.kop, "inhoud": s.inhoud, "onboarding": s.onboarding} for s in artikel.secties.all()],
+        "formaat": "html",
+        "secties": [{"kop": s.kop, "inhoud": s.inhoud} for s in artikel.secties.all()],
     }
 
 

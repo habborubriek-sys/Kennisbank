@@ -9,7 +9,7 @@ Dit document geeft de informatie die nodig is voor een beveiligingstoets (BIO), 
 | Authenticatie | Via de identity provider (OIDC met PKCE). De applicatie slaat geen wachtwoorden op in productie (`KB_AUTH_MODUS=oidc`). |
 | Autorisatie | Rollen per omgeving op basis van groepen uit de identity provider; centraal afgedwongen in API en beheerscherm. Geen toegang = 404 (bestaan lekt niet uit). |
 | Sessies | HttpOnly- en Secure-cookies, SameSite instelbaar, standaard 8 uur geldig. CSRF-bescherming op alle wijzigende verzoeken. |
-| Invoer en uitvoer | Artikelinhoud (Markdown) wordt bij het tonen omgezet en opgeschoond met een allowlist (nh3/ammonia). Geen scripts, event-handlers of `javascript:`-links mogelijk. Antwoorden van het taalmodel gaan door dezelfde opschoning. |
+| Invoer en uitvoer | Artikelinhoud (HTML uit de editor of uit een Word-import) wordt bij opslaan én bij tonen opgeschoond met een allowlist (nh3/ammonia). Geen scripts, event-handlers, afbeeldingen of `javascript:`-links mogelijk. Antwoorden van het taalmodel gaan door dezelfde opschoning. Geüploade Word-bestanden worden alleen gelezen (max. 20 MB) en niet bewaard. |
 | Browserbeveiliging | Content-Security-Policy zonder `unsafe-inline` en zonder externe bronnen; `frame-ancestors` beperkt inbedden tot opgegeven domeinen; `nosniff`, `Referrer-Policy: same-origin`, `Permissions-Policy`, optioneel HSTS. |
 | Externe afhankelijkheden in de browser | Geen. Lettertypes, scripts en stijlen komen van de eigen server; er gaan geen gegevens naar CDN's of trackers. |
 | Misbruik | Begrenzing per gebruiker op vragen aan de assistent en op voorstellen (instelbaar). |

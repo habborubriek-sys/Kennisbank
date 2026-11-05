@@ -1,0 +1,12 @@
+/* Editor in het beheerscherm: onboarding-blokken zichtbaar maken zoals in de kennisbank. */
+.jodit-container:not(.jodit_inline){border-color:var(--border-color,#ccc);width:100%;max-width:1000px}
+.jodit-wysiwyg{font-family:"Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.5}
+.jodit-wysiwyg div.onboarding{background:#fff4d6;border-left:3px solid #e2b94f;border-radius:0 6px 6px 0;padding:8px 12px;margin:8px 0;position:relative}
+.jodit-wysiwyg div.onboarding::before{content:"Voor nieuwe collega's";display:block;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#7a5a10;font-weight:700;margin-bottom:2px}
+.jodit-wysiwyg table{border-collapse:collapse}
+.jodit-wysiwyg td,.jodit-wysiwyg th{border:1px solid #ccc;padding:4px 8px}
+.jodit-toolbar-button_onboarding button{font-weight:600;color:#7a5a10}
+.jodit-toolbar-button_onboarding .jodit-toolbar-button__text{padding:0 6px}
+html[data-theme="dark"] .jodit-wysiwyg div.onboarding{background:#3a2f14;border-left-color:#b8902d}
+html[data-theme="dark"] .jodit-wysiwyg div.onboarding::before{color:#e6c46a}
+.inline-related .form-row.field-inhoud>div{width:100%}

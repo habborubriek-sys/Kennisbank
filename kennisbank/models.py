@@ -134,15 +134,18 @@ class Artikel(models.Model):
 
 
 class Sectie(models.Model):
-    """Een in- en uitklapbaar onderdeel van een artikel."""
+    """Een in- en uitklapbaar onderdeel van een artikel.
+
+    `inhoud` is HTML uit de editor (of uit een Word-import) en wordt bij opslaan en bij weergave
+    opgeschoond (zie inhoud.py). Onboarding-uitleg zit in de inhoud als <div class="onboarding">.
+    """
 
     artikel = models.ForeignKey(Artikel, on_delete=models.CASCADE, related_name="secties")
     volgorde = models.PositiveIntegerField(default=0)
     kop = models.CharField(max_length=200)
-    inhoud = models.TextField(help_text="Opmaak met Markdown: **vet**, lijstjes met - of 1.")
-    onboarding = models.TextField(
+    inhoud = models.TextField(
         blank=True,
-        help_text="Extra uitleg die alleen zichtbaar is als de gebruiker 'Onboarding' aanzet.",
+        help_text="Markeer alinea's met de knop 'Onboarding' om ze alleen aan nieuwe collega's te tonen.",
     )
 
     class Meta:
@@ -152,6 +155,12 @@ class Sectie(models.Model):
 
     def __str__(self):
         return self.kop
+
+    def save(self, *args, **kwargs):
+        from .inhoud import schoon
+
+        self.inhoud = schoon(self.inhoud)
+        super().save(*args, **kwargs)
 
 
 class ArtikelVersie(models.Model):

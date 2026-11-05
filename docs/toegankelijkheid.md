@@ -4,7 +4,7 @@ Doel: **WCAG 2.1 niveau AA**, de norm uit het Besluit digitale toegankelijkheid 
 
 ## Geautomatiseerde test
 
-Getest met axe-core 4.10 (regels `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) in Chromium, op de draaiende container, bij oplevering van versie 1.0.0:
+Getest met axe-core 4.10 (regels `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) in Chromium, op de draaiende container, bij oplevering van versie 1.1.0:
 
 | Scherm | Licht | Donker |
 |---|---|---|
@@ -17,6 +17,7 @@ Getest met axe-core 4.10 (regels `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) in 
 | Statistieken | geen overtredingen | geen overtredingen |
 | Ingebed bij zaaktype | geen overtredingen | geen overtredingen |
 | Artikel op telefoonformaat (390 px) | geen overtredingen | – |
+| Artikel met tabel en koppen uit Word | geen overtredingen | geen overtredingen |
 
 Bij de eerste meting faalden twee kleuren uit het prototype op contrast (groen voor "proces" en oranje voor "in behandeling"). Die zijn aangepast naar een contrast van minimaal 4,5:1.
 
@@ -31,4 +32,4 @@ Bij de eerste meting faalden twee kleuren uit het prototype op contrast (groen v
 
 ## Nog te doen door de organisatie
 
-Een geautomatiseerde test vindt ongeveer een derde van de mogelijke problemen. Laat vóór livegang een handmatige toets uitvoeren (met schermlezer en toetsenbord) en publiceer de toegankelijkheidsverklaring via het register van DigiToegankelijk. Het beheerscherm (`/beheer/`) is het standaard Django-beheer en valt onder dezelfde toets.
+Een geautomatiseerde test vindt ongeveer een derde van de mogelijke problemen. Laat vóór livegang een handmatige toets uitvoeren (met schermlezer en toetsenbord) en publiceer de toegankelijkheidsverklaring via het register van DigiToegankelijk. Het beheerscherm (`/beheer/`) is het standaard Django-beheer en valt onder dezelfde toets. Bekend punt daar: links in het kruimelpad zijn alleen door kleur te onderscheiden (axe `link-in-text-block`); dat zit in Django zelf. De opmaak-editor (Jodit) heeft een toetsenbord-bedienbare werkbalk, maar is niet apart met een schermlezer getoetst.

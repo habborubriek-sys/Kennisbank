@@ -1,6 +1,6 @@
 {
   "formaat": "kennisbank-import",
-  "versie": 1,
+  "versie": 2,
   "omgeving": {
     "slug": "handhaving",
     "naam": "Handhaving",
@@ -55,28 +55,23 @@
       "secties": [
         {
           "kop": "Wanneer gebruik je deze instructie",
-          "inhoud": "Elke melding die binnenkomt via de gezamenlijke mailbox, de telefoon of het meldformulier wordt dezelfde werkdag geregistreerd. Ook als nog niet duidelijk is of we de melding oppakken.",
-          "onboarding": "Twijfel je of iets een melding is? Registreer het dan toch. Een zaak die later wordt afgewezen is beter dan een melding die kwijtraakt."
+          "inhoud": "<div class=\"onboarding\"><p>Twijfel je of iets een melding is? Registreer het dan toch. Een zaak die later wordt afgewezen is beter dan een melding die kwijtraakt.</p></div><p>Elke melding die binnenkomt via de gezamenlijke mailbox, de telefoon of het meldformulier wordt dezelfde werkdag geregistreerd. Ook als nog niet duidelijk is of we de melding oppakken.</p>"
         },
         {
           "kop": "Stap 1 — Zaak aanmaken",
-          "inhoud": "Kies zaaktype **Melding**. Vul melder, locatie en onderwerp in. De locatie gaat altijd in het locatieveld, nooit in het onderwerp.",
-          "onboarding": "Klik linksboven op **Nieuwe zaak**. Het locatieveld accepteert een hectometerpaal (bijv. A2 L 57,3) of een adres. Onbekend? Laat het veld leeg en zet een opmerking in het logboek."
+          "inhoud": "<div class=\"onboarding\"><p>Klik linksboven op <strong>Nieuwe zaak</strong>. Het locatieveld accepteert een hectometerpaal (bijv. A2 L 57,3) of een adres. Onbekend? Laat het veld leeg en zet een opmerking in het logboek.</p></div><p>Kies zaaktype <strong>Melding</strong>. Vul melder, locatie en onderwerp in. De locatie gaat altijd in het locatieveld, nooit in het onderwerp.</p>"
         },
         {
           "kop": "Stap 2 — Verplichte velden",
-          "inhoud": "Vul **Cluster**, **Prioriteit** en **Bron** in. Zonder deze drie velden telt de zaak niet goed mee in de rapportage en de werkvoorraad.\n\n- Cluster: het cluster waar het object of de activiteit onder valt (Nat beheer, Droog beheer, Lozingen, Ontgrondingen, Bodem of Nautisch).\n- Bron: kies de werkelijke bron (e-mail, telefoon, formulier, eigen waarneming).",
-          "onboarding": "Prioriteit: **Hoog** = direct gevaar voor verkeer of water, **Midden** = binnen een week oppakken, **Laag** = planbaar."
+          "inhoud": "<div class=\"onboarding\"><p>Prioriteit: <strong>Hoog</strong> = direct gevaar voor verkeer of water, <strong>Midden</strong> = binnen een week oppakken, <strong>Laag</strong> = planbaar.</p></div><p>Vul <strong>Cluster</strong>, <strong>Prioriteit</strong> en <strong>Bron</strong> in. Zonder deze drie velden telt de zaak niet goed mee in de rapportage en de werkvoorraad.</p>\n<ul>\n<li>Cluster: het cluster waar het object of de activiteit onder valt (Nat beheer, Droog beheer, Lozingen, Ontgrondingen, Bodem of Nautisch).</li>\n<li>Bron: kies de werkelijke bron (e-mail, telefoon, formulier, eigen waarneming).</li>\n</ul>"
         },
         {
           "kop": "Stap 3 — Toewijzen",
-          "inhoud": "Wijs de zaak toe aan een behandelaar volgens het clusterrooster. Wijs een zaak niet aan jezelf toe om hem te parkeren; gebruik daarvoor de status **Wacht op beoordeling**.",
-          "onboarding": ""
+          "inhoud": "<p>Wijs de zaak toe aan een behandelaar volgens het clusterrooster. Wijs een zaak niet aan jezelf toe om hem te parkeren; gebruik daarvoor de status <strong>Wacht op beoordeling</strong>.</p>"
         },
         {
           "kop": "Veelgemaakte fouten",
-          "inhoud": "- Locatie in het onderwerpsveld in plaats van het locatieveld.\n- Bron op *Overig* terwijl het een e-mail was.\n- Dubbele zaken: zoek eerst op locatie voordat je aanmaakt.",
-          "onboarding": ""
+          "inhoud": "<ul>\n<li>Locatie in het onderwerpsveld in plaats van het locatieveld.</li>\n<li>Bron op <em>Overig</em> terwijl het een e-mail was.</li>\n<li>Dubbele zaken: zoek eerst op locatie voordat je aanmaakt.</li>\n</ul>"
         }
       ]
     },
@@ -99,23 +94,19 @@
       "secties": [
         {
           "kop": "Uitgangspunt",
-          "inhoud": "Elke melding krijgt een besluit: **oppakken**, **doorzetten** naar een andere partij, of **niet oppakken**. Een melding die we niet oppakken wordt niet verwijderd maar afgesloten met een afwijsreden.",
-          "onboarding": ""
+          "inhoud": "<p>Elke melding krijgt een besluit: <strong>oppakken</strong>, <strong>doorzetten</strong> naar een andere partij, of <strong>niet oppakken</strong>. Een melding die we niet oppakken wordt niet verwijderd maar afgesloten met een afwijsreden.</p>"
         },
         {
           "kop": "Afwijsredenen",
-          "inhoud": "- Geen bevoegdheid Rijkswaterstaat (doorzetten naar bevoegd gezag)\n- Dubbele melding (koppelen aan bestaande zaak)\n- Onvoldoende informatie, ook na één verzoek aan de melder\n- Geen overtreding geconstateerd\n- Te gering belang in verhouding tot de inzet",
-          "onboarding": "Kies altijd de reden die het dichtst bij de werkelijkheid ligt, ook als dat even puzzelen is. Deze redenen worden landelijk vergeleken."
+          "inhoud": "<div class=\"onboarding\"><p>Kies altijd de reden die het dichtst bij de werkelijkheid ligt, ook als dat even puzzelen is. Deze redenen worden landelijk vergeleken.</p></div><ul>\n<li>Geen bevoegdheid Rijkswaterstaat (doorzetten naar bevoegd gezag)</li>\n<li>Dubbele melding (koppelen aan bestaande zaak)</li>\n<li>Onvoldoende informatie, ook na één verzoek aan de melder</li>\n<li>Geen overtreding geconstateerd</li>\n<li>Te gering belang in verhouding tot de inzet</li>\n</ul>"
         },
         {
           "kop": "Wie besluit",
-          "inhoud": "De behandelaar beoordeelt. Bij twijfel legt de behandelaar de melding voor aan de coördinator. Het besluit staat in het logboek van de zaak.",
-          "onboarding": ""
+          "inhoud": "<p>De behandelaar beoordeelt. Bij twijfel legt de behandelaar de melding voor aan de coördinator. Het besluit staat in het logboek van de zaak.</p>"
         },
         {
           "kop": "Waarom we vastleggen wat we niet doen",
-          "inhoud": "Zonder registratie is de werkvoorraad onvolledig. We kunnen dan niet onderbouwen waar capaciteit tekortschiet en welke meldingen structureel blijven liggen.",
-          "onboarding": ""
+          "inhoud": "<p>Zonder registratie is de werkvoorraad onvolledig. We kunnen dan niet onderbouwen waar capaciteit tekortschiet en welke meldingen structureel blijven liggen.</p>"
         }
       ]
     },
@@ -142,23 +133,19 @@
       "secties": [
         {
           "kop": "Termijnen",
-          "inhoud": "- Reactietermijn verzoek: 4 weken\n- Eerste rappel: direct na het verstrijken van de termijn\n- Tweede rappel: 2 weken na het eerste rappel\n- Geen reactie na het tweede rappel: start handhavingstraject",
-          "onboarding": ""
+          "inhoud": "<ul>\n<li>Reactietermijn verzoek: 4 weken</li>\n<li>Eerste rappel: direct na het verstrijken van de termijn</li>\n<li>Tweede rappel: 2 weken na het eerste rappel</li>\n<li>Geen reactie na het tweede rappel: start handhavingstraject</li>\n</ul>"
         },
         {
           "kop": "Brief opstellen",
-          "inhoud": "Gebruik het sjabloon **Rappel 1** of **Rappel 2** uit het zaaksysteem. Wijzig alleen de gele velden; de juridische tekst blijft staan.",
-          "onboarding": "Sjablonen vind je onder **Documenten → Nieuw document → Sjabloon**. Controleer of het zaakkenmerk is overgenomen in de brief."
+          "inhoud": "<div class=\"onboarding\"><p>Sjablonen vind je onder <strong>Documenten → Nieuw document → Sjabloon</strong>. Controleer of het zaakkenmerk is overgenomen in de brief.</p></div><p>Gebruik het sjabloon <strong>Rappel 1</strong> of <strong>Rappel 2</strong> uit het zaaksysteem. Wijzig alleen de gele velden; de juridische tekst blijft staan.</p>"
         },
         {
           "kop": "Registreren",
-          "inhoud": "Zet na verzending de taak **Reactie afwachten** op de nieuwe termijn en noteer de verzenddatum in het logboek.",
-          "onboarding": ""
+          "inhoud": "<p>Zet na verzending de taak <strong>Reactie afwachten</strong> op de nieuwe termijn en noteer de verzenddatum in het logboek.</p>"
         },
         {
           "kop": "Toekomstige wijziging",
-          "inhoud": "Zodra de rappelautomatisering actief is, vervalt de stap Registreren: de taak wordt dan automatisch gezet.",
-          "onboarding": ""
+          "inhoud": "<p>Zodra de rappelautomatisering actief is, vervalt de stap Registreren: de taak wordt dan automatisch gezet.</p>"
         }
       ]
     },
@@ -185,18 +172,15 @@
       "secties": [
         {
           "kop": "Veiligheid eerst",
-          "inhoud": "Ligt het vaartuig in de vaargeul of belemmert het de scheepvaart? Meld dit direct bij de verkeerspost voordat je iets registreert.",
-          "onboarding": ""
+          "inhoud": "<p>Ligt het vaartuig in de vaargeul of belemmert het de scheepvaart? Meld dit direct bij de verkeerspost voordat je iets registreert.</p>"
         },
         {
           "kop": "Registratie in het objectregister",
-          "inhoud": "Maak een object aan met foto, coördinaten en kenmerken: lengte, kleur, type en registratienummer als dat zichtbaar is.",
-          "onboarding": "Coördinaten haal je uit de app op de diensttelefoon. RD of WGS84 is allebei goed, zolang je vermeldt welk stelsel je gebruikt."
+          "inhoud": "<div class=\"onboarding\"><p>Coördinaten haal je uit de app op de diensttelefoon. RD of WGS84 is allebei goed, zolang je vermeldt welk stelsel je gebruikt.</p></div><p>Maak een object aan met foto, coördinaten en kenmerken: lengte, kleur, type en registratienummer als dat zichtbaar is.</p>"
         },
         {
           "kop": "Opvolging",
-          "inhoud": "1. Sticker aanbrengen met datum en zaaknummer.\n2. Termijn van 2 weken instellen.\n3. Geen eigenaar gemeld: verwijderingsbesluit opstellen.",
-          "onboarding": ""
+          "inhoud": "<ol>\n<li>Sticker aanbrengen met datum en zaaknummer.</li>\n<li>Termijn van 2 weken instellen.</li>\n<li>Geen eigenaar gemeld: verwijderingsbesluit opstellen.</li>\n</ol>"
         }
       ]
     },
@@ -221,18 +205,15 @@
       "secties": [
         {
           "kop": "Voordat je afsluit",
-          "inhoud": "- Alle documenten zitten in de zaak, niet in je mailbox.\n- Einddatum en resultaat zijn ingevuld.\n- Het logboek sluit aan op het resultaat.",
-          "onboarding": ""
+          "inhoud": "<ul>\n<li>Alle documenten zitten in de zaak, niet in je mailbox.</li>\n<li>Einddatum en resultaat zijn ingevuld.</li>\n<li>Het logboek sluit aan op het resultaat.</li>\n</ul>"
         },
         {
           "kop": "Steekproef door procesmanagement",
-          "inhoud": "Procesmanagement controleert maandelijks een steekproef van afgesloten zaken aan de hand van de checklist. Afwijkingen worden teruggekoppeld aan de behandelaar en gebruikt om de instructies te verbeteren, niet om personen te beoordelen.",
-          "onboarding": ""
+          "inhoud": "<p>Procesmanagement controleert maandelijks een steekproef van afgesloten zaken aan de hand van de checklist. Afwijkingen worden teruggekoppeld aan de behandelaar en gebruikt om de instructies te verbeteren, niet om personen te beoordelen.</p>"
         },
         {
           "kop": "Checklist (verkort)",
-          "inhoud": "1. Verplichte velden gevuld\n2. Locatie in het juiste veld\n3. Besluit en reden in logboek\n4. Documenten compleet\n5. Termijnen gehaald of toegelicht",
-          "onboarding": "De volledige checklist staat als bijlage bij dit artikel. Je hoeft hem niet uit je hoofd te kennen: loop hem na bij je eerste tien zaken."
+          "inhoud": "<div class=\"onboarding\"><p>De volledige checklist staat als bijlage bij dit artikel. Je hoeft hem niet uit je hoofd te kennen: loop hem na bij je eerste tien zaken.</p></div><ol>\n<li>Verplichte velden gevuld</li>\n<li>Locatie in het juiste veld</li>\n<li>Besluit en reden in logboek</li>\n<li>Documenten compleet</li>\n<li>Termijnen gehaald of toegelicht</li>\n</ol>"
         }
       ]
     },
@@ -252,18 +233,15 @@
       "secties": [
         {
           "kop": "Uitgangspunt",
-          "inhoud": "Alle mail over zaken loopt via de gezamenlijke mailbox. De persoonlijke werkmail is voor persoonlijke zaken en interne afstemming. Zo blijft een zaak bereikbaar als een collega afwezig is.",
-          "onboarding": ""
+          "inhoud": "<p>Alle mail over zaken loopt via de gezamenlijke mailbox. De persoonlijke werkmail is voor persoonlijke zaken en interne afstemming. Zo blijft een zaak bereikbaar als een collega afwezig is.</p>"
         },
         {
           "kop": "Dagelijkse verdeling",
-          "inhoud": "De dienstdoende collega categoriseert de mailbox vóór 10:00 uur en koppelt elk bericht aan een zaak of maakt een nieuwe zaak aan.",
-          "onboarding": "Het rooster voor de dienstdoende collega staat in de teamagenda. Je eerste twee weken loop je mee met de dienstdoende collega."
+          "inhoud": "<div class=\"onboarding\"><p>Het rooster voor de dienstdoende collega staat in de teamagenda. Je eerste twee weken loop je mee met de dienstdoende collega.</p></div><p>De dienstdoende collega categoriseert de mailbox vóór 10:00 uur en koppelt elk bericht aan een zaak of maakt een nieuwe zaak aan.</p>"
         },
         {
           "kop": "Mappen",
-          "inhoud": "- **Te verwerken** — nog niet gekoppeld\n- **Gekoppeld** — in het zaaksysteem verwerkt\n- **Geen actie** — informatief, geen zaak",
-          "onboarding": ""
+          "inhoud": "<ul>\n<li><strong>Te verwerken</strong> — nog niet gekoppeld</li>\n<li><strong>Gekoppeld</strong> — in het zaaksysteem verwerkt</li>\n<li><strong>Geen actie</strong> — informatief, geen zaak</li>\n</ul>"
         }
       ]
     },
@@ -285,18 +263,15 @@
       "secties": [
         {
           "kop": "Processtappen",
-          "inhoud": "**Intake** → **Beoordeling** → **Behandeling** → **Afronding** → **Kwaliteitscontrole**\n\nElke stap heeft een eigen artikel in de kennisbank. Dit overzicht laat zien hoe ze op elkaar aansluiten.",
-          "onboarding": ""
+          "inhoud": "<p><strong>Intake</strong> → <strong>Beoordeling</strong> → <strong>Behandeling</strong> → <strong>Afronding</strong> → <strong>Kwaliteitscontrole</strong></p>\n<p>Elke stap heeft een eigen artikel in de kennisbank. Dit overzicht laat zien hoe ze op elkaar aansluiten.</p>"
         },
         {
           "kop": "Doorlooptijdnormen",
-          "inhoud": "- Intake: 1 werkdag\n- Beoordeling: 5 werkdagen\n- Behandeling: afhankelijk van zaaktype (zie zaaktypekaart)\n- Afronding: 5 werkdagen na laatste actie",
-          "onboarding": ""
+          "inhoud": "<ul>\n<li>Intake: 1 werkdag</li>\n<li>Beoordeling: 5 werkdagen</li>\n<li>Behandeling: afhankelijk van zaaktype (zie zaaktypekaart)</li>\n<li>Afronding: 5 werkdagen na laatste actie</li>\n</ul>"
         },
         {
           "kop": "Meetpunten",
-          "inhoud": "De doorlooptijd wordt gemeten op de datumvelden **Ontvangen**, **Beoordeeld**, **In behandeling** en **Afgesloten**. Vul deze velden daarom op de dag zelf in; een datum achteraf corrigeren vervuilt de meting.",
-          "onboarding": "Deze velden staan rechtsboven in de zaak onder **Voortgang**. Het systeem vult **Ontvangen** automatisch; de rest vul je zelf in."
+          "inhoud": "<div class=\"onboarding\"><p>Deze velden staan rechtsboven in de zaak onder <strong>Voortgang</strong>. Het systeem vult <strong>Ontvangen</strong> automatisch; de rest vul je zelf in.</p></div><p>De doorlooptijd wordt gemeten op de datumvelden <strong>Ontvangen</strong>, <strong>Beoordeeld</strong>, <strong>In behandeling</strong> en <strong>Afgesloten</strong>. Vul deze velden daarom op de dag zelf in; een datum achteraf corrigeren vervuilt de meting.</p>"
         }
       ]
     },
@@ -324,18 +299,15 @@
       "secties": [
         {
           "kop": "Voorbereiding",
-          "inhoud": "- Lees de vergunning en eerdere bezoeken in de zaak.\n- Leg vast wat je gaat controleren (controlepunten).\n- Kondig het bezoek aan, tenzij onaangekondigd toezicht is afgesproken.",
-          "onboarding": ""
+          "inhoud": "<ul>\n<li>Lees de vergunning en eerdere bezoeken in de zaak.</li>\n<li>Leg vast wat je gaat controleren (controlepunten).</li>\n<li>Kondig het bezoek aan, tenzij onaangekondigd toezicht is afgesproken.</li>\n</ul>"
         },
         {
           "kop": "Tijdens het bezoek",
-          "inhoud": "Werk de controlepunten af, maak foto's met locatie en tijd, en benoem geconstateerde afwijkingen ter plekke aan de vergunninghouder.",
-          "onboarding": "Neem de eerste bezoeken een ervaren collega mee. Spreek vooraf af wie het gesprek voert en wie vastlegt."
+          "inhoud": "<div class=\"onboarding\"><p>Neem de eerste bezoeken een ervaren collega mee. Spreek vooraf af wie het gesprek voert en wie vastlegt.</p></div><p>Werk de controlepunten af, maak foto's met locatie en tijd, en benoem geconstateerde afwijkingen ter plekke aan de vergunninghouder.</p>"
         },
         {
           "kop": "Verslag",
-          "inhoud": "Het verslag staat binnen **5 werkdagen** in de zaak, met het sjabloon **Toezichtverslag**. Afwijkingen leiden tot een vervolgzaak of een rappel.",
-          "onboarding": ""
+          "inhoud": "<p>Het verslag staat binnen <strong>5 werkdagen</strong> in de zaak, met het sjabloon <strong>Toezichtverslag</strong>. Afwijkingen leiden tot een vervolgzaak of een rappel.</p>"
         }
       ]
     }

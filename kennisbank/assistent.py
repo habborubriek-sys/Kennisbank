@@ -20,7 +20,7 @@ from django.conf import settings
 from django.db.models import F
 from django.utils import timezone
 
-from .inhoud import naar_html, naar_platte_tekst
+from .inhoud import markdown_naar_html, naar_platte_tekst, onboarding_blokken, schoon, zonder_onboarding
 from .models import AssistentTelling
 from .zoeken import zoek_secties
 
@@ -79,7 +79,7 @@ def beantwoord(vraag: str, artikelen_qs, zaaktype: str | None = None) -> Antwoor
     if settings.KB_AI_PROVIDER != "uit":
         try:
             tekst = _vraag_model(vraag, secties, zaaktype)
-            return Antwoord(html=_koppel_bronnen(naar_html(tekst), bronnen), bronnen=bronnen, modus="ai")
+            return Antwoord(html=_koppel_bronnen(markdown_naar_html(tekst), bronnen), bronnen=bronnen, modus="ai")
         except Exception:  # noqa: BLE001 - bij storing terugvallen op zoeken
             log.exception("taalmodel niet bereikbaar, terugval op zoeken")
             antwoord = _citeer(secties[0], bronnen)
@@ -90,9 +90,10 @@ def beantwoord(vraag: str, artikelen_qs, zaaktype: str | None = None) -> Antwoor
 
 def _citeer(sectie, bronnen) -> Antwoord:
     """Zonder taalmodel: toon de best passende sectie (kort) of een ingekort fragment."""
-    fragment = naar_platte_tekst(sectie.inhoud)
+    hoofdtekst = zonder_onboarding(sectie.inhoud)
+    fragment = naar_platte_tekst(hoofdtekst)
     if len(fragment) <= 450:
-        citaat = f"<blockquote>{naar_html(sectie.inhoud)}</blockquote>"
+        citaat = f"<blockquote>{schoon(hoofdtekst)}</blockquote>"
     else:
         citaat = f"<p>“{html.escape(fragment[:300].rsplit(' ', 1)[0])}…”</p>"
     return Antwoord(
@@ -123,8 +124,8 @@ def _koppel_bronnen(antwoord_html: str, bronnen) -> str:
 def _vraag_model(vraag, secties, zaaktype) -> str:
     bronnen_tekst = "\n\n".join(
         f"[{i + 1}] Artikel: {s.artikel.titel} (versie {s.artikel.versie})\n"
-        f"Kopje: {s.kop}\n{naar_platte_tekst(s.inhoud)}"
-        + (f"\nExtra uitleg voor nieuwe collega's: {naar_platte_tekst(s.onboarding)}" if s.onboarding else "")
+        f"Kopje: {s.kop}\n{naar_platte_tekst(zonder_onboarding(s.inhoud))}"
+        + "".join(f"\nExtra uitleg voor nieuwe collega's: {naar_platte_tekst(b)}" for b in onboarding_blokken(s.inhoud))
         for i, s in enumerate(secties)
     )
     context = f"\nDe medewerker werkt in een zaak van het type '{zaaktype}'." if zaaktype else ""

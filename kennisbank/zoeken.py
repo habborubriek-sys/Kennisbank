@@ -47,9 +47,7 @@ def artikel_vector():
     """Eén zoekdocument per artikel: titel en tags wegen het zwaarst, dan samenvatting, dan secties."""
     secties = Sectie.objects.filter(artikel=OuterRef("pk")).annotate(_groep=F("artikel"))
     tags = Artikel.tags.through.objects.filter(artikel=OuterRef("pk")).annotate(_groep=F("artikel"))
-    sectietekst = _tekst_van(
-        secties, Concat("kop", Value(" "), "inhoud", Value(" "), "onboarding", output_field=TextField())
-    )
+    sectietekst = _tekst_van(secties, Concat("kop", Value(" "), "inhoud", output_field=TextField()))
     tagtekst = _tekst_van(tags, F("tag__naam"))
     return (
         SearchVector("titel", weight="A", config=CONFIG)
@@ -82,7 +80,6 @@ def zoek_secties(artikelen_qs, tekst: str, zaaktype: str | None = None, aantal: 
         SearchVector("artikel__titel", weight="A", config=CONFIG)
         + SearchVector("kop", weight="A", config=CONFIG)
         + SearchVector("inhoud", weight="B", config=CONFIG)
-        + SearchVector("onboarding", weight="C", config=CONFIG)
         + SearchVector("artikel__samenvatting", weight="D", config=CONFIG)
     )
     kandidaten = list(

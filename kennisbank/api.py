@@ -17,7 +17,7 @@ from rest_framework.throttling import UserRateThrottle
 
 from . import diensten
 from .assistent import beantwoord
-from .inhoud import naar_html
+from .inhoud import schoon
 from .models import (
     Artikel,
     ArtikelVersie,
@@ -68,17 +68,13 @@ class ArtikelKortSerializer(serializers.ModelSerializer):
 
 class SectieSerializer(serializers.ModelSerializer):
     inhoud_html = serializers.SerializerMethodField()
-    onboarding_html = serializers.SerializerMethodField()
 
     class Meta:
         model = Sectie
-        fields = ["kop", "inhoud_html", "onboarding_html"]
+        fields = ["kop", "inhoud_html"]
 
     def get_inhoud_html(self, obj) -> str:
-        return naar_html(obj.inhoud)
-
-    def get_onboarding_html(self, obj) -> str:
-        return naar_html(obj.onboarding)
+        return schoon(obj.inhoud)
 
 
 class ArtikelSerializer(ArtikelKortSerializer):

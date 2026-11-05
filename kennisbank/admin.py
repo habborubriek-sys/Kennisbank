@@ -7,8 +7,11 @@
 
 from django import forms
 from django.contrib import admin, messages
+from django.shortcuts import redirect, render
+from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
+from django.utils.text import slugify
 
 from . import diensten
 from .models import (
@@ -17,6 +20,7 @@ from .models import (
     Cluster,
     Omgeving,
     Sectie,
+    Soort,
     Status,
     Tag,
     Toegang,
@@ -24,6 +28,7 @@ from .models import (
     Zaaktype,
 )
 from .rechten import Rechten
+from .word_import import WordImportFout, lees_docx
 
 
 class RedactieRechtenMixin:
@@ -59,13 +64,13 @@ class RedactieRechtenMixin:
 class SectieInline(admin.StackedInline):
     model = Sectie
     extra = 0
-    fields = ["volgorde", "kop", "inhoud", "onboarding"]
-    formfield_overrides = {}
+    fields = ["volgorde", "kop", "inhoud"]
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         veld = super().formfield_for_dbfield(db_field, request, **kwargs)
-        if db_field.name in {"inhoud", "onboarding"}:
-            veld.widget.attrs.update(rows=6 if db_field.name == "inhoud" else 3, style="width:90%")
+        if db_field.name == "inhoud":
+            # Wordt door beheer-editor.js vervangen door de opmaak-editor.
+            veld.widget.attrs.update({"class": "kb-editor", "rows": 10})
         return veld
 
     def has_add_permission(self, request, obj=None):
@@ -99,7 +104,35 @@ class VersieInline(admin.TabularInline):
         return True
 
 
+class TagsWidget(forms.TextInput):
+    """Tekstvak met suggesties van bestaande tags (datalist)."""
+
+    template_name = "admin/kennisbank/tags_widget.html"
+
+    def get_context(self, name, value, attrs):
+        ctx = super().get_context(name, value, attrs)
+        ctx["bestaande_tags"] = list(Tag.objects.values_list("naam", flat=True))
+        return ctx
+
+
+def tags_uit_tekst(tekst: str) -> list[str]:
+    gezien, uit = set(), []
+    for deel in (tekst or "").split(","):
+        naam = " ".join(deel.split()).strip().lower()[:60]
+        if naam and naam not in gezien:
+            gezien.add(naam)
+            uit.append(naam)
+    return uit
+
+
 class ArtikelForm(forms.ModelForm):
+    tags_tekst = forms.CharField(
+        required=False,
+        label="Tags",
+        widget=TagsWidget(attrs={"style": "width:60%", "autocomplete": "off"}),
+        help_text="Gescheiden door komma's, bijvoorbeeld: rappel, termijnen, brief. "
+        "Nieuwe tags worden automatisch aangemaakt.",
+    )
     wijzigingstoelichting = forms.CharField(
         required=False,
         max_length=300,
@@ -109,18 +142,28 @@ class ArtikelForm(forms.ModelForm):
 
     class Meta:
         model = Artikel
-        fields = [
-            "titel",
-            "slug",
-            "samenvatting",
-            "soort",
-            "omgeving",
-            "eigenaar",
-            "clusters",
-            "tags",
-            "zaaktypen",
-            "status",
-        ]
+        fields = ["titel", "slug", "samenvatting", "soort", "omgeving", "eigenaar", "clusters", "zaaktypen", "status"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk and not self.is_bound:
+            self.fields["tags_tekst"].initial = ", ".join(self.instance.tags.values_list("naam", flat=True))
+
+
+class WordImportForm(forms.Form):
+    bestand = forms.FileField(label="Word-document (.docx)")
+    omgeving = forms.ModelChoiceField(queryset=Omgeving.objects.all(), label="Omgeving")
+    soort = forms.ChoiceField(choices=Soort.choices, initial=Soort.WERKINSTRUCTIE, label="Soort")
+
+    def clean_bestand(self):
+        f = self.cleaned_data["bestand"]
+        if not f.name.lower().endswith(".docx"):
+            raise forms.ValidationError(
+                "Alleen .docx-bestanden (Word 2007 of nieuwer). Sla een .doc of PDF eerst op als .docx."
+            )
+        if f.size > 20 * 1024 * 1024:
+            raise forms.ValidationError("Het bestand is groter dan 20 MB.")
+        return f
 
 
 @admin.register(Artikel)
@@ -130,15 +173,83 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     list_filter = ["status", "soort", "omgeving", "clusters", "zaaktypen"]
     search_fields = ["titel", "samenvatting", "secties__inhoud"]
     prepopulated_fields = {"slug": ["titel"]}
-    filter_horizontal = ["clusters", "tags", "zaaktypen"]
+    filter_horizontal = ["clusters", "zaaktypen"]
     inlines = [SectieInline, VersieInline]
     readonly_fields = ["versie", "gepubliceerd_op"]
     actions = ["publiceren", "archiveren"]
+    change_list_template = "admin/kennisbank/artikel/change_list.html"
     fieldsets = [
         (None, {"fields": ["titel", "slug", "samenvatting", "soort", "omgeving", "eigenaar"]}),
-        ("Vindbaarheid", {"fields": ["clusters", "tags", "zaaktypen"]}),
+        ("Vindbaarheid", {"fields": ["clusters", "tags_tekst", "zaaktypen"]}),
         ("Publicatie", {"fields": ["status", "wijzigingstoelichting", "versie", "gepubliceerd_op"]}),
     ]
+
+    class Media:
+        css = {"all": ["kennisbank/vendor/jodit/jodit.min.css", "kennisbank/beheer-editor.css"]}
+        js = ["kennisbank/vendor/jodit/jodit.min.js", "kennisbank/beheer-editor.js"]
+
+    def get_urls(self):
+        eigen = [
+            path(
+                "importeren-word/",
+                self.admin_site.admin_view(self.importeren_word),
+                name="kennisbank_artikel_importeren_word",
+            )
+        ]
+        return eigen + super().get_urls()
+
+    def importeren_word(self, request):
+        """Upload een .docx; het wordt een concept-artikel met secties. Daarna door naar het bewerkscherm."""
+        if not self.has_add_permission(request):
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied
+        form = WordImportForm(request.POST or None, request.FILES or None)
+        if not request.user.is_superuser:
+            form.fields["omgeving"].queryset = Omgeving.objects.filter(pk__in=self._omgevingen(request))
+        if request.method == "POST" and form.is_valid():
+            try:
+                gelezen = lees_docx(form.cleaned_data["bestand"], form.cleaned_data["bestand"].name)
+            except WordImportFout as e:
+                form.add_error("bestand", str(e))
+            else:
+                artikel = Artikel.objects.create(
+                    omgeving=form.cleaned_data["omgeving"],
+                    slug=self._vrije_slug(gelezen.titel),
+                    titel=gelezen.titel,
+                    samenvatting=gelezen.samenvatting or "(vul een samenvatting in)",
+                    soort=form.cleaned_data["soort"],
+                    status=Status.CONCEPT,
+                )
+                Sectie.objects.bulk_create(
+                    [
+                        Sectie(artikel=artikel, volgorde=i, kop=s.kop, inhoud=s.inhoud)
+                        for i, s in enumerate(gelezen.secties)
+                    ]
+                )
+                messages.success(
+                    request,
+                    f"'{gelezen.titel}' is ingelezen als concept met {len(gelezen.secties)} sectie(s). "
+                    "Controleer de tekst, vul tags en zaaktypen in en zet de status op 'Gepubliceerd'.",
+                )
+                for m in gelezen.meldingen:
+                    messages.warning(request, m)
+                return redirect(reverse("admin:kennisbank_artikel_change", args=[artikel.pk]))
+        ctx = {
+            **self.admin_site.each_context(request),
+            "title": "Artikel importeren uit Word",
+            "form": form,
+            "opts": self.model._meta,
+        }
+        return render(request, "admin/kennisbank/artikel/importeren_word.html", ctx)
+
+    @staticmethod
+    def _vrije_slug(titel: str) -> str:
+        basis = slugify(titel)[:100] or "artikel"
+        slug, n = basis, 2
+        while Artikel.objects.filter(slug=slug).exists():
+            slug, n = f"{basis}-{n}", n + 1
+        return slug
 
     @admin.display(description="Versie")
     def versie_label(self, obj):
@@ -155,6 +266,9 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
+        form.instance.tags.set(
+            [Tag.objects.get_or_create(naam=n)[0] for n in tags_uit_tekst(form.cleaned_data.get("tags_tekst", ""))]
+        )
         versie = diensten.registreer_publicatie(
             form.instance, request.user, form.cleaned_data.get("wijzigingstoelichting", "")
         )

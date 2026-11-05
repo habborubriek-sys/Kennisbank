@@ -3,9 +3,24 @@
 from django.db import transaction
 
 from . import diensten
+from .inhoud import markdown_naar_html, onboarding_blok, schoon
 from .models import Artikel, Cluster, Omgeving, Sectie, Soort, Status, Tag, Zaaktype
 
 FORMAAT = "kennisbank-import"
+VERSIE = 2  # 1 = inhoud in Markdown met apart onboarding-veld; 2 = inhoud in HTML
+
+
+def _sectie_inhoud(s: dict, versie: int) -> str:
+    """Inhoud van een sectie uit het importbestand, altijd als opgeschoonde HTML."""
+    if versie >= 2:
+        html = schoon(s.get("inhoud", ""))
+        if s.get("onboarding"):
+            html = onboarding_blok(s["onboarding"]) + html
+        return html
+    html = markdown_naar_html(s.get("inhoud", ""))
+    if s.get("onboarding"):
+        html = onboarding_blok(markdown_naar_html(s["onboarding"])) + html
+    return html
 
 
 class ImportFout(ValueError):
@@ -15,6 +30,8 @@ class ImportFout(ValueError):
 def _controleer(data):
     if data.get("formaat") != FORMAAT:
         raise ImportFout(f"Onbekend formaat; verwacht 'formaat': '{FORMAAT}'.")
+    if data.get("versie", 1) not in (1, 2):
+        raise ImportFout("Onbekende versie van het importformaat; ondersteund: 1 en 2.")
     if not data.get("omgeving", {}).get("slug"):
         raise ImportFout("'omgeving.slug' ontbreekt.")
     soorten = {s.value for s in Soort}
@@ -33,6 +50,7 @@ def _controleer(data):
 def importeer(data, gebruiker=None, toelichting="Import") -> dict:
     """Voegt artikelen toe of werkt ze bij (op basis van slug). Geeft tellingen terug."""
     _controleer(data)
+    versie = int(data.get("versie", 1))
     o = data["omgeving"]
     omgeving, _ = Omgeving.objects.update_or_create(
         slug=o["slug"], defaults={"naam": o.get("naam", o["slug"]), "beschrijving": o.get("beschrijving", "")}
@@ -64,13 +82,7 @@ def importeer(data, gebruiker=None, toelichting="Import") -> dict:
         artikel.secties.all().delete()
         Sectie.objects.bulk_create(
             [
-                Sectie(
-                    artikel=artikel,
-                    volgorde=i,
-                    kop=s["kop"],
-                    inhoud=s.get("inhoud", ""),
-                    onboarding=s.get("onboarding", ""),
-                )
+                Sectie(artikel=artikel, volgorde=i, kop=s["kop"], inhoud=_sectie_inhoud(s, versie))
                 for i, s in enumerate(a["secties"])
             ]
         )
@@ -87,7 +99,7 @@ def exporteer(omgeving: Omgeving) -> dict:
     )
     return {
         "formaat": FORMAAT,
-        "versie": 1,
+        "versie": VERSIE,
         "omgeving": {"slug": omgeving.slug, "naam": omgeving.naam, "beschrijving": omgeving.beschrijving},
         "clusters": list(Cluster.objects.values_list("naam", flat=True)),
         "zaaktypen": list(Zaaktype.objects.values("code", "naam")),
@@ -102,7 +114,7 @@ def exporteer(omgeving: Omgeving) -> dict:
                 "clusters": [c.naam for c in a.clusters.all()],
                 "tags": [t.naam for t in a.tags.all()],
                 "zaaktypen": [z.code for z in a.zaaktypen.all()],
-                "secties": [{"kop": s.kop, "inhoud": s.inhoud, "onboarding": s.onboarding} for s in a.secties.all()],
+                "secties": [{"kop": s.kop, "inhoud": s.inhoud} for s in a.secties.all()],
             }
             for a in artikelen
         ],

@@ -1,3 +1,12 @@
-/* Beheerscherm in de huisstijl van de kennisbank */
-:root,html[data-theme="light"]{--primary:#154273;--secondary:#1f4f86;--accent:#ffd23f;--primary-fg:#fff;--header-color:#fff;--header-branding-color:#fff;--header-bg:#154273;--header-link-color:#fff;--breadcrumbs-bg:#1f4f86;--link-fg:#154273;--link-hover-color:#0b2a4d;--button-bg:#154273;--button-hover-bg:#0b2a4d;--default-button-bg:#1f4f86;--default-button-hover-bg:#0b2a4d;--selected-row:#dfe8f4}
+/* Beheerscherm in de huisstijl van de kennisbank, alleen in de lichte modus. Donker blijft Django-standaard. */
+
+html[data-theme="light"],
+html[data-theme="auto"] {
+  --primary:#154273;--secondary:#1f4f86;--accent:#ffd23f;--header-bg:#154273;--breadcrumbs-bg:#1f4f86;--link-fg:#154273;--link-hover-color:#0b2a4d;--button-bg:#154273;--button-hover-bg:#0b2a4d;--default-button-bg:#1f4f86;--default-button-hover-bg:#0b2a4d;--selected-row:#dfe8f4
+}
+@media (prefers-color-scheme: dark) {
+  html[data-theme="auto"] {
+    --primary:#264b6e;--secondary:#1a2a3d;--accent:#ffd23f;--header-bg:#1a2a3d;--breadcrumbs-bg:#223a55;--link-fg:#81b3e6;--link-hover-color:#a9ccf0;--button-bg:#264b6e;--button-hover-bg:#355f88;--default-button-bg:#1f4f86;--default-button-hover-bg:#355f88;--selected-row:#1f3a58
+  }
+}
 .inline-group textarea{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}

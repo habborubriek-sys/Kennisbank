@@ -1,0 +1,33 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a> &rsaquo;
+  <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a> &rsaquo;
+  <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo; {{ title }}
+</div>
+{% endblock %}
+{% block content %}
+<div id="content-main">
+  <p>Upload een Word-document. Het wordt een <b>concept</b>-artikel; je komt daarna direct in het bewerkscherm.</p>
+  <ul>
+    <li><b>Koppen</b> worden secties: één <i>Kop 1</i> bovenaan is de titel en de <i>Kop 2</i>-koppen worden secties. Zonder zo'n titel worden alle <i>Kop 1</i>-koppen secties.</li>
+    <li>De <b>eerste alinea</b> vóór de eerste kop wordt de samenvatting.</li>
+    <li>Alinea's met de Word-stijl <b>Onboarding</b> worden uitleg voor nieuwe collega's. Gebruik het <a href="/static/kennisbank/sjabloon-werkinstructie.docx">Word-sjabloon</a>, daar zit die stijl al in.</li>
+    <li>Vet, cursief, onderstreept, lijsten, tabellen en links blijven behouden. Afbeeldingen worden overgeslagen.</li>
+  </ul>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      {% for field in form %}
+      <div class="form-row{% if field.errors %} errors{% endif %}">
+        {{ field.errors }}
+        <div class="flex-container">{{ field.label_tag }} {{ field }}</div>
+        {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+      </div>
+      {% endfor %}
+    </fieldset>
+    <div class="submit-row"><input type="submit" class="default" value="Inlezen"></div>
+  </form>
+</div>
+{% endblock %}

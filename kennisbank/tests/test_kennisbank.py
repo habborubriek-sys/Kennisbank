@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from kennisbank import diensten
 from kennisbank.auth import KennisbankOIDCBackend
-from kennisbank.inhoud import naar_html
+from kennisbank.inhoud import onboarding_blokken, schoon, zonder_onboarding
 from kennisbank.models import (
     Artikel,
     ArtikelVersie,
@@ -26,6 +26,7 @@ from kennisbank.models import (
     ZoekTelling,
 )
 from kennisbank.uitwisseling import exporteer, importeer
+from kennisbank.word_import import lees_docx
 
 User = get_user_model()
 DEMO = json.loads((Path(settings.BASE_DIR) / "demo" / "voorbeeldinhoud.json").read_text(encoding="utf-8"))
@@ -306,12 +307,46 @@ class GebruikTests(Basis):
 
 
 class InhoudTests(TestCase):
-    def test_markdown_wordt_veilige_html(self):
-        html = naar_html("**vet** <script>alert(1)</script> [x](javascript:alert(1)) <img src=x onerror=y>")
+    def test_html_wordt_opgeschoond(self):
+        html = schoon(
+            "<b>vet</b> <u>onder</u> <script>alert(1)</script> <a href='javascript:alert(1)'>x</a> "
+            "<img src=x onerror=y> <p onclick='z'>t</p> <div class='onboarding'><p>u</p></div> <div class='x'>v</div>"
+        )
         self.assertIn("<strong>vet</strong>", html)
-        self.assertNotIn("<script", html)
-        self.assertNotIn("javascript:", html)
-        self.assertNotIn("onerror", html)
+        self.assertIn("<u>onder</u>", html)
+        self.assertIn('<div class="onboarding"><p>u</p></div>', html)
+        self.assertIn("<div>v</div>", html)
+        for verboden in ("<script", "javascript:", "onerror", "onclick", "<img"):
+            self.assertNotIn(verboden, html)
+        self.assertEqual(schoon(html), html)
+
+    def test_onboarding_blokken(self):
+        html = '<p>a</p><div class="onboarding"><p>u1</p></div><p>b</p><div class="onboarding"><p>u2</p></div>'
+        self.assertEqual(onboarding_blokken(html), ["<p>u1</p>", "<p>u2</p>"])
+        self.assertEqual(zonder_onboarding(html), "<p>a</p><p>b</p>")
+
+    def test_oude_markdown_import_wordt_html(self):
+        data = json.loads(json.dumps(DEMO))
+        data["versie"] = 1
+        data["artikelen"] = [
+            {
+                "slug": "oud",
+                "titel": "Oud",
+                "samenvatting": "s",
+                "status": "gepubliceerd",
+                "secties": [{"kop": "K", "inhoud": "- punt\n- **vet**", "onboarding": "Extra *uitleg*"}],
+            }
+        ]
+        importeer(data)
+        inhoud = Sectie.objects.get(artikel__slug="oud").inhoud
+        self.assertIn("<li><strong>vet</strong></li>", inhoud)
+        self.assertIn('<div class="onboarding"><p>Extra <em>uitleg</em></p></div>', inhoud)
+
+    def test_sectie_wordt_bij_opslaan_opgeschoond(self):
+        importeer(DEMO)
+        a = Artikel.objects.get(slug="mailbox")
+        s = Sectie.objects.create(artikel=a, kop="x", inhoud="<p onclick='a'>t</p><script>1</script>")
+        self.assertEqual(s.inhoud, "<p>t</p>")
 
     def test_import_export_rondgang(self):
         importeer(DEMO)
@@ -355,3 +390,124 @@ class InfraTests(TestCase):
         r = self.client.get("/api/schema/")
         self.assertEqual(r.status_code, 200)
         self.assertIn(b"/api/v1/assistent", r.content)
+
+
+def _docx(paragrafen):
+    """Maak in het geheugen een .docx: lijst van (stijl, tekst)."""
+    import io
+
+    import docx
+    from docx.enum.style import WD_STYLE_TYPE
+
+    d = docx.Document()
+    d.styles.add_style("Onboarding", WD_STYLE_TYPE.PARAGRAPH).base_style = d.styles["Normal"]
+    for stijl, tekst in paragrafen:
+        if stijl.startswith("Heading"):
+            d.add_heading(tekst, level=int(stijl[-1]))
+        else:
+            d.add_paragraph(tekst, style=stijl)
+    buf = io.BytesIO()
+    d.save(buf)
+    buf.seek(0)
+    return buf
+
+
+class WordImportTests(Basis):
+    def test_koppen_worden_secties_en_onboarding_stijl(self):
+        a = lees_docx(
+            _docx(
+                [
+                    ("Heading 1", "Rappel versturen"),
+                    ("Normal", "Korte samenvatting."),
+                    ("Heading 2", "Termijnen"),
+                    ("List Bullet", "4 weken"),
+                    ("Onboarding", "Vraag je buddy."),
+                    ("Onboarding", "Tweede alinea."),
+                    ("Heading 2", "Brief"),
+                    ("Normal", "Gebruik het sjabloon."),
+                ]
+            ),
+            "rappel.docx",
+        )
+        self.assertEqual(a.titel, "Rappel versturen")
+        self.assertEqual(a.samenvatting, "Korte samenvatting.")
+        self.assertEqual([s.kop for s in a.secties], ["Termijnen", "Brief"])
+        self.assertIn("<li>4 weken</li>", a.secties[0].inhoud)
+        self.assertEqual(onboarding_blokken(a.secties[0].inhoud), ["<p>Vraag je buddy.</p><p>Tweede alinea.</p>"])
+        self.assertEqual(a.meldingen, [])
+
+    def test_zonder_titelkop_worden_kop1_secties(self):
+        a = lees_docx(
+            _docx([("Heading 1", "A"), ("Normal", "a"), ("Heading 1", "B"), ("Normal", "b")]), "mijn-instructie.docx"
+        )
+        self.assertEqual(a.titel, "mijn instructie")
+        self.assertEqual([s.kop for s in a.secties], ["A", "B"])
+
+    def test_geen_koppen(self):
+        a = lees_docx(_docx([("Normal", "Alleen tekst."), ("Normal", "Meer tekst.")]), "los.docx")
+        self.assertEqual(len(a.secties), 1)
+        self.assertTrue(any("Geen koppen" in m for m in a.meldingen))
+
+    def test_geen_docx(self):
+        import io
+
+        from kennisbank.word_import import WordImportFout
+
+        with self.assertRaises(WordImportFout):
+            lees_docx(io.BytesIO(b"dit is geen word"), "x.docx")
+
+    def test_import_via_beheer(self):
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        c = self.als(self.redacteur)
+        r = c.get("/beheer/kennisbank/artikel/importeren-word/")
+        self.assertEqual(r.status_code, 200)
+        bestand = _docx(
+            [
+                ("Heading 1", "Nieuw uit Word"),
+                ("Normal", "Samenvatting."),
+                ("Heading 2", "Stap 1"),
+                ("Normal", "Doe dit."),
+            ]
+        )
+        bestand.name = "nieuw.docx"
+        r = c.post(
+            "/beheer/kennisbank/artikel/importeren-word/",
+            {"bestand": bestand, "omgeving": self.hh.pk, "soort": "werkinstructie"},
+        )
+        self.assertEqual(r.status_code, 302)
+        a = Artikel.objects.get(slug="nieuw-uit-word")
+        self.assertEqual(a.status, Status.CONCEPT)
+        self.assertEqual(a.omgeving, self.hh)
+        self.assertEqual([s.kop for s in a.secties.all()], ["Stap 1"])
+        # Lezers mogen niet importeren
+        werk_staf_status_bij(self.lezer)
+        self.assertIn(self.als(self.lezer).get("/beheer/kennisbank/artikel/importeren-word/").status_code, (302, 403))
+
+    def test_tags_als_tekst_in_beheer(self):
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        c = self.als(self.redacteur)
+        a = Artikel.objects.get(slug="mailbox")
+        r = c.get(f"/beheer/kennisbank/artikel/{a.pk}/change/")
+        self.assertContains(r, 'value="e-mail, intake, mailbox"')
+        data = {
+            "titel": a.titel,
+            "slug": a.slug,
+            "samenvatting": a.samenvatting,
+            "soort": a.soort,
+            "omgeving": a.omgeving_id,
+            "eigenaar": a.eigenaar,
+            "status": a.status,
+            "tags_tekst": "Mailbox, Nieuwe Tag , nieuwe tag,",
+            "wijzigingstoelichting": "",
+            "secties-TOTAL_FORMS": "0",
+            "secties-INITIAL_FORMS": "0",
+            "versies-TOTAL_FORMS": "0",
+            "versies-INITIAL_FORMS": "0",
+        }
+        r = c.post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data)
+        self.assertEqual(r.status_code, 302, r.content[:500])
+        self.assertEqual(sorted(a.tags.values_list("naam", flat=True)), ["mailbox", "nieuwe tag"])
