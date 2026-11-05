@@ -9,6 +9,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN python -m venv /opt/venv && /opt/venv/bin/pip install -r requirements.txt
 COPY . .
+# Bestanden die op Windows zijn uitgepakt: regeleinden en uitvoerrecht van het startscript herstellen
+RUN sed -i 's/\r$//' docker/entrypoint.sh && chmod 755 docker/entrypoint.sh
 RUN KB_DEBUG=0 KB_SECRET_KEY=alleen-tijdens-bouwen /opt/venv/bin/python manage.py collectstatic --noinput \
  && rm -rf .venv .git kennisbank/tests
 
