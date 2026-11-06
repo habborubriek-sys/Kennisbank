@@ -16,7 +16,7 @@ Als **redacteur** schrijf en onderhoud je de artikelen in jouw omgeving, behande
    | Link, tabel, lijn | Hyperlink, tabel invoegen, scheidingslijn |
    | Gum | Opmaak van de selectie wissen |
    | **Voorbeeld** | Opent in een nieuw tabblad hoe het artikel er gepubliceerd uitziet, met wat nu in de editor staat (ook als het nog niet is opgeslagen). Klik opnieuw om het tabblad te verversen. |
-   | **Sectiekop** | Maakt van de huidige regel een sectiekop (zie hieronder) |
+   | **Sectie** | Zet een in- en uitklapbare sectie om de geselecteerde tekst (zie hieronder) |
    | **Onboarding** | Markeert de geselecteerde alinea's als uitleg voor nieuwe collega's (zie hieronder) |
 
    Plakken uit Word werkt: de opmaak wordt opgeschoond, vet/cursief/lijsten/tabellen blijven staan.
@@ -36,14 +36,15 @@ Elke keer dat je een gepubliceerd artikel inhoudelijk wijzigt, ontstaat automati
 
 ## Secties
 
-Een artikel is één doorlopende tekst. Een **sectie** is een in- en uitklapbaar blok daarin:
+Een artikel is één doorlopende tekst. Een **sectie** is een kader om een stuk van die tekst, dat de lezer in- en uit kan klappen:
 
-1. Zet de cursor op de regel die de naam van de sectie moet worden en klik op **Sectiekop** in de werkbalk. In de editor zie je dan `«Sectiekop» naam «Sectiekop»`; de cursor springt naar een nieuwe regel eronder, zodat je direct verder kunt typen.
-2. Alles wat daaronder staat, tot de volgende sectiekop, hoort bij die sectie. De volgorde van de secties is simpelweg de volgorde in de tekst.
-3. Tekst **vóór de eerste sectiekop** is de inleiding: die staat altijd open, boven de secties.
-4. Nogmaals klikken op **Sectiekop** maakt er weer een gewone regel van.
+1. Selecteer de alinea's die samen een sectie moeten worden en klik op **Sectie** in de werkbalk.
+2. Er verschijnt een blauw kader om de tekst, met een donkerblauwe titelbalk erboven. De cursor staat in die balk: typ de titel van de sectie (de balk toont "Sectiekop titel" zolang hij leeg is).
+3. Tekst **buiten** een kader (ervoor, ertussen, erna) is in de kennisbank altijd zichtbaar. De volgorde is simpelweg de volgorde in de tekst.
+4. Een onboarding-blok dat binnen het kader valt, staat er zichtbaar iets ingesprongen in; zo zie je meteen of het bij de sectie hoort.
+5. Staat de cursor in een sectie en klik je nogmaals op **Sectie**, dan gaat het kader weg: de titel wordt een gewone kop en de tekst komt weer los te staan.
 
-Gewone koppen (via ¶ → Kop of Subkop) zijn koppen *binnen* de tekst en maken geen sectie. Zo kies je zelf wat een sectie wordt en wat niet.
+Een sectie in een sectie kan niet; selecteer je tekst waar al een kader in zit, dan wordt dat opgenomen in het nieuwe kader. Gewone koppen (via ¶ → Kop of Subkop) zijn koppen *binnen* de tekst en maken geen sectie.
 
 ## Onboarding-uitleg
 
@@ -68,13 +69,13 @@ Zo wordt het document gelezen:
 |---|---|
 | Stijl *Titel*, of één *Kop 1* helemaal bovenaan | De titel |
 | De eerste alinea | De samenvatting |
-| Alinea's met de stijl **Sectie** (zit in het sjabloon) | Sectiekoppen |
+| Een alinea met de stijl **Sectie** (zit in het sjabloon) | Begint een sectie, die doorloopt tot de volgende *Sectie*-alinea of tot een alinea met de stijl **Einde sectie** |
 | Alinea's met de stijl **Onboarding** (zit in het sjabloon) | Onboarding-uitleg |
 | Gewone koppen (Kop 1, 2, 3) | Koppen in de tekst; ze maken géén sectie |
 | Vet, cursief, onderstreept, lijsten, tabellen, links | Blijven behouden |
 | Afbeeldingen | Worden overgeslagen (nog niet ondersteund) |
 
-Secties bepaal je dus bewust, met de stijl *Sectie* in Word of met de knop *Sectiekop* in de editor; een kopje in Word wordt nooit per ongeluk een sectie.
+Secties bepaal je dus bewust, met de stijlen *Sectie* en *Einde sectie* in Word of met de knop *Sectie* in de editor; een kopje in Word wordt nooit per ongeluk een sectie. Na het importeren kun je de kaders in de editor nog verplaatsen of weghalen.
 
 Een `.doc` of PDF upload je niet rechtstreeks: open het in Word en sla het op als `.docx`. Bij een PDF gaat de structuur (koppen, lijsten) meestal verloren, dus controleer het resultaat extra goed.
 

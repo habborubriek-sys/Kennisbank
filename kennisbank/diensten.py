@@ -40,15 +40,20 @@ def momentopname(artikel: Artikel) -> dict:
 
 def herbouw_secties(artikel: Artikel) -> int:
     """Bouw de afgeleide sectietabel opnieuw op uit Artikel.inhoud. Geeft het aantal secties terug."""
-    from .inhoud import splits_secties
+    from .inhoud import blokken
     from .models import Sectie
 
-    inleiding, secties = splits_secties(artikel.inhoud)
-    rijen = [Sectie(artikel=artikel, volgorde=0, kop="", inhoud=inleiding)]
-    rijen += [Sectie(artikel=artikel, volgorde=i + 1, kop=kop, inhoud=tekst) for i, (kop, tekst) in enumerate(secties)]
+    alle = blokken(artikel.inhoud)
+    vrije_tekst = "".join(b["html"] for b in alle if b["type"] == "tekst")
+    rijen = [Sectie(artikel=artikel, volgorde=0, kop="", inhoud=vrije_tekst)]
+    rijen += [
+        Sectie(artikel=artikel, volgorde=b["nummer"], kop=b["kop"], inhoud=b["html"])
+        for b in alle
+        if b["type"] == "sectie"
+    ]
     artikel.secties.all().delete()
     Sectie.objects.bulk_create(rijen)
-    return len(secties)
+    return len(rijen) - 1
 
 
 @transaction.atomic

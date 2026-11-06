@@ -37,7 +37,7 @@ Antwoord (ingekort):
   "samenvatting": "…", "soort": "werkinstructie", "versie": 3, "url": "/artikel/412/melding-registreren"}]
 ```
 
-Gebruik `url` (of `id`) om naar het artikel te linken: het nummer is blijvend, de naam erachter is alleen leesbaar. Ook beschikbaar: `GET /api/v1/artikelen/<id>`, `GET /api/v1/artikelen?zaaktype=…&q=…` en `POST /api/v1/assistent` met `{"vraag": "…", "zaaktype": "…"}`. De volledige specificatie staat in [openapi.yaml](openapi.yaml) en op `/api/docs/`.
+Het artikeldetail (`GET /api/v1/artikelen/<id>`) geeft de tekst als `blokken[]` in leesvolgorde: `{"type": "tekst", "html"}` (altijd zichtbaar) en `{"type": "sectie", "nummer", "kop", "html"}` (in-/uitklapbaar). Gebruik `url` (of `id`) om naar het artikel te linken: het nummer is blijvend, de naam erachter is alleen leesbaar. Ook beschikbaar: `GET /api/v1/artikelen/<id>`, `GET /api/v1/artikelen?zaaktype=…&q=…` en `POST /api/v1/assistent` met `{"vraag": "…", "zaaktype": "…"}`. De volledige specificatie staat in [openapi.yaml](openapi.yaml) en op `/api/docs/`.
 
 **Token voor een koppeling aanmaken.** Maak een technisch account met leesrechten:
 

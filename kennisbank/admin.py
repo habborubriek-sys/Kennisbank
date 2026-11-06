@@ -178,7 +178,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         """Toon de (nog niet opgeslagen) tekst uit de editor zoals het artikel er gepubliceerd uit zou zien."""
         from django.http import HttpResponseNotAllowed
 
-        from .inhoud import schoon, splits_secties
+        from .inhoud import blokken
 
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
@@ -186,7 +186,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             from django.core.exceptions import PermissionDenied
 
             raise PermissionDenied
-        inleiding, secties = splits_secties(request.POST.get("inhoud", ""))
+        alle = blokken(request.POST.get("inhoud", ""))
         soorten = dict(Soort.choices)
         ctx = {
             "app_naam": settings.KB_APP_NAAM,
@@ -195,8 +195,8 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             "soort": request.POST.get("soort", ""),
             "soort_label": soorten.get(request.POST.get("soort", ""), ""),
             "eigenaar": request.POST.get("eigenaar", "").strip(),
-            "inleiding": schoon(inleiding),
-            "secties": [(kop, schoon(tekst)) for kop, tekst in secties],
+            "blokken": alle,
+            "heeft_secties": any(b["type"] == "sectie" for b in alle),
         }
         return render(request, "kennisbank/voorbeeld.html", ctx)
 

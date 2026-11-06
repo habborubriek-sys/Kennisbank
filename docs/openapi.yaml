@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.2.1
+  version: 1.3.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -432,14 +432,13 @@ components:
         url:
           type: string
           readOnly: true
-        inleiding_html:
-          type: string
-          readOnly: true
-        secties:
+        blokken:
           type: array
           items:
             type: object
             additionalProperties: {}
+          description: 'De tekst in leesvolgorde: vrije tekst (altijd zichtbaar) en
+            secties (in-/uitklapbaar).'
           readOnly: true
         gerelateerd:
           type: array
@@ -453,14 +452,13 @@ components:
           readOnly: true
       required:
       - bewerk_url
+      - blokken
       - clusters
       - gepubliceerd_op
       - gerelateerd
       - id
-      - inleiding_html
       - omgeving
       - samenvatting
-      - secties
       - slug
       - tags
       - titel

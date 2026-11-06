@@ -19,12 +19,11 @@
   <h1 id="artTitel">{{ titel }}</h1>
   {% if samenvatting %}<p class="summary">{{ samenvatting }}</p>{% endif %}
   <p class="docline">voorbeeld · nog niet gepubliceerd{% if eigenaar %} · eigenaar {{ eigenaar }}{% endif %}</p>
-  {% if secties %}<div class="secbar"><button class="tb" type="button" id="toggleAll">Alles uitklappen</button></div>{% endif %}
-  {% if inleiding %}<div class="inleiding">{{ inleiding|safe }}</div>{% endif %}
+  {% if heeft_secties %}<div class="secbar"><button class="tb" type="button" id="toggleAll">Alles uitklappen</button></div>{% endif %}
   <div class="sections">
-   {% for kop, tekst in secties %}<details class="sec" {% if forloop.first %}open{% endif %}><summary>{{ kop }}</summary><div class="body">{{ tekst|safe }}</div></details>{% endfor %}
+   {% for b in blokken %}{% if b.type == "tekst" %}<div class="inleiding">{{ b.html|safe }}</div>{% else %}<details class="sec" {% if b.nummer == 1 %}open{% endif %}><summary>{{ b.kop }}</summary><div class="body">{{ b.html|safe }}</div></details>{% endif %}{% endfor %}
   </div>
-  {% if not secties and not inleiding %}<div class="empty">Nog geen tekst.</div>{% endif %}
+  {% if not blokken %}<div class="empty">Nog geen tekst.</div>{% endif %}
  </article>
 </div></main></div>
 </body></html>

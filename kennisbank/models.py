@@ -111,8 +111,9 @@ class Artikel(models.Model):
     samenvatting = models.TextField(help_text="Eén of twee zinnen: waar gaat dit artikel over?")
     inhoud = models.TextField(
         blank=True,
-        help_text="De tekst van het artikel. Markeer een regel als 'Sectiekop' om een in- en uitklapbare sectie te "
-        "beginnen; markeer alinea's als 'Onboarding' om ze alleen aan nieuwe collega's te tonen.",
+        help_text="De tekst van het artikel. Selecteer tekst en klik op 'Sectie' om er een in- en uitklapbare sectie "
+        "van te maken; markeer alinea's als 'Onboarding' om ze alleen aan nieuwe collega's te tonen. "
+        "Tekst buiten een sectie is altijd zichtbaar.",
     )
     soort = models.CharField(max_length=20, choices=Soort.choices, default=Soort.WERKINSTRUCTIE)
     clusters = models.ManyToManyField(

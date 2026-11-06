@@ -224,9 +224,8 @@
       <h1 id="artTitel">${esc(a.titel)}</h1>
       <p class="summary">${esc(a.samenvatting)}</p>
       <p class="docline">${esc(clusterLabel(a))} · ${zt} · versie ${a.versie}, bijgewerkt ${datum(a.gepubliceerd_op)} · eigenaar ${esc(a.eigenaar)}</p>
-      ${a.secties.length ? '<div class="secbar"><button class="tb" type="button" id="toggleAll">Alles uitklappen</button></div>' : ""}
-      ${a.inleiding_html ? `<div class="inleiding">${a.inleiding_html}</div>` : ""}
-      <div class="sections">${a.secties.map((s, i) => `<details class="sec" id="sectie-${s.volgorde}" ${i === 0 ? "open" : ""}><summary>${esc(s.kop)}</summary><div class="body">${s.inhoud_html}</div></details>`).join("")}</div>
+      ${a.blokken.some((b) => b.type === "sectie") ? '<div class="secbar"><button class="tb" type="button" id="toggleAll">Alles uitklappen</button></div>' : ""}
+      <div class="sections">${a.blokken.map((b) => b.type === "tekst" ? `<div class="inleiding">${b.html}</div>` : `<details class="sec" id="sectie-${b.nummer}" ${b.nummer === 1 ? "open" : ""}><summary>${esc(b.kop)}</summary><div class="body">${b.html}</div></details>`).join("")}</div>
       <div class="foot">
        ${a.gerelateerd.length ? `<div class="related"><h2 class="stats-h">Gerelateerd</h2><ul>${a.gerelateerd.map((r) => `<li><a href="${esc(r.url)}" data-open="${r.id}" class="linkbtn">${esc(r.titel)}</a></li>`).join("")}</ul></div>` : ""}
        <div class="chips" aria-label="Tags">${a.tags.map((t) => `<button class="chip" type="button" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</div>

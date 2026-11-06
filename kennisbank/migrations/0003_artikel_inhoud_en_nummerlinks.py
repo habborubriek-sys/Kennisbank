@@ -3,9 +3,13 @@
 from django.db import migrations, models
 
 
-def secties_naar_inhoud(apps, schema_editor):
-    from kennisbank.inhoud import sectiekop
+def sectiekop(kop):
+    import html
 
+    return f'<h2 class="sectie">{html.escape(kop or "")}</h2>'
+
+
+def secties_naar_inhoud(apps, schema_editor):
     Artikel = apps.get_model("kennisbank", "Artikel")
     ArtikelVersie = apps.get_model("kennisbank", "ArtikelVersie")
     for a in Artikel.objects.all().iterator():

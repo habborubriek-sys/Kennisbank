@@ -3,18 +3,24 @@
 from django.db import transaction
 
 from . import diensten
-from .inhoud import markdown_naar_html, onboarding_blok, schoon, sectiekop
+from .inhoud import markdown_naar_html, onboarding_blok, schoon, sectie
 from .models import Artikel, Cluster, Omgeving, Soort, Status, Tag, Zaaktype
 
 FORMAAT = "kennisbank-import"
-VERSIE = 3  # 1 = secties in Markdown + onboarding-veld; 2 = secties in HTML; 3 = één artikeltekst (HTML)
+# 1 = secties in Markdown + onboarding-veld; 2 = secties in HTML; 3 = één tekst met sectiekoppen (h2.sectie);
+# 4 = één tekst met sectiekaders (<section class="sectie">)
+VERSIE = 4
 
 
 def _artikel_inhoud(a: dict, versie: int) -> str:
     """De artikeltekst uit het importbestand: versie 3 heeft 'inhoud'; oudere versies hebben 'secties'."""
-    if versie >= 3 or "inhoud" in a:
+    if versie >= 4:
         return schoon(a.get("inhoud", ""))
-    return "".join(sectiekop(s["kop"]) + _sectie_inhoud(s, versie) for s in a.get("secties", []))
+    if versie == 3 or "inhoud" in a:
+        from .oud_formaat import koppen_naar_kaders
+
+        return schoon(koppen_naar_kaders(a.get("inhoud", "")))
+    return "".join(sectie(s["kop"], _sectie_inhoud(s, versie)) for s in a.get("secties", []))
 
 
 def _sectie_inhoud(s: dict, versie: int) -> str:
@@ -37,8 +43,8 @@ class ImportFout(ValueError):
 def _controleer(data):
     if data.get("formaat") != FORMAAT:
         raise ImportFout(f"Onbekend formaat; verwacht 'formaat': '{FORMAAT}'.")
-    if data.get("versie", 1) not in (1, 2, 3):
-        raise ImportFout("Onbekende versie van het importformaat; ondersteund: 1, 2 en 3.")
+    if data.get("versie", 1) not in (1, 2, 3, 4):
+        raise ImportFout("Onbekende versie van het importformaat; ondersteund: 1 t/m 4.")
     if not data.get("omgeving", {}).get("slug"):
         raise ImportFout("'omgeving.slug' ontbreekt.")
     soorten = {s.value for s in Soort}

@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from kennisbank import diensten
 from kennisbank.auth import KennisbankOIDCBackend
-from kennisbank.inhoud import onboarding_blokken, schoon, splits_secties, zonder_onboarding
+from kennisbank.inhoud import blokken, onboarding_blokken, schoon, zonder_onboarding
 from kennisbank.models import (
     Artikel,
     ArtikelVersie,
@@ -63,7 +63,9 @@ class Basis(TestCase):
             samenvatting="Nog niet af",
             status=Status.CONCEPT,
         )
-        cls.concept.inhoud = '<h2 class="sectie">Inhoud</h2><p>Concepttekst over rappel</p>'
+        cls.concept.inhoud = (
+            '<section class="sectie"><h2 class="sectie-kop">Inhoud</h2><p>Concepttekst over rappel</p></section>'
+        )
         cls.concept.save()
         diensten.herbouw_secties(cls.concept)
 
@@ -347,7 +349,7 @@ class InhoudTests(TestCase):
         ]
         importeer(data)
         a = Artikel.objects.get(slug="oud")
-        self.assertIn('<h2 class="sectie">K</h2>', a.inhoud)
+        self.assertIn('<section class="sectie"><h2 class="sectie-kop">K</h2>', a.inhoud)
         self.assertIn("<li><strong>vet</strong></li>", a.inhoud)
         self.assertIn('<div class="onboarding"><p>Extra <em>uitleg</em></p></div>', a.inhoud)
         self.assertEqual([s.kop for s in a.secties.all()], ["", "K"])
@@ -359,15 +361,26 @@ class InhoudTests(TestCase):
         a.save()
         self.assertEqual(a.inhoud, "<p>t</p>")
 
-    def test_secties_uit_tekst_en_lege_kop(self):
+    def test_blokken_in_leesvolgorde(self):
         html = (
-            '<p>Intro</p><h2 class="sectie">A</h2><p>a</p><h2>gewone kop</h2>'
-            '<h2 class="sectie"></h2><p>a2</p><h2 class="sectie">B</h2><div class="onboarding"><p>u</p></div>'
+            '<p>Intro</p><section class="sectie"><h2 class="sectie-kop">A</h2><p>a</p><h2>gewone kop</h2></section>'
+            '<p>Tussen</p><section class="sectie"><h2 class="sectie-kop"></h2>'
+            '<div class="onboarding"><p>u</p></div></section>'
         )
-        intro, secties = splits_secties(html)
-        self.assertEqual(intro, "<p>Intro</p>")
-        self.assertEqual([k for k, _ in secties], ["A", "B"])
-        self.assertEqual(secties[0][1], "<p>a</p><h3>gewone kop</h3><p>a2</p>")
+        b = blokken(html)
+        self.assertEqual([x["type"] for x in b], ["tekst", "sectie", "tekst", "sectie"])
+        self.assertEqual(b[0]["html"], "<p>Intro</p>")
+        self.assertEqual((b[1]["nummer"], b[1]["kop"], b[1]["html"]), (1, "A", "<p>a</p><h3>gewone kop</h3>"))
+        self.assertEqual(b[3]["kop"], "Sectie 2")
+
+    def test_geneste_sectie_wordt_ontnest(self):
+        html = (
+            '<section class="sectie"><h2 class="sectie-kop">Buiten</h2><p>a</p>'
+            '<section class="sectie"><h2 class="sectie-kop">Binnen</h2><p>b</p></section></section>'
+        )
+        b = blokken(html)
+        self.assertEqual(len(b), 1)
+        self.assertEqual(b[0]["html"], "<p>a</p><h3>Binnen</h3><p>b</p>")
 
     def test_oude_link_wordt_doorverwezen(self):
         importeer(DEMO)
@@ -448,6 +461,7 @@ def _docx(paragrafen):
     d = docx.Document()
     d.styles.add_style("Onboarding", WD_STYLE_TYPE.PARAGRAPH).base_style = d.styles["Normal"]
     d.styles.add_style("Sectie", WD_STYLE_TYPE.PARAGRAPH).base_style = d.styles["Normal"]
+    d.styles.add_style("Einde sectie", WD_STYLE_TYPE.PARAGRAPH).base_style = d.styles["Normal"]
     for stijl, tekst in paragrafen:
         if stijl.startswith("Heading"):
             d.add_heading(tekst, level=int(stijl[-1]))
@@ -472,6 +486,8 @@ class WordImportTests(Basis):
                     ("Onboarding", "Vraag je buddy."),
                     ("Onboarding", "Tweede alinea."),
                     ("Heading 2", "Gewone kop"),
+                    ("Einde sectie", "(einde)"),
+                    ("Normal", "Vrije tekst tussen de secties."),
                     ("Sectie", "Brief"),
                     ("Normal", "Gebruik het sjabloon."),
                 ]
@@ -481,12 +497,14 @@ class WordImportTests(Basis):
         self.assertEqual(a.titel, "Rappel versturen")
         self.assertEqual(a.samenvatting, "Korte samenvatting.")
         self.assertEqual(a.aantal_secties, 2)
-        intro, secties = splits_secties(a.inhoud)
-        self.assertEqual(intro, "<p>Inleidende tekst.</p>")
-        self.assertEqual([k for k, _ in secties], ["Termijnen", "Brief"])
-        self.assertIn("<li>4 weken</li>", secties[0][1])
-        self.assertIn("<h3>Gewone kop</h3>", secties[0][1])
-        self.assertEqual(onboarding_blokken(secties[0][1]), ["<p>Vraag je buddy.</p><p>Tweede alinea.</p>"])
+        b = blokken(a.inhoud)
+        self.assertEqual([x["type"] for x in b], ["tekst", "sectie", "tekst", "sectie"])
+        self.assertEqual(b[0]["html"], "<p>Inleidende tekst.</p>")
+        self.assertEqual([x["kop"] for x in b if x["type"] == "sectie"], ["Termijnen", "Brief"])
+        self.assertIn("<li>4 weken</li>", b[1]["html"])
+        self.assertIn("<h3>Gewone kop</h3>", b[1]["html"])
+        self.assertEqual(b[2]["html"], "<p>Vrije tekst tussen de secties.</p>")
+        self.assertEqual(onboarding_blokken(b[1]["html"]), ["<p>Vraag je buddy.</p><p>Tweede alinea.</p>"])
         self.assertEqual(a.meldingen, [])
 
     def test_meerdere_kop1_blijven_koppen_in_tekst(self):
@@ -579,7 +597,8 @@ class VoorbeeldTests(Basis):
                 "titel": "Nog niet opgeslagen",
                 "samenvatting": "S",
                 "soort": "proces",
-                "inhoud": '<p>Intro</p><h2 class="sectie">Stap 1</h2><p>Doe dit</p><script>x</script>',
+                "inhoud": '<p>Intro</p><section class="sectie"><h2 class="sectie-kop">Stap 1</h2>'
+                "<p>Doe dit</p></section><script>x</script>",
             },
         )
         self.assertEqual(r.status_code, 200)

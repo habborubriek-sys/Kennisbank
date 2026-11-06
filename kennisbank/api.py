@@ -3,7 +3,7 @@
 Documentatie: /api/schema/ (OpenAPI) en /api/docs/ (interactief).
 """
 
-from django.db.models import Count, Prefetch, Q, Sum
+from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -17,7 +17,6 @@ from rest_framework.throttling import UserRateThrottle
 
 from . import diensten
 from .assistent import beantwoord
-from .inhoud import schoon
 from .models import (
     Artikel,
     ArtikelVersie,
@@ -25,7 +24,6 @@ from .models import (
     Cluster,
     Favoriet,
     RecentBezocht,
-    Sectie,
     Soort,
     Tag,
     Verbetervoorstel,
@@ -67,32 +65,19 @@ class ArtikelKortSerializer(serializers.ModelSerializer):
         ]
 
 
-class SectieSerializer(serializers.ModelSerializer):
-    inhoud_html = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Sectie
-        fields = ["volgorde", "kop", "inhoud_html"]
-
-    def get_inhoud_html(self, obj) -> str:
-        return schoon(obj.inhoud)
-
-
 class ArtikelSerializer(ArtikelKortSerializer):
-    inleiding_html = serializers.SerializerMethodField()
-    secties = serializers.SerializerMethodField()
+    blokken = serializers.SerializerMethodField()
     gerelateerd = serializers.SerializerMethodField()
     bewerk_url = serializers.SerializerMethodField()
 
     class Meta(ArtikelKortSerializer.Meta):
-        fields = ArtikelKortSerializer.Meta.fields + ["inleiding_html", "secties", "gerelateerd", "bewerk_url"]
+        fields = ArtikelKortSerializer.Meta.fields + ["blokken", "gerelateerd", "bewerk_url"]
 
-    def get_inleiding_html(self, obj) -> str:
-        eerste = next((s for s in obj.secties.all() if s.volgorde == 0), None)
-        return schoon(eerste.inhoud) if eerste else ""
+    def get_blokken(self, obj) -> list[dict]:
+        """De tekst in leesvolgorde: vrije tekst (altijd zichtbaar) en secties (in-/uitklapbaar)."""
+        from .inhoud import blokken
 
-    def get_secties(self, obj) -> list[dict]:
-        return SectieSerializer([s for s in obj.secties.all() if s.volgorde > 0], many=True).data
+        return blokken(obj.inhoud)
 
     def get_gerelateerd(self, obj) -> list[dict]:
         r = self.context["rechten"]
@@ -196,9 +181,7 @@ def _filter(qs, params):
 
 def _artikel_of_404(request, pk):
     artikel = get_object_or_404(
-        Artikel.objects.select_related("omgeving").prefetch_related(
-            "clusters", "tags", "zaaktypen", Prefetch("secties", Sectie.objects.order_by("volgorde", "id"))
-        ),
+        Artikel.objects.select_related("omgeving").prefetch_related("clusters", "tags", "zaaktypen"),
         pk=pk,
     )
     if not rechten(request).mag_lezen(artikel):
