@@ -11,6 +11,8 @@ Een artikel is één tekst. Daarin:
   erna) is altijd zichtbaar.
 - <div class="onboarding">…</div> is uitleg voor nieuwe collega's; alleen zichtbaar met de
   schakelaar 'Onboarding' aan. Mag overal en meerdere keren voorkomen, ook binnen een sectie.
+- <p class="tussenruimte"><br></p> is typ-ruimte die de editor zelf rond secties zet, zodat je er
+  tussen kunt typen. Die vervalt bij het opslaan. Elke andere lege regel is bewust en blijft staan.
 """
 
 import re
@@ -20,6 +22,7 @@ import nh3
 ONBOARDING_KLASSE = "onboarding"
 SECTIE_KLASSE = "sectie"
 SECTIEKOP_KLASSE = "sectie-kop"
+TUSSENRUIMTE_KLASSE = "tussenruimte"
 
 TOEGESTANE_TAGS = {
     "p",
@@ -59,7 +62,12 @@ TOEGESTANE_ATTRIBUTEN = {
     "td": {"colspan", "rowspan"},
     "ol": {"start"},
 }
-TOEGESTANE_KLASSEN = {"div": {ONBOARDING_KLASSE}, "section": {SECTIE_KLASSE}, "h2": {SECTIEKOP_KLASSE}}
+TOEGESTANE_KLASSEN = {
+    "div": {ONBOARDING_KLASSE},
+    "section": {SECTIE_KLASSE},
+    "h2": {SECTIEKOP_KLASSE},
+    "p": {TUSSENRUIMTE_KLASSE},
+}
 
 # Gewone koppen uit Word/editor terugbrengen naar h3/h4 (binnen de tekst). Alleen h2.sectie blijft h2.
 _KOP_OMLAAG = [("h1", "h3"), ("h2", "h3"), ("h5", "h4"), ("h6", "h4")]
@@ -107,18 +115,13 @@ def schoon(html: str) -> str:
         link_rel="noopener noreferrer",
         strip_comments=True,
     )
-    # Lege regels: alleen die direct vóór of na een sectiekader zijn typ-ruimte en vervallen.
-    # Een lege regel tussen gewone alinea's is bewust en blijft staan (als <p><br></p>).
+    # Lege regels: alleen de typ-ruimte die de editor zelf rond secties zet (gemarkeerd met de
+    # klasse 'tussenruimte') vervalt. Elke andere lege regel is bewust en blijft staan als <p><br></p>,
+    # ook direct voor of na een sectie en aan het begin of einde van een sectie of onboarding-blok.
+    schoon_html = re.sub(rf'<p class="{TUSSENRUIMTE_KLASSE}">(\s|&nbsp;|<br>)*</p>', "", schoon_html)
+    schoon_html = re.sub(rf'<p class="{TUSSENRUIMTE_KLASSE}">', "<p>", schoon_html)
     schoon_html = re.sub(r"<p>(\s|&nbsp;|<br>)*</p>", "<p><br></p>", schoon_html)
-    schoon_html = re.sub(rf'(<p><br></p>)+(<section class="{SECTIE_KLASSE}">)', r"\2", schoon_html)
-    schoon_html = re.sub(r"(</section>)(<p><br></p>)+", r"\1", schoon_html)
-    schoon_html = re.sub(r"^(<p><br></p>)+|(<p><br></p>)+$", "", schoon_html.strip())
-    # Binnen een onboarding-blok of sectie: lege regels aan het begin/eind vervallen ook.
-    schoon_html = re.sub(
-        r'(<div class="onboarding">|<h2 class="sectie-kop">[^<]*</h2>)(<p><br></p>)+', r"\1", schoon_html
-    )
-    schoon_html = re.sub(r"(<p><br></p>)+(</div>|</section>)", r"\2", schoon_html)
-    schoon_html = schoon_html.replace('<div class="">', "<div>")
+    schoon_html = schoon_html.replace('<div class="">', "<div>").replace('<p class="">', "<p>")
     schoon_html = _ontnest_secties(schoon_html)
     return schoon_html.strip()
 

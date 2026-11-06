@@ -15,6 +15,8 @@
   function schoonNode(root) {
     // Veiligheidsnet: het is eigen tekst van de redacteur, maar scripts en event-attributen horen er niet in.
     root.querySelectorAll("script,style,iframe,object,embed,img,form,input").forEach(function (n) { n.remove(); });
+    // Typ-ruimte rond secties (zie beheer-editor.js) wordt niet opgeslagen en dus ook niet getoond.
+    root.querySelectorAll("p.tussenruimte").forEach(function (n) { if (n.textContent.trim()) n.classList.remove("tussenruimte"); else n.remove(); });
     root.querySelectorAll("*").forEach(function (n) {
       Array.prototype.slice.call(n.attributes).forEach(function (a) {
         if (/^on/i.test(a.name) || (a.name === "href" && /^\s*javascript:/i.test(a.value))) n.removeAttribute(a.name);
@@ -29,7 +31,8 @@
 
     var bron = document.createElement("div"); bron.innerHTML = d.inhoud || ""; schoonNode(bron);
     var uit = document.createElement("div"), vrij = document.createElement("div"), n = 0, heeftSectie = false;
-    function flush() { if (vrij.childNodes.length && vrij.textContent.trim()) { vrij.className = "inleiding"; uit.appendChild(vrij); } vrij = document.createElement("div"); }
+    // Ook een bewuste lege regel tussen twee secties is een tekstblok (net als inhoud.blokken op de server).
+    function flush() { if (vrij.children.length) { vrij.className = "inleiding"; uit.appendChild(vrij); } vrij = document.createElement("div"); }
     Array.prototype.slice.call(bron.childNodes).forEach(function (node) {
       if (node.nodeType === 1 && node.tagName === "SECTION" && node.classList.contains("sectie")) {
         flush(); n++; heeftSectie = true;

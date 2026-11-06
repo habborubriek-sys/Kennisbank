@@ -51,7 +51,11 @@ Een artikel is één doorlopende tekst. Een **sectie** is een kader om een stuk 
 4. Een onboarding-blok dat binnen het kader valt, staat er zichtbaar iets ingesprongen in; zo zie je meteen of het bij de sectie hoort.
 5. Staat de cursor in een sectie en klik je nogmaals op **Sectie**, dan gaat het kader weg: de titel wordt een gewone kop en de tekst komt weer los te staan.
 
-De editor zorgt zelf dat er altijd een lege regel staat vóór, tussen en na kaders, zodat je daar kunt typen. Zo'n lege regel direct tegen een kader aan wordt bij opslaan genegeerd. Een lege regel **tussen twee gewone alinea's** is bewust en blijft staan, ook voor de lezer. Wil je witruimte vlak voor een kader, zet dan twee lege regels: de eerste blijft.
+Direct vóór en na elk kader zet de editor zelf een **tussenruimte**: een lege regel met een stippellijn en het grijze tekstje *tussenruimte, wordt niet opgeslagen*. Die is er alleen om te kunnen typen tussen of na kaders en verdwijnt bij het opslaan. Elke andere lege regel is bewust en blijft staan, ook voor de lezer: tussen gewone alinea's, vlak voor of na een kader, aan het begin of einde van een sectie.
+
+- Typ je in de tussenruimte, dan wordt het een gewone alinea en komt er een nieuwe tussenruimte tussen jouw tekst en het kader.
+- Druk je op Enter in de tussenruimte, dan krijg je een gewone lege regel die wél wordt opgeslagen.
+- Haal je een kader weg, dan verdwijnt de tussenruimte eromheen mee.
 
 Een sectie in een sectie kan niet; selecteer je tekst waar al een kader in zit, dan wordt dat opgenomen in het nieuwe kader. Gewone koppen (via ¶ → Kop of Subkop) zijn koppen *binnen* de tekst en maken geen sectie.
 
@@ -69,7 +73,9 @@ Dit kan zo vaak als je wilt, ook in de inleiding, dus je kunt bij elke stap een 
 
 Bestaande werkinstructies in Word hoef je niet over te typen: **Beheer → Artikelen → Importeren uit Word**, kies het `.docx`-bestand en de omgeving.
 
-- Alleen de **tekst en de opmaak** komen mee: vet, cursief, onderstreept, koppen, lijsten, tabellen en links. Afbeeldingen worden overgeslagen (nog niet ondersteund); de import meldt hoeveel.
+- Alleen de **tekst en de opmaak** komen mee: vet, cursief, onderstreept, doorgehaald, super- en subscript, koppen, lijsten, tabellen en links. Kleuren, lettertypen, markeringen, uitlijning, koptekst, voettekst en opmerkingen niet.
+- **Afbeeldingen** worden overgeslagen (nog niet ondersteund); op hun plek staat *[afbeelding weggelaten]* en de import meldt hoeveel.
+- **Lege regels** uit Word blijven staan; meerdere lege regels achter elkaar worden er één.
 - De **titel** wordt de bestandsnaam en de **samenvatting** staat op "(vul een samenvatting in)": allebei pas je aan in het bewerkscherm, waar je direct in terechtkomt.
 - **Secties** en **onboarding-uitleg** maak je daarna in de editor, zoals hierboven beschreven. Er wordt bewust niets automatisch tot sectie gemaakt; zo weet je zeker dat de indeling klopt.
 - Het artikel is een **concept** tot je de status op *Gepubliceerd* zet.

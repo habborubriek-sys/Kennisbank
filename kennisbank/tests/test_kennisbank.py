@@ -374,17 +374,26 @@ class InhoudTests(TestCase):
         self.assertEqual(b[3]["kop"], "Sectie 2")
 
     def test_lege_regels(self):
+        # Alleen de typ-ruimte van de editor (p.tussenruimte) vervalt; elke andere lege regel is bewust.
         html = (
-            "<p><br></p><p>a</p><p><br></p><p>b</p><p><br></p>"
-            '<section class="sectie"><h2 class="sectie-kop">S</h2><p><br></p><p>c</p><p></p><p>d</p><p><br></p>'
+            '<p class="tussenruimte"><br></p><p>a</p><p><br></p><p>b</p><p class="tussenruimte"><br></p>'
+            '<section class="sectie"><h2 class="sectie-kop">S</h2><p><br></p><p>c</p><p></p><p>d</p><p>&nbsp;</p>'
             "</section>"
-            '<p><br></p><section class="sectie"><h2 class="sectie-kop">T</h2><p>e</p></section><p>&nbsp;</p>'
+            '<p class="tussenruimte"><br></p><p><br></p><p class="tussenruimte"></p>'
+            '<section class="sectie"><h2 class="sectie-kop">T</h2><p>e</p></section>'
+            '<p class="tussenruimte"><br></p><p class="tussenruimte">toch tekst</p>'
         )
         self.assertEqual(
             schoon(html),
-            '<p>a</p><p><br></p><p>b</p><section class="sectie"><h2 class="sectie-kop">S</h2><p>c</p><p><br></p>'
-            '<p>d</p></section><section class="sectie"><h2 class="sectie-kop">T</h2><p>e</p></section>',
+            '<p>a</p><p><br></p><p>b</p><section class="sectie"><h2 class="sectie-kop">S</h2><p><br></p><p>c</p>'
+            '<p><br></p><p>d</p><p><br></p></section><p><br></p>'
+            '<section class="sectie"><h2 class="sectie-kop">T</h2><p>e</p></section><p>toch tekst</p>',
         )
+        self.assertEqual(schoon(schoon(html)), schoon(html))
+        # Een bewuste lege regel tussen twee secties is een (leeg) tekstblok in de leesweergave.
+        b = blokken(schoon(html))
+        self.assertEqual([x["type"] for x in b], ["tekst", "sectie", "tekst", "sectie", "tekst"])
+        self.assertEqual(b[2]["html"], "<p><br></p>")
 
     def test_geneste_sectie_wordt_ontnest(self):
         html = (
@@ -485,6 +494,20 @@ def _docx(paragrafen):
     return buf
 
 
+def _png():
+    """Een geldige PNG van 1×1 pixel, zonder afbeeldingsbibliotheek."""
+    import io
+    import struct
+    import zlib
+
+    def chunk(soort, data):
+        return struct.pack(">I", len(data)) + soort + data + struct.pack(">I", zlib.crc32(soort + data) & 0xFFFFFFFF)
+
+    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+    idat = zlib.compress(b"\x00\x00\x00\x00")
+    return io.BytesIO(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", idat) + chunk(b"IEND", b""))
+
+
 class WordImportTests(Basis):
     def test_alleen_tekst_en_opmaak(self):
         a = lees_docx(
@@ -507,6 +530,29 @@ class WordImportTests(Basis):
         self.assertNotIn("sectie", a.inhoud)
         self.assertNotIn("onboarding", a.inhoud)
         self.assertEqual(a.meldingen, [])
+
+    def test_lege_regels_en_afbeeldingen(self):
+        import io
+
+        from kennisbank.word_import import AFBEELDING_MARKERING
+
+        buf = _docx([("Normal", ""), ("Normal", "a"), ("Normal", ""), ("Normal", ""), ("Normal", ""), ("Normal", "b")])
+        import docx
+
+        d = docx.Document(buf)
+        p = d.add_paragraph("plaatje: ")
+        p.add_run().add_picture(_png())
+        d.add_paragraph("")
+        uit = io.BytesIO()
+        d.save(uit)
+        uit.seek(0)
+        a = lees_docx(uit, "test.docx")
+        # Lege regels blijven (drie worden er één); begin en einde van het document niet.
+        self.assertEqual(
+            a.inhoud, f"<p>a</p><p><br></p><p>b</p><p>plaatje: <em>{AFBEELDING_MARKERING}</em></p>"
+        )
+        self.assertEqual(a.afbeeldingen_overgeslagen, 1)
+        self.assertEqual(len(a.meldingen), 1)
 
     def test_geen_docx(self):
         import io

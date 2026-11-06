@@ -15,6 +15,9 @@
 .jodit-wysiwyg ol>li{list-style-type:decimal!important;font-size:inherit;line-height:inherit;padding:0;margin:2px 0}
 .jodit-wysiwyg ul ul>li{list-style-type:circle!important}
 .jodit-wysiwyg p{margin:0 0 8px}
+/* Typ-ruimte rond secties: wordt niet opgeslagen (zie beheer-editor.js). */
+.jodit-wysiwyg>p.tussenruimte{position:relative;margin:0;border-top:1px dashed #b7bcc4;color:#6b7280}
+.jodit-wysiwyg>p.tussenruimte::after{content:"tussenruimte, wordt niet opgeslagen";position:absolute;right:4px;top:0;font-size:11px;line-height:1.5;color:#8a9099;pointer-events:none;user-select:none}
 .jodit-toolbar-button_sectie button{font-weight:600;color:#154273}
 .jodit-toolbar-button_sectie .jodit-toolbar-button__text{padding:0 6px}
 .jodit-toolbar-button_volledigscherm button{font-weight:600;color:#154273}

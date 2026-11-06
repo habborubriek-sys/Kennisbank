@@ -33,8 +33,11 @@
       // Kader weghalen: titel wordt een gewone kop, inhoud komt op het hoogste niveau.
       var kop = bestaand.querySelector("h2." + KOP);
       if (kop) { if (kop.textContent.trim()) { var h3 = doc.createElement("h3"); h3.textContent = kop.textContent.trim(); bestaand.replaceChild(h3, kop); } else bestaand.removeChild(kop); }
+      // De typ-ruimte rond het kader hoort bij het kader en gaat mee weg.
+      [bestaand.previousElementSibling, bestaand.nextElementSibling].forEach(function (n) { if (n && n.tagName === "P" && n.classList.contains(RUIMTE)) n.parentNode.removeChild(n); });
       while (bestaand.firstChild) bestaand.parentNode.insertBefore(bestaand.firstChild, bestaand);
       bestaand.parentNode.removeChild(bestaand);
+      ruimteRondSecties(editor);
       editor.synchronizeValues();
       return;
     }
@@ -49,6 +52,7 @@
     sec.appendChild(titel);
     a.parentNode.insertBefore(sec, a);
     blokken.forEach(function (b) {
+      if (b.tagName === "P" && b.classList.contains(RUIMTE)) { b.parentNode.removeChild(b); return; }  // typ-ruimte hoort niet in de sectie
       if (b.tagName === "SECTION") { // een bestaande sectie in de selectie: opnemen zonder te nesten
         var k = b.querySelector("h2." + KOP); if (k) { if (k.textContent.trim()) { var h = doc.createElement("h3"); h.textContent = k.textContent.trim(); b.replaceChild(h, k); } else b.removeChild(k); }
         while (b.firstChild) sec.appendChild(b.firstChild); b.parentNode.removeChild(b);
@@ -100,14 +104,32 @@
     editor.synchronizeValues();
   }
 
-  /* Zorg dat er altijd een lege regel staat vóór, tussen en na sectiekaders, zodat je ertussen kunt typen.
-   * Lege regels worden bij opslaan genegeerd (inhoud.schoon haalt lege alinea's weg). */
+  /* Typ-ruimte rond secties.
+   *
+   * Direct vóór en na elk sectiekader staat een gemarkeerde lege regel (<p class="tussenruimte">), zodat
+   * je ertussen kunt typen. Alleen die gemarkeerde regel wordt bij het opslaan weggelaten (inhoud.schoon);
+   * elke andere lege regel is bewust en blijft staan.
+   * - Typ je in de tussenruimte, dan wordt het een gewone alinea en komt er een nieuwe tussenruimte
+   *   tussen jouw tekst en de sectie.
+   * - Druk je op Enter in de tussenruimte, dan is de regel die niet meer tegen de sectie aan staat een
+   *   gewone (bewuste) lege regel; de tussenruimte zelf blijft tegen de sectie aan staan.
+   */
+  var RUIMTE = "tussenruimte";
+
   function ruimteRondSecties(editor) {
     var root = editor.editor, doc = root.ownerDocument, veranderd = false;
-    var isSectie = function (n) { return n && n.nodeType === 1 && n.tagName === "SECTION"; };
+    var isSectie = function (n) { return !!n && n.tagName === "SECTION" && n.classList.contains(SEC); };
+    var isRuimte = function (n) { return !!n && n.tagName === "P" && n.classList.contains(RUIMTE); };
+    var isLeeg = function (p) { return !p.textContent.replace(/ /g, " ").trim() && !p.querySelector("img,table,hr"); };
+    // 1. Gemarkeerde regels die tekst hebben gekregen of niet (meer) tegen een sectie aan staan: gewone alinea.
+    Array.prototype.slice.call(root.querySelectorAll("p." + RUIMTE)).forEach(function (p) {
+      var naast = p.parentNode === root && (isSectie(p.previousElementSibling) || isSectie(p.nextElementSibling));
+      if (!naast || !isLeeg(p)) { p.classList.remove(RUIMTE); if (!p.className) p.removeAttribute("class"); veranderd = true; }
+    });
+    // 2. Direct vóór en na elke sectie een tussenruimte.
     Array.prototype.slice.call(root.querySelectorAll(":scope > section." + SEC)).forEach(function (sec) {
-      if (!sec.previousSibling || isSectie(sec.previousSibling)) { sec.parentNode.insertBefore(legeAlinea(doc), sec); veranderd = true; }
-      if (!sec.nextSibling || isSectie(sec.nextSibling)) { sec.parentNode.insertBefore(legeAlinea(doc), sec.nextSibling); veranderd = true; }
+      if (!isRuimte(sec.previousElementSibling)) { var voor = legeAlinea(doc); voor.className = RUIMTE; sec.parentNode.insertBefore(voor, sec); veranderd = true; }
+      if (!isRuimte(sec.nextElementSibling)) { var na = legeAlinea(doc); na.className = RUIMTE; sec.parentNode.insertBefore(na, sec.nextSibling); veranderd = true; }
     });
     return veranderd;
   }
@@ -251,7 +273,7 @@
       removeEmptyElements: true,
       fillEmptyParagraph: false,
       allowTags: {
-        p: true, br: true, strong: true, b: true, em: true, i: true, u: true, s: true, strike: true, sub: true, sup: true,
+        p: { class: true }, br: true, strong: true, b: true, em: true, i: true, u: true, s: true, strike: true, sub: true, sup: true,
         ul: true, ol: { start: true }, li: true, a: { href: true, title: true }, code: true, pre: true, blockquote: true,
         h1: true, h2: { class: true }, h3: true, section: { class: true }, h4: true, h5: true, h6: true,
         table: true, thead: true, tbody: true, tr: true, th: { colspan: true, rowspan: true, scope: true }, td: { colspan: true, rowspan: true },
