@@ -130,7 +130,7 @@
 
     var laag = document.createElement("div"); laag.id = "kb-split";
     laag.innerHTML =
-      '<div class="kb-split-balk"><strong>Volledig scherm</strong><span class="kb-split-tip">Links bewerken, rechts het voorbeeld. Sleep de balk in het midden om de verdeling te veranderen.</span>' +
+      '<div class="kb-split-balk"><strong>Volledig scherm</strong>' +
       '<span class="kb-split-knoppen"><button type="button" class="button" id="kb-split-opslaan">Opslaan en doorgaan</button>' +
       '<button type="button" class="button" id="kb-split-sluiten">Sluiten</button></span></div>' +
       '<div class="kb-split-panelen"><div class="kb-split-links"><div class="kb-split-velden">' +
