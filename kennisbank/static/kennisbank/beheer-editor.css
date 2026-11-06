@@ -20,30 +20,30 @@
 .jodit-toolbar-button_volledigscherm button{font-weight:600;color:#154273}
 .jodit-toolbar-button_volledigscherm .jodit-toolbar-button__text{padding:0 6px}
 /* Volledig scherm: editor links, voorbeeld rechts */
-#kb-split{position:fixed;inset:0;z-index:1000;background:var(--body-bg,#fff);display:flex;flex-direction:column}
-.kb-split-balk{display:flex;align-items:center;gap:14px;padding:8px 14px;background:#154273;color:#fff}
+#kb-split{position:fixed;inset:0;z-index:1000;background:#f4f5f7;display:flex;flex-direction:column}
+.kb-split-balk{display:flex;align-items:center;gap:14px;padding:8px 14px;background:#2b2f36;color:#fff;border-bottom:3px solid #ffd23f}
 .kb-split-balk strong{font-size:1rem}
-.kb-split-tip{opacity:.8;font-size:.85rem}
+.kb-split-tip{opacity:.75;font-size:.85rem}
 .kb-split-knoppen{margin-left:auto;display:flex;gap:8px}
-.kb-split-knoppen .button{background:#fff;color:#154273;font-weight:600;padding:6px 14px;border-radius:6px;border:0;cursor:pointer}
-.kb-split-knoppen .button:hover{background:#dfe8f4}
-.kb-split-panelen{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:0}
-.kb-split-links{padding:10px;overflow:auto;border-right:1px solid #ccc;display:flex;flex-direction:column}
+.kb-split-knoppen .button{background:#fff;color:#2b2f36;font-weight:600;padding:6px 14px;border-radius:6px;border:0;cursor:pointer}
+.kb-split-knoppen .button:hover{background:#ffd23f}
+.kb-split-panelen{flex:1;display:grid;grid-template-columns:50% 8px 1fr;min-height:0}
+.kb-split-links{padding:10px 10px 10px 14px;overflow:auto;display:flex;flex-direction:column;gap:8px;background:#fff}
+.kb-split-velden{display:grid;gap:8px}
+.kb-split-velden label{display:grid;gap:3px;font-weight:600;font-size:.85rem;color:#444}
+.kb-split-velden input,.kb-split-velden textarea{width:100%;box-sizing:border-box;font-size:.95rem;padding:6px 8px;border:1px solid #ccc;border-radius:6px}
+.kb-split-velden textarea{height:58px;min-height:40px;max-height:140px;resize:vertical}
 .kb-split-links .jodit-container{max-width:none!important;height:auto!important;flex:1;display:flex;flex-direction:column;min-height:0}
 .kb-split-links .jodit-workplace{flex:1;min-height:0}
 .kb-split-links .jodit-wysiwyg{min-height:100%!important}
+.kb-split-greep{background:#d7dbe2;cursor:col-resize;position:relative}
+.kb-split-greep::after{content:"";position:absolute;top:50%;left:2px;width:4px;height:36px;margin-top:-18px;border-radius:2px;background:#8a93a3}
+.kb-split-greep:hover,.kb-split-sleept .kb-split-greep{background:#ffd23f}
+.kb-split-sleept iframe{pointer-events:none}
 .kb-split-rechts{min-height:0}
 .kb-split-rechts iframe{width:100%;height:100%;border:0;background:#f4f6fa}
 .kb-split-plek{padding:24px;border:1px dashed #999;border-radius:8px;color:#666;text-align:center}
+.kb-split-anker{display:none}
 body.kb-split-open{overflow:hidden}
-@media (max-width:900px){.kb-split-panelen{grid-template-columns:1fr;grid-template-rows:1fr 1fr}.kb-split-links{border-right:0;border-bottom:1px solid #ccc}}
-.jodit-toolbar-button_sectiekop .jodit-toolbar-button__text{padding:0 6px}
-.jodit-toolbar-button_onboarding button{font-weight:600;color:#7a5a10}
-.jodit-toolbar-button_onboarding .jodit-toolbar-button__text{padding:0 6px}
-html[data-theme="dark"] .jodit-wysiwyg section.sectie{background:#1a2a3d;border-color:#4d7fb3}
-html[data-theme="dark"] .jodit-wysiwyg section.sectie>h2.sectie-kop{background:#264b6e}
-html[data-theme="dark"] .jodit-wysiwyg div.onboarding{background:#3a2f14;border-left-color:#b8902d}
-html[data-theme="dark"] .jodit-wysiwyg div.onboarding::before{color:#e6c46a}
-.form-row.field-inhoud>div{width:100%}
-.form-row.field-inhoud .jodit-container{max-width:none}
+@media (max-width:900px){.kb-split-panelen{grid-template-columns:1fr!important;grid-template-rows:1fr 8px 1fr}.kb-split-greep{cursor:row-resize}}
 #kb-split .jodit-toolbar-button_volledigscherm{display:none}

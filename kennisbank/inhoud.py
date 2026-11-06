@@ -107,8 +107,17 @@ def schoon(html: str) -> str:
         link_rel="noopener noreferrer",
         strip_comments=True,
     )
-    # Lege alinea's die editors achterlaten.
-    schoon_html = re.sub(r"<p>(\s|&nbsp;|<br>)*</p>", "", schoon_html)
+    # Lege regels: alleen die direct vóór of na een sectiekader zijn typ-ruimte en vervallen.
+    # Een lege regel tussen gewone alinea's is bewust en blijft staan (als <p><br></p>).
+    schoon_html = re.sub(r"<p>(\s|&nbsp;|<br>)*</p>", "<p><br></p>", schoon_html)
+    schoon_html = re.sub(rf'(<p><br></p>)+(<section class="{SECTIE_KLASSE}">)', r"\2", schoon_html)
+    schoon_html = re.sub(r"(</section>)(<p><br></p>)+", r"\1", schoon_html)
+    schoon_html = re.sub(r"^(<p><br></p>)+|(<p><br></p>)+$", "", schoon_html.strip())
+    # Binnen een onboarding-blok of sectie: lege regels aan het begin/eind vervallen ook.
+    schoon_html = re.sub(
+        r'(<div class="onboarding">|<h2 class="sectie-kop">[^<]*</h2>)(<p><br></p>)+', r"\1", schoon_html
+    )
+    schoon_html = re.sub(r"(<p><br></p>)+(</div>|</section>)", r"\2", schoon_html)
     schoon_html = schoon_html.replace('<div class="">', "<div>")
     schoon_html = _ontnest_secties(schoon_html)
     return schoon_html.strip()

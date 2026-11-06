@@ -36,7 +36,7 @@ Elke keer dat je een gepubliceerd artikel inhoudelijk wijzigt, ontstaat automati
 
 ## Volledig scherm met live voorbeeld
 
-Klik in de werkbalk op **Volledig scherm**. De editor komt links te staan en rechts zie je het artikel zoals lezers het zien: inklapbare secties, de onboarding-schakelaar, alles. Terwijl je typt loopt het voorbeeld mee. De pagina eronder is zolang vergrendeld.
+Klik in de werkbalk op **Volledig scherm**. Links staan de titel, de samenvatting en de editor; rechts zie je het artikel zoals lezers het zien: inklapbare secties, de onboarding-schakelaar, alles. Terwijl je typt loopt het voorbeeld mee. Sleep de balk in het midden om de editor breder of smaller te maken; die verdeling wordt onthouden. De pagina eronder is zolang vergrendeld.
 
 - **Opslaan en doorgaan** slaat het artikel op (met versie, als het gepubliceerd is) en opent het volledige scherm daarna meteen weer.
 - **Sluiten** (of de Esc-toets) brengt je terug naar het gewone bewerkscherm, met je tekst erin; sluiten is niet opslaan.
@@ -50,6 +50,8 @@ Een artikel is één doorlopende tekst. Een **sectie** is een kader om een stuk 
 3. Tekst **buiten** een kader (ervoor, ertussen, erna) is in de kennisbank altijd zichtbaar. De volgorde is simpelweg de volgorde in de tekst.
 4. Een onboarding-blok dat binnen het kader valt, staat er zichtbaar iets ingesprongen in; zo zie je meteen of het bij de sectie hoort.
 5. Staat de cursor in een sectie en klik je nogmaals op **Sectie**, dan gaat het kader weg: de titel wordt een gewone kop en de tekst komt weer los te staan.
+
+De editor zorgt zelf dat er altijd een lege regel staat vóór, tussen en na kaders, zodat je daar kunt typen. Zo'n lege regel direct tegen een kader aan wordt bij opslaan genegeerd. Een lege regel **tussen twee gewone alinea's** is bewust en blijft staan, ook voor de lezer. Wil je witruimte vlak voor een kader, zet dan twee lege regels: de eerste blijft.
 
 Een sectie in een sectie kan niet; selecteer je tekst waar al een kader in zit, dan wordt dat opgenomen in het nieuwe kader. Gewone koppen (via ¶ → Kop of Subkop) zijn koppen *binnen* de tekst en maken geen sectie.
 

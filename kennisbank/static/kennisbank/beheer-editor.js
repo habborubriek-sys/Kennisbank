@@ -54,7 +54,7 @@
         while (b.firstChild) sec.appendChild(b.firstChild); b.parentNode.removeChild(b);
       } else sec.appendChild(b);
     });
-    if (!sec.nextSibling) sec.parentNode.appendChild(legeAlinea(doc));
+    ruimteRondSecties(editor);
     editor.s.setCursorIn(titel, true);
     editor.synchronizeValues();
   }
@@ -100,6 +100,18 @@
     editor.synchronizeValues();
   }
 
+  /* Zorg dat er altijd een lege regel staat vóór, tussen en na sectiekaders, zodat je ertussen kunt typen.
+   * Lege regels worden bij opslaan genegeerd (inhoud.schoon haalt lege alinea's weg). */
+  function ruimteRondSecties(editor) {
+    var root = editor.editor, doc = root.ownerDocument, veranderd = false;
+    var isSectie = function (n) { return n && n.nodeType === 1 && n.tagName === "SECTION"; };
+    Array.prototype.slice.call(root.querySelectorAll(":scope > section." + SEC)).forEach(function (sec) {
+      if (!sec.previousSibling || isSectie(sec.previousSibling)) { sec.parentNode.insertBefore(legeAlinea(doc), sec); veranderd = true; }
+      if (!sec.nextSibling || isSectie(sec.nextSibling)) { sec.parentNode.insertBefore(legeAlinea(doc), sec.nextSibling); veranderd = true; }
+    });
+    return veranderd;
+  }
+
   /* Volledig scherm: een laag over de pagina met links de editor en rechts het voorbeeld dat live meeloopt. */
   var FRAME_URL = "/beheer/kennisbank/artikel/voorbeeld/";
 
@@ -107,38 +119,71 @@
     if (document.getElementById("kb-split")) return;
     editor.synchronizeValues();
     var form = editor.element.form || document.getElementById("artikel_form");
-    var val = function (naam) { var el = form && form.querySelector('[name="' + naam + '"]'); return el ? el.value : ""; };
+    // Velden vóór het verhuizen opzoeken en onthouden; daarna staan titel en samenvatting buiten het formulier.
+    var velden = {};
+    ["titel", "samenvatting", "soort"].forEach(function (naam) { velden[naam] = form && form.querySelector('[name="' + naam + '"]'); });
+    var veld = function (naam) { return velden[naam]; };
+    var val = function (naam) { var el = veld(naam); return el ? el.value : ""; };
     var container = editor.container, plek = document.createElement("div");
     plek.className = "kb-split-plek"; plek.textContent = "De tekst wordt bewerkt in volledig scherm.";
     container.parentNode.insertBefore(plek, container);
 
     var laag = document.createElement("div"); laag.id = "kb-split";
     laag.innerHTML =
-      '<div class="kb-split-balk"><strong>' + (val("titel") || "Artikel") + '</strong><span class="kb-split-tip">Links bewerken, rechts het voorbeeld.</span>' +
+      '<div class="kb-split-balk"><strong>Volledig scherm</strong><span class="kb-split-tip">Links bewerken, rechts het voorbeeld. Sleep de balk in het midden om de verdeling te veranderen.</span>' +
       '<span class="kb-split-knoppen"><button type="button" class="button" id="kb-split-opslaan">Opslaan en doorgaan</button>' +
       '<button type="button" class="button" id="kb-split-sluiten">Sluiten</button></span></div>' +
-      '<div class="kb-split-panelen"><div class="kb-split-links"></div><div class="kb-split-rechts"><iframe title="Voorbeeld" src="' + FRAME_URL + '"></iframe></div></div>';
+      '<div class="kb-split-panelen"><div class="kb-split-links"><div class="kb-split-velden">' +
+      '<label>Titel<span class="kb-split-slot" data-veld="titel"></span></label>' +
+      '<label>Samenvatting<span class="kb-split-slot" data-veld="samenvatting"></span></label></div></div>' +
+      '<div class="kb-split-greep" title="Sleep om de verdeling te veranderen"></div>' +
+      '<div class="kb-split-rechts"><iframe title="Voorbeeld" src="' + FRAME_URL + '"></iframe></div></div>';
     document.body.appendChild(laag);
     document.body.classList.add("kb-split-open");
-    laag.querySelector(".kb-split-links").appendChild(container);
-    var frame = laag.querySelector("iframe"), klaar = false, timer = null;
 
+    // Titel en samenvatting: de echte invoervelden verhuizen mee (en straks weer terug).
+    var verhuisd = [];
+    ["titel", "samenvatting"].forEach(function (naam) {
+      var el = veld(naam); if (!el) return;
+      var anker = document.createElement("span"); anker.className = "kb-split-anker"; el.parentNode.insertBefore(anker, el);
+      if (form.id) el.setAttribute("form", form.id);  // blijft bij het formulier horen, ook buiten het <form>
+      laag.querySelector('.kb-split-slot[data-veld="' + naam + '"]').appendChild(el);
+      verhuisd.push({ el: el, anker: anker });
+    });
+    laag.querySelector(".kb-split-links").appendChild(container);
+
+    // Sleepbalk
+    var panelen = laag.querySelector(".kb-split-panelen"), greep = laag.querySelector(".kb-split-greep");
+    var verdeling = 50;
+    try { verdeling = Number(localStorage.getItem("kb.split.verdeling")) || 50; } catch (e) {}
+    function zetVerdeling(pct) { verdeling = Math.max(25, Math.min(75, pct)); panelen.style.gridTemplateColumns = verdeling + "% 8px 1fr"; }
+    zetVerdeling(verdeling);
+    greep.addEventListener("pointerdown", function (e) {
+      e.preventDefault(); greep.setPointerCapture(e.pointerId); laag.classList.add("kb-split-sleept");
+      var beweeg = function (ev) { var r = panelen.getBoundingClientRect(); zetVerdeling(((ev.clientX - r.left) / r.width) * 100); };
+      var stop = function () { greep.removeEventListener("pointermove", beweeg); greep.removeEventListener("pointerup", stop); laag.classList.remove("kb-split-sleept"); try { localStorage.setItem("kb.split.verdeling", String(Math.round(verdeling))); } catch (e2) {} };
+      greep.addEventListener("pointermove", beweeg); greep.addEventListener("pointerup", stop);
+    });
+
+    var frame = laag.querySelector("iframe"), klaar = false, timer = null;
     function stuur() {
       if (!klaar) return;
       editor.synchronizeValues();
       frame.contentWindow.postMessage({ type: "kb-voorbeeld", titel: val("titel"), samenvatting: val("samenvatting"), soort: val("soort"), inhoud: editor.value }, location.origin);
     }
-    function geplande(ev) { clearTimeout(timer); timer = setTimeout(stuur, 250); }
+    function geplande() { clearTimeout(timer); timer = setTimeout(stuur, 250); }
     function opKlaar(e) { if (e.origin === location.origin && e.data && e.data.type === "kb-voorbeeld-klaar") { klaar = true; stuur(); } }
     window.addEventListener("message", opKlaar);
     editor.events.on("change keyup input", geplande);
     editor.editor.addEventListener("input", geplande);
+    verhuisd.forEach(function (v) { v.el.addEventListener("input", geplande); });
 
     function sluiten() {
       clearTimeout(timer);
       window.removeEventListener("message", opKlaar);
       editor.events.off("change keyup input", geplande);
       editor.editor.removeEventListener("input", geplande);
+      verhuisd.forEach(function (v) { v.el.removeEventListener("input", geplande); v.el.removeAttribute("form"); v.anker.parentNode.insertBefore(v.el, v.anker); v.anker.parentNode.removeChild(v.anker); });
       plek.parentNode.insertBefore(container, plek); plek.parentNode.removeChild(plek);
       laag.parentNode.removeChild(laag);
       document.body.classList.remove("kb-split-open");
@@ -148,7 +193,6 @@
     document.addEventListener("keydown", opEsc);
     laag.querySelector("#kb-split-sluiten").addEventListener("click", sluiten);
     laag.querySelector("#kb-split-opslaan").addEventListener("click", function () {
-      // Opslaan via het gewone formulier ("Opslaan en opnieuw bewerken"); na het herladen gaat het scherm vanzelf weer open.
       editor.synchronizeValues();
       try { sessionStorage.setItem("kb.split.heropen", "1"); } catch (e) {}
       var knop = form.querySelector('input[name="_continue"]');
@@ -220,6 +264,8 @@
     if (textarea.dataset.kbEditor) return;
     textarea.dataset.kbEditor = "1";
     var editor = Jodit.make(textarea, config);
+    ruimteRondSecties(editor);
+    editor.events.on("change", function () { if (ruimteRondSecties(editor)) editor.synchronizeValues(); });
     // Na "Opslaan en doorgaan" vanuit het volledige scherm: dat scherm weer openen.
     var heropen = false;
     try { heropen = sessionStorage.getItem("kb.split.heropen") === "1"; sessionStorage.removeItem("kb.split.heropen"); } catch (e) {}

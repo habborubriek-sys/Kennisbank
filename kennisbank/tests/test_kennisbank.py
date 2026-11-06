@@ -373,6 +373,19 @@ class InhoudTests(TestCase):
         self.assertEqual((b[1]["nummer"], b[1]["kop"], b[1]["html"]), (1, "A", "<p>a</p><h3>gewone kop</h3>"))
         self.assertEqual(b[3]["kop"], "Sectie 2")
 
+    def test_lege_regels(self):
+        html = (
+            "<p><br></p><p>a</p><p><br></p><p>b</p><p><br></p>"
+            '<section class="sectie"><h2 class="sectie-kop">S</h2><p><br></p><p>c</p><p></p><p>d</p><p><br></p>'
+            "</section>"
+            '<p><br></p><section class="sectie"><h2 class="sectie-kop">T</h2><p>e</p></section><p>&nbsp;</p>'
+        )
+        self.assertEqual(
+            schoon(html),
+            '<p>a</p><p><br></p><p>b</p><section class="sectie"><h2 class="sectie-kop">S</h2><p>c</p><p><br></p>'
+            '<p>d</p></section><section class="sectie"><h2 class="sectie-kop">T</h2><p>e</p></section>',
+        )
+
     def test_geneste_sectie_wordt_ontnest(self):
         html = (
             '<section class="sectie"><h2 class="sectie-kop">Buiten</h2><p>a</p>'
