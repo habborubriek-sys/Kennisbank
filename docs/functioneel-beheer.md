@@ -58,26 +58,14 @@ Dit kan zo vaak als je wilt, ook in de inleiding, dus je kunt bij elke stap een 
 
 ## Een Word-document importeren
 
-Schrijf je artikelen liever eerst in Word? Gebruik dan het [Word-sjabloon](../kennisbank/static/kennisbank/sjabloon-werkinstructie.docx) (ook te downloaden op de importpagina) en upload het document.
+Bestaande werkinstructies in Word hoef je niet over te typen: **Beheer → Artikelen → Importeren uit Word**, kies het `.docx`-bestand en de omgeving.
 
-1. Ga naar **Beheer → Artikelen → Importeren uit Word** en kies het `.docx`-bestand en de omgeving.
-2. De kennisbank maakt een **concept**-artikel en opent het bewerkscherm. Controleer de tekst, vul tags en zaaktypen in en zet de status op *Gepubliceerd*.
+- Alleen de **tekst en de opmaak** komen mee: vet, cursief, onderstreept, koppen, lijsten, tabellen en links. Afbeeldingen worden overgeslagen (nog niet ondersteund); de import meldt hoeveel.
+- De **titel** wordt de bestandsnaam en de **samenvatting** staat op "(vul een samenvatting in)": allebei pas je aan in het bewerkscherm, waar je direct in terechtkomt.
+- **Secties** en **onboarding-uitleg** maak je daarna in de editor, zoals hierboven beschreven. Er wordt bewust niets automatisch tot sectie gemaakt; zo weet je zeker dat de indeling klopt.
+- Het artikel is een **concept** tot je de status op *Gepubliceerd* zet.
 
-Zo wordt het document gelezen:
-
-| In Word | In de kennisbank |
-|---|---|
-| Stijl *Titel*, of één *Kop 1* helemaal bovenaan | De titel |
-| De eerste alinea | De samenvatting |
-| Een alinea met de stijl **Sectie** (zit in het sjabloon) | Begint een sectie, die doorloopt tot de volgende *Sectie*-alinea of tot een alinea met de stijl **Einde sectie** |
-| Alinea's met de stijl **Onboarding** (zit in het sjabloon) | Onboarding-uitleg |
-| Gewone koppen (Kop 1, 2, 3) | Koppen in de tekst; ze maken géén sectie |
-| Vet, cursief, onderstreept, lijsten, tabellen, links | Blijven behouden |
-| Afbeeldingen | Worden overgeslagen (nog niet ondersteund) |
-
-Secties bepaal je dus bewust, met de stijlen *Sectie* en *Einde sectie* in Word of met de knop *Sectie* in de editor; een kopje in Word wordt nooit per ongeluk een sectie. Na het importeren kun je de kaders in de editor nog verplaatsen of weghalen.
-
-Een `.doc` of PDF upload je niet rechtstreeks: open het in Word en sla het op als `.docx`. Bij een PDF gaat de structuur (koppen, lijsten) meestal verloren, dus controleer het resultaat extra goed.
+Een `.doc` of PDF upload je niet rechtstreeks: open het in Word en sla het op als `.docx`.
 
 ## Verbetervoorstellen behandelen
 

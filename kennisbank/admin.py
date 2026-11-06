@@ -218,16 +218,16 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 artikel = Artikel.objects.create(
                     omgeving=form.cleaned_data["omgeving"],
                     titel=gelezen.titel,
-                    samenvatting=gelezen.samenvatting or "(vul een samenvatting in)",
+                    samenvatting="(vul een samenvatting in)",
                     inhoud=gelezen.inhoud,
                     soort=form.cleaned_data["soort"],
                     status=Status.CONCEPT,
                 )
-                aantal = diensten.herbouw_secties(artikel)
+                diensten.herbouw_secties(artikel)
                 messages.success(
                     request,
-                    f"'{gelezen.titel}' is ingelezen als concept met {aantal} sectie(s). "
-                    "Controleer de tekst, vul tags en zaaktypen in en zet de status op 'Gepubliceerd'.",
+                    f"'{gelezen.titel}' is ingelezen als concept. Pas de titel aan, vul de samenvatting in, "
+                    "maak secties en onboarding-uitleg in de editor, en zet de status op 'Gepubliceerd'.",
                 )
                 for m in gelezen.meldingen:
                     messages.warning(request, m)

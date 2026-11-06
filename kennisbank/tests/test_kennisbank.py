@@ -461,7 +461,6 @@ def _docx(paragrafen):
     d = docx.Document()
     d.styles.add_style("Onboarding", WD_STYLE_TYPE.PARAGRAPH).base_style = d.styles["Normal"]
     d.styles.add_style("Sectie", WD_STYLE_TYPE.PARAGRAPH).base_style = d.styles["Normal"]
-    d.styles.add_style("Einde sectie", WD_STYLE_TYPE.PARAGRAPH).base_style = d.styles["Normal"]
     for stijl, tekst in paragrafen:
         if stijl.startswith("Heading"):
             d.add_heading(tekst, level=int(stijl[-1]))
@@ -474,53 +473,27 @@ def _docx(paragrafen):
 
 
 class WordImportTests(Basis):
-    def test_sectie_stijl_wordt_sectiekop_en_koppen_blijven_koppen(self):
+    def test_alleen_tekst_en_opmaak(self):
         a = lees_docx(
             _docx(
                 [
                     ("Heading 1", "Rappel versturen"),
                     ("Normal", "Korte samenvatting."),
-                    ("Normal", "Inleidende tekst."),
-                    ("Sectie", "Termijnen"),
+                    ("Heading 2", "Termijnen"),
                     ("List Bullet", "4 weken"),
-                    ("Onboarding", "Vraag je buddy."),
-                    ("Onboarding", "Tweede alinea."),
-                    ("Heading 2", "Gewone kop"),
-                    ("Einde sectie", "(einde)"),
-                    ("Normal", "Vrije tekst tussen de secties."),
-                    ("Sectie", "Brief"),
-                    ("Normal", "Gebruik het sjabloon."),
+                    ("Onboarding", "Geen speciale betekenis meer."),
+                    ("Sectie", "Ook niet."),
                 ]
             ),
-            "rappel.docx",
+            "Rappel-versturen_v2.docx",
         )
-        self.assertEqual(a.titel, "Rappel versturen")
-        self.assertEqual(a.samenvatting, "Korte samenvatting.")
-        self.assertEqual(a.aantal_secties, 2)
-        b = blokken(a.inhoud)
-        self.assertEqual([x["type"] for x in b], ["tekst", "sectie", "tekst", "sectie"])
-        self.assertEqual(b[0]["html"], "<p>Inleidende tekst.</p>")
-        self.assertEqual([x["kop"] for x in b if x["type"] == "sectie"], ["Termijnen", "Brief"])
-        self.assertIn("<li>4 weken</li>", b[1]["html"])
-        self.assertIn("<h3>Gewone kop</h3>", b[1]["html"])
-        self.assertEqual(b[2]["html"], "<p>Vrije tekst tussen de secties.</p>")
-        self.assertEqual(onboarding_blokken(b[1]["html"]), ["<p>Vraag je buddy.</p><p>Tweede alinea.</p>"])
+        self.assertEqual(a.titel, "Rappel versturen v2")
+        self.assertIn("<h3>Rappel versturen</h3>", a.inhoud)
+        self.assertIn("<h3>Termijnen</h3>", a.inhoud)
+        self.assertIn("<li>4 weken</li>", a.inhoud)
+        self.assertNotIn("sectie", a.inhoud)
+        self.assertNotIn("onboarding", a.inhoud)
         self.assertEqual(a.meldingen, [])
-
-    def test_meerdere_kop1_blijven_koppen_in_tekst(self):
-        a = lees_docx(
-            _docx([("Heading 1", "A"), ("Normal", "a"), ("Heading 1", "B"), ("Normal", "b")]), "mijn-instructie.docx"
-        )
-        self.assertEqual(a.titel, "mijn instructie")
-        self.assertEqual(a.aantal_secties, 0)
-        self.assertIn("<h3>A</h3>", a.inhoud)
-        self.assertIn("<h3>B</h3>", a.inhoud)
-        self.assertTrue(any("Geen sectiekoppen" in m for m in a.meldingen))
-
-    def test_zonder_koppen(self):
-        a = lees_docx(_docx([("Normal", "Alleen tekst."), ("Normal", "Meer tekst.")]), "los.docx")
-        self.assertEqual(a.samenvatting, "Alleen tekst.")
-        self.assertEqual(a.inhoud, "<p>Meer tekst.</p>")
 
     def test_geen_docx(self):
         import io
@@ -545,16 +518,19 @@ class WordImportTests(Basis):
                 ("Normal", "Doe dit."),
             ]
         )
-        bestand.name = "nieuw.docx"
+        bestand.name = "nieuw-uit-word.docx"
         r = c.post(
             "/beheer/kennisbank/artikel/importeren-word/",
             {"bestand": bestand, "omgeving": self.hh.pk, "soort": "werkinstructie"},
         )
         self.assertEqual(r.status_code, 302)
         a = Artikel.objects.get(slug="nieuw-uit-word")
+        self.assertEqual(a.titel, "nieuw uit word")
+        self.assertEqual(a.samenvatting, "(vul een samenvatting in)")
         self.assertEqual(a.status, Status.CONCEPT)
         self.assertEqual(a.omgeving, self.hh)
-        self.assertEqual([s.kop for s in a.secties.all()], ["", "Stap 1"])
+        self.assertEqual([s.kop for s in a.secties.all()], [""])  # nog geen secties: die maak je in de editor
+        self.assertIn("<h3>Stap 1</h3>", a.inhoud)
         # Lezers mogen niet importeren
         werk_staf_status_bij(self.lezer)
         self.assertIn(self.als(self.lezer).get("/beheer/kennisbank/artikel/importeren-word/").status_code, (302, 403))

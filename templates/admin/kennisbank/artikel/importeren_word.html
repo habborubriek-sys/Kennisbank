@@ -9,12 +9,11 @@
 {% endblock %}
 {% block content %}
 <div id="content-main">
-  <p>Upload een Word-document. Het wordt een <b>concept</b>-artikel; je komt daarna direct in het bewerkscherm.</p>
+  <p>Upload een Word-document. De tekst wordt een <b>concept</b>-artikel; je komt daarna direct in het bewerkscherm.</p>
   <ul>
-    <li><b>Koppen</b> worden secties: één <i>Kop 1</i> bovenaan is de titel en de <i>Kop 2</i>-koppen worden secties. Zonder zo'n titel worden alle <i>Kop 1</i>-koppen secties.</li>
-    <li>De <b>eerste alinea</b> vóór de eerste kop wordt de samenvatting.</li>
-    <li>Alinea's met de Word-stijl <b>Onboarding</b> worden uitleg voor nieuwe collega's. Gebruik het <a href="/static/kennisbank/sjabloon-werkinstructie.docx">Word-sjabloon</a>, daar zit die stijl al in.</li>
-    <li>Vet, cursief, onderstreept, lijsten, tabellen en links blijven behouden. Afbeeldingen worden overgeslagen.</li>
+    <li>Alleen de <b>tekst en de opmaak</b> komen mee: vet, cursief, onderstreept, koppen, lijsten, tabellen en links. Afbeeldingen worden overgeslagen.</li>
+    <li>De <b>titel</b> wordt de bestandsnaam; de <b>samenvatting</b> vul je zelf in.</li>
+    <li><b>Secties</b> en <b>onboarding-uitleg</b> maak je daarna in de editor: tekst selecteren en op <i>Sectie</i> of <i>Onboarding</i> klikken.</li>
   </ul>
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
