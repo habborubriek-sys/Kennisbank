@@ -530,7 +530,7 @@ class WordImportTests(Basis):
         self.assertEqual(a.status, Status.CONCEPT)
         self.assertEqual(a.omgeving, self.hh)
         self.assertEqual([s.kop for s in a.secties.all()], [""])  # nog geen secties: die maak je in de editor
-        self.assertIn("<h3>Stap 1</h3>", a.inhoud)
+        self.assertIn("<p>Stap 1</p>", a.inhoud)  # de Word-stijl 'Sectie' is gewone tekst
         # Lezers mogen niet importeren
         werk_staf_status_bij(self.lezer)
         self.assertIn(self.als(self.lezer).get("/beheer/kennisbank/artikel/importeren-word/").status_code, (302, 403))
