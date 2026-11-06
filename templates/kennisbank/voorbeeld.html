@@ -1,10 +1,9 @@
 {% load static %}<!doctype html>
 <html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Voorbeeld: {{ titel }}</title>
-<link rel="icon" href="{% static 'kennisbank/favicon.svg' %}" type="image/svg+xml">
+<title>Voorbeeld</title>
 <link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}"><link rel="stylesheet" href="{% static 'kennisbank/app.css' %}">
 <script src="{% static 'kennisbank/voorbeeld.js' %}" defer></script></head>
-<body class="embed">
+<body class="embed voorbeeld">
 <header class="top">
   <div class="brand"><span class="mark" aria-hidden="true">K</span><span>{{ app_naam }}</span> <span class="proto">Voorbeeld</span></div>
   <div class="topbtns">
@@ -13,17 +12,13 @@
 </header>
 <div class="shell"><main class="main" id="main">
 <div class="view">
- <p class="concept-banner">Dit is een voorbeeld van wat nu in de editor staat. Het is <b>niet opgeslagen</b>. Klik in het beheerscherm opnieuw op <b>Voorbeeld</b> om dit tabblad te verversen.</p>
  <article class="art" aria-labelledby="artTitel">
-  <div class="head">{% if soort %}<span class="type {{ soort }}">{{ soort_label }}</span>{% endif %}</div>
-  <h1 id="artTitel">{{ titel }}</h1>
-  {% if samenvatting %}<p class="summary">{{ samenvatting }}</p>{% endif %}
-  <p class="docline">voorbeeld · nog niet gepubliceerd{% if eigenaar %} · eigenaar {{ eigenaar }}{% endif %}</p>
-  {% if heeft_secties %}<div class="secbar"><button class="tb" type="button" id="toggleAll">Alles uitklappen</button></div>{% endif %}
-  <div class="sections">
-   {% for b in blokken %}{% if b.type == "tekst" %}<div class="inleiding">{{ b.html|safe }}</div>{% else %}<details class="sec" {% if b.nummer == 1 %}open{% endif %}><summary>{{ b.kop }}</summary><div class="body">{{ b.html|safe }}</div></details>{% endif %}{% endfor %}
-  </div>
-  {% if not blokken %}<div class="empty">Nog geen tekst.</div>{% endif %}
+  <div class="head"><span class="type" id="soort" hidden></span></div>
+  <h1 id="artTitel">(nog geen titel)</h1>
+  <p class="summary" id="samenvatting" hidden></p>
+  <p class="docline">voorbeeld · zoals het artikel er gepubliceerd uitziet</p>
+  <div class="secbar" id="secbar" hidden><button class="tb" type="button" id="toggleAll">Alles uitklappen</button></div>
+  <div class="sections" id="sections"><div class="empty">Begin met typen in de editor; het voorbeeld loopt mee.</div></div>
  </article>
 </div></main></div>
 </body></html>

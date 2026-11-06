@@ -100,16 +100,61 @@
     editor.synchronizeValues();
   }
 
-  /* Voorbeeld: open het artikel in een nieuw tabblad zoals het gepubliceerd zou zijn, met wat nu in de editor staat. */
-  function voorbeeld(editor) {
+  /* Volledig scherm: een laag over de pagina met links de editor en rechts het voorbeeld dat live meeloopt. */
+  var FRAME_URL = "/beheer/kennisbank/artikel/voorbeeld/";
+
+  function volledigScherm(editor) {
+    if (document.getElementById("kb-split")) return;
     editor.synchronizeValues();
-    var form = document.getElementById("artikel_form") || editor.element.form;
+    var form = editor.element.form || document.getElementById("artikel_form");
     var val = function (naam) { var el = form && form.querySelector('[name="' + naam + '"]'); return el ? el.value : ""; };
-    var f = document.createElement("form");
-    f.method = "post"; f.action = "/beheer/kennisbank/artikel/voorbeeld/"; f.target = "kb-voorbeeld"; f.style.display = "none";
-    var velden = { csrfmiddlewaretoken: val("csrfmiddlewaretoken"), titel: val("titel"), samenvatting: val("samenvatting"), inhoud: editor.value, soort: val("soort"), eigenaar: val("eigenaar") };
-    Object.keys(velden).forEach(function (k) { var i = document.createElement("input"); i.type = "hidden"; i.name = k; i.value = velden[k]; f.appendChild(i); });
-    document.body.appendChild(f); f.submit(); document.body.removeChild(f);
+    var container = editor.container, plek = document.createElement("div");
+    plek.className = "kb-split-plek"; plek.textContent = "De tekst wordt bewerkt in volledig scherm.";
+    container.parentNode.insertBefore(plek, container);
+
+    var laag = document.createElement("div"); laag.id = "kb-split";
+    laag.innerHTML =
+      '<div class="kb-split-balk"><strong>' + (val("titel") || "Artikel") + '</strong><span class="kb-split-tip">Links bewerken, rechts het voorbeeld.</span>' +
+      '<span class="kb-split-knoppen"><button type="button" class="button" id="kb-split-opslaan">Opslaan en doorgaan</button>' +
+      '<button type="button" class="button" id="kb-split-sluiten">Sluiten</button></span></div>' +
+      '<div class="kb-split-panelen"><div class="kb-split-links"></div><div class="kb-split-rechts"><iframe title="Voorbeeld" src="' + FRAME_URL + '"></iframe></div></div>';
+    document.body.appendChild(laag);
+    document.body.classList.add("kb-split-open");
+    laag.querySelector(".kb-split-links").appendChild(container);
+    var frame = laag.querySelector("iframe"), klaar = false, timer = null;
+
+    function stuur() {
+      if (!klaar) return;
+      editor.synchronizeValues();
+      frame.contentWindow.postMessage({ type: "kb-voorbeeld", titel: val("titel"), samenvatting: val("samenvatting"), soort: val("soort"), inhoud: editor.value }, location.origin);
+    }
+    function geplande(ev) { clearTimeout(timer); timer = setTimeout(stuur, 250); }
+    function opKlaar(e) { if (e.origin === location.origin && e.data && e.data.type === "kb-voorbeeld-klaar") { klaar = true; stuur(); } }
+    window.addEventListener("message", opKlaar);
+    editor.events.on("change keyup input", geplande);
+    editor.editor.addEventListener("input", geplande);
+
+    function sluiten() {
+      clearTimeout(timer);
+      window.removeEventListener("message", opKlaar);
+      editor.events.off("change keyup input", geplande);
+      editor.editor.removeEventListener("input", geplande);
+      plek.parentNode.insertBefore(container, plek); plek.parentNode.removeChild(plek);
+      laag.parentNode.removeChild(laag);
+      document.body.classList.remove("kb-split-open");
+      document.removeEventListener("keydown", opEsc);
+    }
+    function opEsc(e) { if (e.key === "Escape") sluiten(); }
+    document.addEventListener("keydown", opEsc);
+    laag.querySelector("#kb-split-sluiten").addEventListener("click", sluiten);
+    laag.querySelector("#kb-split-opslaan").addEventListener("click", function () {
+      // Opslaan via het gewone formulier ("Opslaan en opnieuw bewerken"); na het herladen gaat het scherm vanzelf weer open.
+      editor.synchronizeValues();
+      try { sessionStorage.setItem("kb.split.heropen", "1"); } catch (e) {}
+      var knop = form.querySelector('input[name="_continue"]');
+      if (knop) knop.click(); else form.submit();
+    });
+    editor.s.focus();
   }
 
   var config = {
@@ -139,10 +184,10 @@
       "paragraph", "|", "bold", "italic", "underline", "strikethrough", "superscript", "|",
       "ul", "ol", "outdent", "indent", "|", "link", "table", "hr", "|", "eraser", "undo", "redo", "|",
       {
-        name: "voorbeeld",
-        tooltip: "Voorbeeld: bekijk in een nieuw tabblad hoe het artikel er gepubliceerd uitziet (ook zonder op te slaan)",
-        text: "Voorbeeld",
-        exec: voorbeeld
+        name: "volledigscherm",
+        tooltip: "Volledig scherm: links bewerken, rechts live het voorbeeld",
+        text: "Volledig scherm",
+        exec: volledigScherm
       },
       "|",
       {
@@ -174,7 +219,11 @@
   function init(textarea) {
     if (textarea.dataset.kbEditor) return;
     textarea.dataset.kbEditor = "1";
-    Jodit.make(textarea, config);
+    var editor = Jodit.make(textarea, config);
+    // Na "Opslaan en doorgaan" vanuit het volledige scherm: dat scherm weer openen.
+    var heropen = false;
+    try { heropen = sessionStorage.getItem("kb.split.heropen") === "1"; sessionStorage.removeItem("kb.split.heropen"); } catch (e) {}
+    if (heropen && textarea.name === "inhoud") setTimeout(function () { volledigScherm(editor); }, 50);
   }
 
   function initAll(scope) {

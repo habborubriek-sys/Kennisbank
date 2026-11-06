@@ -15,7 +15,7 @@ Als **redacteur** schrijf en onderhoud je de artikelen in jouw omgeving, behande
    | Lijsten, inspringen | Opsomming, genummerde lijst, inspringing |
    | Link, tabel, lijn | Hyperlink, tabel invoegen, scheidingslijn |
    | Gum | Opmaak van de selectie wissen |
-   | **Voorbeeld** | Opent in een nieuw tabblad hoe het artikel er gepubliceerd uitziet, met wat nu in de editor staat (ook als het nog niet is opgeslagen). Klik opnieuw om het tabblad te verversen. |
+   | **Volledig scherm** | Links de editor, rechts live het voorbeeld zoals het artikel er gepubliceerd uitziet; met *Opslaan en doorgaan* en *Sluiten* (of Esc). Zie hieronder. |
    | **Sectie** | Zet een in- en uitklapbare sectie om de geselecteerde tekst (zie hieronder) |
    | **Onboarding** | Markeert de geselecteerde alinea's als uitleg voor nieuwe collega's (zie hieronder) |
 
@@ -33,6 +33,13 @@ Als **redacteur** schrijf en onderhoud je de artikelen in jouw omgeving, behande
 Elke keer dat je een gepubliceerd artikel inhoudelijk wijzigt, ontstaat automatisch een nieuwe versie. Onderaan het artikel in het beheer zie je alle versies: wanneer, door wie en waarom. Oude versies zijn niet te wijzigen of te verwijderen.
 
 **De link van een artikel** wordt bij het opslaan toegekend en heeft de vorm `/artikel/412/melding-registreren`. Het nummer is wat telt: dat verandert nooit, ook niet als je de titel aanpast of het artikel naar een andere omgeving verhuist. De naam erachter is alleen voor de leesbaarheid. Twee afdelingen kunnen dus gerust een artikel met dezelfde titel hebben.
+
+## Volledig scherm met live voorbeeld
+
+Klik in de werkbalk op **Volledig scherm**. De editor komt links te staan en rechts zie je het artikel zoals lezers het zien: inklapbare secties, de onboarding-schakelaar, alles. Terwijl je typt loopt het voorbeeld mee. De pagina eronder is zolang vergrendeld.
+
+- **Opslaan en doorgaan** slaat het artikel op (met versie, als het gepubliceerd is) en opent het volledige scherm daarna meteen weer.
+- **Sluiten** (of de Esc-toets) brengt je terug naar het gewone bewerkscherm, met je tekst erin; sluiten is niet opslaan.
 
 ## Secties
 

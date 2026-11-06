@@ -562,29 +562,12 @@ class WordImportTests(Basis):
 
 
 class VoorbeeldTests(Basis):
-    def test_voorbeeld_toont_niet_opgeslagen_tekst(self):
+    def test_voorbeeldpaneel_alleen_voor_redacteuren(self):
         from kennisbank.rechten import werk_staf_status_bij
 
         werk_staf_status_bij(self.redacteur)
-        c = self.als(self.redacteur)
-        r = c.post(
-            "/beheer/kennisbank/artikel/voorbeeld/",
-            {
-                "titel": "Nog niet opgeslagen",
-                "samenvatting": "S",
-                "soort": "proces",
-                "inhoud": '<p>Intro</p><section class="sectie"><h2 class="sectie-kop">Stap 1</h2>'
-                "<p>Doe dit</p></section><script>x</script>",
-            },
-        )
+        r = self.als(self.redacteur).get("/beheer/kennisbank/artikel/voorbeeld/")
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, "Nog niet opgeslagen")
-        self.assertContains(r, "<summary>Stap 1</summary>")
-        self.assertContains(r, "Intro")
-        self.assertNotContains(r, "<script>x")
-        self.assertFalse(Artikel.objects.filter(titel="Nog niet opgeslagen").exists())
-        self.assertEqual(c.get("/beheer/kennisbank/artikel/voorbeeld/").status_code, 405)
+        self.assertContains(r, 'id="sections"')
         werk_staf_status_bij(self.lezer)
-        self.assertIn(
-            self.als(self.lezer).post("/beheer/kennisbank/artikel/voorbeeld/", {"inhoud": ""}).status_code, (302, 403)
-        )
+        self.assertIn(self.als(self.lezer).get("/beheer/kennisbank/artikel/voorbeeld/").status_code, (302, 403))

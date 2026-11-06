@@ -175,30 +175,12 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         return eigen + super().get_urls()
 
     def voorbeeld(self, request):
-        """Toon de (nog niet opgeslagen) tekst uit de editor zoals het artikel er gepubliceerd uit zou zien."""
-        from django.http import HttpResponseNotAllowed
-
-        from .inhoud import blokken
-
-        if request.method != "POST":
-            return HttpResponseNotAllowed(["POST"])
+        """Lege voorbeeldpagina voor in het splitscreen; de inhoud komt via postMessage uit de editor."""
         if not self.has_change_permission(request):
             from django.core.exceptions import PermissionDenied
 
             raise PermissionDenied
-        alle = blokken(request.POST.get("inhoud", ""))
-        soorten = dict(Soort.choices)
-        ctx = {
-            "app_naam": settings.KB_APP_NAAM,
-            "titel": request.POST.get("titel", "").strip() or "(nog geen titel)",
-            "samenvatting": request.POST.get("samenvatting", "").strip(),
-            "soort": request.POST.get("soort", ""),
-            "soort_label": soorten.get(request.POST.get("soort", ""), ""),
-            "eigenaar": request.POST.get("eigenaar", "").strip(),
-            "blokken": alle,
-            "heeft_secties": any(b["type"] == "sectie" for b in alle),
-        }
-        return render(request, "kennisbank/voorbeeld.html", ctx)
+        return render(request, "kennisbank/voorbeeld.html", {"app_naam": settings.KB_APP_NAAM})
 
     def importeren_word(self, request):
         """Upload een .docx; het wordt een concept-artikel met secties. Daarna door naar het bewerkscherm."""
