@@ -1,5 +1,11 @@
 # Wijzigingen
 
+## 1.2.1 – 2026-11-06
+
+- Knop **Voorbeeld** in de editor: toont het artikel zoals het gepubliceerd zou zijn, met de nog niet opgeslagen tekst
+- Sectiekop: na het markeren springt de cursor naar een nieuwe regel eronder; weergave in de editor als `«Sectiekop» naam «Sectiekop»`
+- Opsommingen tonen weer bolletjes en nummers in de editor
+
 ## 1.2.0 – 2026-11-06
 
 - Een artikel is één tekst; secties maak je met de knop **Sectiekop** (of de Word-stijl *Sectie*). Gewone koppen maken geen sectie meer. Tekst vóór de eerste sectiekop is de inleiding.

@@ -16,13 +16,21 @@
   var ONB = "onboarding";
   var SEC = "sectie";
 
+  function legeAlinea(doc) { var p = doc.createElement("p"); p.appendChild(doc.createElement("br")); return p; }
+
   function sectiekopToggle(editor) {
     var root = editor.editor;
     var blok = blokVan(editor.s.range.startContainer, root);
-    if (!blok) { alert("Zet de cursor in de regel die een sectiekop moet worden."); return; }
+    if (!blok) {
+      // Lege editor of cursor buiten een alinea: nieuwe sectiekop aan het eind.
+      var doc0 = root.ownerDocument, h0 = doc0.createElement("h2"); h0.className = SEC; h0.textContent = "Nieuwe sectie";
+      root.appendChild(h0); root.appendChild(legeAlinea(doc0));
+      editor.s.setCursorIn(h0); editor.synchronizeValues(); return;
+    }
     var doc = root.ownerDocument;
     if (blok.tagName === "H2" && blok.classList.contains(SEC)) {
-      var p = doc.createElement("p"); p.innerHTML = blok.innerHTML; blok.parentNode.replaceChild(p, blok);
+      var p = doc.createElement("p"); p.innerHTML = blok.innerHTML || "<br>"; blok.parentNode.replaceChild(p, blok);
+      editor.s.setCursorIn(p, false);
     } else {
       // Een sectiekop staat altijd op het hoogste niveau (niet in een onboarding-blok of lijst).
       var top = blok.parentNode === root ? blok : blok.parentNode;
@@ -30,9 +38,12 @@
       h.textContent = (blok.textContent || "").replace(/\s+/g, " ").trim() || "Nieuwe sectie";
       if (top === blok) blok.parentNode.replaceChild(h, blok);
       else { top.parentNode.insertBefore(h, top); blok.parentNode.removeChild(blok); if (!top.textContent.trim()) top.parentNode.removeChild(top); }
+      // Altijd een gewone regel na de sectiekop, en daar de cursor neerzetten.
+      var volgende = h.nextSibling;
+      if (!volgende || volgende.nodeType !== 1 || volgende.tagName !== "P") { volgende = legeAlinea(doc); h.parentNode.insertBefore(volgende, h.nextSibling); }
+      editor.s.setCursorIn(volgende, true);
     }
     editor.synchronizeValues();
-    editor.setEditorValue(editor.value);
   }
 
   function blokVan(node, root) {
@@ -74,7 +85,18 @@
       });
     }
     editor.synchronizeValues();
-    editor.setEditorValue(editor.value);
+  }
+
+  /* Voorbeeld: open het artikel in een nieuw tabblad zoals het gepubliceerd zou zijn, met wat nu in de editor staat. */
+  function voorbeeld(editor) {
+    editor.synchronizeValues();
+    var form = document.getElementById("artikel_form") || editor.element.form;
+    var val = function (naam) { var el = form && form.querySelector('[name="' + naam + '"]'); return el ? el.value : ""; };
+    var f = document.createElement("form");
+    f.method = "post"; f.action = "/beheer/kennisbank/artikel/voorbeeld/"; f.target = "kb-voorbeeld"; f.style.display = "none";
+    var velden = { csrfmiddlewaretoken: val("csrfmiddlewaretoken"), titel: val("titel"), samenvatting: val("samenvatting"), inhoud: editor.value, soort: val("soort"), eigenaar: val("eigenaar") };
+    Object.keys(velden).forEach(function (k) { var i = document.createElement("input"); i.type = "hidden"; i.name = k; i.value = velden[k]; f.appendChild(i); });
+    document.body.appendChild(f); f.submit(); document.body.removeChild(f);
   }
 
   var config = {
@@ -103,6 +125,13 @@
     buttons: [
       "paragraph", "|", "bold", "italic", "underline", "strikethrough", "superscript", "|",
       "ul", "ol", "outdent", "indent", "|", "link", "table", "hr", "|", "eraser", "undo", "redo", "|",
+      {
+        name: "voorbeeld",
+        tooltip: "Voorbeeld: bekijk in een nieuw tabblad hoe het artikel er gepubliceerd uitziet (ook zonder op te slaan)",
+        text: "Voorbeeld",
+        exec: voorbeeld
+      },
+      "|",
       {
         name: "sectiekop",
         tooltip: "Sectiekop: deze regel begint een in- en uitklapbare sectie",

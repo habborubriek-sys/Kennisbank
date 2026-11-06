@@ -5,14 +5,22 @@
 .jodit-wysiwyg div.onboarding::before{content:"Voor nieuwe collega's";display:block;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#7a5a10;font-weight:700;margin-bottom:2px}
 .jodit-wysiwyg table{border-collapse:collapse}
 .jodit-wysiwyg td,.jodit-wysiwyg th{border:1px solid #ccc;padding:4px 8px}
-.jodit-wysiwyg h2.sectie{font-family:Georgia,serif;font-size:1.25rem;color:#154273;border-bottom:2px solid #154273;padding:14px 0 4px;margin:18px 0 10px;position:relative}
-.jodit-wysiwyg h2.sectie::before{content:"Sectie";position:absolute;right:0;top:0;font-family:"Segoe UI",system-ui,sans-serif;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:#154273;opacity:.8}
-.jodit-toolbar-button_sectiekop button{font-weight:600;color:#154273}
+.jodit-wysiwyg h2.sectie{font-size:1.1rem;font-weight:700;color:inherit;margin:18px 0 6px;padding:0}
+.jodit-wysiwyg h2.sectie::before{content:"«Sectiekop» ";color:#6b7280;font-weight:600;font-size:.85rem;letter-spacing:.02em}
+.jodit-wysiwyg h2.sectie::after{content:" «Sectiekop»";color:#6b7280;font-weight:600;font-size:.85rem;letter-spacing:.02em}
+.jodit-wysiwyg ul{list-style:disc outside;padding-left:28px;margin:6px 0 10px}
+.jodit-wysiwyg ol{list-style:decimal outside;padding-left:28px;margin:6px 0 10px}
+.jodit-wysiwyg ul>li{list-style-type:disc!important;font-size:inherit;line-height:inherit;padding:0;margin:2px 0}
+.jodit-wysiwyg ol>li{list-style-type:decimal!important;font-size:inherit;line-height:inherit;padding:0;margin:2px 0}
+.jodit-wysiwyg ul ul>li{list-style-type:circle!important}
+.jodit-wysiwyg p{margin:0 0 8px}
+.jodit-toolbar-button_sectiekop button{font-weight:600}
+.jodit-toolbar-button_voorbeeld button{font-weight:600;color:#154273}
+.jodit-toolbar-button_voorbeeld .jodit-toolbar-button__text{padding:0 6px}
 .jodit-toolbar-button_sectiekop .jodit-toolbar-button__text{padding:0 6px}
 .jodit-toolbar-button_onboarding button{font-weight:600;color:#7a5a10}
 .jodit-toolbar-button_onboarding .jodit-toolbar-button__text{padding:0 6px}
-html[data-theme="dark"] .jodit-wysiwyg h2.sectie{color:#81b3e6;border-color:#81b3e6}
-html[data-theme="dark"] .jodit-wysiwyg h2.sectie::before{color:#81b3e6}
+html[data-theme="dark"] .jodit-wysiwyg h2.sectie::before,html[data-theme="dark"] .jodit-wysiwyg h2.sectie::after{color:#9aa7b6}
 html[data-theme="dark"] .jodit-wysiwyg div.onboarding{background:#3a2f14;border-left-color:#b8902d}
 html[data-theme="dark"] .jodit-wysiwyg div.onboarding::before{color:#e6c46a}
 .form-row.field-inhoud>div{width:100%}

@@ -1,0 +1,30 @@
+{% load static %}<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Voorbeeld: {{ titel }}</title>
+<link rel="icon" href="{% static 'kennisbank/favicon.svg' %}" type="image/svg+xml">
+<link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}"><link rel="stylesheet" href="{% static 'kennisbank/app.css' %}">
+<script src="{% static 'kennisbank/voorbeeld.js' %}" defer></script></head>
+<body class="embed">
+<header class="top">
+  <div class="brand"><span class="mark" aria-hidden="true">K</span><span>{{ app_naam }}</span> <span class="proto">Voorbeeld</span></div>
+  <div class="topbtns">
+    <button class="toggle" id="onbToggle" type="button" aria-pressed="false" title="Toon extra uitleg voor nieuwe collega's"><span class="sw" aria-hidden="true"></span>Onboarding</button>
+  </div>
+</header>
+<div class="shell"><main class="main" id="main">
+<div class="view">
+ <p class="concept-banner">Dit is een voorbeeld van wat nu in de editor staat. Het is <b>niet opgeslagen</b>. Klik in het beheerscherm opnieuw op <b>Voorbeeld</b> om dit tabblad te verversen.</p>
+ <article class="art" aria-labelledby="artTitel">
+  <div class="head">{% if soort %}<span class="type {{ soort }}">{{ soort_label }}</span>{% endif %}</div>
+  <h1 id="artTitel">{{ titel }}</h1>
+  {% if samenvatting %}<p class="summary">{{ samenvatting }}</p>{% endif %}
+  <p class="docline">voorbeeld · nog niet gepubliceerd{% if eigenaar %} · eigenaar {{ eigenaar }}{% endif %}</p>
+  {% if secties %}<div class="secbar"><button class="tb" type="button" id="toggleAll">Alles uitklappen</button></div>{% endif %}
+  {% if inleiding %}<div class="inleiding">{{ inleiding|safe }}</div>{% endif %}
+  <div class="sections">
+   {% for kop, tekst in secties %}<details class="sec" {% if forloop.first %}open{% endif %}><summary>{{ kop }}</summary><div class="body">{{ tekst|safe }}</div></details>{% endfor %}
+  </div>
+  {% if not secties and not inleiding %}<div class="empty">Nog geen tekst.</div>{% endif %}
+ </article>
+</div></main></div>
+</body></html>

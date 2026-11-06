@@ -565,3 +565,31 @@ class WordImportTests(Basis):
         r = c.post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data)
         self.assertEqual(r.status_code, 302, r.content[:500])
         self.assertEqual(sorted(a.tags.values_list("naam", flat=True)), ["mailbox", "nieuwe tag"])
+
+
+class VoorbeeldTests(Basis):
+    def test_voorbeeld_toont_niet_opgeslagen_tekst(self):
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        c = self.als(self.redacteur)
+        r = c.post(
+            "/beheer/kennisbank/artikel/voorbeeld/",
+            {
+                "titel": "Nog niet opgeslagen",
+                "samenvatting": "S",
+                "soort": "proces",
+                "inhoud": '<p>Intro</p><h2 class="sectie">Stap 1</h2><p>Doe dit</p><script>x</script>',
+            },
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Nog niet opgeslagen")
+        self.assertContains(r, "<summary>Stap 1</summary>")
+        self.assertContains(r, "Intro")
+        self.assertNotContains(r, "<script>x")
+        self.assertFalse(Artikel.objects.filter(titel="Nog niet opgeslagen").exists())
+        self.assertEqual(c.get("/beheer/kennisbank/artikel/voorbeeld/").status_code, 405)
+        werk_staf_status_bij(self.lezer)
+        self.assertIn(
+            self.als(self.lezer).post("/beheer/kennisbank/artikel/voorbeeld/", {"inhoud": ""}).status_code, (302, 403)
+        )

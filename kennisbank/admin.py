@@ -6,6 +6,7 @@
 """
 
 from django import forms
+from django.conf import settings
 from django.contrib import admin, messages
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
@@ -168,9 +169,36 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 "importeren-word/",
                 self.admin_site.admin_view(self.importeren_word),
                 name="kennisbank_artikel_importeren_word",
-            )
+            ),
+            path("voorbeeld/", self.admin_site.admin_view(self.voorbeeld), name="kennisbank_artikel_voorbeeld"),
         ]
         return eigen + super().get_urls()
+
+    def voorbeeld(self, request):
+        """Toon de (nog niet opgeslagen) tekst uit de editor zoals het artikel er gepubliceerd uit zou zien."""
+        from django.http import HttpResponseNotAllowed
+
+        from .inhoud import schoon, splits_secties
+
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST"])
+        if not self.has_change_permission(request):
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied
+        inleiding, secties = splits_secties(request.POST.get("inhoud", ""))
+        soorten = dict(Soort.choices)
+        ctx = {
+            "app_naam": settings.KB_APP_NAAM,
+            "titel": request.POST.get("titel", "").strip() or "(nog geen titel)",
+            "samenvatting": request.POST.get("samenvatting", "").strip(),
+            "soort": request.POST.get("soort", ""),
+            "soort_label": soorten.get(request.POST.get("soort", ""), ""),
+            "eigenaar": request.POST.get("eigenaar", "").strip(),
+            "inleiding": schoon(inleiding),
+            "secties": [(kop, schoon(tekst)) for kop, tekst in secties],
+        }
+        return render(request, "kennisbank/voorbeeld.html", ctx)
 
     def importeren_word(self, request):
         """Upload een .docx; het wordt een concept-artikel met secties. Daarna door naar het bewerkscherm."""

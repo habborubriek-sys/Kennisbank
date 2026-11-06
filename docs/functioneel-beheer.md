@@ -15,6 +15,7 @@ Als **redacteur** schrijf en onderhoud je de artikelen in jouw omgeving, behande
    | Lijsten, inspringen | Opsomming, genummerde lijst, inspringing |
    | Link, tabel, lijn | Hyperlink, tabel invoegen, scheidingslijn |
    | Gum | Opmaak van de selectie wissen |
+   | **Voorbeeld** | Opent in een nieuw tabblad hoe het artikel er gepubliceerd uitziet, met wat nu in de editor staat (ook als het nog niet is opgeslagen). Klik opnieuw om het tabblad te verversen. |
    | **Sectiekop** | Maakt van de huidige regel een sectiekop (zie hieronder) |
    | **Onboarding** | Markeert de geselecteerde alinea's als uitleg voor nieuwe collega's (zie hieronder) |
 
@@ -37,7 +38,7 @@ Elke keer dat je een gepubliceerd artikel inhoudelijk wijzigt, ontstaat automati
 
 Een artikel is één doorlopende tekst. Een **sectie** is een in- en uitklapbaar blok daarin:
 
-1. Zet de cursor op de regel die de naam van de sectie moet worden en klik op **Sectiekop** in de werkbalk. De regel krijgt een blauwe streep en het label "Sectie".
+1. Zet de cursor op de regel die de naam van de sectie moet worden en klik op **Sectiekop** in de werkbalk. In de editor zie je dan `«Sectiekop» naam «Sectiekop»`; de cursor springt naar een nieuwe regel eronder, zodat je direct verder kunt typen.
 2. Alles wat daaronder staat, tot de volgende sectiekop, hoort bij die sectie. De volgorde van de secties is simpelweg de volgorde in de tekst.
 3. Tekst **vóór de eerste sectiekop** is de inleiding: die staat altijd open, boven de secties.
 4. Nogmaals klikken op **Sectiekop** maakt er weer een gewone regel van.
