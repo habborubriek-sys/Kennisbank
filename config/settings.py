@@ -5,6 +5,7 @@ Alle omgevingsafhankelijke waarden komen uit omgevingsvariabelen (12-factor).
 Zie docs/configuratie.md voor de volledige lijst met uitleg en standaardwaarden.
 """
 
+import re
 from pathlib import Path
 
 import dj_database_url
@@ -62,6 +63,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    # In OIDC-modus wordt hieronder SessionRefresh toegevoegd (rechten periodiek opnieuw ophalen).
     # XFrameOptionsMiddleware bewust niet: inbedden wordt geregeld via
     # CSP frame-ancestors (KB_FRAME_ANCESTORS), zodat het zaaksysteem de
     # kennisbank in een iframe kan tonen.
@@ -145,6 +147,15 @@ if KB_AUTH_MODUS == "oidc":
     if OIDC_OP_LOGOUT_ENDPOINT:
         OIDC_OP_LOGOUT_URL_METHOD = "kennisbank.auth.logout_url"
     LOGIN_URL = "oidc_authentication_init"
+    # Rechten verversen: na dit aantal seconden wordt de gebruiker bij een paginaweergave stilletjes
+    # (prompt=none) opnieuw bij de identity provider langs gestuurd. Zo komen gewijzigde groepen en
+    # een geblokkeerd account binnen die tijd door, in plaats van pas na het verlopen van de sessie.
+    MIDDLEWARE.append("mozilla_django_oidc.middleware.SessionRefresh")
+    OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS = env_int("KB_OIDC_HERNIEUW_SECONDEN", 15 * 60)
+    # Niet verversen bij de ingebedde weergave zelf (een identity provider weigert in een iframe).
+    # De API geeft bij een verlopen token een 403 met refresh_url; de frontend laadt dan de pagina
+    # opnieuw, of toont in het iframe de knop die het inloggen in een eigen venster opent.
+    OIDC_EXEMPT_URLS = ["/uitloggen/", re.compile(r"^/zaaktype/")]
 else:
     AUTHENTICATION_BACKENDS = ["django.contrib.auth.backends.ModelBackend"]
     LOGIN_URL = "inloggen"
@@ -230,6 +241,11 @@ KB_AI_AZURE_API_VERSIE = env("KB_AI_AZURE_API_VERSIE", "2024-10-21")
 KB_AI_TIMEOUT_SECONDEN = env_int("KB_AI_TIMEOUT_SECONDEN", 30)
 KB_AI_MAX_BRONNEN = env_int("KB_AI_MAX_BRONNEN", 5)
 KB_AI_TEMPERATUUR = float(env("KB_AI_TEMPERATUUR", "0.1"))
+# Maximale lengte van een antwoord (tokens) en het kostenplafond: maximaal aantal aanroepen van het
+# taalmodel per dag voor de hele installatie (0 = geen plafond). Daarboven valt de assistent terug op
+# citeren uit de kennisbank, zonder taalmodel.
+KB_AI_MAX_TOKENS = env_int("KB_AI_MAX_TOKENS", 600)
+KB_ASSISTENT_DAGLIMIET = env_int("KB_ASSISTENT_DAGLIMIET", 2000)
 if KB_AI_PROVIDER not in {"uit", "openai", "azure"}:
     raise ImproperlyConfigured("KB_AI_PROVIDER moet 'uit', 'openai' of 'azure' zijn.")
 if KB_AI_PROVIDER != "uit" and not (KB_AI_BASE_URL and KB_AI_MODEL):

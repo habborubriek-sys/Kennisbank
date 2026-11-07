@@ -29,7 +29,8 @@ Alle instellingen zijn omgevingsvariabelen. Elke variabele kan ook uit een besta
 | `KB_OIDC_GEBRUIKERSNAAM_CLAIM` | `sub` | Stabiele identificatie van de gebruiker. Voor Entra ID: `oid`. |
 | `KB_OIDC_GROEPEN_CLAIM` | `groups` | Claim met de groepen. |
 | `KB_BEHEERDERS_GROEPEN` | leeg | Groep(en) die functioneel beheerder worden (alle rechten). |
-| `KB_SESSIE_DUUR_SECONDEN` | `28800` (8 uur) | |
+| `KB_OIDC_HERNIEUW_SECONDEN` | `900` (15 min) | Alleen bij `oidc`. Na deze tijd worden de rechten bij de volgende paginaweergave stilletjes opnieuw opgehaald bij de identity provider (`prompt=none`). Gewijzigde groepen en geblokkeerde accounts komen zo binnen deze tijd door. |
+| `KB_SESSIE_DUUR_SECONDEN` | `28800` (8 uur) | Maximale duur van een sessie. |
 
 ## Beveiliging en inbedden
 
@@ -41,7 +42,7 @@ Alle instellingen zijn omgevingsvariabelen. Elke variabele kan ook uit een besta
 | `KB_HSTS_SECONDEN` | `0` | Bijv. `31536000` als TLS overal is ingericht. |
 | `KB_ACHTER_PROXY` | `ja` | Vertrouw `X-Forwarded-Proto`/`-Host` van de reverse proxy. |
 | `KB_SSL_REDIRECT` | `nee` | Doorsturen naar https in de applicatie. Meestal doet de ingress dat. |
-| `KB_ASSISTENT_LIMIET` | `30/min` | Maximaal aantal vragen aan de assistent per gebruiker. |
+| `KB_ASSISTENT_LIMIET` | `30/min` | Maximaal aantal vragen aan de assistent per gebruiker (per worker bijgehouden). Het dagplafond voor de hele installatie is `KB_ASSISTENT_DAGLIMIET`. |
 | `KB_VOORSTEL_LIMIET` | `20/hour` | Maximaal aantal verbetervoorstellen per gebruiker. |
 
 ## AI-assistent
@@ -58,6 +59,8 @@ Zie [ai-assistent](ai-assistent.md).
 | `KB_AI_TIMEOUT_SECONDEN` | `30` | Daarna valt de assistent terug op zoeken. |
 | `KB_AI_MAX_BRONNEN` | `5` | Aantal secties dat als bron wordt meegestuurd. |
 | `KB_AI_TEMPERATUUR` | `0.1` | Laag = feitelijk en voorspelbaar. |
+| `KB_AI_MAX_TOKENS` | `600` | Maximale lengte van een antwoord van het model. |
+| `KB_ASSISTENT_DAGLIMIET` | `2000` | Kostenplafond: maximaal aantal aanroepen van het taalmodel per dag voor de hele installatie (`0` = geen). Daarboven citeert de assistent zonder taalmodel. Zie [ai-assistent](ai-assistent.md#kosten-en-begrenzing). |
 
 ## Bewaartermijnen
 

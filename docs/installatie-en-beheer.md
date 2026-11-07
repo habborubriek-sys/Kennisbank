@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.4.1 .
-docker push registry.example.nl/kennisbank:1.4.1
+docker build -t registry.example.nl/kennisbank:1.5.0 .
+docker push registry.example.nl/kennisbank:1.5.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -69,7 +69,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.4.1
+  registry.example.nl/kennisbank:1.5.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -107,7 +107,13 @@ Het formaat staat in [importformaat](importformaat.md). Een export maak je met `
 
 **Back-up.** Alle gegevens staan in PostgreSQL. Een normale database-back-up (bijvoorbeeld `pg_dump` of de back-up van het databaseplatform) is voldoende. De container zelf heeft geen staat. Een inhoudelijke export van de artikelen maak je met `kennisbank_export`.
 
-**Updates.** Nieuwe image bouwen, eerst de `migreer`-Job draaien en dan de Deployment bijwerken. Migraties zijn voorwaarts compatibel binnen een minor-versie. Lees bij elke versie de [CHANGELOG](../CHANGELOG.md).
+**Updates.** Nieuwe image bouwen, eerst de `migreer`-Job draaien en dan de Deployment bijwerken. Lees bij elke versie de [CHANGELOG](../CHANGELOG.md). Werkwijze:
+
+1. Maak vlak vóór de update een databaseback-up (`pg_dump`); dat is het terugvalpunt.
+2. Draai de migraties met de nieuwe image (`migreer`). Elke migratie draait in zijn eigen transactie: mislukt er een, dan is die ene ongedaan gemaakt, maar eerdere migraties uit dezelfde update blijven toegepast. Zet in dat geval de back-up uit stap 1 terug.
+3. Rol daarna de nieuwe image uit. Zolang de oude image nog draait tegen een gemigreerde database kunnen er fouten optreden; houd de overgang kort of plan hem buiten werktijd.
+
+Terugdraaien naar een vorige versie doe je door de back-up uit stap 1 terug te zetten en de oude image uit te rollen. Gebruik niet `migrate` naar een oudere migratie: inhoudsomzettingen (bijvoorbeeld van 1.0 naar 1.3) worden niet teruggerekend. De omzettingen in de migraties zijn bevroren in `kennisbank/oud_formaat.py`; een geautomatiseerde test migreert een database met inhoud van versie 1.0 naar de huidige versie, zodat ook een installatie die meerdere versies overslaat in één keer kan bijwerken.
 
 **Schalen.** De container is stateless: meer replica's of `KB_WORKERS` verhogen. De limiet op vragen aan de assistent wordt per worker bijgehouden. Bij veel replica's is die dus ruimer dan ingesteld; is dat een probleem, begrens dan ook op de ingress.
 

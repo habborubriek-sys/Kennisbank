@@ -24,7 +24,7 @@
 
   async function api(pad, opties) {
     opties = opties || {};
-    const headers = { Accept: "application/json" };
+    const headers = { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" };
     if (opties.body !== undefined) headers["Content-Type"] = "application/json";
     if (opties.method && opties.method !== "GET") headers["X-CSRFToken"] = cookie("csrftoken");
     const resp = await fetch("/api/v1/" + pad, {
@@ -36,6 +36,14 @@
     if (resp.status === 204) return null;
     let data = null;
     try { data = await resp.json(); } catch (e) { /* geen JSON */ }
+    if (resp.status === 403 && data && data.refresh_url && !EMBED) {
+      // De identity provider moet de rechten opnieuw bevestigen (OIDC SessionRefresh). Een gewone
+      // paginaweergave regelt dat stilletjes; daarna komt de gebruiker op dezelfde plek terug.
+      // Hooguit één keer per minuut, zodat een haperende identity provider geen herlaad-lus geeft.
+      let laatste = 0;
+      try { laatste = Number(sessionStorage.getItem("kb.ververs") || 0); sessionStorage.setItem("kb.ververs", String(Date.now())); } catch (e) { /* geen opslag */ }
+      if (Date.now() - laatste > 60000) { location.reload(); await new Promise(() => {}); }
+    }
     if (!resp.ok) throw new ApiFout(resp.status, data && (data.detail || JSON.stringify(data)));
     return data;
   }

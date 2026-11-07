@@ -110,4 +110,4 @@ Clusters, tags en zaaktypen beheer je in het beheerscherm. Redacteuren kunnen ze
 Een functioneel beheerder (lid van de groep in `KB_BEHEERDERS_GROEPEN`) beheert daarnaast:
 
 - **Omgevingen**: bijv. "Handhaving". Elke omgeving heeft eigen artikelen.
-- **Toegang**: welke groep uit Entra ID in welke omgeving *lezer* of *redacteur* is. Groepen verschijnen in de lijst zodra iemand uit die groep een keer heeft ingelogd. Je kunt ze ook vooraf aanmaken met de object-ID als naam.
+- **Toegang**: welke groep uit Entra ID in welke omgeving *lezer* of *redacteur* is. Groepen verschijnen in de lijst zodra iemand uit die groep een keer heeft ingelogd. Je kunt ze ook vooraf aanmaken met de object-ID als naam. Een wijziging werkt direct door: wie redacteur wordt, kan meteen het beheer in; wie het niet meer is, kan dat niet meer.

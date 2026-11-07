@@ -1,10 +1,16 @@
-"""Secties: van Markdown + apart onboarding-veld naar HTML met onboarding-blokken in de inhoud."""
+"""Secties: van Markdown + apart onboarding-veld naar HTML met onboarding-blokken in de inhoud.
+
+Gebruikt uitsluitend bevroren functies uit kennisbank.oud_formaat, zodat deze migratie altijd
+hetzelfde doet, ook als de opschoning in kennisbank.inhoud later verandert.
+"""
 
 from django.db import migrations, models
 
+from kennisbank.oud_formaat import markdown_naar_html_bevroren as markdown_naar_html
+from kennisbank.oud_formaat import onboarding_blok_bevroren as onboarding_blok
+
 
 def naar_html(apps, schema_editor):
-    from kennisbank.inhoud import markdown_naar_html, onboarding_blok
 
     Sectie = apps.get_model("kennisbank", "Sectie")
     for s in Sectie.objects.all().iterator():

@@ -239,23 +239,42 @@ class WeergaveTelling(models.Model):
 
 
 class ZoekTelling(models.Model):
-    """Zoektermen per dag, zonder gebruiker. 'zonder_resultaat' laat zien welke kennis ontbreekt."""
+    """Zoektermen per dag en per omgeving, zonder gebruiker. 'zonder_resultaat' laat zien welke kennis ontbreekt.
 
+    Een zoekterm kan een naam of zaaknummer bevatten; daarom zien redacteuren alleen de termen van
+    hun eigen omgeving(en). Zoekt iemand in meerdere omgevingen tegelijk, dan telt de term in elk mee.
+    """
+
+    omgeving = models.ForeignKey(Omgeving, on_delete=models.CASCADE, null=True, related_name="zoektellingen")
     term = models.CharField(max_length=100)
     datum = models.DateField()
     aantal = models.PositiveIntegerField(default=0)
     zonder_resultaat = models.PositiveIntegerField(default=0)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["term", "datum"], name="uniek_zoekterm_per_dag")]
+        constraints = [
+            models.UniqueConstraint(fields=["omgeving", "term", "datum"], name="uniek_zoekterm_per_dag_omgeving")
+        ]
 
 
 class AssistentTelling(models.Model):
-    """Gebruik van de assistent per dag. De vragen zelf worden niet opgeslagen."""
+    """Gebruik van de assistent per dag en per omgeving. De vragen zelf worden niet opgeslagen."""
 
-    datum = models.DateField(unique=True)
+    omgeving = models.ForeignKey(Omgeving, on_delete=models.CASCADE, null=True, related_name="assistenttellingen")
+    datum = models.DateField()
     vragen = models.PositiveIntegerField(default=0)
     zonder_bron = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["omgeving", "datum"], name="uniek_assistent_per_dag_omgeving")]
+
+
+class AssistentDagTotaal(models.Model):
+    """Aantal aanroepen van het taalmodel per dag, over alle omgevingen heen: voor het kostenplafond
+    (KB_ASSISTENT_DAGLIMIET). Bewust in de database, zodat de limiet geldt voor alle replica's samen."""
+
+    datum = models.DateField(unique=True)
+    modelaanroepen = models.PositiveIntegerField(default=0)
 
 
 class VoorstelStatus(models.TextChoices):

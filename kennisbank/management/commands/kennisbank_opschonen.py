@@ -5,6 +5,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from kennisbank.models import (
+    AssistentDagTotaal,
     AssistentTelling,
     RecentBezocht,
     Verbetervoorstel,
@@ -28,6 +29,7 @@ class Command(BaseCommand):
             WeergaveTelling.objects.filter(datum__lt=grens).delete()[0]
             + ZoekTelling.objects.filter(datum__lt=grens).delete()[0]
             + AssistentTelling.objects.filter(datum__lt=grens).delete()[0]
+            + AssistentDagTotaal.objects.filter(datum__lt=grens).delete()[0]
         )
         anoniem = Verbetervoorstel.objects.filter(
             status__in=[VoorstelStatus.VERWERKT, VoorstelStatus.AFGEWEZEN],

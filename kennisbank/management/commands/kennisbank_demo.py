@@ -92,7 +92,13 @@ class Command(BaseCommand):
             ("verlof", 9, 9),
             ("handhavingsverzoek", 6, 6),
         ]:
-            ZoekTelling.objects.create(term=term, datum=vandaag, aantal=n, zonder_resultaat=leeg)
+            ZoekTelling.objects.create(
+                omgeving=Omgeving.objects.get(slug="handhaving"),
+                term=term,
+                datum=vandaag,
+                aantal=n,
+                zonder_resultaat=leeg,
+            )
         status = {"behandeling": "in_behandeling", "verwerkt": "verwerkt", "nieuw": "nieuw", "afgewezen": "afgewezen"}
         for p in gebruik["voorstellen"]:
             a = Artikel.objects.get(slug=p["art"])

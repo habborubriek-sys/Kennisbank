@@ -23,6 +23,7 @@ from .models import (
     AssistentTelling,
     Cluster,
     Favoriet,
+    Omgeving,
     RecentBezocht,
     Soort,
     Tag,
@@ -263,6 +264,15 @@ def keuzelijsten(request):
     )
 
 
+def _gezochte_omgevingen(request):
+    """De omgevingen waarin deze zoekopdracht zocht: de omgevingsfilter als die is gezet, anders alle leesbare."""
+    filter_slug = request.query_params.get("omgeving")
+    leesbaar = rechten(request).leesbare_omgevingen
+    if filter_slug:
+        return set(Omgeving.objects.filter(slug=filter_slug, id__in=leesbaar).values_list("id", flat=True))
+    return leesbaar
+
+
 @extend_schema(
     summary="Artikelen zoeken en filteren",
     parameters=[
@@ -285,7 +295,7 @@ def artikelen(request):
         resultaat = zoek_artikelen(qs, q)
         # Alleen meetellen in de statistiek als de client dat vraagt (niet bij elke toetsaanslag).
         if request.query_params.get("registreer") == "1":
-            diensten.registreer_zoekopdracht(q, len(resultaat))
+            diensten.registreer_zoekopdracht(q, len(resultaat), _gezochte_omgevingen(request))
     else:
         resultaat = qs.order_by("titel")
     return Response(ArtikelKortSerializer(resultaat, many=True, context=_ctx(request)).data)
@@ -423,19 +433,21 @@ def statistieken(request):
         key=lambda x: (-x["weergaven"], x["titel"]),
     )
     termen = (
-        ZoekTelling.objects.filter(datum__gte=sinds)
+        ZoekTelling.objects.filter(datum__gte=sinds, omgeving_id__in=r.redactie_omgevingen)
         .values("term")
         .annotate(aantal=Sum("aantal"), zonder_resultaat=Sum("zonder_resultaat"))
         .order_by("-aantal")[:15]
     )
     zonder = (
-        ZoekTelling.objects.filter(datum__gte=sinds, zonder_resultaat__gt=0)
+        ZoekTelling.objects.filter(datum__gte=sinds, zonder_resultaat__gt=0, omgeving_id__in=r.redactie_omgevingen)
         .values("term")
         .annotate(aantal=Sum("zonder_resultaat"))
         .order_by("-aantal")[:10]
     )
     vs = Verbetervoorstel.objects.filter(artikel__in=arts)
-    ass = AssistentTelling.objects.filter(datum__gte=sinds).aggregate(v=Sum("vragen"), z=Sum("zonder_bron"))
+    ass = AssistentTelling.objects.filter(datum__gte=sinds, omgeving_id__in=r.redactie_omgevingen).aggregate(
+        v=Sum("vragen"), z=Sum("zonder_bron")
+    )
     return Response(
         {
             "dagen": dagen,
@@ -480,6 +492,7 @@ def assistent(request):
         s.validated_data["vraag"],
         rechten(request).gepubliceerde_artikelen(),
         zaaktype=s.validated_data.get("zaaktype") or None,
+        omgevingen=rechten(request).leesbare_omgevingen,
     )
     return Response({"html": a.html, "bronnen": a.bronnen, "modus": a.modus, "melding": a.melding})
 

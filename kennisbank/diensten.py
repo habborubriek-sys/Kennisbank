@@ -102,15 +102,19 @@ def registreer_weergave(gebruiker, artikel: Artikel):
     RecentBezocht.objects.filter(pk__in=[r.pk for r in oud]).delete()
 
 
-def registreer_zoekopdracht(term: str, aantal_resultaten: int):
+def registreer_zoekopdracht(term: str, aantal_resultaten: int, omgevingen):
+    """Telt de zoekterm mee voor elke omgeving waarin is gezocht (meestal één)."""
     term = " ".join(term.lower().split())[:100]
     if len(term) < 2:
         return
-    telling, _ = ZoekTelling.objects.get_or_create(term=term, datum=timezone.localdate())
-    ZoekTelling.objects.filter(pk=telling.pk).update(
-        aantal=F("aantal") + 1,
-        zonder_resultaat=F("zonder_resultaat") + (1 if aantal_resultaten == 0 else 0),
-    )
+    for omgeving_id in omgevingen:
+        telling, _ = ZoekTelling.objects.get_or_create(
+            omgeving_id=omgeving_id, term=term, datum=timezone.localdate()
+        )
+        ZoekTelling.objects.filter(pk=telling.pk).update(
+            aantal=F("aantal") + 1,
+            zonder_resultaat=F("zonder_resultaat") + (1 if aantal_resultaten == 0 else 0),
+        )
 
 
 def zet_favoriet(gebruiker, artikel: Artikel, aan: bool):

@@ -1,12 +1,15 @@
-"""Secties als kaders (<section>) in plaats van sectiekoppen die de tekst opdelen."""
+"""Secties als kaders (<section>) in plaats van sectiekoppen die de tekst opdelen.
+
+Gebruikt uitsluitend bevroren functies uit kennisbank.oud_formaat (zie de toelichting daar).
+"""
 
 from django.db import migrations
 
+from kennisbank.oud_formaat import blokken_bevroren as blokken
 from kennisbank.oud_formaat import koppen_naar_kaders
 
 
 def vooruit(apps, schema_editor):
-    from kennisbank.inhoud import blokken  # zuiver: werkt op tekst, niet op modellen
 
     Artikel = apps.get_model("kennisbank", "Artikel")
     ArtikelVersie = apps.get_model("kennisbank", "ArtikelVersie")
