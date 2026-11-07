@@ -2,7 +2,7 @@
 
 Eén centrale plek voor werkinstructies, werkafspraken en processen. Medewerkers zoeken en lezen artikelen, zetten extra uitleg voor nieuwe collega's aan, bewaren favorieten, dienen verbetervoorstellen in en stellen vragen aan een assistent die alleen antwoordt uit de kennisbank. Procesmanagement schrijft artikelen in een editor met Word-opmaak of importeert ze uit Word, behandelt voorstellen en ziet welke kennis gebruikt en gemist wordt. Het zaaksysteem kan per zaaktype de juiste artikelen tonen.
 
-> Versie 1.6.0 · Licentie EUPL-1.2 · Python 3.12+ / Django 5.2 LTS / PostgreSQL 14+
+> Versie 1.6.1 · Licentie EUPL-1.2 · Python 3.12+ / Django 5.2 LTS / PostgreSQL 14+
 
 ## Proberen in één commando
 

@@ -368,8 +368,9 @@
       else toast("Link: " + url);
     });
     $("#propBtn").addEventListener("click", () => openProp(""));
+    // De knop "Alles uitklappen" is er alleen als het artikel secties heeft (bijv. niet direct na een Word-import).
     const ta = $("#toggleAll");
-    ta.addEventListener("click", () => {
+    if (ta) ta.addEventListener("click", () => {
       const ds = $$("details.sec");
       const open = ds.some((d) => !d.open);
       ds.forEach((d) => { d.open = open; });

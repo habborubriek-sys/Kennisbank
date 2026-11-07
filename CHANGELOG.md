@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.6.1 – 2026-11-08
+
+- **Artikel zonder secties opende niet**: de kennisbank toonde "Er ging iets mis bij het laden" voor elk artikel zonder inklapbare sectie — dus ook voor elk artikel direct na een Word-import, dat bewust nog geen secties heeft. De oorzaak zat in de browser (de knop "Alles uitklappen" werd aangesloten terwijl hij er niet was); de server deed het goed. Zat erin sinds 1.3.0. Ververs na het bijwerken de pagina met Ctrl+F5.
+
 ## 1.6.0 – 2026-11-07
 
 Derde ronde uit de onafhankelijke code-review: de kleinere punten en de ontbrekende tests.
