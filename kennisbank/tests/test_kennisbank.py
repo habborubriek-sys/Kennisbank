@@ -25,7 +25,7 @@ from kennisbank.models import (
     ZoekTelling,
 )
 from kennisbank.uitwisseling import exporteer, importeer
-from kennisbank.word_import import lees_docx
+from kennisbank.word_import import WordImportFout, lees_docx
 
 User = get_user_model()
 
@@ -454,11 +454,157 @@ class OIDCTests(TestCase):
         self.assertEqual(list(u.groups.values_list("name", flat=True)), ["kb-beheer"])
         self.assertEqual(list(backend.filter_users_by_claims(claims)), [u])
 
+    def test_settings_in_oidc_modus_zonder_wachtwoordbackend(self):
+        """De echte settings-module, geladen met KB_AUTH_MODUS=oidc, mag geen ModelBackend bevatten."""
+        import json
+        import os
+        import pathlib
+        import subprocess
+        import sys
+
+        env = {
+            **os.environ,
+            "KB_AUTH_MODUS": "oidc",
+            "KB_OIDC_CLIENT_ID": "x",
+            "KB_OIDC_CLIENT_SECRET": "y",
+            "KB_OIDC_AUTHORIZATION_ENDPOINT": "https://idp.example/authorize",
+            "KB_OIDC_TOKEN_ENDPOINT": "https://idp.example/token",
+            "KB_OIDC_USERINFO_ENDPOINT": "https://idp.example/userinfo",
+            "KB_OIDC_JWKS_ENDPOINT": "https://idp.example/keys",
+            "DJANGO_SETTINGS_MODULE": "config.settings",
+        }
+        code = (
+            "import json, django; django.setup(); from django.conf import settings; "
+            "print(json.dumps({'b': settings.AUTHENTICATION_BACKENDS, 'login': settings.LOGIN_URL}))"
+        )
+        uit = subprocess.run(  # noqa: S603 - vaste argumenten
+            [sys.executable, "-c", code], env=env, cwd=pathlib.Path(__file__).resolve().parents[2],
+            capture_output=True, text=True, check=True,
+        )
+        gegevens = json.loads(uit.stdout.strip().splitlines()[-1])
+        self.assertEqual(gegevens["b"], ["kennisbank.auth.KennisbankOIDCBackend"])
+        self.assertEqual(gegevens["login"], "oidc_authentication_init")
+
+    def test_geen_wachtwoordinlog_in_oidc_modus(self):
+        """In OIDC-modus mag niemand met een databasewachtwoord om de identity provider heen."""
+        import importlib
+
+        from django.urls import clear_url_caches
+
+        import config.urls
+
+        oidc = dict(
+            KB_AUTH_MODUS="oidc",
+            AUTHENTICATION_BACKENDS=["kennisbank.auth.KennisbankOIDCBackend"],
+            LOGIN_URL="oidc_authentication_init",
+            OIDC_RP_CLIENT_ID="x",
+            OIDC_RP_CLIENT_SECRET="y",
+            OIDC_OP_AUTHORIZATION_ENDPOINT="https://idp.example/authorize",
+            OIDC_OP_TOKEN_ENDPOINT="https://idp.example/token",
+            OIDC_OP_USER_ENDPOINT="https://idp.example/userinfo",
+            OIDC_OP_JWKS_ENDPOINT="https://idp.example/keys",
+        )
+        User.objects.create_superuser("root", "r@x.nl", "geheim")
+        try:
+            with override_settings(**oidc):
+                importlib.reload(config.urls)
+                clear_url_caches()
+                # Beheer-inlog stuurt door naar de identity provider ...
+                r = self.client.get("/beheer/login/?next=/beheer/kennisbank/artikel/")
+                self.assertEqual(r.status_code, 302)
+                self.assertTrue(r["Location"].startswith("/oidc/authenticate/"), r["Location"])
+                # ... en een wachtwoord-POST levert geen sessie op.
+                r = self.client.post("/beheer/login/", {"username": "root", "password": "geheim", "next": "/beheer/"})
+                self.assertNotEqual(r.status_code, 200)
+                self.assertNotIn("_auth_user_id", self.client.session)
+                self.assertFalse(self.client.login(username="root", password="geheim"))
+                # Het lokale inlogscherm bestaat niet.
+                self.assertEqual(self.client.get("/inloggen/").status_code, 404)
+                # Ingelogd zonder beheerrechten: uitleg, geen lus.
+                lezer = User.objects.create_user("lezer-oidc")
+                self.client.force_login(lezer, backend="kennisbank.auth.KennisbankOIDCBackend")
+                r = self.client.get("/beheer/login/?next=/beheer/")
+                self.assertEqual(r.status_code, 403)
+                self.assertIn("Geen toegang tot het beheer", r.content.decode())
+        finally:
+            importlib.reload(config.urls)
+            clear_url_caches()
+
 
 class InfraTests(TestCase):
     def test_health(self):
         self.assertEqual(self.client.get("/healthz").status_code, 200)
         self.assertEqual(self.client.get("/readyz").json()["status"], "gereed")
+
+    def test_versienummer_overal_gelijk(self):
+        """kennisbank/__init__.py is de bron; alle andere plekken moeten dezelfde versie noemen."""
+        import pathlib
+        import re
+
+        from kennisbank import __version__
+
+        wortel = pathlib.Path(__file__).resolve().parents[2]
+        verwacht = {
+            "pyproject.toml": rf'^version = "{re.escape(__version__)}"$',
+            "publiccode.yml": rf'^softwareVersion: "{re.escape(__version__)}"$',
+            "compose.yaml": rf"image: kennisbank:{re.escape(__version__)}$",
+            "deploy/kubernetes/kustomization.yaml": rf'newTag: "{re.escape(__version__)}"$',
+            "Dockerfile": rf'org\.opencontainers\.image\.version="{re.escape(__version__)}"',
+            "README.md": rf"^> Versie {re.escape(__version__)} ",
+            "CHANGELOG.md": rf"^## {re.escape(__version__)} ",
+        }
+        for bestand, patroon in verwacht.items():
+            tekst = (wortel / bestand).read_text()
+            self.assertRegex(tekst, re.compile(patroon, re.M), f"{bestand} noemt niet versie {__version__}")
+        self.assertEqual(self.client.get("/api/schema/").status_code, 403)  # anoniem: niet
+        self.client.force_login(User.objects.create_user("v"))
+        self.assertIn(f"version: {__version__}", self.client.get("/api/schema/").content.decode())
+        self.assertEqual(self.client.get("/api/docs/").status_code, 200)
+
+    def test_logregel_zonder_querystring(self):
+        import logging
+
+        from django.test import RequestFactory
+
+        from kennisbank.logformaat import JsonFormatter
+
+        record = logging.LogRecord("django.request", logging.WARNING, "", 0, "Not Found: /zoek", (), None)
+        record.request = RequestFactory().get("/zoek?q=jansen+zaak+123")
+        record.status_code = 404
+        regel = JsonFormatter().format(record)
+        self.assertNotIn("jansen", regel)
+        self.assertIn('"pad": "/zoek"', regel)
+        self.assertIn('"status_code": 404', regel)
+
+    def test_meegeleverde_frontendbibliotheken_kloppen_met_sbom_bron(self):
+        """De versie in vendor/componenten.json (bron voor de SBOM) moet die van het echte bestand zijn."""
+        import json
+        import pathlib
+        import re
+
+        vendor = pathlib.Path(__file__).resolve().parents[1] / "static/kennisbank/vendor"
+        for c in json.loads((vendor / "componenten.json").read_text())["componenten"]:
+            for bestand in c["bestanden"]:
+                self.assertTrue((vendor / bestand).exists(), bestand)
+            kop = (vendor / c["bestanden"][0]).read_text(encoding="utf-8", errors="replace")[:600]
+            m = re.search(r"Version: v?(\d+\.\d+\.\d+)", kop)
+            self.assertIsNotNone(m, f"geen versiekop in {c['bestanden'][0]}")
+            self.assertEqual(m.group(1), c["versie"], f"{c['naam']}: versie wijkt af van componenten.json")
+            self.assertIn(f"@{c['versie']}", c["purl"])
+            # ... en de ingecheckte SBOM noemt precies die versie.
+            sbom = json.loads((vendor.parents[3] / "sbom.cdx.json").read_text())
+            self.assertIn(c["purl"], [x.get("purl") for x in sbom["components"]], "sbom.cdx.json is niet bijgewerkt")
+
+    @override_settings(ALLOWED_HOSTS=["kennisbank.example.nl"])
+    def test_health_met_pod_ip_als_host(self):
+        # Kubernetes/Docker roepen de probes aan met het pod-IP als Host; dat staat niet in KB_ALLOWED_HOSTS.
+        self.assertEqual(self.client.get("/healthz", HTTP_HOST="10.1.2.3").status_code, 200)
+        self.assertEqual(self.client.get("/readyz", HTTP_HOST="10.1.2.3:8000").status_code, 200)
+        self.assertEqual(self.client.get("/healthz/", HTTP_HOST="127.0.0.1").status_code, 200)
+        # De rest van de applicatie weigert een vreemde Host gewoon.
+        self.assertEqual(self.client.get("/", HTTP_HOST="10.1.2.3").status_code, 400)
+        self.assertEqual(self.client.get("/healthzz", HTTP_HOST="10.1.2.3").status_code, 400)
+        self.assertEqual(self.client.get("/", HTTP_HOST="kennisbank.example.nl").status_code, 302)  # naar inloggen
 
     def test_strenge_csp_en_inbedden(self):
         r = self.client.get("/zaaktype/Melding")
@@ -468,6 +614,7 @@ class InfraTests(TestCase):
         self.assertNotIn("X-Frame-Options", r)
 
     def test_openapi_schema(self):
+        self.client.force_login(User.objects.create_user("schema"))
         r = self.client.get("/api/schema/")
         self.assertEqual(r.status_code, 200)
         self.assertIn(b"/api/v1/assistent", r.content)
@@ -553,6 +700,44 @@ class WordImportTests(Basis):
         )
         self.assertEqual(a.afbeeldingen_overgeslagen, 1)
         self.assertEqual(len(a.meldingen), 1)
+
+    def test_te_veel_tekst_wordt_geweigerd(self):
+        from unittest import mock
+
+        from kennisbank import word_import
+
+        with mock.patch.object(word_import, "MAX_HTML", 10):
+            with self.assertRaises(WordImportFout) as cm:
+                lees_docx(_docx([("Normal", "een gewone alinea die langer is dan tien tekens")]), "groot.docx")
+        self.assertIn("te groot", str(cm.exception))
+
+    def test_zip_bom_wordt_geweigerd(self):
+        """Een klein .docx dat uitgepakt enorm is, mag mammoth nooit bereiken."""
+        import io
+        import zipfile
+
+        from kennisbank import word_import
+
+        bron = _docx([("Normal", "a")])
+        bom = io.BytesIO()
+        with zipfile.ZipFile(bron) as zin, zipfile.ZipFile(bom, "w", zipfile.ZIP_DEFLATED) as zuit:
+            for info in zin.infolist():
+                data = zin.read(info.filename)
+                if info.filename == "word/document.xml":
+                    data = data.replace(b"a</w:t>", b"a" * (25 * 1024 * 1024) + b"</w:t>", 1)
+                zuit.writestr(info, data)
+        self.assertLess(bom.tell(), 200 * 1024)  # gecomprimeerd klein ...
+        bom.seek(0)
+        aangeroepen = []
+        origineel = word_import.mammoth.convert_to_html
+        word_import.mammoth.convert_to_html = lambda *a, **k: aangeroepen.append(1) or origineel(*a, **k)
+        try:
+            with self.assertRaises(WordImportFout) as cm:
+                lees_docx(bom, "bom.docx")
+        finally:
+            word_import.mammoth.convert_to_html = origineel
+        self.assertIn("MB", str(cm.exception))
+        self.assertEqual(aangeroepen, [])  # ... en geweigerd vóór het uitpakken
 
     def test_geen_docx(self):
         import io

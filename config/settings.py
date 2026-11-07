@@ -10,6 +10,8 @@ from pathlib import Path
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
+from kennisbank import __version__
+
 from .env import env, env_bool, env_int, env_list
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -49,6 +51,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # Vooraan: /healthz en /readyz worden beantwoord vóór de hostnaam-controle (zie kennisbank/gezondheid.py).
+    "kennisbank.gezondheid.GezondheidMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "kennisbank.middleware.SecurityHeadersMiddleware",
@@ -122,9 +126,11 @@ KB_AUTH_MODUS = env("KB_AUTH_MODUS", "lokaal").lower()
 if KB_AUTH_MODUS not in {"oidc", "lokaal"}:
     raise ImproperlyConfigured("KB_AUTH_MODUS moet 'oidc' of 'lokaal' zijn.")
 
-AUTHENTICATION_BACKENDS = ["django.contrib.auth.backends.ModelBackend"]
 if KB_AUTH_MODUS == "oidc":
-    AUTHENTICATION_BACKENDS.insert(0, "kennisbank.auth.KennisbankOIDCBackend")
+    # Uitsluitend de identity provider. Bewust géén ModelBackend: anders zou iemand met een
+    # wachtwoord in de database (bijv. een createsuperuser-account) via /beheer/login/ om
+    # Entra ID en MFA heen kunnen. Beheerders komen binnen via KB_BEHEERDERS_GROEPEN.
+    AUTHENTICATION_BACKENDS = ["kennisbank.auth.KennisbankOIDCBackend"]
     OIDC_RP_CLIENT_ID = env("KB_OIDC_CLIENT_ID", required=True)
     OIDC_RP_CLIENT_SECRET = env("KB_OIDC_CLIENT_SECRET", required=True)
     OIDC_RP_SIGN_ALGO = env("KB_OIDC_SIGN_ALGO", "RS256")
@@ -140,6 +146,7 @@ if KB_AUTH_MODUS == "oidc":
         OIDC_OP_LOGOUT_URL_METHOD = "kennisbank.auth.logout_url"
     LOGIN_URL = "oidc_authentication_init"
 else:
+    AUTHENTICATION_BACKENDS = ["django.contrib.auth.backends.ModelBackend"]
     LOGIN_URL = "inloggen"
 
 LOGIN_REDIRECT_URL = "/"
@@ -197,11 +204,13 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Kennisbank API",
     "DESCRIPTION": "API van de Kennisbank: artikelen, zoeken, assistent, "
     "verbetervoorstellen en de koppeling met het zaaksysteem.",
-    "VERSION": "1.4.0",
+    "VERSION": __version__,
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     # Documentatiepagina zonder externe CDN
     "REDOC_DIST": "SIDECAR",
+    # Schema en documentatie alleen voor ingelogde gebruikers.
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAuthenticated"],
     "ENUM_NAME_OVERRIDES": {
         "ArtikelStatusEnum": "kennisbank.models.Status",
         "VoorstelStatusEnum": "kennisbank.models.VoorstelStatus",

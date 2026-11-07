@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.4.0 .
-docker push registry.example.nl/kennisbank:1.4.0
+docker build -t registry.example.nl/kennisbank:1.4.1 .
+docker push registry.example.nl/kennisbank:1.4.1
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -44,7 +44,7 @@ Geef de verbinding door als `KB_DATABASE_URL=postgres://kennisbank:...@host:5432
 3. Maak een client secret en noteer client-ID en tenant-ID.
 4. Voeg onder *Token configuration* de **groups**-claim toe (Security groups, als Group ID). Wil je de groepen beperken tot de relevante groepen, wijs dan alleen die groepen toe aan de applicatie en kies *Groups assigned to the application*.
 5. Vul de `KB_OIDC_*`-variabelen in; [.env.voorbeeld](../.env.voorbeeld) bevat de Entra-endpoints. Gebruik `KB_OIDC_GEBRUIKERSNAAM_CLAIM=oid`, de onveranderlijke object-ID van de gebruiker.
-6. Zet de object-ID van de groep functioneel beheerders in `KB_BEHEERDERS_GROEPEN`.
+6. Zet de object-ID van de groep functioneel beheerders in `KB_BEHEERDERS_GROEPEN`. Dit is in OIDC-modus de enige weg naar beheerdersrechten: een met `createsuperuser` aangemaakt account kan niet inloggen, omdat wachtwoord-inloggen dan volledig uit staat.
 
 Elke andere identity provider die OpenID Connect spreekt werkt ook.
 
@@ -69,7 +69,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.4.0
+  registry.example.nl/kennisbank:1.4.1
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -111,7 +111,7 @@ Het formaat staat in [importformaat](importformaat.md). Een export maak je met `
 
 **Schalen.** De container is stateless: meer replica's of `KB_WORKERS` verhogen. De limiet op vragen aan de assistent wordt per worker bijgehouden. Bij veel replica's is die dus ruimer dan ingesteld; is dat een probleem, begrens dan ook op de ingress.
 
-**Afhankelijkheden.** Alle Python-pakketten staan vast in [requirements.txt](../requirements.txt). De CI-pipeline draait `pip-audit` op bekende kwetsbaarheden en maakt een SBOM (CycloneDX). Django 5.2 is een LTS-versie met beveiligingsupdates tot april 2028.
+**Afhankelijkheden.** Alle Python-pakketten staan vast in [requirements.txt](../requirements.txt). De CI-pipeline draait `pip-audit` op bekende kwetsbaarheden en maakt een SBOM (CycloneDX) met `python scripts/maak_sbom.py`; die bevat ook de meegeleverde browserbibliotheek (de editor Jodit, zie `kennisbank/static/kennisbank/vendor/componenten.json`). Jodit valt niet onder `pip-audit`; controleer bij elke release op [npm](https://www.npmjs.com/package/jodit) of er een nieuwere versie met beveiligingsfixes is en vervang dan `jodit.min.js`/`jodit.min.css` (map `es2021/` van het npm-pakket) en de versie in `componenten.json`. Django 5.2 is een LTS-versie met beveiligingsupdates tot april 2028.
 
 ## Problemen oplossen
 

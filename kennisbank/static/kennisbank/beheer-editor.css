@@ -9,8 +9,8 @@
 .jodit-wysiwyg section.sectie>h2.sectie-kop{background:#154273;color:#fff;margin:0 -14px 12px;padding:8px 14px;border-radius:5px 5px 0 0;font-size:1rem;font-weight:700;min-height:1.4em}
 .jodit-wysiwyg section.sectie>h2.sectie-kop:empty::before,.jodit-wysiwyg section.sectie>h2.sectie-kop:has(>br:only-child)::before{content:"Sectiekop titel";color:#b9c9de;font-weight:400}
 .jodit-wysiwyg section.sectie div.onboarding{margin-left:12px;margin-right:12px}
-.jodit-wysiwyg ul{list-style:disc outside;padding-left:28px;margin:6px 0 10px}
-.jodit-wysiwyg ol{list-style:decimal outside;padding-left:28px;margin:6px 0 10px}
+form .aligned .jodit-wysiwyg ul,.jodit-wysiwyg ul{list-style:disc outside;padding-left:28px;margin:6px 0 10px}
+form .aligned .jodit-wysiwyg ol,.jodit-wysiwyg ol{list-style:decimal outside;padding-left:28px;margin:6px 0 10px}
 .jodit-wysiwyg ul>li{list-style-type:disc!important;font-size:inherit;line-height:inherit;padding:0;margin:2px 0}
 .jodit-wysiwyg ol>li{list-style-type:decimal!important;font-size:inherit;line-height:inherit;padding:0;margin:2px 0}
 .jodit-wysiwyg ul ul>li{list-style-type:circle!important}

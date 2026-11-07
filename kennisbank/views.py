@@ -1,9 +1,10 @@
 from django.conf import settings
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
-from django.db import connection
-from django.http import Http404, HttpResponse, JsonResponse
+from django.contrib.auth.views import redirect_to_login
+from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import render
+from django.template.loader import render_to_string
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
 
@@ -58,8 +59,6 @@ def oude_artikel_link(request, slug):
 def login_voltooid(request):
     """Wordt in een popup geopend vanuit de ingebedde weergave; meldt de login terug aan het iframe."""
     if not request.user.is_authenticated:
-        from django.contrib.auth.views import redirect_to_login
-
         return redirect_to_login("/login-voltooid/")
     return render(request, "kennisbank/login_voltooid.html")
 
@@ -80,16 +79,23 @@ class Inloggen(auth_views.LoginView):
         return ctx
 
 
-def healthz(request):
-    """Liveness: het proces draait."""
-    return HttpResponse("ok", content_type="text/plain")
+def beheer_login_via_idp(request):
+    """In OIDC-modus heeft het beheer geen eigen inlogscherm: altijd via de identity provider."""
+    from django.shortcuts import redirect
+    from django.utils.http import url_has_allowed_host_and_scheme
 
-
-def readyz(request):
-    """Readiness: de database is bereikbaar en gemigreerd."""
-    try:
-        with connection.cursor() as c:
-            c.execute("SELECT 1 FROM kennisbank_omgeving LIMIT 1")
-    except Exception as e:  # noqa: BLE001
-        return JsonResponse({"status": "niet gereed", "reden": type(e).__name__}, status=503)
-    return JsonResponse({"status": "gereed"})
+    volgende = request.GET.get("next") or "/beheer/"
+    if not url_has_allowed_host_and_scheme(volgende, allowed_hosts=None):  # alleen paden op deze site
+        volgende = "/beheer/"
+    if not request.user.is_authenticated:
+        return redirect_to_login(volgende)
+    if request.user.is_staff:
+        return redirect(volgende)
+    # Ingelogd, maar geen redacteur of beheerder: geen loginscherm tonen (zou een lus geven), maar uitleggen.
+    return HttpResponseForbidden(
+        render_to_string(
+            "kennisbank/geen_beheer.html",
+            {"app_naam": settings.KB_APP_NAAM, "gebruiker": request.user.get_username(), "uitlog_url": "/oidc/logout/"},
+            request=request,
+        )
+    )

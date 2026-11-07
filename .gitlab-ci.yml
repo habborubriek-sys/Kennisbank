@@ -20,7 +20,7 @@ test:
     - python manage.py makemigrations --check --dry-run
     - python manage.py test kennisbank
     - pip-audit -r requirements.txt
-    - cyclonedx-py requirements requirements.txt -o sbom.cdx.json
+    - python scripts/maak_sbom.py
   artifacts:
     paths: [sbom.cdx.json]
 

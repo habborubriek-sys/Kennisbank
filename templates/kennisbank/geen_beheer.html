@@ -1,0 +1,16 @@
+{% load static %}<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Geen toegang tot het beheer – {{ app_naam }}</title>
+<link rel="icon" href="{% static 'kennisbank/favicon.svg' %}" type="image/svg+xml">
+<link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}"><link rel="stylesheet" href="{% static 'kennisbank/app.css' %}"></head>
+<body>
+<header class="top"><div class="brand"><span class="mark" aria-hidden="true">K</span>{{ app_naam }}</div></header>
+<main class="main" id="main">
+  <div class="modal login">
+    <h1>Geen toegang tot het beheer</h1>
+    <p>Je bent ingelogd als <b>{{ gebruiker }}</b>, maar je bent in geen enkele omgeving redacteur of beheerder. Het beheer is alleen voor procesmanagement en functioneel beheer.</p>
+    <p class="hint">Hoor je wel redacteur te zijn? Vraag dan functioneel beheer om je groep aan de omgeving te koppelen, en log daarna opnieuw in.</p>
+    <form method="post" action="{{ uitlog_url }}" class="row">{% csrf_token %}<a class="tb primary" href="/">Naar de kennisbank</a> <button type="submit" class="tb">Uitloggen</button></form>
+  </div>
+</main>
+</body></html>

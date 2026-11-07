@@ -11,5 +11,5 @@ Voeg vóór publicatie de officiële licentietekst toe aan dit bestand.
 Onderdelen van derden:
 - Lettertypes Source Sans 3 en Source Serif 4: SIL Open Font License 1.1
   (kennisbank/static/kennisbank/fonts/OFL-LICENSE.txt)
-- Jodit 4.2.47 (editor in het beheerscherm): MIT (kennisbank/static/kennisbank/vendor/jodit/LICENSE.txt)
+- Jodit 4.18.12 (editor in het beheerscherm): MIT (kennisbank/static/kennisbank/vendor/jodit/LICENSE.txt)
 - Python-pakketten: zie requirements.txt en sbom.cdx.json voor naam, versie en licentie.

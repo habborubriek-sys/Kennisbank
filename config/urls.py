@@ -27,15 +27,25 @@ api_v1 = [
     re_path(r"^.*$", api.niet_gevonden),
 ]
 
+if settings.KB_AUTH_MODUS == "oidc":
+    # Geen wachtwoordschermen: het inlogscherm van het beheer stuurt door naar de identity provider,
+    # en /inloggen/ bestaat niet. Zie ook AUTHENTICATION_BACKENDS in settings.py.
+    inloggen = [
+        path("beheer/login/", views.beheer_login_via_idp),
+        path("oidc/", include("mozilla_django_oidc.urls")),
+    ]
+else:
+    inloggen = [
+        path("inloggen/", views.Inloggen.as_view(), name="inloggen"),
+    ]
+
 urlpatterns = [
-    path("healthz", views.healthz),
-    path("readyz", views.readyz),
+    # /healthz en /readyz worden beantwoord door kennisbank.gezondheid.GezondheidMiddleware (vóór de hostnaam-controle).
     path("api/v1/", include(api_v1)),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularRedocView.as_view(url_name="schema"), name="api-docs"),
+    *inloggen,
     path("beheer/", admin.site.urls),
-    path("oidc/", include("mozilla_django_oidc.urls")),
-    path("inloggen/", views.Inloggen.as_view(), name="inloggen"),
     path("uitloggen/", LogoutView.as_view(), name="uitloggen"),
     path("login-voltooid/", views.login_voltooid, name="login-voltooid"),
     path("demo/zaaksysteem/", views.demo_zaaksysteem, name="demo-zaaksysteem"),

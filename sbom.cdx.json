@@ -584,6 +584,27 @@
       "purl": "pkg:pypi/whitenoise@6.12.0",
       "type": "library",
       "version": "6.12.0"
+    },
+    {
+      "bom-ref": "vendor-jodit",
+      "type": "library",
+      "name": "jodit",
+      "version": "4.18.12",
+      "purl": "pkg:npm/jodit@4.18.12",
+      "description": "Editor met Word-achtige opmaak in het beheerscherm",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://www.npmjs.com/package/jodit"
+        }
+      ]
     }
   ],
   "dependencies": [
@@ -706,7 +727,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2026-11-05T22:28:32.536100+00:00",
+    "timestamp": "2026-11-07T17:49:09.737789+00:00",
     "tools": {
       "components": [
         {
@@ -810,7 +831,7 @@
       ]
     }
   },
-  "serialNumber": "urn:uuid:e9568d96-dfb0-4042-94c4-4b8716f6fa32",
+  "serialNumber": "urn:uuid:bd246d86-59d6-463b-893b-d33329c88108",
   "version": 1,
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",

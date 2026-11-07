@@ -77,7 +77,7 @@ Alle controles zitten op één plek ([kennisbank/rechten.py](../kennisbank/recht
 
 ## Belangrijke stromen
 
-**Artikel lezen.** De frontend haalt `GET /api/v1/artikelen/<slug>` op en meldt `POST …/weergave`. Dat verhoogt de anonieme dagtelling en zet het artikel bovenaan in "recent bezocht" van de gebruiker.
+**Artikel lezen.** De frontend haalt `GET /api/v1/artikelen/<id>` op en meldt `POST …/weergave`. Dat verhoogt de anonieme dagtelling en zet het artikel bovenaan in "recent bezocht" van de gebruiker.
 
 **Publiceren.** Een redacteur bewerkt in `/beheer/`. Bij opslaan met status *gepubliceerd* vergelijkt de applicatie de inhoud met de laatste versie. Bij verschil ontstaat versie *n+1* met de opgegeven toelichting. Ongewijzigd opslaan maakt geen versie.
 

@@ -31,7 +31,7 @@ jobs:
       - name: Kwetsbaarheden in afhankelijkheden
         run: pip-audit -r requirements.txt
       - name: SBOM (CycloneDX)
-        run: cyclonedx-py requirements requirements.txt -o sbom.cdx.json
+        run: python scripts/maak_sbom.py
       - uses: actions/upload-artifact@v4
         with: {name: sbom, path: sbom.cdx.json}
 
@@ -49,7 +49,13 @@ jobs:
           docker run -d --name app --network kb -p 8000:8000 \
             -e KB_DATABASE_URL=postgres://kennisbank:kennisbank@db:5432/kennisbank \
             -e KB_SECRET_KEY=ci-test-sleutel -e KB_DEMO_MODUS=aan -e KB_COOKIES_SECURE=nee \
+            -e KB_ALLOWED_HOSTS=kennisbank.example.nl \
             kennisbank:${{ github.sha }}
-          for i in $(seq 1 30); do curl -fs localhost:8000/readyz && break; sleep 2; done
-          curl -fs localhost:8000/readyz
+          # Probes komen binnen met een Host die niet in KB_ALLOWED_HOSTS staat; dat moet toch 200 geven.
+          for i in $(seq 1 30); do curl -fs -H "Host: 10.0.0.1" localhost:8000/readyz && break; sleep 2; done
+          curl -fs -H "Host: 10.0.0.1" localhost:8000/readyz
+          curl -fs -H "Host: 10.0.0.1" localhost:8000/healthz
+          # Met de juiste hostnaam is de app bereikbaar; met een vreemde niet (400).
+          curl -fs -o /dev/null -H "Host: kennisbank.example.nl" localhost:8000/ || exit 1
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: 10.0.0.1' localhost:8000/)" = "400"
           docker logs app | tail -20
