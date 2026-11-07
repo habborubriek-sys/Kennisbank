@@ -53,7 +53,40 @@ def herbouw_secties(artikel: Artikel) -> int:
     ]
     artikel.secties.all().delete()
     Sectie.objects.bulk_create(rijen)
+    werk_zoekvectoren_bij(artikel.pk)
     return len(rijen) - 1
+
+
+# Zoekdocumenten in PostgreSQL. Dezelfde SQL staat (bevroren) in migratie 0007 voor de eerste vulling.
+# Secties: artikeltitel en kop wegen het zwaarst, dan de sectietekst, dan de samenvatting.
+# Artikel: titel en tags het zwaarst, dan samenvatting, dan alle sectieteksten.
+_SQL_SECTIE_VECTOR = """
+UPDATE kennisbank_sectie s SET zoekvector =
+    setweight(to_tsvector('dutch', a.titel), 'A')
+ || setweight(to_tsvector('dutch', coalesce(s.kop, '')), 'A')
+ || setweight(to_tsvector('dutch', coalesce(s.inhoud, '')), 'B')
+ || setweight(to_tsvector('dutch', coalesce(a.samenvatting, '')), 'D')
+FROM kennisbank_artikel a WHERE a.id = s.artikel_id AND a.id = %s
+"""
+_SQL_ARTIKEL_VECTOR = """
+UPDATE kennisbank_artikel a SET zoekvector =
+    setweight(to_tsvector('dutch', a.titel), 'A')
+ || setweight(to_tsvector('dutch', coalesce((SELECT string_agg(t.naam, ' ') FROM kennisbank_artikel_tags at
+        JOIN kennisbank_tag t ON t.id = at.tag_id WHERE at.artikel_id = a.id), '')), 'A')
+ || setweight(to_tsvector('dutch', coalesce(a.samenvatting, '')), 'B')
+ || setweight(to_tsvector('dutch', coalesce((SELECT string_agg(coalesce(s.kop, '') || ' ' || coalesce(s.inhoud, ''),
+        ' ') FROM kennisbank_sectie s WHERE s.artikel_id = a.id), '')), 'C')
+WHERE a.id = %s
+"""
+
+
+def werk_zoekvectoren_bij(artikel_id: int) -> None:
+    """Zet de opgeslagen zoekdocumenten van het artikel en zijn secties opnieuw (na wijziging van inhoud of tags)."""
+    from django.db import connection
+
+    with connection.cursor() as c:
+        c.execute(_SQL_SECTIE_VECTOR, [artikel_id])
+        c.execute(_SQL_ARTIKEL_VECTOR, [artikel_id])
 
 
 @transaction.atomic
@@ -108,9 +141,7 @@ def registreer_zoekopdracht(term: str, aantal_resultaten: int, omgevingen):
     if len(term) < 2:
         return
     for omgeving_id in omgevingen:
-        telling, _ = ZoekTelling.objects.get_or_create(
-            omgeving_id=omgeving_id, term=term, datum=timezone.localdate()
-        )
+        telling, _ = ZoekTelling.objects.get_or_create(omgeving_id=omgeving_id, term=term, datum=timezone.localdate())
         ZoekTelling.objects.filter(pk=telling.pk).update(
             aantal=F("aantal") + 1,
             zonder_resultaat=F("zonder_resultaat") + (1 if aantal_resultaten == 0 else 0),

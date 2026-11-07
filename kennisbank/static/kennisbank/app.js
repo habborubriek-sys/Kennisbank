@@ -11,6 +11,7 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const body = document.body;
   const EMBED = body.dataset.embed === "1";
+  const DEMO = body.dataset.demo === "1";
   const ZAAKTYPE = body.dataset.zaaktype || "";
 
   function cookie(naam) {
@@ -315,7 +316,7 @@
   async function registreerWeergave(id) {
     try {
       await api("artikelen/" + id + "/weergave", { method: "POST" });
-      ik.recent = [{ id, bezocht_op: new Date().toISOString() }, ...ik.recent.filter((r) => r.id !== id)].slice(0, 10);
+      ik.recent = [{ id, bezocht_op: new Date().toISOString() }, ...ik.recent.filter((r) => r.id !== id)].slice(0, ik.recent_max || 10);
       renderFilters();
     } catch (e) { /* statistiek is niet kritisch */ }
   }
@@ -352,6 +353,9 @@
 
   function wireArticle() {
     const a = huidigArtikel;
+    // Externe links in de artikeltekst openen in een nieuw tabblad, zodat de kennisbank (en het
+    // zaaksysteem waarin hij ingebed kan zijn) niet wordt weggenavigeerd.
+    $$(".art .sections a[href]").forEach((l) => { if (l.origin !== location.origin) { l.target = "_blank"; l.rel = "noopener noreferrer"; } });
     $("#back").addEventListener("click", () => {
       state.artikel = null; huidigArtikel = null;
       if (EMBED) { state.view = "zaaktype"; render(true); } else if (history.length > 1 && document.referrer.startsWith(location.origin)) history.back(); else ga(state.view);
@@ -589,9 +593,10 @@
     await laadVoorstellen();
     if (EMBED) state.view = "zaaktype"; else leesUrl();
     if (state.view === "statistieken" && !isPM()) state.view = "artikelen";
+    // Voorbeeldvragen: in het zaaksysteem algemeen; daarbuiten alleen in de demo (die horen bij de demo-inhoud).
     const suggesties = EMBED && ZAAKTYPE
       ? ["Waar moet ik op letten bij dit zaaktype?", "Welke termijnen gelden hier?"]
-      : ["Wanneer stuur ik een tweede rappel?", "Welke velden zijn verplicht bij een melding?", "Wat doe ik met een zwerfboot in de vaargeul?"];
+      : DEMO ? ["Wanneer stuur ik een tweede rappel?", "Welke velden zijn verplicht bij een melding?", "Wat doe ik met een zwerfboot in de vaargeul?"] : [];
     suggesties.forEach((s) => { const b = document.createElement("button"); b.type = "button"; b.textContent = s; b.addEventListener("click", () => botAnswer(s)); $("#sugg").appendChild(b); });
     addMsg("<p>Hallo! Stel je vraag over een werkinstructie of werkafspraak. Ik zoek het antwoord in de kennisbank en verwijs je naar het juiste artikel.</p>", "bot");
     render();

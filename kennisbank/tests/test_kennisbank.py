@@ -19,6 +19,7 @@ from kennisbank.models import (
     RecentBezocht,
     Rol,
     Status,
+    Tag,
     Toegang,
     Verbetervoorstel,
     WeergaveTelling,
@@ -96,9 +97,56 @@ class RechtenTests(Basis):
         r = self.client.get("/")
         self.assertEqual(r.status_code, 302)
 
+    def test_assistent_wordt_begrensd(self):
+        from rest_framework.throttling import UserRateThrottle
+
+        from kennisbank.api import AssistentThrottle
+
+        UserRateThrottle.cache.clear()
+        krap = {"assistent": "3/min", "voorstel": "20/hour"}
+        with self.settings(REST_FRAMEWORK={**settings.REST_FRAMEWORK, "DEFAULT_THROTTLE_RATES": krap}):
+            AssistentThrottle.THROTTLE_RATES = krap
+            try:
+                codes = [
+                    self.als(self.lezer)
+                    .post("/api/v1/assistent", {"vraag": "rappel"}, content_type="application/json")
+                    .status_code
+                    for _ in range(5)
+                ]
+            finally:
+                AssistentThrottle.THROTTLE_RATES = settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]
+        self.assertEqual(codes, [200, 200, 200, 429, 429])
+        UserRateThrottle.cache.clear()
+
     def test_statistieken_alleen_voor_redacteur(self):
         self.assertEqual(self.als(self.lezer).get("/api/v1/statistieken").status_code, 403)
         self.assertEqual(self.als(self.redacteur).get("/api/v1/statistieken").status_code, 200)
+        r = self.client.get("/api/v1/statistieken?dagen=abc")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("dagen", r.json())
+
+    def test_onboarding_voorkeur_is_echte_jaofnee(self):
+        c = self.als(self.lezer)
+        r = c.patch("/api/v1/ik", {"onboarding": "nee"}, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("onboarding", r.json())
+        self.assertFalse(
+            c.patch("/api/v1/ik", {"onboarding": "false"}, content_type="application/json").json()["onboarding"]
+        )
+        self.assertTrue(
+            c.patch("/api/v1/ik", {"onboarding": True}, content_type="application/json").json()["onboarding"]
+        )
+
+    def test_tag_hernoemen_werkt_door_in_zoeken(self):
+        c = self.als(self.lezer)
+        tag = Tag.objects.get(naam="mailbox")
+        pk = pk_van("mailbox")
+        self.assertIn(pk, [x["id"] for x in c.get("/api/v1/artikelen?q=mailbox").json()])
+        tag.naam = "postvak"
+        tag.save()
+        self.assertIn(pk, [x["id"] for x in c.get("/api/v1/artikelen?q=postvak").json()])
+        tag.delete()
+        self.assertNotIn(pk, [x["id"] for x in c.get("/api/v1/artikelen?q=postvak").json()])
 
     def test_redacteur_krijgt_toegang_tot_beheer(self):
         # is_staff volgt automatisch uit groepen + Toegang (signalen), zonder opnieuw inloggen.
@@ -266,7 +314,9 @@ class AssistentTests(Basis):
         )
         a.save()
         diensten.herbouw_secties(a)
-        antwoord = {"choices": [{"message": {"content": "Zie [1] en [kwaad](http://kwaad.example) <a href='http://x'>x</a>."}}]}
+        antwoord = {
+            "choices": [{"message": {"content": "Zie [1] en [kwaad](http://kwaad.example) <a href='http://x'>x</a>."}}]
+        }
         with mock.patch("kennisbank.assistent.httpx.post") as post:
             post.return_value = mock.Mock(json=lambda: antwoord, raise_for_status=lambda: None)
             r = self.vraag("rappel sturen", zaaktype="Melding<script>")
@@ -311,15 +361,33 @@ class VoorstelTests(Basis):
         self.assertEqual(r.status_code, 201)
         vid = r.json()["id"]
         self.assertEqual(r.json()["artikel_versie"], 1)
-        # Lezer mag niet behandelen
+        # Lezer mag niet behandelen (404: verraadt niet dat het voorstel bestaat)
         self.assertEqual(
             self.client.patch(
                 f"/api/v1/voorstellen/{vid}",
                 {"status": "verwerkt", "terugkoppeling": "ok"},
                 content_type="application/json",
             ).status_code,
-            403,
+            404,
         )
+        # Redacteur van een andere omgeving ook niet (404)
+        anders_redactie = Group.objects.create(name="anders-redactie")
+        Toegang.objects.create(omgeving=self.anders, groep=anders_redactie, rol=Rol.REDACTEUR)
+        self.buitenstaander.groups.add(anders_redactie)
+        self.assertEqual(
+            self.als(self.buitenstaander)
+            .patch(f"/api/v1/voorstellen/{vid}", {"status": "verwerkt"}, content_type="application/json")
+            .status_code,
+            404,
+        )
+        # Alleen de status wijzigen mag; een lege PATCH verandert niets.
+        r = self.als(self.redacteur).patch(f"/api/v1/voorstellen/{vid}", {}, content_type="application/json")
+        self.assertEqual(r.status_code, 200)
+        self.assertIsNone(Verbetervoorstel.objects.get(pk=vid).behandeld_op)
+        r = self.client.patch(
+            f"/api/v1/voorstellen/{vid}", {"status": "in_behandeling"}, content_type="application/json"
+        )
+        self.assertEqual(r.json()["status"], "in_behandeling")
         r = self.als(self.redacteur).patch(
             f"/api/v1/voorstellen/{vid}",
             {"status": "verwerkt", "terugkoppeling": "Aangepast"},
@@ -341,7 +409,15 @@ class VoorstelTests(Basis):
         r = self.als(self.lezer).post(
             "/api/v1/voorstellen", {"artikel": self.concept.pk, "tekst": "x"}, content_type="application/json"
         )
-        self.assertEqual(r.status_code, 403)
+        # Dezelfde fout als voor een onbestaand artikel: geen bestaansorakel.
+        onbestaand = self.client.post(
+            "/api/v1/voorstellen", {"artikel": 999999, "tekst": "x"}, content_type="application/json"
+        )
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(onbestaand.status_code, 400)
+        self.assertEqual(
+            str(r.json()).replace(str(self.concept.pk), "N"), str(onbestaand.json()).replace("999999", "N")
+        )
 
     @override_settings(KB_EMAIL_AAN=True)
     def test_mail_naar_redacteuren(self):
@@ -406,10 +482,42 @@ class GebruikTests(Basis):
             status="verwerkt",
             behandeld_op=timezone.now() - timezone.timedelta(days=400),
         )
+        from django.contrib.sessions.models import Session
+
+        dag = timezone.timedelta(days=1)
+        Session.objects.create(session_key="verlopen", session_data="x", expire_date=timezone.now() - dag)
+        Session.objects.create(session_key="geldig", session_data="x", expire_date=timezone.now() + dag)
         call_command("kennisbank_opschonen", stdout=open("/dev/null", "w"))
         self.assertFalse(RecentBezocht.objects.exists())
         v.refresh_from_db()
         self.assertIsNone(v.ingediend_door)
+        self.assertEqual(list(Session.objects.values_list("session_key", flat=True)), ["geldig"])
+
+    def test_api_token_verloopt(self):
+        from io import StringIO
+
+        from rest_framework.authtoken.models import Token
+
+        uit = StringIO()
+        call_command("kennisbank_token", "lezer", stdout=uit)
+        sleutel = uit.getvalue().strip().splitlines()[-1]
+        self.client.logout()
+        kop = {"HTTP_AUTHORIZATION": f"Token {sleutel}"}
+        self.assertEqual(self.client.get("/api/v1/ik", **kop).status_code, 200)
+        Token.objects.filter(key=sleutel).update(created=timezone.now() - timezone.timedelta(days=400))
+        r = self.client.get("/api/v1/ik", **kop)
+        self.assertEqual(r.status_code, 401)
+        self.assertIn("verlopen", r.json()["detail"])
+        with self.settings(KB_API_TOKEN_MAX_DAGEN=0):
+            self.assertEqual(self.client.get("/api/v1/ik", **kop).status_code, 200)
+        # Vernieuwen trekt het oude token in.
+        uit = StringIO()
+        call_command("kennisbank_token", "lezer", stdout=uit)
+        nieuw = uit.getvalue().strip().splitlines()[-1]
+        self.assertEqual(self.client.get("/api/v1/ik", **kop).status_code, 401)
+        self.assertEqual(self.client.get("/api/v1/ik", HTTP_AUTHORIZATION=f"Token {nieuw}").status_code, 200)
+        call_command("kennisbank_token", "lezer", "--intrekken", stdout=StringIO())
+        self.assertEqual(self.client.get("/api/v1/ik", HTTP_AUTHORIZATION=f"Token {nieuw}").status_code, 401)
 
 
 class InhoudTests(TestCase):
@@ -421,7 +529,8 @@ class InhoudTests(TestCase):
         self.assertIn("<strong>vet</strong>", html)
         self.assertIn("<u>onder</u>", html)
         self.assertIn('<div class="onboarding"><p>u</p></div>', html)
-        self.assertIn("<div>v</div>", html)
+        self.assertIn(" v", html)  # kale div wordt uitgepakt
+        self.assertNotIn("<div>", html)
         for verboden in ("<script", "javascript:", "onerror", "onclick", "<img"):
             self.assertNotIn(verboden, html)
         self.assertEqual(schoon(html), html)
@@ -430,6 +539,18 @@ class InhoudTests(TestCase):
         html = '<p>a</p><div class="onboarding"><p>u1</p></div><p>b</p><div class="onboarding"><p>u2</p></div>'
         self.assertEqual(onboarding_blokken(html), ["<p>u1</p>", "<p>u2</p>"])
         self.assertEqual(zonder_onboarding(html), "<p>a</p><p>b</p>")
+
+    def test_geneste_div_in_onboarding(self):
+        """Een kale <div> (uit plakken) of een onboarding-blok in een onboarding-blok mag de tekst niet
+        laten 'lekken' naar de assistent of de lezer zonder onboarding."""
+        html = (
+            '<div class="onboarding"><div><p>uitleg</p><div class="onboarding"><p>dubbel</p></div></div></div>'
+            "<p>na</p><div><p>kaal</p></div><span>s</span>"
+        )
+        self.assertEqual(schoon(html), '<div class="onboarding"><p>uitleg</p><p>dubbel</p></div><p>na</p><p>kaal</p>s')
+        self.assertEqual(onboarding_blokken(html), ["<p>uitleg</p><p>dubbel</p>"])
+        self.assertEqual(zonder_onboarding(html), "<p>na</p><p>kaal</p>s")
+        self.assertNotIn("uitleg", zonder_onboarding(html))
 
     def test_oude_markdown_import_wordt_html(self):
         data = json.loads(json.dumps(DEMO))
@@ -482,7 +603,7 @@ class InhoudTests(TestCase):
         self.assertEqual(
             schoon(html),
             '<p>a</p><p><br></p><p>b</p><section class="sectie"><h2 class="sectie-kop">S</h2><p><br></p><p>c</p>'
-            '<p><br></p><p>d</p><p><br></p></section><p><br></p>'
+            "<p><br></p><p>d</p><p><br></p></section><p><br></p>"
             '<section class="sectie"><h2 class="sectie-kop">T</h2><p>e</p></section><p>toch tekst</p>',
         )
         self.assertEqual(schoon(schoon(html)), schoon(html))
@@ -524,6 +645,17 @@ class InhoudTests(TestCase):
         self.assertEqual(a.slug, "gezamenlijke-mailbox-wie-pakt-wat-op")
         self.assertNotEqual(a.pk, b.pk)
         self.assertNotEqual(a.get_absolute_url(), b.get_absolute_url())
+
+    def test_import_weigert_ongeldige_slug(self):
+        import copy
+
+        from kennisbank.uitwisseling import ImportFout
+
+        data = copy.deepcopy(DEMO)
+        data["artikelen"][0]["slug"] = "Met Spaties/En Hoofdletters"
+        with self.assertRaises(ImportFout) as cm:
+            importeer(data)
+        self.assertIn("slug", str(cm.exception))
 
     def test_import_export_rondgang(self):
         importeer(DEMO)
@@ -575,8 +707,12 @@ class OIDCTests(TestCase):
             "'mw': settings.MIDDLEWARE, 'ververs': settings.OIDC_RENEW_ID_TOKEN_EXPIRY_SECONDS}))"
         )
         uit = subprocess.run(  # noqa: S603 - vaste argumenten
-            [sys.executable, "-c", code], env=env, cwd=pathlib.Path(__file__).resolve().parents[2],
-            capture_output=True, text=True, check=True,
+            [sys.executable, "-c", code],
+            env=env,
+            cwd=pathlib.Path(__file__).resolve().parents[2],
+            capture_output=True,
+            text=True,
+            check=True,
         )
         gegevens = json.loads(uit.stdout.strip().splitlines()[-1])
         self.assertEqual(gegevens["b"], ["kennisbank.auth.KennisbankOIDCBackend"])
@@ -655,7 +791,7 @@ class InfraTests(TestCase):
         for bestand, patroon in verwacht.items():
             tekst = (wortel / bestand).read_text()
             self.assertRegex(tekst, re.compile(patroon, re.M), f"{bestand} noemt niet versie {__version__}")
-        self.assertEqual(self.client.get("/api/schema/").status_code, 403)  # anoniem: niet
+        self.assertEqual(self.client.get("/api/schema/").status_code, 401)  # anoniem: niet
         self.client.force_login(User.objects.create_user("v"))
         self.assertIn(f"version: {__version__}", self.client.get("/api/schema/").content.decode())
         self.assertEqual(self.client.get("/api/docs/").status_code, 200)
@@ -800,9 +936,7 @@ class WordImportTests(Basis):
         uit.seek(0)
         a = lees_docx(uit, "test.docx")
         # Lege regels blijven (drie worden er één); begin en einde van het document niet.
-        self.assertEqual(
-            a.inhoud, f"<p>a</p><p><br></p><p>b</p><p>plaatje: <em>{AFBEELDING_MARKERING}</em></p>"
-        )
+        self.assertEqual(a.inhoud, f"<p>a</p><p><br></p><p>b</p><p>plaatje: <em>{AFBEELDING_MARKERING}</em></p>")
         self.assertEqual(a.afbeeldingen_overgeslagen, 1)
         self.assertEqual(len(a.meldingen), 1)
 
@@ -908,6 +1042,34 @@ class WordImportTests(Basis):
         r = c.post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data)
         self.assertEqual(r.status_code, 302, r.content[:500])
         self.assertEqual(sorted(a.tags.values_list("naam", flat=True)), ["mailbox", "nieuwe tag"])
+        # Nieuwe tag is direct vindbaar: het zoekdocument is ná het zetten van de tags bijgewerkt.
+        self.assertIn(a.pk, [x["id"] for x in c.get("/api/v1/artikelen?q=nieuwe+tag").json()])
+
+    def test_beheer_weigert_andere_omgeving(self):
+        """Een redacteur van 'handhaving' kan via het beheer geen artikel in 'anders' maken of verplaatsen."""
+        c = self.als(self.redacteur)
+        data = {
+            "titel": "Smokkel",
+            "samenvatting": "x",
+            "inhoud": "<p>x</p>",
+            "soort": "werkinstructie",
+            "omgeving": self.anders.pk,
+            "eigenaar": "pm",
+            "status": "concept",
+            "tags_tekst": "",
+            "wijzigingstoelichting": "",
+            "versies-TOTAL_FORMS": "0",
+            "versies-INITIAL_FORMS": "0",
+        }
+        r = c.post("/beheer/kennisbank/artikel/add/", data)
+        self.assertEqual(r.status_code, 200)  # formulier opnieuw, met fout
+        self.assertFalse(Artikel.objects.filter(titel="Smokkel").exists())
+        # Bestaand artikel van 'anders' is niet te openen of te bewerken.
+        vreemd = Artikel.objects.create(omgeving=self.anders, titel="Van anderen", samenvatting="x")
+        self.assertIn(c.get(f"/beheer/kennisbank/artikel/{vreemd.pk}/change/").status_code, (302, 403, 404))
+        data.update(omgeving=self.anders.pk, titel="Gekaapt")
+        c.post(f"/beheer/kennisbank/artikel/{vreemd.pk}/change/", data)
+        self.assertEqual(Artikel.objects.get(pk=vreemd.pk).titel, "Van anderen")
 
 
 class VoorbeeldTests(Basis):

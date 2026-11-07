@@ -15,6 +15,7 @@ Een artikel is één tekst. Daarin:
   tussen kunt typen. Die vervalt bij het opslaan. Elke andere lege regel is bewust en blijft staan.
 """
 
+import html as _html
 import re
 
 import nh3
@@ -122,8 +123,42 @@ def schoon(html: str) -> str:
     schoon_html = re.sub(rf'<p class="{TUSSENRUIMTE_KLASSE}">', "<p>", schoon_html)
     schoon_html = re.sub(r"<p>(\s|&nbsp;|<br>)*</p>", "<p><br></p>", schoon_html)
     schoon_html = schoon_html.replace('<div class="">', "<div>").replace('<p class="">', "<p>")
+    schoon_html = _ontwar_divs(schoon_html)
     schoon_html = _ontnest_secties(schoon_html)
     return schoon_html.strip()
+
+
+def _ontwar_divs(html: str) -> str:
+    """Kale <div>/<span> (zonder toegestane klasse) worden uitgepakt en een onboarding-blok in een
+    onboarding-blok wordt één blok. Daarna heeft elk onboarding-blok geen geneste div meer, zodat
+    de eenvoudige patronen in zonder_onboarding/onboarding_blokken altijd kloppen.
+    Vertrouwt erop dat nh3 de tags gebalanceerd heeft achtergelaten."""
+    uit, stapel, i = [], [], 0
+    in_onboarding = 0
+    for m in re.finditer(r"<(/?)(div|span)(\s[^>]*)?>", html, flags=re.I):
+        uit.append(html[i : m.start()])
+        sluit, tag, attrs = m.group(1), m.group(2).lower(), m.group(3) or ""
+        if not sluit:
+            is_onb = tag == "div" and f'class="{ONBOARDING_KLASSE}"' in attrs
+            houd = is_onb and not in_onboarding
+            if is_onb:
+                in_onboarding += 1
+            stapel.append((tag, houd, is_onb))
+            if houd:
+                uit.append(m.group(0))
+        else:
+            # Sluittag bij de laatst geopende tag van dezelfde soort.
+            for k in range(len(stapel) - 1, -1, -1):
+                if stapel[k][0] == tag:
+                    _, houd, is_onb = stapel.pop(k)
+                    if is_onb:
+                        in_onboarding -= 1
+                    if houd:
+                        uit.append(m.group(0))
+                    break
+        i = m.end()
+    uit.append(html[i:])
+    return "".join(uit)
 
 
 def _ontnest_secties(html: str) -> str:
@@ -170,7 +205,7 @@ def blokken(html: str) -> list[dict]:
         if tussen:
             uit.append({"type": "tekst", "html": tussen})
         n += 1
-        kop = _WIT.sub(" ", _TAG.sub("", m.group(1) or "")).replace("&nbsp;", " ").strip()
+        kop = _html.unescape(_WIT.sub(" ", _TAG.sub("", m.group(1) or "")).replace("&nbsp;", " ")).strip()
         uit.append({"type": "sectie", "nummer": n, "kop": (kop or f"Sectie {n}")[:200], "html": m.group(2).strip()})
         pos = m.end()
     rest = html[pos:].strip()

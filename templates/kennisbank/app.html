@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="{% static 'kennisbank/app.css' %}">
 <script src="{% static 'kennisbank/app.js' %}" defer></script>
 </head>
-<body class="{% if embed %}embed{% endif %}" data-embed="{{ embed|yesno:'1,0' }}" data-zaaktype="{{ zaaktype }}" data-app-naam="{{ app_naam }}">
+<body class="{% if embed %}embed{% endif %}" data-embed="{{ embed|yesno:'1,0' }}" data-demo="{{ demo|yesno:'1,0' }}" data-zaaktype="{{ zaaktype }}" data-app-naam="{{ app_naam }}">
 <a class="skip" href="#main">Naar de inhoud</a>
 <header class="top">
   <div class="brand"><a href="/"><span class="mark" aria-hidden="true">K</span><span>{{ app_naam }}</span></a>{% if demo %} <span class="proto">Demo</span>{% endif %}</div>

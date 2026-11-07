@@ -43,10 +43,10 @@ Het artikeldetail (`GET /api/v1/artikelen/<id>`) geeft de tekst als `blokken[]` 
 
 ```bash
 beheer shell -c "from django.contrib.auth.models import User, Group; u,_=User.objects.get_or_create(username='zaaksysteem'); u.groups.add(Group.objects.get(name='<groep met lezer-rol>'))"
-beheer drf_create_token zaaksysteem
+beheer kennisbank_token zaaksysteem
 ```
 
-Het token geeft dezelfde rechten als dat account: alleen gepubliceerde artikelen in de omgevingen waar het lezer is.
+Het token geeft dezelfde rechten als dat account: alleen gepubliceerde artikelen in de omgevingen waar het lezer is. Tokens **verlopen** na `KB_API_TOKEN_MAX_DAGEN` (standaard een jaar); de API antwoordt dan met 401 en een melding. Vernieuwen is hetzelfde commando (het oude token wordt ingetrokken); intrekken zonder nieuw token: `beheer kennisbank_token zaaksysteem --intrekken`. Plan de rotatie in het beheer in, bijvoorbeeld jaarlijks samen met de certificaten van het zaaksysteem.
 
 ## Wat het zaaksysteem zelf moet doen
 

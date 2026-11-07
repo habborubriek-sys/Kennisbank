@@ -45,7 +45,7 @@ class UpgradeVanaf10Tests(TransactionTestCase):
         )
         ZoekTelling.objects.create(term="rappel", datum="2026-01-01", aantal=5, zonder_resultaat=0)
 
-        nieuw = self._migreer_naar("0006_tellingen_per_omgeving")
+        nieuw = self._migreer_naar("0007_zoekvectoren")
         Artikel = nieuw.get_model("kennisbank", "Artikel")
         Sectie = nieuw.get_model("kennisbank", "Sectie")
         ArtikelVersie = nieuw.get_model("kennisbank", "ArtikelVersie")
@@ -69,3 +69,8 @@ class UpgradeVanaf10Tests(TransactionTestCase):
         self.assertIn(verwacht, v.inhoud["inhoud"])
         self.assertEqual(ZoekTelling.objects.get(term="rappel").omgeving.slug, "handhaving")  # enige omgeving
         self.assertNotIn("<script>", json.dumps(a.inhoud))
+        # De zoekdocumenten zijn gevuld door de migratie, zodat zoeken direct na de upgrade werkt.
+        from django.contrib.postgres.search import SearchQuery
+
+        self.assertTrue(Artikel.objects.filter(zoekvector=SearchQuery("rappel", config="dutch")).exists())
+        self.assertTrue(Sectie.objects.filter(zoekvector=SearchQuery("buddy", config="dutch")).exists())

@@ -6,7 +6,6 @@ Documentatie: /api/schema/ (OpenAPI) en /api/docs/ (interactief).
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
@@ -100,6 +99,15 @@ class ArtikelSerializer(ArtikelKortSerializer):
 
 class VoorstelSerializer(serializers.ModelSerializer):
     artikel = serializers.PrimaryKeyRelatedField(queryset=Artikel.objects.all())
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Alleen artikelen die de gebruiker mag lezen zijn geldig. Een onzichtbaar artikel geeft zo dezelfde
+        # fout als een onbestaand artikel, en verraadt dus niet dat het bestaat.
+        r = (self.context or {}).get("rechten")
+        if r is not None:
+            self.fields["artikel"].queryset = r.artikelen()
+
     artikel_url = serializers.CharField(source="artikel.get_absolute_url", read_only=True)
     artikel_titel = serializers.CharField(source="artikel.titel", read_only=True)
     ingediend_door = serializers.SerializerMethodField()
@@ -200,18 +208,30 @@ def _ctx(request):
 # --- Endpoints ------------------------------------------------------------------------
 
 
+class IkWijzigenSerializer(serializers.Serializer):
+    onboarding = serializers.BooleanField(required=False)
+
+
 @extend_schema(
     summary="Huidige gebruiker (GET) en voorkeuren wijzigen (PATCH)",
-    request=inline_serializer("IkWijzigen", {"onboarding": serializers.BooleanField(required=False)}),
+    request=IkWijzigenSerializer,
     responses=inline_serializer(
         "Ik",
         {
             "naam": serializers.CharField(),
             "is_redacteur": serializers.BooleanField(),
             "onboarding": serializers.BooleanField(),
-            "favorieten": serializers.ListField(),
-            "recent": serializers.ListField(),
+            "favorieten": serializers.ListField(child=serializers.IntegerField(), help_text="Artikel-id's"),
+            "recent": inline_serializer(
+                "RecentBezocht",
+                {"id": serializers.IntegerField(), "bezocht_op": serializers.DateTimeField()},
+                many=True,
+            ),
+            "recent_max": serializers.IntegerField(),
+            "beheer_url": serializers.CharField(allow_null=True),
             "uitlog_url": serializers.CharField(),
+            "ai_aan": serializers.BooleanField(),
+            "app_naam": serializers.CharField(),
         },
     ),
 )
@@ -220,7 +240,9 @@ def ik(request):
     p = diensten.profiel(request.user)
     if request.method == "PATCH":
         if "onboarding" in request.data:
-            p.onboarding = bool(request.data["onboarding"])
+            s = IkWijzigenSerializer(data=request.data)
+            s.is_valid(raise_exception=True)  # 400 {"onboarding": [...]} bij onzin
+            p.onboarding = s.validated_data["onboarding"]
             p.save(update_fields=["onboarding"])
     r = rechten(request)
     zichtbaar = r.gepubliceerde_artikelen()
@@ -242,6 +264,7 @@ def ik(request):
                 )
             ),
             "recent": [{"id": x.artikel_id, "bezocht_op": x.bezocht_op} for x in recent],
+            "recent_max": settings.KB_RECENT_MAX,
             "beheer_url": "/beheer/" if request.user.is_staff else None,
             "uitlog_url": "/oidc/logout/" if settings.KB_AUTH_MODUS == "oidc" else "/uitloggen/",
             "ai_aan": settings.KB_AI_PROVIDER != "uit",
@@ -250,7 +273,22 @@ def ik(request):
     )
 
 
-@extend_schema(summary="Keuzelijsten voor filters (clusters, soorten, tags, zaaktypen)", responses=OpenApiTypes.OBJECT)
+@extend_schema(
+    summary="Keuzelijsten voor filters (clusters, soorten, tags, zaaktypen)",
+    responses=inline_serializer(
+        "Keuzelijsten",
+        {
+            "clusters": serializers.ListField(child=serializers.CharField()),
+            "soorten": inline_serializer(
+                "Soort", {"waarde": serializers.CharField(), "label": serializers.CharField()}, many=True
+            ),
+            "tags": serializers.ListField(child=serializers.CharField()),
+            "zaaktypen": inline_serializer(
+                "ZaaktypeKeuze", {"code": serializers.CharField(), "naam": serializers.CharField()}, many=True
+            ),
+        },
+    ),
+)
 @api_view(["GET"])
 def keuzelijsten(request):
     zichtbaar = rechten(request).gepubliceerde_artikelen()
@@ -324,7 +362,20 @@ def favoriet(request, pk):
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@extend_schema(summary="Versiegeschiedenis van een artikel (redacteuren)", responses=OpenApiTypes.OBJECT)
+@extend_schema(
+    summary="Versiegeschiedenis van een artikel (redacteuren)",
+    responses=inline_serializer(
+        "ArtikelVersie",
+        {
+            "versie": serializers.IntegerField(),
+            "gepubliceerd_op": serializers.DateTimeField(),
+            "gepubliceerd_door": serializers.CharField(allow_null=True),
+            "toelichting": serializers.CharField(),
+            "inhoud": serializers.DictField(help_text="Momentopname: {formaat, titel, samenvatting, inhoud, ...}"),
+        },
+        many=True,
+    ),
+)
 @api_view(["GET"])
 def versies(request, pk):
     a = _artikel_of_404(request, pk)
@@ -345,8 +396,10 @@ def versies(request, pk):
 
 
 class VoorstelBehandelSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=VoorstelStatus.choices)
-    terugkoppeling = serializers.CharField(allow_blank=True, max_length=4000)
+    """PATCH: beide velden optioneel; wat niet wordt meegestuurd blijft staan."""
+
+    status = serializers.ChoiceField(choices=VoorstelStatus.choices, required=False)
+    terugkoppeling = serializers.CharField(allow_blank=True, max_length=4000, required=False)
 
 
 @extend_schema(
@@ -381,33 +434,81 @@ def voorstellen(request):
 )
 @api_view(["PATCH"])
 def voorstel(request, pk):
-    v = get_object_or_404(Verbetervoorstel.objects.select_related("artikel", "ingediend_door"), pk=pk)
-    if not rechten(request).mag_redigeren(v.artikel):
-        raise PermissionDenied
+    v = get_object_or_404(
+        Verbetervoorstel.objects.select_related("artikel", "ingediend_door"),
+        pk=pk,
+        artikel__omgeving_id__in=rechten(request).redactie_omgevingen,  # 404, verraad niet dat het bestaat
+    )
     s = VoorstelBehandelSerializer(data=request.data)
     s.is_valid(raise_exception=True)
-    gewijzigd = (v.status, v.terugkoppeling) != (s.validated_data["status"], s.validated_data["terugkoppeling"])
-    v.status = s.validated_data["status"]
-    v.terugkoppeling = s.validated_data["terugkoppeling"].strip()
-    v.behandeld_door = request.user
-    v.behandeld_op = timezone.now()
-    v.save()
-    if gewijzigd and v.terugkoppeling:
-        diensten.meld_terugkoppeling(v)
+    nieuwe_status = s.validated_data.get("status", v.status)
+    nieuwe_terugkoppeling = s.validated_data.get("terugkoppeling", v.terugkoppeling).strip()
+    gewijzigd = (v.status, v.terugkoppeling) != (nieuwe_status, nieuwe_terugkoppeling)
+    if gewijzigd:
+        v.status = nieuwe_status
+        v.terugkoppeling = nieuwe_terugkoppeling
+        v.behandeld_door = request.user
+        v.behandeld_op = timezone.now()
+        v.save()
+        if v.terugkoppeling:
+            diensten.meld_terugkoppeling(v)
     return Response(VoorstelSerializer(v, context=_ctx(request)).data)
 
 
 @extend_schema(
     summary="Gebruiksstatistieken (redacteuren). Geaggregeerd, zonder persoonsgegevens.",
     parameters=[OpenApiParameter("dagen", int, description="Periode, standaard 30")],
-    responses=OpenApiTypes.OBJECT,
+    responses=inline_serializer(
+        "Statistieken",
+        {
+            "dagen": serializers.IntegerField(),
+            "totaal_weergaven": serializers.IntegerField(),
+            "artikelen": inline_serializer(
+                "ArtikelStatistiek",
+                {
+                    "id": serializers.IntegerField(),
+                    "slug": serializers.CharField(),
+                    "url": serializers.CharField(),
+                    "titel": serializers.CharField(),
+                    "soort": serializers.CharField(),
+                    "status": serializers.CharField(),
+                    "weergaven": serializers.IntegerField(),
+                    "voorstellen": serializers.IntegerField(),
+                },
+                many=True,
+            ),
+            "aantal_artikelen": serializers.IntegerField(),
+            "voorstellen_totaal": serializers.IntegerField(),
+            "voorstellen_open": serializers.IntegerField(),
+            "voorstellen_verwerkt": serializers.IntegerField(),
+            "zoektermen": inline_serializer(
+                "Zoekterm",
+                {
+                    "term": serializers.CharField(),
+                    "aantal": serializers.IntegerField(),
+                    "zonder_resultaat": serializers.IntegerField(),
+                },
+                many=True,
+            ),
+            "zoektermen_zonder_resultaat": inline_serializer(
+                "ZoektermZonderResultaat",
+                {"term": serializers.CharField(), "aantal": serializers.IntegerField()},
+                many=True,
+            ),
+            "assistent_vragen": serializers.IntegerField(),
+            "assistent_zonder_bron": serializers.IntegerField(),
+        },
+    ),
 )
 @api_view(["GET"])
 def statistieken(request):
     r = rechten(request)
     if not r.is_redacteur:
         raise PermissionDenied
-    dagen = max(1, min(int(request.query_params.get("dagen", 30)), 3650))
+    try:
+        dagen = max(1, min(int(request.query_params.get("dagen", 30)), 3650))
+    except ValueError as e:
+        raise serializers.ValidationError({"dagen": "Geef een geheel aantal dagen op."}) from e
     sinds = timezone.localdate() - timezone.timedelta(days=dagen - 1)
     arts = Artikel.objects.filter(omgeving_id__in=r.redactie_omgevingen)
     weergaven = dict(

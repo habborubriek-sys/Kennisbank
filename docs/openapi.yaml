@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.5.0
+  version: 1.6.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -49,8 +49,8 @@ paths:
       tags:
       - v1
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '200':
           content:
@@ -73,8 +73,8 @@ paths:
       tags:
       - v1
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '200':
           content:
@@ -95,8 +95,8 @@ paths:
       tags:
       - v1
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -112,14 +112,14 @@ paths:
       tags:
       - v1
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '204':
           description: No response body
   /api/v1/artikelen/{id}/versies:
     get:
-      operationId: v1_artikelen_versies_retrieve
+      operationId: v1_artikelen_versies_list
       summary: Versiegeschiedenis van een artikel (redacteuren)
       parameters:
       - in: path
@@ -130,15 +130,16 @@ paths:
       tags:
       - v1
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: {}
+                type: array
+                items:
+                  $ref: '#/components/schemas/ArtikelVersie'
           description: ''
   /api/v1/artikelen/{id}/weergave:
     post:
@@ -153,8 +154,8 @@ paths:
       tags:
       - v1
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -177,8 +178,8 @@ paths:
               $ref: '#/components/schemas/AssistentVraagRequest'
         required: true
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '200':
           content:
@@ -193,8 +194,8 @@ paths:
       tags:
       - v1
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '200':
           content:
@@ -219,8 +220,8 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedIkWijzigenRequest'
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '200':
           content:
@@ -235,15 +236,14 @@ paths:
       tags:
       - v1
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: {}
+                $ref: '#/components/schemas/Keuzelijsten'
           description: ''
   /api/v1/statistieken:
     get:
@@ -258,15 +258,14 @@ paths:
       tags:
       - v1
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: {}
+                $ref: '#/components/schemas/Statistieken'
           description: ''
   /api/v1/voorstellen:
     get:
@@ -275,8 +274,8 @@ paths:
       tags:
       - v1
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '200':
           content:
@@ -304,8 +303,8 @@ paths:
               $ref: '#/components/schemas/VoorstelRequest'
         required: true
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '200':
           content:
@@ -339,8 +338,8 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedVoorstelBehandelRequest'
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '200':
           content:
@@ -363,8 +362,8 @@ paths:
       tags:
       - v1
       security:
-      - cookieAuth: []
       - tokenAuth: []
+      - cookieAuth: []
       responses:
         '200':
           content:
@@ -533,6 +532,34 @@ components:
       - url
       - versie
       - zaaktypen
+    ArtikelStatistiek:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        url:
+          type: string
+        titel:
+          type: string
+        soort:
+          type: string
+        status:
+          type: string
+        weergaven:
+          type: integer
+        voorstellen:
+          type: integer
+      required:
+      - id
+      - slug
+      - soort
+      - status
+      - titel
+      - url
+      - voorstellen
+      - weergaven
     ArtikelStatusEnum:
       enum:
       - concept
@@ -543,6 +570,29 @@ components:
         * `concept` - Concept
         * `gepubliceerd` - Gepubliceerd
         * `gearchiveerd` - Gearchiveerd
+    ArtikelVersie:
+      type: object
+      properties:
+        versie:
+          type: integer
+        gepubliceerd_op:
+          type: string
+          format: date-time
+        gepubliceerd_door:
+          type: string
+          nullable: true
+        toelichting:
+          type: string
+        inhoud:
+          type: object
+          additionalProperties: {}
+          description: 'Momentopname: {formaat, titel, samenvatting, inhoud, ...}'
+      required:
+      - gepubliceerd_door
+      - gepubliceerd_op
+      - inhoud
+      - toelichting
+      - versie
     AssistentAntwoord:
       type: object
       properties:
@@ -583,19 +633,59 @@ components:
           type: boolean
         favorieten:
           type: array
-          items: {}
+          items:
+            type: integer
+          description: Artikel-id's
         recent:
           type: array
-          items: {}
+          items:
+            $ref: '#/components/schemas/RecentBezocht'
+        recent_max:
+          type: integer
+        beheer_url:
+          type: string
+          nullable: true
         uitlog_url:
           type: string
+        ai_aan:
+          type: boolean
+        app_naam:
+          type: string
       required:
+      - ai_aan
+      - app_naam
+      - beheer_url
       - favorieten
       - is_redacteur
       - naam
       - onboarding
       - recent
+      - recent_max
       - uitlog_url
+    Keuzelijsten:
+      type: object
+      properties:
+        clusters:
+          type: array
+          items:
+            type: string
+        soorten:
+          type: array
+          items:
+            $ref: '#/components/schemas/Soort'
+        tags:
+          type: array
+          items:
+            type: string
+        zaaktypen:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZaaktypeKeuze'
+      required:
+      - clusters
+      - soorten
+      - tags
+      - zaaktypen
     PatchedIkWijzigenRequest:
       type: object
       properties:
@@ -603,12 +693,35 @@ components:
           type: boolean
     PatchedVoorstelBehandelRequest:
       type: object
+      description: 'PATCH: beide velden optioneel; wat niet wordt meegestuurd blijft
+        staan.'
       properties:
         status:
           $ref: '#/components/schemas/VoorstelStatusEnum'
         terugkoppeling:
           type: string
           maxLength: 4000
+    RecentBezocht:
+      type: object
+      properties:
+        id:
+          type: integer
+        bezocht_op:
+          type: string
+          format: date-time
+      required:
+      - bezocht_op
+      - id
+    Soort:
+      type: object
+      properties:
+        waarde:
+          type: string
+        label:
+          type: string
+      required:
+      - label
+      - waarde
     SoortEnum:
       enum:
       - werkinstructie
@@ -619,6 +732,49 @@ components:
         * `werkinstructie` - Werkinstructie
         * `werkafspraak` - Werkafspraak
         * `proces` - Proces
+    Statistieken:
+      type: object
+      properties:
+        dagen:
+          type: integer
+        totaal_weergaven:
+          type: integer
+        artikelen:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtikelStatistiek'
+        aantal_artikelen:
+          type: integer
+        voorstellen_totaal:
+          type: integer
+        voorstellen_open:
+          type: integer
+        voorstellen_verwerkt:
+          type: integer
+        zoektermen:
+          type: array
+          items:
+            $ref: '#/components/schemas/Zoekterm'
+        zoektermen_zonder_resultaat:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZoektermZonderResultaat'
+        assistent_vragen:
+          type: integer
+        assistent_zonder_bron:
+          type: integer
+      required:
+      - aantal_artikelen
+      - artikelen
+      - assistent_vragen
+      - assistent_zonder_bron
+      - dagen
+      - totaal_weergaven
+      - voorstellen_open
+      - voorstellen_totaal
+      - voorstellen_verwerkt
+      - zoektermen
+      - zoektermen_zonder_resultaat
     Voorstel:
       type: object
       properties:
@@ -703,6 +859,39 @@ components:
         * `in_behandeling` - In behandeling
         * `verwerkt` - Verwerkt
         * `afgewezen` - Afgewezen
+    ZaaktypeKeuze:
+      type: object
+      properties:
+        code:
+          type: string
+        naam:
+          type: string
+      required:
+      - code
+      - naam
+    Zoekterm:
+      type: object
+      properties:
+        term:
+          type: string
+        aantal:
+          type: integer
+        zonder_resultaat:
+          type: integer
+      required:
+      - aantal
+      - term
+      - zonder_resultaat
+    ZoektermZonderResultaat:
+      type: object
+      properties:
+        term:
+          type: string
+        aantal:
+          type: integer
+      required:
+      - aantal
+      - term
   securitySchemes:
     cookieAuth:
       type: apiKey

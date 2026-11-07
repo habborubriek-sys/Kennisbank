@@ -9,10 +9,10 @@ Vóór versie 1.5 gebeurde dat alleen bij het inloggen.
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.db.models.signals import m2m_changed, post_delete, post_save, pre_save
+from django.db.models.signals import m2m_changed, post_delete, post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
-from .models import Toegang
+from .models import Tag, Toegang
 from .rechten import werk_staf_status_bij
 
 User = get_user_model()
@@ -60,6 +60,37 @@ def toegang_opgeslagen(sender, instance, **kwargs):
 @receiver(post_delete, sender=Toegang)
 def toegang_verwijderd(sender, instance, **kwargs):
     _werk_groep_bij(instance.groep_id)
+
+
+# --- Zoekdocumenten actueel houden bij wijzigingen aan tags -----------------------------------
+# De tagnamen zitten in Artikel.zoekvector. Hernoemen of verwijderen van een tag in het beheer moet
+# dus de zoekdocumenten van de artikelen met die tag vernieuwen (zonder die artikelen op te slaan).
+
+
+@receiver(pre_save, sender=Tag)
+def tag_wordt_opgeslagen(sender, instance, **kwargs):
+    instance._kb_artikelen = list(instance.artikel_set.values_list("id", flat=True)) if instance.pk else []
+
+
+@receiver(post_save, sender=Tag)
+def tag_opgeslagen(sender, instance, **kwargs):
+    from .diensten import werk_zoekvectoren_bij
+
+    for artikel_id in getattr(instance, "_kb_artikelen", []):
+        werk_zoekvectoren_bij(artikel_id)
+
+
+@receiver(pre_delete, sender=Tag)
+def tag_wordt_verwijderd(sender, instance, **kwargs):
+    instance._kb_artikelen = list(instance.artikel_set.values_list("id", flat=True))
+
+
+@receiver(post_delete, sender=Tag)
+def tag_verwijderd(sender, instance, **kwargs):
+    from .diensten import werk_zoekvectoren_bij
+
+    for artikel_id in getattr(instance, "_kb_artikelen", []):
+        werk_zoekvectoren_bij(artikel_id)
 
 
 @receiver(post_delete, sender=Group)

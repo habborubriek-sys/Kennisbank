@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import Group
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from django.utils import timezone
 
@@ -129,6 +131,8 @@ class Artikel(models.Model):
     gepubliceerd_op = models.DateTimeField(null=True, blank=True, editable=False)
     aangemaakt_op = models.DateTimeField(auto_now_add=True)
     gewijzigd_op = models.DateTimeField(auto_now=True)
+    # Opgeslagen zoekdocument (titel, tags, samenvatting, secties); bijgewerkt in diensten.herbouw_secties.
+    zoekvector = SearchVectorField(null=True, editable=False)
 
     objects = ArtikelQuerySet.as_manager()
 
@@ -136,6 +140,7 @@ class Artikel(models.Model):
         verbose_name = "artikel"
         verbose_name_plural = "artikelen"
         ordering = ["titel"]
+        indexes = [GinIndex(fields=["zoekvector"], name="artikel_zoekvector_gin")]
 
     def __str__(self):
         return self.titel
@@ -165,11 +170,13 @@ class Sectie(models.Model):
     volgorde = models.PositiveIntegerField(default=0)
     kop = models.CharField(max_length=200, blank=True)
     inhoud = models.TextField(blank=True)
+    zoekvector = SearchVectorField(null=True, editable=False)
 
     class Meta:
         verbose_name = "sectie"
         verbose_name_plural = "secties"
         ordering = ["volgorde", "id"]
+        indexes = [GinIndex(fields=["zoekvector"], name="sectie_zoekvector_gin")]
 
     def __str__(self):
         return self.kop or "(inleiding)"

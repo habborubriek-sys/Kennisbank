@@ -196,10 +196,14 @@ KB_FRAME_ANCESTORS = env_list("KB_FRAME_ANCESTORS", ["'self'"])
 
 # --- API ----------------------------------------------------------------------
 
+# API-tokens van koppelingen verlopen na dit aantal dagen (0 = nooit). Zie kennisbank/api_auth.py.
+KB_API_TOKEN_MAX_DAGEN = env_int("KB_API_TOKEN_MAX_DAGEN", 365)
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        # Token eerst: dan krijgt een koppeling zonder/met verlopen token een echte 401 (met WWW-Authenticate).
+        "kennisbank.api_auth.VerlopendTokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

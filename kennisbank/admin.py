@@ -247,10 +247,10 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
-        diensten.herbouw_secties(form.instance)
         form.instance.tags.set(
             [Tag.objects.get_or_create(naam=n)[0] for n in tags_uit_tekst(form.cleaned_data.get("tags_tekst", ""))]
         )
+        diensten.herbouw_secties(form.instance)  # ook de zoekdocumenten, dus ná de tags
         versie = diensten.registreer_publicatie(
             form.instance, request.user, form.cleaned_data.get("wijzigingstoelichting", "")
         )

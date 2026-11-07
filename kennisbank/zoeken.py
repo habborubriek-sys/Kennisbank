@@ -1,17 +1,16 @@
 """Zoeken met PostgreSQL full-text search (Nederlandse woordstammen, prefix-matching).
 
-Voor een kennisbank van enkele honderden tot duizenden artikelen is dit ruim voldoende
-en vergt het geen aparte zoekmachine.
+De zoekdocumenten staan opgeslagen in Artikel.zoekvector en Sectie.zoekvector (met GIN-index) en
+worden bijgewerkt in diensten.herbouw_secties. Zoeken is daardoor een indexopzoeking, ook bij
+duizenden artikelen; er is geen aparte zoekmachine nodig.
 """
 
 import re
 
-from django.contrib.postgres.aggregates import StringAgg
-from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
-from django.db.models import F, OuterRef, Subquery, TextField, Value
-from django.db.models.functions import Coalesce, Concat
+from django.contrib.postgres.search import SearchQuery, SearchRank
+from django.db.models import F
 
-from .models import Artikel, Sectie
+from .models import Sectie
 
 CONFIG = "dutch"
 _WOORD = re.compile(r"[\w]+", re.UNICODE)
@@ -31,44 +30,14 @@ def zoekvraag(tekst: str, alle_termen: bool) -> SearchQuery | None:
     return SearchQuery(raw, search_type="raw", config=CONFIG)
 
 
-def _tekst_van(model_qs, expressie):
-    """Alle teksten van gerelateerde rijen samengevoegd tot één string (subquery per artikel)."""
-    return Coalesce(
-        Subquery(
-            model_qs.values("_groep").annotate(t=StringAgg(expressie, " ", output_field=TextField())).values("t")[:1],
-            output_field=TextField(),
-        ),
-        Value("", output_field=TextField()),
-        output_field=TextField(),
-    )
-
-
-def artikel_vector():
-    """Eén zoekdocument per artikel: titel en tags wegen het zwaarst, dan samenvatting, dan secties."""
-    secties = Sectie.objects.filter(artikel=OuterRef("pk")).annotate(_groep=F("artikel"))
-    tags = Artikel.tags.through.objects.filter(artikel=OuterRef("pk")).annotate(_groep=F("artikel"))
-    sectietekst = _tekst_van(secties, Concat("kop", Value(" "), "inhoud", output_field=TextField()))
-    tagtekst = _tekst_van(tags, F("tag__naam"))
-    return (
-        SearchVector("titel", weight="A", config=CONFIG)
-        + SearchVector(tagtekst, weight="A", config=CONFIG)
-        + SearchVector("samenvatting", weight="B", config=CONFIG)
-        + SearchVector(sectietekst, weight="C", config=CONFIG)
-    )
-
-
 def zoek_artikelen(queryset, tekst: str):
     """Filter en sorteer artikelen op relevantie. Geeft de queryset ongewijzigd terug zonder zoektekst."""
     vraag = zoekvraag(tekst, alle_termen=True)
     if vraag is None:
         return queryset
-    treffers = list(
-        queryset.annotate(document=artikel_vector())
-        .filter(document=vraag)
-        .annotate(rang=SearchRank(F("document"), vraag))
-        .order_by("-rang", "titel")
+    return list(
+        queryset.filter(zoekvector=vraag).annotate(rang=SearchRank(F("zoekvector"), vraag)).order_by("-rang", "titel")
     )
-    return treffers
 
 
 def zoek_secties(artikelen_qs, tekst: str, zaaktype: str | None = None, aantal: int = 5):
@@ -76,17 +45,9 @@ def zoek_secties(artikelen_qs, tekst: str, zaaktype: str | None = None, aantal: 
     vraag = zoekvraag(tekst, alle_termen=False)
     if vraag is None:
         return []
-    vector = (
-        SearchVector("artikel__titel", weight="A", config=CONFIG)
-        + SearchVector("kop", weight="A", config=CONFIG)
-        + SearchVector("inhoud", weight="B", config=CONFIG)
-        + SearchVector("artikel__samenvatting", weight="D", config=CONFIG)
-    )
     kandidaten = list(
-        Sectie.objects.filter(artikel__in=artikelen_qs)
-        .annotate(document=vector)
-        .filter(document=vraag)
-        .annotate(rang=SearchRank(F("document"), vraag))
+        Sectie.objects.filter(artikel__in=artikelen_qs, zoekvector=vraag)
+        .annotate(rang=SearchRank(F("zoekvector"), vraag))
         .select_related("artikel")
         .prefetch_related("artikel__zaaktypen")
         .order_by("-rang")[: aantal * 4]

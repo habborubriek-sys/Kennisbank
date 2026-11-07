@@ -1,6 +1,7 @@
 """Voert de bewaartermijnen uit. Dagelijks inplannen (cronjob / Kubernetes CronJob)."""
 
 from django.conf import settings
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
@@ -36,7 +37,8 @@ class Command(BaseCommand):
             behandeld_op__lt=nu - timezone.timedelta(days=settings.KB_ANONIMISEER_VOORSTEL_DAGEN),
             ingediend_door__isnull=False,
         ).update(ingediend_door=None)
+        call_command("clearsessions")  # verlopen sessies uit django_session
         self.stdout.write(
             f"Opgeschoond: {recent} recent-bezocht-regels, {stats} statistiekregels, "
-            f"{anoniem} voorstellen geanonimiseerd."
+            f"{anoniem} voorstellen geanonimiseerd, verlopen sessies verwijderd."
         )

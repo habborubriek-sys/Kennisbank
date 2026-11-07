@@ -1,5 +1,7 @@
 """Import en export van artikelen in een eenvoudig JSON-formaat (zie docs/importformaat.md)."""
 
+import re
+
 from django.db import transaction
 
 from . import diensten
@@ -59,6 +61,10 @@ def _controleer(data):
             raise ImportFout(f"Artikel {a['slug']}: onbekende soort '{a['soort']}'.")
         if a.get("status", "concept") not in statussen:
             raise ImportFout(f"Artikel {a['slug']}: onbekende status '{a['status']}'.")
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,119}", str(a["slug"])):
+            raise ImportFout(
+                f"Artikel {a['slug']!r}: slug mag alleen kleine letters, cijfers en '-' bevatten (max. 120 tekens)."
+            )
 
 
 @transaction.atomic

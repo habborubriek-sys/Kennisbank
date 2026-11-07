@@ -42,6 +42,7 @@ Alle instellingen zijn omgevingsvariabelen. Elke variabele kan ook uit een besta
 | `KB_HSTS_SECONDEN` | `0` | Bijv. `31536000` als TLS overal is ingericht. |
 | `KB_ACHTER_PROXY` | `ja` | Vertrouw `X-Forwarded-Proto`/`-Host` van de reverse proxy. |
 | `KB_SSL_REDIRECT` | `nee` | Doorsturen naar https in de applicatie. Meestal doet de ingress dat. |
+| `KB_API_TOKEN_MAX_DAGEN` | `365` | API-tokens van koppelingen verlopen na dit aantal dagen (`0` = nooit). Nieuw token: `beheer kennisbank_token <account>`. |
 | `KB_ASSISTENT_LIMIET` | `30/min` | Maximaal aantal vragen aan de assistent per gebruiker (per worker bijgehouden). Het dagplafond voor de hele installatie is `KB_ASSISTENT_DAGLIMIET`. |
 | `KB_VOORSTEL_LIMIET` | `20/hour` | Maximaal aantal verbetervoorstellen per gebruiker. |
 
@@ -64,7 +65,7 @@ Zie [ai-assistent](ai-assistent.md).
 
 ## Bewaartermijnen
 
-Uitgevoerd door het commando `opschonen` (dagelijks inplannen). Zie [beveiliging-en-privacy](beveiliging-en-privacy.md).
+Uitgevoerd door het commando `opschonen` (dagelijks inplannen); dat verwijdert ook verlopen sessies uit de database. Zie [beveiliging-en-privacy](beveiliging-en-privacy.md).
 
 | Variabele | Standaard | Omschrijving |
 |---|---|---|
@@ -92,7 +93,7 @@ Zonder `KB_EMAIL_HOST` worden geen e-mails verstuurd. Meldingen zijn dan alleen 
 | `KB_POORT` | `8000` | |
 | `KB_WORKERS` | `3` | Gunicorn-workers per container. |
 | `KB_TIMEOUT_SECONDEN` | `60` | |
-| `KB_FORWARDED_ALLOW_IPS` | `*` | IP's van proxies waarvan doorgestuurde headers vertrouwd worden. |
+| `KB_FORWARDED_ALLOW_IPS` | `*` | IP's (of reeksen) van de reverse proxy/ingress waarvan `X-Forwarded-*` vertrouwd wordt. `*` is alleen veilig als de container uitsluitend via de proxy bereikbaar is (gebruikelijk in Kubernetes met een NetworkPolicy); zet anders het IP-bereik van de proxy, bijv. `10.0.0.0/8`. |
 | `KB_MIGREER_BIJ_START` | `ja` | Zet `nee` als migraties via een aparte Job lopen. |
 | `KB_DATABASE_CONN_MAX_AGE` | `60` | Hergebruik van databaseverbindingen (seconden). |
 | `KB_LOG_FORMAAT` | `json` | `json` of `tekst`. |
