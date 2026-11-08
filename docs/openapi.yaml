@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.11.0
+  version: 1.12.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -862,6 +862,8 @@ components:
           type: boolean
         onboarding:
           type: boolean
+        begroeten:
+          type: boolean
         mail_bij_favorieten:
           type: boolean
         favorieten_mail:
@@ -896,6 +898,7 @@ components:
       required:
       - ai_aan
       - app_naam
+      - begroeten
       - beheer_url
       - favorieten
       - favorieten_mail
@@ -937,6 +940,9 @@ components:
       properties:
         onboarding:
           type: boolean
+        begroet:
+          type: boolean
+          description: Zet op true als de openingsvraag is gesteld.
         mail_bij_favorieten:
           type: boolean
     PatchedVoorstelBehandelRequest:
@@ -1072,6 +1078,12 @@ components:
           format: date-time
           readOnly: true
           nullable: true
+        behandeld_door:
+          type: string
+          nullable: true
+          description: Wie het voorstel heeft opgepakt. Zo ziet een tweede redacteur
+            dat een collega hem al heeft.
+          readOnly: true
         berichten:
           type: array
           items:
@@ -1085,6 +1097,7 @@ components:
       - artikel_titel
       - artikel_url
       - artikel_versie
+      - behandeld_door
       - behandeld_op
       - berichten
       - id

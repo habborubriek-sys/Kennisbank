@@ -1,5 +1,41 @@
 # Wijzigingen
 
+## 1.12.0 – 2026-11-08
+
+Ronde 5: de laatste bevindingen uit de functionele review en de hardingstests, plus de kleine punten uit de review van vandaag. Hiermee is die lijst leeg.
+
+**Voor medewerkers**
+
+- **Filteren op onderwerp.** Tags waren wel te zien bij een artikel, maar niet te gebruiken als filter vanaf het overzicht. In de zijbalk staat nu **Onderwerp** naast cluster en soort. Onderwerpen zijn te combineren — een artikel moet dan aan alle gekozen onderwerpen voldoen — en alleen onderwerpen die in zichtbare artikelen voorkomen worden aangeboden, dus een filter levert nooit nul resultaten op. Bij meer dan twaalf staat de rest achter *Toon alle*.
+- **Bij de eerste keer inloggen** vraagt de kennisbank of je nieuw bent bij Rijkswaterstaat of bij deze afdeling. Zeg je ja, dan staat de extra uitleg voor nieuwe collega's meteen aan — anders moet je die schakelaar eerst zelf vinden, en dat doet bijna niemand. De vraag komt één keer, ook als je nee zegt. In het zaaksysteem wordt hij niet gesteld.
+- **Zonder JavaScript** bleef de kennisbank eindeloos op "Laden…" staan, zonder uitleg. Er staat nu een `<noscript>`-melding met wat er aan de hand is en waar je terechtkunt.
+
+**Voor procesmanagement en beheer**
+
+- **Tegel "vragen zonder bron"** in de statistieken: hoe vaak de assistent in de kennisbank niets kon vinden om op te antwoorden, met het percentage. Samen met "gezocht zonder resultaat" is dat de beste aanwijzing voor welke kennis nog ontbreekt. De vragen zelf worden nog steeds niet opgeslagen.
+- **Sjablonen** (*Beheer → Sjablonen*, alleen beheerders) en de actie **Vullen met de sjablonen** bij een omgeving. Een lege kennisbank is het grootste risico bij invoering: de eerste medewerker vindt niets en de eerste redacteur weet niet hoe een goed artikel eruitziet. De sjablonen worden als **concept** geplaatst en een titel die er al staat wordt overgeslagen. De inhoud wordt bewust niet meegeleverd: die hoort van de organisatie zelf te komen.
+- **Dubbelklikken levert geen dubbel voorstel en geen dubbel bericht meer op**, ook niet bij exact gelijktijdige verzoeken (adviesslot op dezelfde tekst van dezelfde persoon, net als bij het aanmaken van een artikel). Een tweede identiek voorstel krijgt het eerste terug in plaats van een foutmelding, en de indiener krijgt één e-mail in plaats van twee.
+- **Je ziet wie een voorstel heeft opgepakt.** Twee redacteuren die tegelijk een status zetten, gingen allebei van de oude stand uit; dat is nu vergrendeld, en bij het voorstel staat "Opgepakt door … op …". Zonder dat kon de indiener twee antwoorden krijgen die elkaar tegenspraken.
+- **De clusterlijst is afgeschermd.** `/api/v1/keuzelijsten` filterde tags en zaaktypen wel op zichtbare artikelen, maar clusters niet — een account zonder enige omgevingstoegang kreeg zo de volledige clusterindeling van de organisatie.
+- **Nederlandse melding bij te veel verzoeken.** De vertaling van Django REST Framework maakte van "throttled" het woord "verstikt" en liet de tweede helft Engels. Er staat nu "Je hebt dit de afgelopen tijd vaak gedaan. Probeer het over 2 minuten opnieuw."
+- **Nederlandse meervouden in het beheer**: "profiels", "zaaktypes", "favoriets" en "zoek tellings" zijn nu profielen, zaaktypen, favorieten en zoektellingen (migratie 0018, raakt alleen wat er op het scherm staat).
+
+**Kleine reparaties uit de review van vandaag**
+
+- Het **`SECTIEKOP`-lek**: een sectiekop zonder afsluitende tag liet de interne markering als het woord "SECTIEKOP" in de tekst achter.
+- **"Markeren als nagekeken"** sloeg concepten niet over, waardoor het eerste herzieningsvenster na publicatie korter was dan ingesteld.
+- De Word-keuze **"eerste rij als koprij"** schreef een onbruikbaar `scope`-attribuut weg (letterlijke backslashes), wat een schermlezer de kolomrelatie kostte. En bij een **geneste tabel** kreeg de binnenste tabel ook een koprij; die laat de import nu met rust.
+- Een **absurde herzieningstermijn** (`KB_HERZIENINGSTERMIJN_MAANDEN=100000`) gaf een serverfout bij het publiceren omdat het jaartal buiten bereik viel.
+- Het **telverschil bij overgeslagen afbeeldingen**: de melding noemde drie afbeeldingen waar vier markeringen in de tekst stonden. Nu wordt geteld wat er daadwerkelijk in de tekst komt.
+
+**Gevonden tijdens deze ronde**
+
+Het Omgevingen-overzicht in het beheer gaf sinds 1.10.0 een serverfout: de nieuwe kolom met het aantal artikelen gebruikte `Count("artikel")` terwijl de relatie `artikelen` heet. Geen test, geen browsercontrole en geen van beide reviews had dat scherm geopend. Daarom is er nu een rooktest die **elk** beheerscherm en elk toevoegscherm één keer opent — de goedkoopste test in de hele suite, en precies het gat waardoor dit erdoor glipte.
+
+- **Tests** (nu 221): het tagfilter, de begroeting bij de eerste inlog, de sjablonen (plaatsen, twee keer plaatsen, zonder sjablonen, rechten), dubbelklik op een voorstel en op een bericht (ook echt gelijktijdig, met threads), de afgeschermde clusterlijst, de Nederlandse 429-tekst, de meervouden, en de vijf kleine reparaties hierboven.
+
+Nog open uit de review van vandaag, meegenomen naar een volgende veegronde: de voorstellenlijst doet één query per voorstel, de assistent kijkt niet naar de volgende bron als het eerste citaat leeg is, "gelezen" is één vlag voor alle redacteuren samen, en een reeks kleinere punten. Zie `claude/openstaande-punten.md` in het project.
+
 ## 1.11.0 – 2026-11-08
 
 Reparaties na een onafhankelijke technische review en een eigen hardingstest over alles sinds 1.7.0. Beide rapporten wezen het gesprek bij verbetervoorstellen uit 1.10.0 aan als het zwakste onderdeel; dat is hier rechtgezet en tegelijk vereenvoudigd.

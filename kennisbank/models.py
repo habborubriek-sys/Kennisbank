@@ -86,6 +86,8 @@ class Cluster(models.Model):
     volgorde = models.PositiveIntegerField(default=0)
 
     class Meta:
+        verbose_name = "cluster"
+        verbose_name_plural = "clusters"
         ordering = ["volgorde", "naam"]
 
     def __str__(self):
@@ -123,6 +125,8 @@ class Zaaktype(models.Model):
     naam = models.CharField(max_length=120)
 
     class Meta:
+        verbose_name = "zaaktype"
+        verbose_name_plural = "zaaktypen"
         ordering = ["naam"]
 
     def __str__(self):
@@ -139,6 +143,39 @@ class Status(models.TextChoices):
     CONCEPT = "concept", "Concept"
     GEPUBLICEERD = "gepubliceerd", "Gepubliceerd"
     GEARCHIVEERD = "gearchiveerd", "Gearchiveerd"
+
+
+class Sjabloon(models.Model):
+    """Een voorbeeldartikel waarmee een nieuwe omgeving niet leeg begint.
+
+    Een lege kennisbank is het grootste risico bij invoering: de eerste medewerker die inlogt vindt
+    niets, en de eerste redacteur weet niet hoe een goed artikel eruitziet. Een beheerder kan hier
+    sjablonen klaarzetten en die met één actie in een nieuwe omgeving plaatsen — als concept, zodat er
+    niets ongewenst zichtbaar wordt.
+
+    De inhoud wordt niet meegeleverd: die hoort van de organisatie zelf te komen, in haar eigen
+    woorden. Zie docs/functioneel-beheer.md.
+    """
+
+    naam = models.CharField(max_length=120, help_text="Waar dit sjabloon voor is, bijvoorbeeld 'Lege werkinstructie'.")
+    titel = models.CharField(max_length=200, help_text="De titel die het nieuwe artikel krijgt.")
+    samenvatting = models.TextField(blank=True)
+    inhoud = models.TextField(
+        blank=True,
+        help_text="De tekst van het artikel, met dezelfde opmaak als in de editor. "
+        "Secties maak je met <section class=\"sectie\"><h2 class=\"sectie-kop\">Titel</h2>…</section>.",
+    )
+    soort = models.CharField(max_length=20, choices=Soort.choices, default=Soort.WERKINSTRUCTIE)
+    volgorde = models.PositiveIntegerField(default=0, help_text="Bepaalt de volgorde waarin ze worden geplaatst.")
+    actief = models.BooleanField(default=True, help_text="Alleen actieve sjablonen worden aangeboden.")
+
+    class Meta:
+        verbose_name = "sjabloon"
+        verbose_name_plural = "sjablonen"
+        ordering = ["volgorde", "naam"]
+
+    def __str__(self):
+        return self.naam
 
 
 class ArtikelQuerySet(models.QuerySet):
@@ -295,6 +332,14 @@ class Profiel(models.Model):
     import_tabelkoprij = models.BooleanField(
         default=False, help_text="Bij een Word-import de eerste rij van elke tabel als koprij opmaken."
     )
+    #: Of de gebruiker de openingsvraag ("ben je nieuw bij RWS?") al heeft gezien. Los van `onboarding`,
+    #: want "nee, ik ben niet nieuw" en "ik heb de vraag nog niet gehad" zijn niet hetzelfde: zonder dit
+    #: veld zou de vraag bij elke inlog terugkomen zolang iemand de uitleg uit laat staan.
+    begroet_op = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "profiel"
+        verbose_name_plural = "profielen"
 
 
 class WijzigingGezien(models.Model):
@@ -399,6 +444,8 @@ class Favoriet(models.Model):
     aangemaakt_op = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        verbose_name = "favoriet"
+        verbose_name_plural = "favorieten"
         constraints = [models.UniqueConstraint(fields=["gebruiker", "artikel"], name="uniek_favoriet")]
 
 
@@ -410,6 +457,8 @@ class RecentBezocht(models.Model):
     bezocht_op = models.DateTimeField(default=timezone.now)
 
     class Meta:
+        verbose_name = "recent bezocht artikel"
+        verbose_name_plural = "recent bezochte artikelen"
         ordering = ["-bezocht_op"]
         constraints = [models.UniqueConstraint(fields=["gebruiker", "artikel"], name="uniek_recent")]
 
@@ -422,6 +471,8 @@ class WeergaveTelling(models.Model):
     aantal = models.PositiveIntegerField(default=0)
 
     class Meta:
+        verbose_name = "weergavetelling"
+        verbose_name_plural = "weergavetellingen"
         constraints = [models.UniqueConstraint(fields=["artikel", "datum"], name="uniek_weergave_per_dag")]
 
 
@@ -439,6 +490,8 @@ class ZoekTelling(models.Model):
     zonder_resultaat = models.PositiveIntegerField(default=0)
 
     class Meta:
+        verbose_name = "zoektelling"
+        verbose_name_plural = "zoektellingen"
         constraints = [
             models.UniqueConstraint(fields=["omgeving", "term", "datum"], name="uniek_zoekterm_per_dag_omgeving")
         ]
@@ -453,6 +506,8 @@ class AssistentTelling(models.Model):
     zonder_bron = models.PositiveIntegerField(default=0)
 
     class Meta:
+        verbose_name = "assistenttelling"
+        verbose_name_plural = "assistenttellingen"
         constraints = [models.UniqueConstraint(fields=["omgeving", "datum"], name="uniek_assistent_per_dag_omgeving")]
 
 
@@ -462,6 +517,10 @@ class AssistentDagTotaal(models.Model):
 
     datum = models.DateField(unique=True)
     modelaanroepen = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "assistent-dagtotaal"
+        verbose_name_plural = "assistent-dagtotalen"
 
 
 class Systeemstand(models.Model):

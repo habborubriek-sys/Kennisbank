@@ -22,11 +22,13 @@ from kennisbank.models import (
     Artikel,
     ArtikelVersie,
     BewerkClaim,
+    Cluster,
     GroepLabel,
     Omgeving,
     RecentBezocht,
     Rol,
     Sectie,
+    Sjabloon,
     Status,
     Tag,
     Toegang,
@@ -2614,3 +2616,353 @@ class PublicerenViaLijstactieTests(Basis):
         self.publiceer(a)
         a.refresh_from_db()
         self.assertEqual(a.status, Status.GEPUBLICEERD)
+
+
+class DubbelklikVoorstellenTests(Basis):
+    """Ronde 5, punt 33/34 en R7: dubbelklikken en gelijktijdigheid bij voorstellen."""
+
+    def setUp(self):
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        self.a = Artikel.objects.get(slug="rappel-versturen")
+
+    def test_twee_keer_hetzelfde_voorstel_levert_er_een_op(self):
+        c = self.als(self.lezer)
+        body = {"artikel": self.a.pk, "tekst": "De termijn klopt niet meer", "citaat": ""}
+        eerste = c.post("/api/v1/voorstellen", body, content_type="application/json")
+        tweede = c.post("/api/v1/voorstellen", body, content_type="application/json")
+        self.assertEqual(eerste.status_code, 201)
+        self.assertEqual(tweede.status_code, 200)  # bestaande teruggegeven, geen foutmelding
+        self.assertEqual(eerste.json()["id"], tweede.json()["id"])
+        self.assertEqual(Verbetervoorstel.objects.filter(artikel=self.a).count(), 1)
+
+    def test_een_ander_voorstel_bij_hetzelfde_artikel_mag_wel(self):
+        c = self.als(self.lezer)
+        c.post(
+            "/api/v1/voorstellen",
+            {"artikel": self.a.pk, "tekst": "Eerste punt"},
+            content_type="application/json",
+        )
+        r = c.post(
+            "/api/v1/voorstellen",
+            {"artikel": self.a.pk, "tekst": "Heel iets anders"},
+            content_type="application/json",
+        )
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(Verbetervoorstel.objects.filter(artikel=self.a).count(), 2)
+
+    def test_na_het_dubbelklikvenster_mag_hetzelfde_opnieuw(self):
+        v = Verbetervoorstel.objects.create(
+            artikel=self.a, artikel_versie=self.a.versie, tekst="Zelfde tekst", ingediend_door=self.lezer
+        )
+        Verbetervoorstel.objects.filter(pk=v.pk).update(
+            ingediend_op=timezone.now() - datetime.timedelta(seconds=diensten.DUBBEL_VENSTER + 60)
+        )
+        r = self.als(self.lezer).post(
+            "/api/v1/voorstellen",
+            {"artikel": self.a.pk, "tekst": "Zelfde tekst"},
+            content_type="application/json",
+        )
+        self.assertEqual(r.status_code, 201)
+
+    def test_twee_keer_hetzelfde_bericht_levert_er_een_op(self):
+        v = Verbetervoorstel.objects.create(
+            artikel=self.a, artikel_versie=self.a.versie, tekst="x", ingediend_door=self.lezer
+        )
+        self.lezer.email = "lezer@example.org"
+        self.lezer.save(update_fields=["email"])
+        c = self.als(self.redacteur)
+        body = {"tekst": "Opgepakt, we kijken ernaar."}
+        for _ in range(2):
+            r = c.post(f"/api/v1/voorstellen/{v.pk}/berichten", body, content_type="application/json")
+            self.assertEqual(r.status_code, 201)
+        self.assertEqual(v.berichten.count(), 1)
+
+    @override_settings(KB_EMAIL_AAN=True)
+    def test_dubbelklik_stuurt_ook_maar_een_mail(self):
+        v = Verbetervoorstel.objects.create(
+            artikel=self.a, artikel_versie=self.a.versie, tekst="x", ingediend_door=self.lezer
+        )
+        self.lezer.email = "lezer@example.org"
+        self.lezer.save(update_fields=["email"])
+        mail.outbox = []
+        c = self.als(self.redacteur)
+        for _ in range(2):
+            c.post(
+                f"/api/v1/voorstellen/{v.pk}/berichten",
+                {"tekst": "Opgepakt"},
+                content_type="application/json",
+            )
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_de_api_laat_zien_wie_het_voorstel_heeft_opgepakt(self):
+        v = Verbetervoorstel.objects.create(
+            artikel=self.a, artikel_versie=self.a.versie, tekst="x", ingediend_door=self.lezer
+        )
+        c = self.als(self.redacteur)
+        r = c.patch(
+            f"/api/v1/voorstellen/{v.pk}",
+            {"status": VoorstelStatus.IN_BEHANDELING},
+            content_type="application/json",
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["behandeld_door"], self.redacteur.get_username())
+        self.assertIsNotNone(r.json()["behandeld_op"])
+
+
+class Ronde5Tests(Basis):
+    """Ronde 5, punten 24 t/m 32 en de kleine R-punten."""
+
+    def test_clusters_in_de_keuzelijst_zijn_afgeschermd(self):
+        """Punt 30: een account zonder toegang kreeg de volledige clusterindeling te zien."""
+        Cluster.objects.create(naam="Cluster van een andere afdeling")
+        r = self.als(self.buitenstaander).get("/api/v1/keuzelijsten")
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn("Cluster van een andere afdeling", r.json()["clusters"])
+
+    def test_een_lezer_ziet_alleen_clusters_van_zijn_eigen_artikelen(self):
+        los = Cluster.objects.create(naam="Nergens gebruikt cluster")
+        r = self.als(self.lezer).get("/api/v1/keuzelijsten")
+        self.assertNotIn(los.naam, r.json()["clusters"])
+
+    def test_noscript_legt_uit_wat_er_mis_is(self):
+        """Punt 31: zonder JavaScript bleef de pagina eindeloos op "Laden…" staan."""
+        r = self.als(self.lezer).get("/")
+        self.assertContains(r, "<noscript>")
+        self.assertContains(r, "JavaScript nodig")
+
+    def test_sectiekop_zonder_einde_lekt_de_markering_niet(self):
+        """Punt 32: de interne markering kwam als het woord SECTIEKOP in de tekst terecht."""
+        uit = schoon('<section class="sectie"><h2 class="sectie-kop">Kop zonder einde<p>tekst</p></section>')
+        self.assertNotIn("SECTIEKOP", uit)
+        self.assertIn("Kop zonder einde", uit)
+        self.assertEqual(schoon(uit), uit)  # nog steeds idempotent
+
+    def test_nederlandse_melding_bij_te_veel_verzoeken(self):
+        """Punt 29: DRF maakte van "throttled" het woord "verstikt", met een Engelse tweede helft."""
+        from kennisbank.api_fouten import _wachttekst
+
+        self.assertEqual(_wachttekst(45), "Probeer het over 45 seconden opnieuw.")
+        self.assertEqual(_wachttekst(90), "Probeer het over 2 minuten opnieuw.")
+        self.assertEqual(_wachttekst(3600), "Probeer het over een uur opnieuw.")
+        self.assertEqual(_wachttekst(None), "Probeer het straks opnieuw.")
+
+    @override_settings(REST_FRAMEWORK_THROTTLE_TEST=True)
+    def test_de_api_geeft_de_nederlandse_melding_bij_429(self):
+        from rest_framework.exceptions import Throttled
+
+        from kennisbank.api_fouten import nederlandse_fout
+
+        antwoord = nederlandse_fout(Throttled(wait=120), {})
+        self.assertEqual(antwoord.status_code, 429)
+        self.assertIn("Probeer het over 2 minuten opnieuw", antwoord.data["detail"])
+        self.assertNotIn("verstikt", antwoord.data["detail"])
+        self.assertEqual(antwoord.data["wacht_seconden"], 120)
+
+    def test_nederlandse_meervouden_in_het_beheer(self):
+        """Punt 28: Django maakte er "profiels", "zaaktypes" en "favoriets" van."""
+        from django.apps import apps
+
+        verwacht = {
+            "Profiel": "profielen", "Zaaktype": "zaaktypen", "Favoriet": "favorieten",
+            "ZoekTelling": "zoektellingen", "WeergaveTelling": "weergavetellingen",
+        }
+        for naam, meervoud in verwacht.items():
+            with self.subTest(model=naam):
+                m = apps.get_model("kennisbank", naam)
+                self.assertEqual(str(m._meta.verbose_name_plural), meervoud)
+
+    def test_de_nakijkactie_slaat_een_concept_over(self):
+        """R19: een concept kreeg een datum die daarna bij publicatie niet meer werd verzet."""
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        con = self.concept
+        con.herzien_voor = None
+        con.save(update_fields=["herzien_voor", "gewijzigd_op"])
+        r = self.als(self.redacteur).post(
+            "/beheer/kennisbank/artikel/",
+            {"action": "nagekeken", "_selected_action": str(con.pk), "index": "0"},
+            follow=True,
+        )
+        con.refresh_from_db()
+        self.assertIsNone(con.herzien_voor)
+        self.assertIn("niet gepubliceerd", " ".join(str(m) for m in r.context["messages"]))
+
+    def test_de_koprij_krijgt_een_bruikbaar_scope_attribuut(self):
+        """R20: er stonden letterlijke backslashes in, waardoor een schermlezer er niets aan had."""
+        from kennisbank.word_import import _eerste_tabelrij_als_koprij
+
+        uit = schoon(_eerste_tabelrij_als_koprij("<table><tr><td>Stap</td></tr><tr><td>1</td></tr></table>"))
+        self.assertIn('<th scope="col">Stap</th>', uit)
+        self.assertNotIn("\\", uit)
+
+    def test_een_geneste_tabel_blijft_met_rust(self):
+        """R21: de binnenste tabel kreeg ook een koprij, omdat de regex bij de eerste </table> stopte."""
+        from kennisbank.word_import import _eerste_tabelrij_als_koprij
+
+        genest = "<table><tr><td>Buiten</td><td><table><tr><td>Binnen</td></tr></table></td></tr></table>"
+        self.assertEqual(_eerste_tabelrij_als_koprij(genest), genest)
+
+    @override_settings(KB_HERZIENINGSTERMIJN_MAANDEN=100000)
+    def test_een_absurde_herzieningstermijn_geeft_geen_serverfout(self):
+        """R22: het jaartal viel buiten het bereik en dat werd een 500 bij het publiceren."""
+        a = Artikel.objects.get(slug="rappel-versturen")
+        a.herzien_voor = None
+        self.assertEqual(diensten.herzieningsdatum(a), datetime.date.max)
+
+    def test_het_telverschil_bij_overgeslagen_afbeeldingen(self):
+        """Punt 35: de melding noemde drie afbeeldingen waar vier markeringen stonden."""
+        from unittest.mock import patch
+
+        from kennisbank.word_import import AFBEELDING_MARKERING, lees_docx
+
+        class Nep:
+            # Vier plaatjes in de tekst, maar de omzetter is er maar drie keer voor aangeroepen.
+            value = "<p>" + "<img src=''>" * 4 + "</p>"
+            messages = []
+
+        with (
+            patch("kennisbank.word_import._controleer_grootte", lambda b: None),
+            patch("kennisbank.word_import.mammoth.convert_to_html", return_value=Nep()),
+        ):
+            uit = lees_docx(io.BytesIO(b"x"), "test.docx")
+        self.assertEqual(uit.inhoud.count(AFBEELDING_MARKERING), 4)
+        self.assertEqual(uit.afbeeldingen_overgeslagen, 4)
+        self.assertTrue(any("4 afbeelding(en)" in m for m in uit.meldingen), uit.meldingen)
+
+
+class BegroetingTests(Basis):
+    """Punt 26: bij de eerste inlog vragen of iemand nieuw is bij RWS."""
+
+    def test_de_eerste_keer_wordt_er_begroet(self):
+        r = self.als(self.lezer).get("/api/v1/ik")
+        self.assertTrue(r.json()["begroeten"])
+
+    def test_na_de_vraag_komt_hij_niet_terug(self):
+        c = self.als(self.lezer)
+        r = c.patch("/api/v1/ik", {"begroet": True}, content_type="application/json")
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(c.get("/api/v1/ik").json()["begroeten"])
+
+    def test_wie_nee_zegt_krijgt_de_vraag_ook_niet_opnieuw(self):
+        """"Nee, ik ken de weg" en "ik heb de vraag nog niet gehad" zijn niet hetzelfde."""
+        c = self.als(self.lezer)
+        c.patch("/api/v1/ik", {"begroet": True, "onboarding": False}, content_type="application/json")
+        uit = c.get("/api/v1/ik").json()
+        self.assertFalse(uit["begroeten"])
+        self.assertFalse(uit["onboarding"])
+
+    def test_ja_zeggen_zet_de_uitleg_aan(self):
+        c = self.als(self.lezer)
+        c.patch("/api/v1/ik", {"begroet": True, "onboarding": True}, content_type="application/json")
+        uit = c.get("/api/v1/ik").json()
+        self.assertFalse(uit["begroeten"])
+        self.assertTrue(uit["onboarding"])
+
+
+class SjabloonTests(Basis):
+    """Punt 27: een nieuwe omgeving niet leeg laten beginnen."""
+
+    def setUp(self):
+        self.beheer = User.objects.create_superuser("beheer-sjabloon", "b@x.nl", "geheim")
+        self.nieuw = Omgeving.objects.create(slug="nieuwe-afdeling", naam="Nieuwe afdeling")
+        Sjabloon.objects.create(
+            naam="Lege werkinstructie",
+            titel="Zo schrijf je een werkinstructie",
+            samenvatting="Een voorbeeld om mee te beginnen; pas hem aan voor je eigen afdeling.",
+            inhoud='<section class="sectie"><h2 class="sectie-kop">Stappen</h2><p>Stap 1</p></section>',
+            volgorde=1,
+        )
+        Sjabloon.objects.create(naam="Uit", titel="Niet plaatsen", actief=False)
+
+    def vullen(self, omgeving):
+        return self.als(self.beheer).post(
+            "/beheer/kennisbank/omgeving/",
+            {"action": "vullen_met_sjablonen", "_selected_action": str(omgeving.pk), "index": "0"},
+            follow=True,
+        )
+
+    def test_de_omgeving_wordt_gevuld_met_concepten(self):
+        self.vullen(self.nieuw)
+        artikelen = Artikel.objects.filter(omgeving=self.nieuw)
+        self.assertEqual([a.titel for a in artikelen], ["Zo schrijf je een werkinstructie"])
+        self.assertEqual(artikelen.first().status, Status.CONCEPT)
+        self.assertEqual(artikelen.first().secties.count(), 1)
+
+    def test_twee_keer_vullen_levert_niets_dubbel_op(self):
+        self.vullen(self.nieuw)
+        r = self.vullen(self.nieuw)
+        self.assertEqual(Artikel.objects.filter(omgeving=self.nieuw).count(), 1)
+        self.assertIn("overgeslagen", " ".join(str(m) for m in r.context["messages"]))
+
+    def test_zonder_sjablonen_volgt_een_uitleg(self):
+        Sjabloon.objects.all().delete()
+        r = self.vullen(self.nieuw)
+        self.assertIn("nog geen sjablonen", " ".join(str(m) for m in r.context["messages"]))
+
+    def test_een_redacteur_komt_niet_bij_de_sjablonen(self):
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        r = self.als(self.redacteur).get("/beheer/kennisbank/sjabloon/")
+        self.assertIn(r.status_code, (302, 403))
+
+
+class BeheerschermenOpenenTests(Basis):
+    """Elk beheerscherm één keer openen. Simpel, maar het vangt een hele klasse fouten.
+
+    Reden voor deze test: in 1.10.0 kreeg het Omgevingen-overzicht een kolom met het aantal artikelen,
+    met `Count("artikel")` terwijl de relatie `artikelen` heet. Dat gaf een serverfout zodra iemand dat
+    scherm opende — en dat deed geen enkele test, geen browsercontrole en geen review. Eén verzoek per
+    scherm is genoeg om dat soort fouten te zien.
+    """
+
+    def setUp(self):
+        self.beheer = User.objects.create_superuser("beheer-rook", "b@x.nl", "geheim")
+
+    def test_alle_beheerschermen_openen_voor_een_beheerder(self):
+        from django.contrib import admin as django_admin
+        from django.urls import reverse
+
+        c = self.als(self.beheer)
+        mislukt = []
+        for model, modeladmin in django_admin.site._registry.items():
+            naam = f"admin:{model._meta.app_label}_{model._meta.model_name}_changelist"
+            try:
+                url = reverse(naam)
+            except Exception:  # noqa: BLE001 - niet elk model heeft een changelist
+                continue
+            r = c.get(url)
+            if r.status_code != 200:
+                mislukt.append(f"{url} → {r.status_code}")
+        self.assertEqual(mislukt, [], f"beheerschermen met een fout: {mislukt}")
+
+    def test_toevoegschermen_openen(self):
+        from django.contrib import admin as django_admin
+        from django.urls import reverse
+
+        c = self.als(self.beheer)
+        mislukt = []
+        verzoek = self._verzoek()
+        for model, modeladmin in django_admin.site._registry.items():
+            if not modeladmin.has_add_permission(verzoek):
+                continue
+            naam = f"admin:{model._meta.app_label}_{model._meta.model_name}_add"
+            try:
+                url = reverse(naam)
+            except Exception:  # noqa: BLE001
+                continue
+            r = c.get(url)
+            if r.status_code not in (200, 302, 403):
+                mislukt.append(f"{url} → {r.status_code}")
+        self.assertEqual(mislukt, [], f"toevoegschermen met een fout: {mislukt}")
+
+    def _verzoek(self):
+        """Een verzoek-achtig object met de ingelogde beheerder, voor has_add_permission."""
+        from django.test import RequestFactory
+
+        verzoek = RequestFactory().get("/beheer/")
+        verzoek.user = self.beheer
+        return verzoek

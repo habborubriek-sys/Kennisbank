@@ -87,7 +87,11 @@ def _eerste_tabelrij_als_koprij(html: str) -> str:
         rij = re.search(r"<tr\b[^>]*>.*?</tr>", tabel, re.S | re.I)
         if not rij:
             return tabel
-        nieuw = re.sub(r"<td(\b[^>]*)>", r"<th\1 scope=\"col\">", rij.group(0), flags=re.I)
+        if re.search(r"<table\b", rij.group(0), re.I):
+            # Een geneste tabel in de eerste rij: dan weten we niet waar die rij ophoudt, en zouden we
+            # ook de binnenste tabel een koprij geven. Zo'n tabel laten we met rust.
+            return tabel
+        nieuw = re.sub(r"<td(\b[^>]*)>", r'<th\1 scope="col">', rij.group(0), flags=re.I)
         nieuw = re.sub(r"</td>", "</th>", nieuw, flags=re.I)
         return tabel[: rij.start()] + nieuw + tabel[rij.end() :]
 
@@ -122,7 +126,10 @@ def lees_docx(
     if len(html) > MAX_HTML:
         raise WordImportFout("Dit document is te groot om in één artikel te zetten. Splits het in meerdere artikelen.")
     # Op de plek van een afbeelding een duidelijke markering, zodat je ziet waar je iets moet aanvullen.
-    html = re.sub(r"<img\b[^>]*>", f"<em>{AFBEELDING_MARKERING}</em>", html)
+    # Het aantal markeringen is wat de redacteur in de tekst terugvindt, en dus wat we melden. De teller
+    # van de omzetter liep daar soms één achter: mammoth roept de omzetter niet aan voor een plaatje dat
+    # het zelf al niet kon lezen, maar laat er wel een <img> staan.
+    html, aantal_markeringen = re.subn(r"<img\b[^>]*>", f"<em>{AFBEELDING_MARKERING}</em>", html)
     # Lege regels: meerdere achter elkaar worden er één; lege cellen en het begin/einde van het document niet.
     html = re.sub(r"(<p></p>)+", "<p><br></p>", html)
     html = re.sub(r"(<t[dh]>)<p><br></p>(</t[dh]>)", r"\1\2", html)
@@ -136,15 +143,19 @@ def lees_docx(
             titel = uit_de_kop
     if tabelkoprij:
         html = _eerste_tabelrij_als_koprij(html)
-    artikel = WordArtikel(titel=titel[:200], inhoud=schoon(html), afbeeldingen_overgeslagen=teller["afbeeldingen"])
+    artikel = WordArtikel(
+        titel=titel[:200],
+        inhoud=schoon(html),
+        afbeeldingen_overgeslagen=max(aantal_markeringen, teller["afbeeldingen"]),
+    )
     if kop_als_titel and not uit_de_kop:
         artikel.meldingen.append(
             "Geen kop gevonden om als titel te gebruiken; de bestandsnaam is de titel geworden."
         )
-    if teller["afbeeldingen"]:
+    if artikel.afbeeldingen_overgeslagen:
         artikel.meldingen.append(
-            f"{teller['afbeeldingen']} afbeelding(en) overgeslagen: de kennisbank ondersteunt nog geen afbeeldingen. "
-            f"Op die plekken staat nu '{AFBEELDING_MARKERING}'."
+            f"{artikel.afbeeldingen_overgeslagen} afbeelding(en) overgeslagen: de kennisbank ondersteunt "
+            f"nog geen afbeeldingen. Op die plekken staat nu '{AFBEELDING_MARKERING}'."
         )
     if not artikel.inhoud:
         artikel.meldingen.append("Het document bevatte geen tekst.")

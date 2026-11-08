@@ -214,6 +214,12 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .prop .bericht p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .prop .antwoord{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
 .prop .wacht{margin:0;color:var(--fg-muted);font-size:.93rem}
+.prop .opgepakt{margin:0;color:var(--fg-muted);font-size:.86rem}
+/* Een tegel die aandacht vraagt: vragen die de assistent niet kon beantwoorden. */
+.tile.let-op{border-color:var(--wijzig-balk)}
+.tile.let-op b{color:#8a5a00}
+/* Tagfilter in de zijbalk. */
+.meer-tags{margin:6px 0 0;font-size:.85rem}
 .prop .antwoord textarea{flex:1;min-width:220px;min-height:70px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--surface);resize:vertical;font:inherit}
 .prop .nieuwstip{background:var(--accent);color:#fff;border-radius:10px;padding:1px 8px;font-size:.76rem;font-weight:600}
 .propfilter{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
@@ -421,3 +427,10 @@ body.embed .embed-terug[hidden]{display:none}
 }
 /* Op het scherm is die regel alleen voor de afdruk bedoeld. */
 @media screen{.printregel{display:none}}
+
+/* Zonder JavaScript kan de frontend niets laden; dan is dit het enige dat de gebruiker ziet. */
+.noscript{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px;max-width:70ch}
+.noscript h1{margin:0 0 8px;font-size:1.3rem}
+.noscript p{margin:0 0 8px;max-width:70ch}
+.noscript p:last-child{margin-bottom:0}
+noscript+.loading{display:none}

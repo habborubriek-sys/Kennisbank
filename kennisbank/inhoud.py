@@ -96,6 +96,12 @@ def _koppen_normaliseren(html: str) -> str:
     for i, kop in enumerate(bewaard):
         kop = kop.replace(_PLACEHOLDER, f'<h2 class="{SECTIEKOP_KLASSE}">')
         html = html.replace(f"\x00KOP{i}\x00", kop)
+    # Een sectiekop zonder afsluitende </h2> (alleen te maken door HTML-broncode te plakken) houdt
+    # zijn markering. nh3 haalt daarna de nul-bytes weg maar laat het woord "SECTIEKOP" staan, en dat
+    # komt dan als tekst in het artikel. Daarom hier opruimen wat niet is teruggezet: de markering
+    # wordt weer een gewone sectiekop, zodat de tekst zelf blijft staan.
+    html = html.replace(_PLACEHOLDER, f'<h2 class="{SECTIEKOP_KLASSE}">')
+    html = re.sub(r"\x00KOP\d+\x00", "", html)
     return html
 
 

@@ -139,10 +139,33 @@
 
   window.addEventListener("popstate", () => { leesUrl(); render(true); });
 
+  function renderTagfilter() {
+    // Gekozen onderwerpen staan altijd bovenaan, zodat een actief filter niet achter "Toon alle" wegvalt.
+    const alle = lijsten.tags || [];
+    const blok = $("#tagblok");
+    blok.hidden = !alle.length;
+    if (!alle.length) return;
+    const gekozen = alle.filter((t) => state.tags.has(t));
+    const rest = alle.filter((t) => !state.tags.has(t));
+    const zichtbaar = alleTagsTonen ? [...gekozen, ...rest] : [...gekozen, ...rest].slice(0, TAGS_IN_ZIJBALK);
+    $("#fTag").innerHTML = zichtbaar
+      .map((t) => `<button class="chip" type="button" data-f="tag" data-v="${esc(t)}" aria-pressed="${state.tags.has(t)}">${esc(t)}</button>`)
+      .join("");
+    const knop = $("#tagMeer");
+    knop.hidden = alle.length <= TAGS_IN_ZIJBALK;
+    knop.textContent = alleTagsTonen ? "Minder onderwerpen" : `Toon alle ${alle.length} onderwerpen`;
+  }
+
   /* ---------- Filters ---------- */
+  //: Hoeveel onderwerpen (tags) er in de zijbalk staan voordat je op "Toon alle" moet klikken. Een
+  //: afdeling kan er tientallen hebben, en dan wordt de zijbalk langer dan het scherm.
+  const TAGS_IN_ZIJBALK = 12;
+  let alleTagsTonen = false;
+
   function renderFilters() {
     $("#fCluster").innerHTML = lijsten.clusters.map((c) => `<button class="chip" type="button" data-f="cluster" data-v="${esc(c)}" aria-pressed="${state.cluster === c}">${esc(c)}</button>`).join("");
     $("#fType").innerHTML = lijsten.soorten.map((s) => `<button class="chip" type="button" data-f="soort" data-v="${esc(s.waarde)}" aria-pressed="${state.soort === s.waarde}">${esc(s.label)}</button>`).join("");
+    renderTagfilter();
     $("#cAll").textContent = artikelen.length;
     $("#cFav").textContent = favs.size;
     $("#cRec").textContent = ik ? ik.recent.length : "";
@@ -337,8 +360,13 @@
       if (!regels) return `<div class="gesprek"><p class="wacht">Je voorstel is ontvangen. Procesmanagement laat hier weten wat ermee gebeurt; je krijgt daar ook een e-mail van.</p></div>`;
       return `<div class="gesprek">${regels}</div>`;
     }
+    // Wie het voorstel heeft opgepakt. Zonder dit zag een tweede redacteur niet dat een collega er al
+    // mee bezig was, en kreeg de indiener twee antwoorden die elkaar tegenspraken.
+    const opgepakt = p.behandeld_door
+      ? `<p class="opgepakt">Opgepakt door ${esc(p.behandeld_door)}${p.behandeld_op ? ` op ${datum(p.behandeld_op)}` : ""}.</p>`
+      : "";
     const invoer = `<div class="antwoord"><label class="visually-hidden" for="re-${p.id}">Bericht aan de indiener</label><textarea id="re-${p.id}" data-reactie="${p.id}" maxlength="5000" placeholder="Terugkoppeling of tussentijdse update aan de indiener…"></textarea><button class="tb" type="button" data-stuur="${p.id}">Versturen</button></div>`;
-    return `<div class="gesprek">${regels}${invoer}</div>`;
+    return `<div class="gesprek">${regels}${opgepakt}${invoer}</div>`;
   }
 
   function renderProps() {
@@ -394,7 +422,9 @@
       <div class="tile"><b>${s.voorstellen_open}</b><span>open voorstellen</span></div>
       <div class="tile"><b>${s.voorstellen_verwerkt}</b><span>voorstellen verwerkt</span></div>
       <div class="tile"><b>${s.assistent_vragen}</b><span>vragen aan de assistent</span></div>
+      <div class="tile${s.assistent_zonder_bron ? " let-op" : ""}" title="Vragen waarop de assistent niets in de kennisbank kon vinden"><b>${s.assistent_zonder_bron}</b><span>vragen zonder bron${s.assistent_vragen ? ` (${Math.round((s.assistent_zonder_bron / s.assistent_vragen) * 100)}%)` : ""}</span></div>
      </div>
+     ${s.assistent_vragen ? `<p class="lead">Van de ${s.assistent_vragen} vragen aan de assistent kon hij er <b>${s.assistent_zonder_bron}</b> niet uit de kennisbank beantwoorden. Dat is, samen met de lijst onderaan, de beste aanwijzing voor welke kennis nog ontbreekt. De vragen zelf worden niet opgeslagen.</p>` : ""}
      <div class="table-wrap"><table><caption class="visually-hidden">Weergaven per artikel</caption><thead><tr><th scope="col">Artikel</th><th scope="col">Soort</th><th scope="col" class="num">Weergaven</th><th scope="col"><span class="visually-hidden">Verhouding</span></th><th scope="col" class="num">Voorstellen</th></tr></thead><tbody>
      ${s.artikelen.map((a) => `<tr><td><a href="${esc(a.url)}" class="linkbtn" data-open="${a.id}">${esc(a.titel)}</a>${a.status !== "gepubliceerd" ? ` <span class="versie-badge">(${esc(a.status)})</span>` : ""}</td><td><span class="type ${esc(a.soort)}">${esc(soortLabel(a.soort))}</span></td><td class="num">${a.weergaven}</td><td><div class="bar" aria-hidden="true"><i data-w="${Math.round((a.weergaven / max) * 100)}"></i></div></td><td class="num">${a.voorstellen}</td></tr>`).join("")}
      </tbody></table></div>
@@ -753,11 +783,15 @@
     if (b.dataset.view === "voorstellen") laadVoorstellen().then(() => render(true));
     ga(b.dataset.view);
   }));
-  ["#fCluster", "#fType"].forEach((sel) => $(sel).addEventListener("click", (e) => {
+  $("#tagMeer").addEventListener("click", () => { alleTagsTonen = !alleTagsTonen; renderTagfilter(); });
+  ["#fCluster", "#fType", "#fTag"].forEach((sel) => $(sel).addEventListener("click", (e) => {
     const b = e.target.closest(".chip");
     if (!b) return;
     const v = b.dataset.v;
-    if (b.dataset.f === "cluster") state.cluster = state.cluster === v ? null : v;
+    // Onderwerpen zijn te combineren (een artikel moet aan alle gekozen onderwerpen voldoen); cluster
+    // en soort zijn één keuze, want die sluiten elkaar uit.
+    if (b.dataset.f === "tag") { if (state.tags.has(v)) state.tags.delete(v); else state.tags.add(v); }
+    else if (b.dataset.f === "cluster") state.cluster = state.cluster === v ? null : v;
     else state.soort = state.soort === v ? null : v;
     if (state.artikel) { state.artikel = null; huidigArtikel = null; }
     if (!["artikelen", "favorieten"].includes(state.view)) state.view = "artikelen";
@@ -847,6 +881,26 @@
     suggesties.forEach((s) => { const b = document.createElement("button"); b.type = "button"; b.textContent = s; b.addEventListener("click", () => botAnswer(s)); $("#sugg").appendChild(b); });
     addMsg("<p>Hallo! Stel je vraag over een werkinstructie of werkafspraak. Ik zoek het antwoord in de kennisbank en verwijs je naar het juiste artikel.</p>", "bot");
     render();
+    if (ik.begroeten && !EMBED) toonWelkom();
   }
+
+  /* ---------- Eerste keer: is iemand nieuw bij RWS? ---------- */
+  function toonWelkom() {
+    // Alleen de eerste keer, en niet in het zaaksysteem: daar zit de kennisbank in een smal paneel
+    // naast een zaak, en is een venster met uitleg misplaatst.
+    const bd = $("#welkomBackdrop");
+    bd.classList.add("open");
+    const sluit = async (nieuw) => {
+      bd.classList.remove("open");
+      if (nieuw) setOnb(true);  // slaat de voorkeur zelf op
+      try { await api("ik", { method: "PATCH", body: { begroet: true } }); } catch (e) { /* vraag komt dan nog eens */ }
+      if (ik) ik.begroeten = false;
+      if (nieuw) toast("De extra uitleg voor nieuwe collega's staat aan. Je kunt hem rechtsboven uitzetten.");
+    };
+    $("#welkomJa").addEventListener("click", () => sluit(true));
+    $("#welkomNee").addEventListener("click", () => sluit(false));
+    $("#welkomJa").focus();
+  }
+
   start();
 })();

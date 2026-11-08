@@ -87,6 +87,12 @@ Nieuwe collega's hebben meer uitleg nodig dan ervaren collega's. Die extra uitle
 
 Dit kan zo vaak als je wilt, ook in de inleiding, dus je kunt bij elke stap een verdieping geven. De assistent gebruikt de onboarding-uitleg ook, als extra context.
 
+**Bij de eerste keer inloggen** vraagt de kennisbank of de medewerker nieuw is bij Rijkswaterstaat of
+bij deze afdeling. Zegt hij ja, dan staat de onboarding-uitleg meteen aan — anders moet hij die
+schakelaar eerst zelf vinden, en dat doet bijna niemand. De vraag komt één keer; daarna kan hij de
+schakelaar rechtsboven gebruiken. In het zaaksysteem wordt de vraag niet gesteld: daar zit de
+kennisbank in een smal paneel naast een zaak.
+
 ## Met z'n tweeën in hetzelfde artikel
 
 De kennisbank zet geen slot op een artikel, maar laat je wel zien wanneer je niet alleen bent.
@@ -111,6 +117,22 @@ Een paar dingen die de kennisbank bewust tegenhoudt bij het opslaan:
 Een medewerker die nog niet aan een omgeving is gekoppeld, ziet geen lege kennisbank maar een scherm met uitleg: *"Je hebt nog geen toegang"*, met het contactadres uit de instelling `KB_CONTACT`. Zodra je zijn groep koppelt (zie *Toegang*), staan de artikelen er meteen — opnieuw inloggen is niet nodig.
 
 Vul `KB_CONTACT` altijd: zonder dat adres weet iemand zonder toegang niet waar hij moet zijn. Het verschijnt ook in de zijbalk onder *Hulp*.
+
+## Een nieuwe omgeving niet leeg laten beginnen (sjablonen)
+
+Een lege kennisbank is het grootste risico bij invoering: de eerste medewerker die inlogt vindt niets,
+en de eerste redacteur weet niet hoe een goed artikel eruitziet.
+
+Onder **Beheer → Sjablonen** (alleen voor functioneel beheerders) zet je voorbeeldartikelen klaar: een
+naam waaraan je ze herkent, de titel en tekst die het nieuwe artikel krijgt, en een volgorde. Ga daarna
+naar **Omgevingen**, selecteer de nieuwe omgeving en kies de actie **Vullen met de sjablonen**. Elk
+actief sjabloon wordt dan als **concept** geplaatst — medewerkers zien ze dus nog niet; een redacteur
+loopt ze na, vult ze aan en publiceert wat klaar is. Een sjabloon waarvan de titel er al staat, wordt
+overgeslagen, dus de actie twee keer uitvoeren levert niets dubbel op.
+
+De **inhoud van de sjablonen wordt niet meegeleverd**. Die hoort van de organisatie zelf te komen, in
+haar eigen woorden en met haar eigen voorbeelden; een sjabloon dat door iemand anders is geschreven,
+leest een redacteur als ruis en verwijdert hij.
 
 ## Statuspagina: loopt alles nog?
 
@@ -239,11 +261,20 @@ Onder **Gebruiksstatistieken** (alleen zichtbaar voor redacteuren), over de laat
 - weergaven per artikel en aantal voorstellen per artikel;
 - meest gezochte termen;
 - **gezocht zonder resultaat**: kennis die collega's zoeken maar niet vinden; een goede bron voor nieuwe artikelen;
-- aantal vragen aan de assistent.
+- aantal vragen aan de assistent, en daarnaast **vragen zonder bron**: hoe vaak hij in de kennisbank
+  niets kon vinden om op te antwoorden, met het percentage erbij. Samen met de lijst "gezocht zonder
+  resultaat" is dat de beste aanwijzing voor welke kennis nog ontbreekt.
 
-De cijfers zijn tellingen zonder namen. Je kunt niet zien wie wat heeft gelezen of gezocht.
+De cijfers zijn tellingen zonder namen. Je kunt niet zien wie wat heeft gelezen of gezocht, en de
+vragen aan de assistent worden niet opgeslagen — alleen hoeveel er waren en hoeveel er zonder bron
+bleven.
 
 ## Keuzelijsten
+
+Medewerkers filteren in de kennisbank op **cluster**, **soort** en **onderwerp** (de tags). Cluster en
+soort zijn één keuze; onderwerpen zijn te combineren, en een artikel moet dan aan alle gekozen
+onderwerpen voldoen. Alleen onderwerpen die in zichtbare artikelen voorkomen worden aangeboden, dus een
+filter levert nooit nul resultaten op. Staan er meer dan twaalf, dan staat de rest achter *Toon alle*.
 
 Clusters, tags en zaaktypen beheer je in het beheerscherm. Redacteuren kunnen ze toevoegen en wijzigen; alleen functioneel beheerders kunnen ze verwijderen. Bij een zaaktype moet de **code** precies overeenkomen met wat het zaaksysteem gebruikt.
 

@@ -32,6 +32,7 @@ from .models import (
     Cluster,
     GroepLabel,
     Omgeving,
+    Sjabloon,
     Soort,
     Status,
     Systeemstand,
@@ -719,17 +720,29 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 "Vul de datum per artikel in, of vraag IT de termijn in te stellen.",
             )
             return
-        n = 0
+        n, overgeslagen = 0, 0
         for a in queryset:
+            # Alleen gepubliceerde artikelen. Zette je de datum ook op een concept, dan bleef die staan
+            # bij het publiceren (een datum in de toekomst wordt niet overschreven) en was het eerste
+            # herzieningsvenster korter dan de ingestelde termijn.
+            if a.status != Status.GEPUBLICEERD:
+                overgeslagen += 1
+                continue
             a.herzien_voor = None  # leegmaken, zodat de termijn vanaf vandaag opnieuw gaat tellen
-            nieuw = diensten.herzieningsdatum(a)
-            Artikel.objects.filter(pk=a.pk).update(herzien_voor=nieuw)
+            Artikel.objects.filter(pk=a.pk).update(herzien_voor=diensten.herzieningsdatum(a))
             n += 1
-        messages.success(
-            request,
-            f"{n} artikel(en) gemarkeerd als nagekeken; de nakijkdatum staat nu {maanden} maanden vooruit. "
-            "Er is geen nieuwe versie gemaakt en medewerkers krijgen hiervan geen melding.",
-        )
+        if n:
+            messages.success(
+                request,
+                f"{n} artikel(en) gemarkeerd als nagekeken; de nakijkdatum staat nu {maanden} maanden "
+                "vooruit. Er is geen nieuwe versie gemaakt en medewerkers krijgen hiervan geen melding.",
+            )
+        if overgeslagen:
+            messages.warning(
+                request,
+                f"{overgeslagen} artikel(en) overgeslagen omdat ze niet gepubliceerd zijn. Een concept "
+                "krijgt zijn nakijkdatum automatisch bij de eerste publicatie.",
+            )
 
     @admin.action(description="Publiceren")
     def publiceren(self, request, queryset):
@@ -1017,6 +1030,13 @@ class BerichtAdmin(RedactieRechtenMixin, admin.ModelAdmin):
 # --- Alleen voor functioneel beheerders ------------------------------------------------
 
 
+class SjabloonForm(forms.ModelForm):
+    class Meta:
+        model = Sjabloon
+        fields = ["naam", "titel", "samenvatting", "inhoud", "soort", "volgorde", "actief"]
+        widgets = {"inhoud": forms.Textarea(attrs={"class": "kb-editor", "rows": 20})}
+
+
 class ToegangInline(admin.TabularInline):
     model = Toegang
     extra = 1
@@ -1034,17 +1054,88 @@ class ToegangInline(admin.TabularInline):
         return groep_omschrijving(obj.groep)
 
 
+@admin.register(Sjabloon)
+class SjabloonAdmin(admin.ModelAdmin):
+    """Voorbeeldartikelen om een nieuwe omgeving mee te vullen. Alleen voor functioneel beheerders."""
+
+    list_display = ["naam", "titel", "soort", "volgorde", "actief"]
+    list_editable = ["volgorde", "actief"]
+    list_filter = ["actief", "soort"]
+    search_fields = ["naam", "titel", "inhoud"]
+    form = SjabloonForm
+
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+
 @admin.register(Omgeving)
 class OmgevingAdmin(admin.ModelAdmin):
     list_display = ["naam", "slug", "aantal_groepen", "aantal_artikelen"]
     prepopulated_fields = {"slug": ["naam"]}
     inlines = [ToegangInline]
+    actions = ["vullen_met_sjablonen"]
+
+    @admin.action(description="Vullen met de sjablonen (als concept)")
+    def vullen_met_sjablonen(self, request, queryset):
+        """Plaats elk actief sjabloon als concept-artikel in de gekozen omgeving(en).
+
+        Als concept, zodat een redacteur ze eerst naloopt en aanvult; een sjabloon dat per ongeluk
+        zichtbaar wordt voor medewerkers is erger dan een lege kennisbank. Een sjabloon dat er al staat
+        (zelfde titel) wordt overgeslagen, zodat de actie twee keer uitvoeren niets dubbel oplevert.
+        """
+        if not request.user.is_superuser:
+            messages.error(request, "Alleen een functioneel beheerder kan een omgeving vullen.")
+            return
+        sjablonen = list(Sjabloon.objects.filter(actief=True))
+        if not sjablonen:
+            messages.warning(
+                request,
+                "Er staan nog geen sjablonen klaar. Maak ze eerst aan onder Sjablonen; de inhoud daarvan "
+                "schrijf je zelf, in de woorden van de organisatie.",
+            )
+            return
+        gemaakt, overgeslagen = 0, 0
+        for omgeving in queryset:
+            for sj in sjablonen:
+                if Artikel.objects.filter(omgeving=omgeving, titel__iexact=sj.titel).exists():
+                    overgeslagen += 1
+                    continue
+                artikel = Artikel.objects.create(
+                    omgeving=omgeving,
+                    titel=sj.titel,
+                    samenvatting=sj.samenvatting,
+                    inhoud=sj.inhoud,
+                    soort=sj.soort,
+                    status=Status.CONCEPT,
+                )
+                diensten.herbouw_secties(artikel)
+                gemaakt += 1
+        if gemaakt:
+            messages.success(
+                request,
+                f"{gemaakt} concept-artikel(en) geplaatst. Ze staan op concept, dus medewerkers zien ze "
+                "nog niet; loop ze na en publiceer wat klaar is.",
+            )
+        if overgeslagen:
+            messages.info(request, f"{overgeslagen} sjabloon(en) overgeslagen: die titel stond er al.")
 
     def get_queryset(self, request):
         return (
             super()
             .get_queryset(request)
-            .annotate(_groepen=Count("toegang", distinct=True), _artikelen=Count("artikel", distinct=True))
+            .annotate(_groepen=Count("toegang", distinct=True), _artikelen=Count("artikelen", distinct=True))
         )
 
     @admin.display(description="Groepen met toegang", ordering="_groepen")

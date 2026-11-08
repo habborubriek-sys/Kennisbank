@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.11.0 .
-docker push registry.example.nl/kennisbank:1.11.0
+docker build -t registry.example.nl/kennisbank:1.12.0 .
+docker push registry.example.nl/kennisbank:1.12.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -69,7 +69,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.11.0
+  registry.example.nl/kennisbank:1.12.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -91,13 +91,21 @@ zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
 
+#### Naar 1.12.0 (vanaf 1.7.0 of later)
+
+Alleen schema-uitbreidingen met een veilige standaardwaarde: twee nieuwe tabellen (`Sjabloon`,
+`GroepLabel`, `Systeemstand`, `VoorstelBericht`) en nieuwe kolommen die leeg of uit beginnen. Daarnaast
+de twee punten hieronder uit 1.11.0, die ook gelden als je van 1.10.0 komt. De meervoudsvormen van een
+aantal modellen in het beheer zijn veranderd (migratie 0018); dat raakt alleen wat er op het scherm
+staat, geen gegevens.
+
 #### Naar 1.11.0 (vanaf 1.7.0 of later)
 
 - **0011 verwijdert rijen** uit de sectietabel: de lege regels die vóór 1.8.1 voor elk artikel werden
   aangemaakt, ook als er geen tekst vóór de eerste sectiekop stond. Dat is een *afgeleide* tabel — bij
   elke opslag opnieuw opgebouwd uit de artikeltekst — dus er gaat geen bron verloren. Die lege rijen
   wonnen regelmatig de zoekopdracht zonder iets te kunnen laten zien.
-- **0017 maakt van een bestaande terugkoppeling bij een verbetervoorstel een bericht.** Sinds 1.11.0 is
+- **0017 maakt van een bestaande terugkoppeling bij een verbetervoorstel een bericht.** Sinds 1.12.0 is
   de terugkoppeling afgeleid uit de berichten; zonder deze stap zou een medewerker die eerder antwoord
   kreeg, daarna een leeg gesprek zien. Het oude veld blijft staan, dus deze stap is terug te draaien.
 - **0012 en 0014 voegen kolommen toe met een veilige standaard**: de twee keuzes bij de Word-import

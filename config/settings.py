@@ -222,6 +222,8 @@ REST_FRAMEWORK = {
         "voorstel": env("KB_VOORSTEL_LIMIET", "20/hour"),
     },
     "UNAUTHENTICATED_USER": "django.contrib.auth.models.AnonymousUser",
+    # De Nederlandse vertaling van DRF maakt van "throttled" het woord "verstikt"; zie api_fouten.py.
+    "EXCEPTION_HANDLER": "kennisbank.api_fouten.nederlandse_fout",
 }
 
 SPECTACULAR_SETTINGS = {

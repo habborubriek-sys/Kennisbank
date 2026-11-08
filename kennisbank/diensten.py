@@ -7,7 +7,7 @@ import re
 
 from django.conf import settings
 from django.core.mail import send_mail
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import F
 from django.utils import timezone
 from django.utils.formats import date_format
@@ -25,6 +25,7 @@ from .models import (
     Rol,
     Status,
     Systeemstand,
+    Verbetervoorstel,
     VoorstelBericht,
     WeergaveTelling,
     WijzigingGezien,
@@ -98,8 +99,6 @@ WHERE a.id = %s
 
 def werk_zoekvectoren_bij(artikel_id: int) -> None:
     """Zet de opgeslagen zoekdocumenten van het artikel en zijn secties opnieuw (na wijziging van inhoud of tags)."""
-    from django.db import connection
-
     with connection.cursor() as c:
         c.execute(_SQL_SECTIE_VECTOR, [artikel_id])
         c.execute(_SQL_ARTIKEL_VECTOR, [artikel_id])
@@ -238,6 +237,10 @@ def herzieningsdatum(artikel: Artikel, *, kleine_correctie: bool = False):
     if artikel.herzien_voor and (artikel.herzien_voor >= vandaag or kleine_correctie):
         return None
     jaar, maand = divmod(vandaag.month - 1 + maanden, 12)
+    if vandaag.year + jaar > datetime.date.max.year:
+        # Een onzinnige instelling mag geen serverfout bij het publiceren geven.
+        log.warning("KB_HERZIENINGSTERMIJN_MAANDEN van %s valt buiten het datumbereik", maanden)
+        return datetime.date.max
     dag = min(vandaag.day, calendar.monthrange(vandaag.year + jaar, maand + 1)[1])
     return vandaag.replace(year=vandaag.year + jaar, month=maand + 1, day=dag)
 
@@ -440,6 +443,44 @@ def meld_terugkoppeling(voorstel):
     )
 
 
+#: Binnen hoeveel seconden een identieke invoer als dubbelklik geldt in plaats van als nieuwe invoer.
+#: Ruim genoeg voor een trage verbinding of een tweede tabblad, kort genoeg dat iemand die écht twee
+#: keer hetzelfde wil zeggen daar niet door wordt gehinderd.
+DUBBEL_VENSTER = 120
+
+
+def _slot(sleutel: str) -> None:
+    """Een adviesslot tot het einde van de transactie, zodat twee gelijktijdige verzoeken op elkaar wachten.
+
+    Zonder dit slot zien twee verzoeken die binnen enkele milliseconden aankomen allebei "bestaat nog
+    niet" en maken ze allebei een rij aan — een gewone controle is daar niet genoeg voor. Hetzelfde
+    patroon als bij het aanmaken van een artikel.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", [sleutel])
+
+
+def bestaand_voorstel(artikel, gebruiker, tekst: str):
+    """Een identiek voorstel van dezelfde persoon bij hetzelfde artikel van net, of None.
+
+    Voor het dubbelklik-geval: dan wil de indiener één voorstel, geen twee. Het slot moet vóór de
+    controle, anders komen twee gelijktijdige verzoeken er allebei door.
+    """
+    kern = " ".join((tekst or "").split()).lower()
+    if not kern or not gebruiker or not gebruiker.is_authenticated:
+        return None
+    _slot(f"voorstel:{artikel.pk}:{gebruiker.pk}:{kern[:200]}")
+    return (
+        Verbetervoorstel.objects.filter(
+            artikel=artikel,
+            ingediend_door=gebruiker,
+            ingediend_op__gte=timezone.now() - datetime.timedelta(seconds=DUBBEL_VENSTER),
+        )
+        .filter(tekst__iexact=(tekst or "").strip())
+        .first()
+    )
+
+
 def voorstelbericht_toevoegen(voorstel, auteur, tekst: str, *, van_redactie: bool, melden: bool = True):
     """Voeg een bericht toe aan het gesprek over een voorstel en meld het aan de andere kant.
 
@@ -450,6 +491,18 @@ def voorstelbericht_toevoegen(voorstel, auteur, tekst: str, *, van_redactie: boo
     tekst = (tekst or "").strip()
     if not tekst:
         return None
+    # Dubbelklik of een tweede tabblad: hetzelfde bericht twee keer versturen zou de indiener ook twee
+    # keer dezelfde e-mail bezorgen. Het slot zorgt dat ook twee exact gelijktijdige verzoeken op
+    # elkaar wachten, en dan vindt de tweede het bericht van de eerste wél.
+    kern = " ".join(tekst.split()).lower()
+    _slot(f"voorstelbericht:{voorstel.pk}:{getattr(auteur, 'pk', 0)}:{kern[:200]}")
+    al_gestuurd = voorstel.berichten.filter(
+        auteur=auteur if auteur and auteur.is_authenticated else None,
+        tekst__iexact=tekst,
+        moment__gte=timezone.now() - datetime.timedelta(seconds=DUBBEL_VENSTER),
+    ).first()
+    if al_gestuurd:
+        return al_gestuurd
     nu = timezone.now()
     bericht = VoorstelBericht.objects.create(
         voorstel=voorstel,

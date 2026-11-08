@@ -19,6 +19,7 @@ def _shell(request, embed=False, zaaktype=""):
             "zaaktype": zaaktype,
             "demo": settings.KB_DEMO_MODUS,
             "auth_modus": settings.KB_AUTH_MODUS,
+            "contact": settings.KB_CONTACT,  # voor het <noscript>-blok; de app haalt hem zelf via /ik
         },
     )
 

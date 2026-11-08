@@ -39,6 +39,9 @@
     </nav>
     <div><h2 class="side-h">Cluster</h2><div class="chips" id="fCluster"></div></div>
     <div><h2 class="side-h">Soort</h2><div class="chips" id="fType"></div></div>
+    <div id="tagblok" hidden><h2 class="side-h">Onderwerp</h2><div class="chips" id="fTag"></div>
+      <button class="link meer-tags" type="button" id="tagMeer" hidden></button>
+    </div>
     <div id="instellingen" hidden><h2 class="side-h">Instellingen</h2>
       <label class="pref"><input type="checkbox" id="mailPref"> E-mail als een favoriet artikel wijzigt</label>
     </div>
@@ -49,7 +52,19 @@
   </aside>
 
   <button class="tb embed-terug" id="embedTerug" type="button" hidden></button>
-<main class="main" id="main" tabindex="-1"><p class="loading">Laden…</p></main>
+<main class="main" id="main" tabindex="-1">
+  <noscript>
+    <div class="noscript">
+      <h1>Deze kennisbank heeft JavaScript nodig</h1>
+      <p>In je browser staat JavaScript uit, waardoor de artikelen niet kunnen worden geladen. Zet
+        JavaScript aan en vernieuw de pagina.</p>
+      <p>Lukt dat niet, bijvoorbeeld omdat je computer centraal wordt beheerd?
+        {% if contact %}Neem dan contact op via {{ contact }}.{% else %}Neem dan contact op met de beheerder
+        van de kennisbank.{% endif %}</p>
+    </div>
+  </noscript>
+  <p class="loading">Laden…</p>
+</main>
 </div>
 
 <button class="selbtn" id="selBtn" type="button">✎ Verbetervoorstel over deze tekst</button>
@@ -72,6 +87,20 @@
     <textarea id="propText" required maxlength="4000" rows="10" placeholder="Beschrijf wat onduidelijk, verouderd of onjuist is en wat je zou voorstellen. Je mag er rustig de tijd voor nemen — procesmanagement kan hier daarna met je op doorpraten."></textarea>
     <div class="row"><button type="button" class="tb" id="propCancel">Annuleren</button><button type="submit" class="tb primary">Indienen</button></div>
   </form>
+</div>
+
+<div class="backdrop" id="welkomBackdrop">
+  <div class="modal" id="welkom" role="dialog" aria-modal="true" aria-labelledby="welkomTitel">
+    <h2 id="welkomTitel">Welkom bij de kennisbank</h2>
+    <p>Hier staan de werkinstructies, werkafspraken en processen van je afdeling.</p>
+    <p><b>Ben je nieuw bij Rijkswaterstaat of bij deze afdeling?</b> Dan kunnen we bij de artikelen extra
+      uitleg laten staan: achtergrond, waarom iets zo gaat, en wat afkortingen betekenen. Je kunt die
+      uitleg later altijd aan- of uitzetten met de schakelaar <i>Onboarding</i> rechtsboven.</p>
+    <div class="row">
+      <button type="button" class="tb" id="welkomNee">Nee, ik ken de weg</button>
+      <button type="button" class="tb primary" id="welkomJa">Ja, zet de uitleg aan</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

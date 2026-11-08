@@ -4,6 +4,7 @@ Documentatie: /api/schema/ (OpenAPI) en /api/docs/ (interactief).
 """
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -143,6 +144,7 @@ class VoorstelSerializer(serializers.ModelSerializer):
     van_mij = serializers.SerializerMethodField()
     berichten = serializers.SerializerMethodField()
     ongelezen = serializers.SerializerMethodField()
+    behandeld_door = serializers.SerializerMethodField()
 
     class Meta:
         model = Verbetervoorstel
@@ -160,6 +162,7 @@ class VoorstelSerializer(serializers.ModelSerializer):
             "ingediend_door",
             "van_mij",
             "behandeld_op",
+            "behandeld_door",
             "berichten",
             "ongelezen",
         ]
@@ -169,6 +172,12 @@ class VoorstelSerializer(serializers.ModelSerializer):
     def get_berichten(self, obj):
         """Het hele gesprek, oudste eerst."""
         return VoorstelBerichtSerializer(obj.berichten.all(), many=True).data
+
+    def get_behandeld_door(self, obj) -> str | None:
+        """Wie het voorstel heeft opgepakt. Zo ziet een tweede redacteur dat een collega hem al heeft."""
+        if not obj.behandeld_door:
+            return None
+        return obj.behandeld_door.get_full_name() or obj.behandeld_door.get_username()
 
     def get_ongelezen(self, obj) -> int:
         request = self.context.get("request")
@@ -257,6 +266,7 @@ def _ctx(request, artikelen=None):
 
 class IkWijzigenSerializer(serializers.Serializer):
     onboarding = serializers.BooleanField(required=False)
+    begroet = serializers.BooleanField(required=False, help_text="Zet op true als de openingsvraag is gesteld.")
     mail_bij_favorieten = serializers.BooleanField(required=False)
 
 
@@ -269,6 +279,7 @@ class IkWijzigenSerializer(serializers.Serializer):
             "naam": serializers.CharField(),
             "is_redacteur": serializers.BooleanField(),
             "onboarding": serializers.BooleanField(),
+            "begroeten": serializers.BooleanField(),
             "mail_bij_favorieten": serializers.BooleanField(),
             "favorieten_mail": serializers.CharField(help_text="KB_FAVORIETEN_MAIL: gebundeld, direct of uit"),
             "nieuws_gezien_op": serializers.DateTimeField(allow_null=True),
@@ -296,6 +307,9 @@ def ik(request):
         velden = [veld for veld in ("onboarding", "mail_bij_favorieten") if veld in s.validated_data]
         for veld in velden:
             setattr(p, veld, s.validated_data[veld])
+        if s.validated_data.get("begroet"):
+            p.begroet_op = timezone.now()
+            velden.append("begroet_op")
         if velden:
             p.save(update_fields=velden)
     r = rechten(request)
@@ -314,6 +328,9 @@ def ik(request):
             "naam": request.user.get_full_name() or request.user.get_username(),
             "is_redacteur": r.is_redacteur,
             "onboarding": p.onboarding,
+            # Alleen bij de eerste keer: dan vraagt de app of iemand nieuw is bij RWS en zet de uitleg
+            # voor nieuwe collega's meteen aan. Anders moet je die schakelaar eerst zelf vinden.
+            "begroeten": p.begroet_op is None,
             "mail_bij_favorieten": p.mail_bij_favorieten,
             "favorieten_mail": settings.KB_FAVORIETEN_MAIL,
             "nieuws_gezien_op": p.nieuws_gezien_op,
@@ -359,7 +376,12 @@ def keuzelijsten(request):
     zichtbaar = rechten(request).gepubliceerde_artikelen()
     return Response(
         {
-            "clusters": list(Cluster.objects.values_list("naam", flat=True)),
+            # Net als tags en zaaktypen: alleen de clusters die in zichtbare artikelen voorkomen. Anders
+            # kreeg ook een account zonder enige omgevingstoegang de volledige clusterindeling te zien,
+            # en kregen medewerkers filters aangeboden die in hun omgeving niets opleveren.
+            "clusters": list(
+                Cluster.objects.filter(artikel__in=zichtbaar).distinct().values_list("naam", flat=True)
+            ),
             "soorten": [{"waarde": w, "label": label} for w, label in Soort.choices],
             "tags": list(Tag.objects.filter(artikel__in=zichtbaar).distinct().values_list("naam", flat=True)),
             "zaaktypen": list(Zaaktype.objects.filter(artikel__in=zichtbaar).distinct().values("code", "naam")),
@@ -492,7 +514,16 @@ def voorstellen(request):
         a = s.validated_data["artikel"]
         if not r.mag_lezen(a):
             raise PermissionDenied
-        v = s.save(ingediend_door=request.user, artikel_versie=a.versie)
+        # Dubbelklik of de terugknop: dan hoort er één voorstel te ontstaan, niet twee. Het bestaande
+        # voorstel teruggeven is vriendelijker dan een foutmelding — de indiener heeft gekregen wat
+        # hij wilde en merkt er niets van.
+        with transaction.atomic():
+            bestaand = diensten.bestaand_voorstel(a, request.user, s.validated_data.get("tekst", ""))
+            if bestaand:
+                return Response(
+                    VoorstelSerializer(bestaand, context=_ctx(request)).data, status=status.HTTP_200_OK
+                )
+            v = s.save(ingediend_door=request.user, artikel_versie=a.versie)
         diensten.meld_nieuw_voorstel(v)
         return Response(VoorstelSerializer(v, context=_ctx(request)).data, status=status.HTTP_201_CREATED)
 
@@ -523,10 +554,15 @@ def voorstel(request, pk):
     s.is_valid(raise_exception=True)
     nieuwe_status = s.validated_data.get("status", v.status)
     if nieuwe_status != v.status:
-        v.status = nieuwe_status
-        v.behandeld_door = request.user
-        v.behandeld_op = timezone.now()
-        v.save(update_fields=["status", "behandeld_door", "behandeld_op"])
+        # Vergrendelen vóór het lezen én schrijven, zodat twee redacteuren die tegelijk een status
+        # zetten niet allebei van de oude stand uitgaan. Wie als tweede is, ziet in het antwoord wie
+        # het voorstel nu heeft behandeld.
+        with transaction.atomic():
+            v = Verbetervoorstel.objects.select_for_update().get(pk=v.pk)
+            v.status = nieuwe_status
+            v.behandeld_door = request.user
+            v.behandeld_op = timezone.now()
+            v.save(update_fields=["status", "behandeld_door", "behandeld_op"])
     # Een meegestuurde terugkoppeling wordt een bericht aan de indiener; daar zit de melding en de
     # e-mail al aan vast. Dubbel versturen voorkomen we door hem over te slaan als hij niet verandert.
     tekst = (s.validated_data.get("terugkoppeling") or "").strip()
@@ -563,7 +599,8 @@ def voorstel_bericht(request, pk):
         raise PermissionDenied("Alleen procesmanagement kan een bericht bij een voorstel plaatsen.")
     s = VoorstelBerichtInSerializer(data=request.data)
     s.is_valid(raise_exception=True)
-    diensten.voorstelbericht_toevoegen(v, request.user, s.validated_data["tekst"], van_redactie=True)
+    with transaction.atomic():
+        diensten.voorstelbericht_toevoegen(v, request.user, s.validated_data["tekst"], van_redactie=True)
     v.refresh_from_db()
     return Response(VoorstelSerializer(v, context=_ctx(request)).data, status=status.HTTP_201_CREATED)
 
