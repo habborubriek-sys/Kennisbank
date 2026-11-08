@@ -57,6 +57,12 @@ class Cluster(models.Model):
         return self.naam
 
 
+def normaliseer_tag(naam: str) -> str:
+    """Tags zijn kleine letters met enkele spaties, max. 60 tekens — overal dezelfde regel (beheer en import),
+    zodat 'Omgevingswet' en 'omgevingswet' één tag zijn en een import later in het beheer niet als wijziging telt."""
+    return " ".join((naam or "").split()).strip().lower()[:60]
+
+
 class Tag(models.Model):
     naam = models.CharField(max_length=60, unique=True)
 
@@ -65,6 +71,10 @@ class Tag(models.Model):
 
     def __str__(self):
         return self.naam
+
+    def save(self, *args, **kwargs):
+        self.naam = normaliseer_tag(self.naam)
+        super().save(*args, **kwargs)
 
 
 class Zaaktype(models.Model):
@@ -193,6 +203,10 @@ class ArtikelVersie(models.Model):
     versie = models.PositiveIntegerField()
     inhoud = models.JSONField()
     toelichting = models.CharField(max_length=300, blank=True)
+    kleine_correctie = models.BooleanField(
+        default=False,
+        help_text="Typfout, opmaak of iets anders waar medewerkers geen melding van hoeven te krijgen.",
+    )
     gepubliceerd_door = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     gepubliceerd_op = models.DateTimeField(default=timezone.now)
 
@@ -211,6 +225,108 @@ class Profiel(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="kennisbank_profiel"
     )
     onboarding = models.BooleanField(default=False)
+    mail_bij_favorieten = models.BooleanField(
+        default=True, help_text="E-mail ontvangen als een favoriet artikel inhoudelijk wijzigt."
+    )
+    nieuws_gezien_op = models.DateTimeField(
+        null=True, blank=True, help_text="Wanneer de gebruiker de nieuwspagina voor het laatst opende."
+    )
+
+
+class WijzigingGezien(models.Model):
+    """Tot en met welke versie van een artikel de gebruiker de wijzigingsmelding heeft afgevinkt ("Ik snap het").
+
+    Eén regel per gebruiker en artikel. De melding verschijnt (opnieuw) zodra er een inhoudelijke versie
+    is met een hoger nummer dan hier staat.
+    """
+
+    gebruiker = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    artikel = models.ForeignKey(Artikel, on_delete=models.CASCADE, related_name="gezien_door")
+    versie = models.PositiveIntegerField()
+    gezien_op = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "wijziging gezien"
+        verbose_name_plural = "wijzigingen gezien"
+        constraints = [models.UniqueConstraint(fields=["gebruiker", "artikel"], name="uniek_gezien_per_artikel")]
+
+
+class FavorietenMail(models.Model):
+    """Wachtrij voor de e-mail aan medewerkers van wie een favoriet artikel inhoudelijk is gewijzigd.
+
+    Bij publicatie komt er per ontvanger een regel bij; het commando `kennisbank_favorietenmail`
+    (ook aangeroepen door `kennisbank_opschonen`) bundelt alle openstaande regels per ontvanger tot
+    één e-mail. Zie KB_FAVORIETEN_MAIL in de configuratie.
+    """
+
+    gebruiker = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    artikel = models.ForeignKey(Artikel, on_delete=models.CASCADE)
+    versie = models.PositiveIntegerField()
+    toelichting = models.CharField(max_length=300, blank=True)
+    aangemaakt_op = models.DateTimeField(default=timezone.now)
+    verzonden_op = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "favorietenmail"
+        verbose_name_plural = "favorietenmails"
+        ordering = ["aangemaakt_op"]
+
+
+class BerichtStatus(models.TextChoices):
+    CONCEPT = "concept", "Concept"
+    GEPUBLICEERD = "gepubliceerd", "Gepubliceerd"
+
+
+class BerichtQuerySet(models.QuerySet):
+    def gepubliceerd(self):
+        return self.filter(status=BerichtStatus.GEPUBLICEERD)
+
+    def actueel(self):
+        """Gepubliceerd en niet verlopen."""
+        nu = timezone.now()
+        from django.db.models import Q
+
+        return self.gepubliceerd().filter(Q(verloopt_op__isnull=True) | Q(verloopt_op__gt=nu))
+
+
+class Bericht(models.Model):
+    """Nieuwsbericht voor medewerkers van een omgeving: nieuwe werkwijzen, gewijzigde artikelen, mededelingen."""
+
+    omgeving = models.ForeignKey(Omgeving, on_delete=models.PROTECT, related_name="berichten")
+    titel = models.CharField(max_length=200)
+    tekst = models.TextField(help_text="De inhoud van het bericht. Zelfde opmaakmogelijkheden als een artikel.")
+    artikelen = models.ManyToManyField(
+        Artikel, blank=True, related_name="berichten", help_text="Artikelen waar dit bericht over gaat."
+    )
+    status = models.CharField(max_length=20, choices=BerichtStatus.choices, default=BerichtStatus.CONCEPT)
+    vastgepind = models.BooleanField(default=False, help_text="Bovenaan de nieuwspagina houden.")
+    gepubliceerd_op = models.DateTimeField(null=True, blank=True, editable=False)
+    verloopt_op = models.DateTimeField(
+        null=True, blank=True, help_text="Daarna staat het bericht onder 'Ouder nieuws' (leeg = geen einddatum)."
+    )
+    auteur = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    aangemaakt_op = models.DateTimeField(auto_now_add=True)
+    gewijzigd_op = models.DateTimeField(auto_now=True)
+
+    objects = BerichtQuerySet.as_manager()
+
+    class Meta:
+        verbose_name = "nieuwsbericht"
+        verbose_name_plural = "nieuwsberichten"
+        ordering = ["-vastgepind", "-gepubliceerd_op", "-aangemaakt_op"]
+
+    def __str__(self):
+        return self.titel
+
+    def save(self, *args, **kwargs):
+        from .inhoud import schoon
+
+        self.tekst = schoon(self.tekst)
+        if self.status == BerichtStatus.GEPUBLICEERD and not self.gepubliceerd_op:
+            self.gepubliceerd_op = timezone.now()
+        elif self.status != BerichtStatus.GEPUBLICEERD:
+            self.gepubliceerd_op = None  # terug naar concept: bij opnieuw publiceren telt het weer als nieuw
+        super().save(*args, **kwargs)
 
 
 class Favoriet(models.Model):

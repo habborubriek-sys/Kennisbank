@@ -190,6 +190,21 @@
         "Toezicht"
       ],
       "inhoud": "<section class=\"sectie\"><h2 class=\"sectie-kop\">Voorbereiding</h2><ul>\n<li>Lees de vergunning en eerdere bezoeken in de zaak.</li>\n<li>Leg vast wat je gaat controleren (controlepunten).</li>\n<li>Kondig het bezoek aan, tenzij onaangekondigd toezicht is afgesproken.</li>\n</ul></section><section class=\"sectie\"><h2 class=\"sectie-kop\">Tijdens het bezoek</h2><div class=\"onboarding\"><p>Neem de eerste bezoeken een ervaren collega mee. Spreek vooraf af wie het gesprek voert en wie vastlegt.</p></div><p>Werk de controlepunten af, maak foto's met locatie en tijd, en benoem geconstateerde afwijkingen ter plekke aan de vergunninghouder.</p></section><section class=\"sectie\"><h2 class=\"sectie-kop\">Verslag</h2><p>Het verslag staat binnen <strong>5 werkdagen</strong> in de zaak, met het sjabloon <strong>Toezichtverslag</strong>. Afwijkingen leiden tot een vervolgzaak of een rappel.</p></section>"
+    },
+    {
+      "slug": "werkafspraak-telefonische-bereikbaarheid",
+      "titel": "Werkafspraak: telefonische bereikbaarheid van het team",
+      "samenvatting": "Korte werkafspraak over wie de teamtelefoon aanneemt en hoe terugbelverzoeken worden vastgelegd.",
+      "soort": "werkafspraak",
+      "status": "gepubliceerd",
+      "clusters": [],
+      "tags": [
+        "bereikbaarheid",
+        "telefoon",
+        "terugbellen"
+      ],
+      "zaaktypen": [],
+      "inhoud": "<p>De teamtelefoon staat op werkdagen van 9.00 tot 17.00 uur aan. Wie dienst heeft staat in het rooster op de teampagina.</p><p>Neem je een gesprek aan voor een collega die er niet is, leg dan een <strong>terugbelverzoek</strong> vast in de zaak (of in de gezamenlijke mailbox als er nog geen zaak is): naam, telefoonnummer, waarover en wanneer de beller bereikbaar is.</p><p>Terugbellen gebeurt dezelfde werkdag, uiterlijk de volgende ochtend.</p><div class=\"onboarding\"><p>Dit artikel heeft bewust geen inklapbare secties: een korte werkafspraak past op één scherm. Secties zijn er voor langere werkinstructies.</p></div>"
     }
   ]
 }

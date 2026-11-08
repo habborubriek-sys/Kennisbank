@@ -75,6 +75,9 @@
   let artikelen = [];           // alle zichtbare artikelen (kort)
   let favs = new Set();
   let voorstellen = [];
+  let berichten = null;         // nieuwsberichten, geladen bij de eerste keer dat ze nodig zijn
+  let nieuwsGezienOp = null;    // berichten met een latere publicatiedatum zijn "nieuw" voor deze gebruiker
+  let nieuwsGezienStraks = null; // nieuwe grens, gaat in zodra de gebruiker de nieuwspagina verlaat (labels blijven zolang staan)
   let onboarding = false;
   const state = { view: "recent", artikel: null, q: "", cluster: null, soort: null, tags: new Set(), zoekresultaat: null };
   let huidigArtikel = null;     // volledig artikel dat nu open is
@@ -87,7 +90,10 @@
   const VOORSTEL_LABEL = { nieuw: "Nieuw", in_behandeling: "In behandeling", verwerkt: "Verwerkt", afgewezen: "Afgewezen" };
 
   /* ---------- Navigatie (echte URL's, zodat links te delen zijn) ---------- */
-  const VIEWS = ["recent", "artikelen", "favorieten", "voorstellen", "statistieken"];
+  const VIEWS = ["recent", "artikelen", "favorieten", "gewijzigd", "nieuws", "voorstellen", "statistieken"];
+  const gewijzigd = () => artikelen.filter((a) => a.wijziging);
+  const nieuwsOngelezen = () => (berichten || []).filter((b) => isNieuw(b)).length;
+  const isNieuw = (b) => !nieuwsGezienOp || new Date(b.gepubliceerd_op) > new Date(nieuwsGezienOp);
 
   function leesUrl() {
     if (EMBED) return;
@@ -128,6 +134,9 @@
     $("#cFav").textContent = favs.size;
     $("#cRec").textContent = ik ? ik.recent.length : "";
     $("#cProp").textContent = voorstellen.filter((p) => p.status === "nieuw" || p.status === "in_behandeling").length || "";
+    $("#cWijz").textContent = gewijzigd().length || "";
+    $("#cNieuws").textContent = (berichten ? (nieuwsGezienStraks ? 0 : nieuwsOngelezen()) : (ik && ik.nieuws_ongelezen)) || "";
+    $("#navNieuws").hidden = EMBED;  // in het zaaksysteem alleen de artikelen; nieuws hoort in de kennisbank zelf
     $("#navStats").hidden = !isPM();
     $$(".nav button").forEach((b) => b.setAttribute("aria-current", b.dataset.view === state.view && !state.artikel ? "page" : "false"));
   }
@@ -141,6 +150,7 @@
 
   /* ---------- Weergaven ---------- */
   async function render(focus) {
+    if (state.view !== "nieuws" && nieuwsGezienStraks) { nieuwsGezienOp = nieuwsGezienStraks; nieuwsGezienStraks = null; }
     renderFilters();
     const m = $("#main");
     try {
@@ -156,6 +166,10 @@
         wireArticle();
       } else if (state.view === "zaaktype") {
         m.innerHTML = renderZaaktype(); wireList();
+      } else if (state.view === "nieuws" && !EMBED) {
+        if (!berichten) { m.innerHTML = '<p class="loading">Laden…</p>'; await laadBerichten(); }
+        m.innerHTML = renderNieuws(); wireList(); wireNieuws();
+        markeerNieuwsGezien();
       } else if (state.view === "voorstellen") {
         m.innerHTML = renderProps(); wireList();
       } else if (state.view === "statistieken") {
@@ -181,12 +195,29 @@
     else if (state.view === "favorieten") {
       bron = artikelen.filter((a) => favs.has(a.id)); titel = "Favorieten";
       leeg = '<div class="empty">Nog geen favorieten. Open een artikel en klik op de ster om het hier vast te zetten.</div>';
+    } else if (state.view === "gewijzigd") {
+      bron = gewijzigd(); titel = "Gewijzigd";
+      leeg = '<div class="empty">Geen openstaande wijzigingen. Zodra een artikel inhoudelijk wordt bijgewerkt, zie je hier wat er is veranderd.</div>';
     } else if (state.view === "recent") {
       bron = ik.recent.map((r) => artById(r.id)).filter(Boolean); titel = "Recent bezocht";
       when = Object.fromEntries(ik.recent.map((r) => [r.id, ago(r.bezocht_op)]));
       leeg = '<div class="empty">Hier verschijnen de artikelen die je het laatst hebt geopend.<br><br>Zoek hierboven op een trefwoord, of <button class="tb" type="button" data-nav="artikelen">bekijk alle artikelen</button></div>';
     } else { bron = artikelen; titel = "Alle artikelen"; }
-    return renderList(filtered(bron), titel, when, leeg, zoekend && state.zoekresultaat === null);
+    let html = renderList(filtered(bron), titel, when, leeg, zoekend && state.zoekresultaat === null);
+    if (state.view === "gewijzigd" && !zoekend && bron.length) {
+      html = html.replace("</h1>", '</h1><p class="lead">Artikelen die inhoudelijk zijn gewijzigd sinds je ze voor het laatst hebt afgevinkt. Open een artikel en klik op <b>Ik snap het</b>, of <button class="link" type="button" id="allesGezien">markeer alles als gezien</button>.</p>');
+    }
+    const startpagina = (state.view === "recent" || state.view === "artikelen") && !zoekend && !state.cluster && !state.soort && !state.tags.size;
+    if (startpagina && !EMBED) html = html.replace('<div class="view">', '<div class="view">' + nieuwsBlok());
+    return html;
+  }
+
+  /* Startpagina: de laatste nieuwsberichten in het kort. */
+  function nieuwsBlok() {
+    const lijst = (berichten || []).filter((b) => !b.verlopen).slice(0, 3);
+    if (!lijst.length) return "";
+    return `<section class="nieuwsblok" aria-labelledby="nbTitel"><div class="nb-head"><h2 id="nbTitel">Nieuws</h2><button class="link" type="button" data-nav="nieuws">Alle berichten</button></div>
+      ${lijst.map((b) => `<article class="nb-item"><h3><button class="link" type="button" data-bericht="${b.id}">${esc(b.titel)}</button>${isNieuw(b) ? ' <span class="status nieuw">Nieuw</span>' : ""}</h3><p class="nb-meta">${datum(b.gepubliceerd_op)}</p></article>`).join("")}</section>`;
   }
 
   function cardHTML(a, when) {
@@ -196,6 +227,7 @@
       if (a.status !== "gepubliceerd") meta.push(`<span class="status nieuw">${esc(a.status)}</span>`);
     }
     if (when) meta.push((isPM() ? "<span>·</span>" : "") + `<span class="when">${esc(when)}</span>`);
+    if (a.wijziging) meta.unshift(`<span class="status wijzig" title="${esc(a.wijziging.toelichting)}">Gewijzigd ${esc(datum(a.wijziging.datum))}</span>`);
     return `<article class="card">
       <button class="star" type="button" data-fav="${a.id}" aria-pressed="${favs.has(a.id)}" aria-label="${favs.has(a.id) ? "Verwijder uit favorieten" : "Voeg toe aan favorieten"}: ${esc(a.titel)}">${favs.has(a.id) ? "★" : "☆"}</button>
       <h2><a href="${esc(a.url)}" data-open="${a.id}" class="linkbtn card-link">${esc(a.titel)}</a></h2>
@@ -232,6 +264,7 @@
        </div></div>
       <h1 id="artTitel">${esc(a.titel)}</h1>
       <p class="summary">${esc(a.samenvatting)}</p>
+      ${a.wijziging ? `<div class="wijziging" id="wijzBlok" role="status"><div><b>Gewijzigd op ${esc(datum(a.wijziging.datum))}</b> (versie ${a.wijziging.versie})<p>${esc(a.wijziging.toelichting) || "Het artikel is inhoudelijk bijgewerkt."}</p></div><button class="tb primary" type="button" id="wijzGezien">Ik snap het</button></div>` : ""}
       <p class="docline">${esc(clusterLabel(a))} · ${zt} · versie ${a.versie}, bijgewerkt ${datum(a.gepubliceerd_op)} · eigenaar ${esc(a.eigenaar)}</p>
       ${a.blokken.some((b) => b.type === "sectie") ? '<div class="secbar"><button class="tb" type="button" id="toggleAll">Alles uitklappen</button></div>' : ""}
       <div class="sections">${a.blokken.map((b) => b.type === "tekst" ? `<div class="inleiding">${b.html}</div>` : `<details class="sec" id="sectie-${b.nummer}" ${b.nummer === 1 ? "open" : ""}><summary>${esc(b.kop)}</summary><div class="body">${b.html}</div></details>`).join("")}</div>
@@ -256,6 +289,22 @@
       ${p.terugkoppeling ? `<div class="fb"><b>Terugkoppeling procesmanagement</b>${esc(p.terugkoppeling)}</div>` : ""}
       ${isPM() ? `<div class="manage"><label class="visually-hidden" for="st-${p.id}">Status</label><select id="st-${p.id}" data-status="${p.id}">${Object.entries(VOORSTEL_LABEL).map(([k, v]) => `<option value="${k}" ${p.status === k ? "selected" : ""}>${v}</option>`).join("")}</select><label class="visually-hidden" for="fb-${p.id}">Terugkoppeling</label><input id="fb-${p.id}" data-fb="${p.id}" placeholder="Terugkoppeling aan de indiener…" value="${esc(p.terugkoppeling || "")}"><button class="tb" type="button" data-save="${p.id}">Opslaan</button></div>` : ""}
      </div>`).join("")}</div>` : '<div class="empty">Nog geen verbetervoorstellen. Open een artikel en selecteer tekst om er een in te dienen.</div>'}</div>`;
+  }
+
+  function renderNieuws() {
+    const lijst = berichten || [];
+    const actueel = lijst.filter((b) => !b.verlopen);
+    const ouder = lijst.filter((b) => b.verlopen);
+    const item = (b) => `<article class="bericht${b.vastgepind ? " vast" : ""}" id="bericht-${b.id}">
+      <div class="b-head"><h2>${esc(b.titel)}</h2>${isNieuw(b) ? '<span class="status nieuw">Nieuw</span>' : ""}${b.vastgepind ? '<span class="status vast" title="Vastgepind">📌</span>' : ""}</div>
+      <p class="b-meta">${datum(b.gepubliceerd_op)} · ${esc(b.auteur)}${b.bewerk_url ? ` · <a href="${esc(b.bewerk_url)}">Bewerken</a>` : ""}</p>
+      <div class="b-body">${b.tekst}</div>
+      ${b.artikelen.length ? `<div class="b-links">Dit gaat over: ${b.artikelen.map((a) => `<a href="${esc(a.url)}" data-open="${a.id}" class="linkbtn">${esc(a.titel)}</a>`).join(", ")}</div>` : ""}
+    </article>`;
+    return `<div class="view"><h1>Nieuws</h1><p class="lead">Mededelingen en gewijzigde werkwijzen van procesmanagement.${isPM() ? ' <a href="/beheer/kennisbank/bericht/add/">Nieuw bericht schrijven</a>' : ""}</p>
+      ${actueel.length ? `<div class="berichten">${actueel.map(item).join("")}</div>` : '<div class="empty">Er is nog geen nieuws.</div>'}
+      ${ouder.length ? `<details class="ouder"><summary>Ouder nieuws (${ouder.length})</summary><div class="berichten">${ouder.map(item).join("")}</div></details>` : ""}
+    </div>`;
   }
 
   function renderStats(s) {
@@ -340,6 +389,18 @@
     if (c) c.addEventListener("click", () => { state.q = ""; $("#q").value = ""; state.zoekresultaat = null; state.cluster = null; state.soort = null; state.tags.clear(); render(false); });
     const ab = $("#askBot");
     if (ab) ab.addEventListener("click", () => { openChat(); $("#chatIn").value = state.q; $("#chatIn").focus(); });
+    const ag = $("#allesGezien");
+    if (ag) ag.addEventListener("click", async () => {
+      ag.disabled = true;
+      try {
+        await api("wijzigingen/gezien", { method: "POST" });
+        artikelen.forEach((a) => { a.wijziging = null; });
+        if (huidigArtikel) huidigArtikel.wijziging = null;
+        render(false);
+        toast("Alle wijzigingen gemarkeerd als gezien");
+      } catch (e) { ag.disabled = false; toast("Markeren is mislukt"); }
+    });
+    $$("[data-bericht]").forEach((b) => b.addEventListener("click", () => { state.scrollNaarBericht = b.dataset.bericht; ga("nieuws"); }));
     $$("[data-save]").forEach((b) => b.addEventListener("click", async () => {
       const id = b.dataset.save;
       try {
@@ -368,6 +429,18 @@
       else toast("Link: " + url);
     });
     $("#propBtn").addEventListener("click", () => openProp(""));
+    const wg = $("#wijzGezien");
+    if (wg) wg.addEventListener("click", async () => {
+      wg.disabled = true;
+      try {
+        await api("artikelen/" + a.id + "/gezien", { method: "POST", body: { versie: a.wijziging ? a.wijziging.versie : a.versie } });
+        a.wijziging = null;
+        const kort = artById(a.id); if (kort) kort.wijziging = null;
+        const blok = $("#wijzBlok"); if (blok) blok.remove();
+        renderFilters();
+        toast("Gemarkeerd als gezien");
+      } catch (e) { wg.disabled = false; toast("Markeren is mislukt"); }
+    });
     // De knop "Alles uitklappen" is er alleen als het artikel secties heeft (bijv. niet direct na een Word-import).
     const ta = $("#toggleAll");
     if (ta) ta.addEventListener("click", () => {
@@ -555,6 +628,36 @@
   async function laadVoorstellen() {
     try { voorstellen = await api("voorstellen"); } catch (e) { voorstellen = []; }
   }
+  async function laadBerichten() {
+    try { berichten = await api("berichten"); } catch (e) { berichten = []; }
+  }
+  function wireNieuws() {
+    if (state.scrollNaarBericht) {
+      const el = document.getElementById("bericht-" + state.scrollNaarBericht);
+      state.scrollNaarBericht = null;
+      if (el) { el.scrollIntoView({ block: "start" }); el.classList.add("licht"); }
+    }
+  }
+  async function markeerNieuwsGezien() {
+    // De teller gaat direct naar nul; de labels "Nieuw" blijven staan tot de gebruiker de pagina verlaat.
+    if (nieuwsGezienStraks || (!nieuwsOngelezen() && !ik.nieuws_ongelezen)) return;
+    nieuwsGezienStraks = new Date().toISOString();
+    ik.nieuws_ongelezen = 0;
+    renderFilters();
+    try { await api("berichten/gezien", { method: "POST" }); } catch (e) { /* teller niet opgeslagen; niet kritisch */ }
+  }
+  function wireInstellingen() {
+    const blok = $("#instellingen"), cb = $("#mailPref");
+    blok.hidden = EMBED || ik.favorieten_mail === "uit";
+    cb.checked = !!ik.mail_bij_favorieten;
+    cb.addEventListener("change", async () => {
+      try {
+        await api("ik", { method: "PATCH", body: { mail_bij_favorieten: cb.checked } });
+        ik.mail_bij_favorieten = cb.checked;
+        toast(cb.checked ? "Je krijgt een e-mail als een favoriet wijzigt" : "Geen e-mail meer bij wijzigingen van favorieten");
+      } catch (e) { cb.checked = !cb.checked; toast("Opslaan van de instelling is mislukt"); }
+    });
+  }
 
   function renderGebruiker() {
     $("#user").innerHTML = `<span class="visually-hidden">Ingelogd als</span><span>${esc(ik.naam)}</span> · <a href="${esc(ik.uitlog_url)}" id="uitlog">Uitloggen</a>`;
@@ -590,8 +693,11 @@
     body.classList.toggle("onboarding", onboarding);
     $("#onbToggle").setAttribute("aria-pressed", String(onboarding));
     favs = new Set(ik.favorieten.map(Number));
+    nieuwsGezienOp = ik.nieuws_gezien_op;
+    wireInstellingen();
     [lijsten, artikelen] = await Promise.all([api("keuzelijsten"), api("artikelen")]);
     await laadVoorstellen();
+    if (!EMBED) await laadBerichten();  // ook voor het nieuwsblok op de startpagina
     if (EMBED) state.view = "zaaktype"; else leesUrl();
     if (state.view === "statistieken" && !isPM()) state.view = "artikelen";
     // Voorbeeldvragen: in het zaaksysteem algemeen; daarbuiten alleen in de demo (die horen bij de demo-inhoud).

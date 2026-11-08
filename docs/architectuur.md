@@ -52,6 +52,10 @@ erDiagram
   GEBRUIKER ||--o{ FAVORIET : ""
   GEBRUIKER ||--o{ RECENTBEZOCHT : "max 10"
   GEBRUIKER ||--o{ VERBETERVOORSTEL : "dient in"
+  GEBRUIKER ||--o{ WIJZIGINGGEZIEN : "Ik snap het"
+  GEBRUIKER ||--o{ FAVORIETENMAIL : "wachtrij"
+  OMGEVING ||--o{ BERICHT : "nieuws"
+  BERICHT }o--o{ ARTIKEL : "gaat over"
 ```
 
 - **Omgeving**: afgeschermd deel van de kennisbank (bijv. per afdeling). Hiermee kan de applicatie later ook buiten één afdeling worden gebruikt zonder dat artikelen door elkaar lopen.
@@ -60,7 +64,10 @@ erDiagram
 - **Sectie** is een *afgeleide* tabel: bij elke opslag opnieuw opgebouwd uit `inhoud` (`diensten.herbouw_secties`), zodat zoeken en de assistent per sectie kunnen werken. Volgorde 0 is alle vrije tekst samen.
 - **Zoekdocumenten** (`Artikel.zoekvector`, `Sectie.zoekvector`, type `tsvector` met GIN-index) worden in dezelfde stap bijgewerkt. Zoeken is daardoor een indexopzoeking die meeschaalt met het aantal artikelen; titel en tags wegen het zwaarst, dan de samenvatting, dan de tekst.
 - **Links** werken op het nummer van het artikel: `/artikel/412/melding-registreren`. De naam (`slug`) is alleen leesbaar en hoeft niet uniek te zijn; twee omgevingen kunnen dezelfde titel gebruiken. Links van vóór versie 1.2 (`/artikel/<slug>`) worden doorverwezen.
-- **Artikelversie**: elke wijziging van een gepubliceerd artikel levert een onveranderlijke momentopname op, met wie, wanneer en waarom. Zo is altijd te reconstrueren welke instructie op welk moment gold.
+- **Artikelversie**: elke wijziging van een gepubliceerd artikel levert een onveranderlijke momentopname op, met wie, wanneer en waarom. Zo is altijd te reconstrueren welke instructie op welk moment gold. De vlag `kleine_correctie` (typfout, opmaak) zorgt dat zo'n versie geen melding of e-mail oplevert; versie 1 (de publicatie zelf) telt ook niet als wijziging.
+- **WijzigingGezien**: per gebruiker en artikel het versienummer tot waar de wijzigingsmelding is afgevinkt. `diensten.wijzigingen_voor()` bepaalt per artikel de openstaande melding: de hoogste inhoudelijke versie > 1, gepubliceerd ná de eerste inlog van de gebruiker (`date_joined`) en hoger dan het afgevinkte nummer.
+- **FavorietenMail**: wachtrij voor de e-mail aan wie het artikel als favoriet heeft; `diensten.verstuur_favorietenmail()` bundelt per ontvanger (zie `KB_FAVORIETEN_MAIL`).
+- **Bericht**: nieuwsbericht per omgeving, met dezelfde opschoning als artikelinhoud, optioneel gekoppeld aan artikelen, vastgepind en/of met een vervaldatum. Niet in de export/import; nieuws is tijdgebonden.
 - **Tellingen** (weergaven, zoektermen, assistentgebruik) zijn per dag en per omgeving geaggregeerd en bevatten geen gebruikers.
 
 ## Rechten
@@ -80,7 +87,7 @@ Alle controles zitten op één plek ([kennisbank/rechten.py](../kennisbank/recht
 
 **Artikel lezen.** De frontend haalt `GET /api/v1/artikelen/<id>` op en meldt `POST …/weergave`. Dat verhoogt de anonieme dagtelling en zet het artikel bovenaan in "recent bezocht" van de gebruiker.
 
-**Publiceren.** Een redacteur bewerkt in `/beheer/`. Bij opslaan met status *gepubliceerd* vergelijkt de applicatie de inhoud met de laatste versie. Bij verschil ontstaat versie *n+1* met de opgegeven toelichting. Ongewijzigd opslaan maakt geen versie.
+**Publiceren.** Een redacteur bewerkt in `/beheer/`. Bij opslaan met status *gepubliceerd* vergelijkt de applicatie de inhoud met de laatste versie. Bij verschil ontstaat versie *n+1* met de opgegeven toelichting (verplicht, tenzij *kleine correctie*). Ongewijzigd opslaan maakt geen versie. Een inhoudelijke versie > 1 zet de wijzigingsmelding klaar voor alle lezers (berekend bij het ophalen, niets wordt vooraf per gebruiker opgeslagen) en een regel in de mailwachtrij voor elke favoriet-houder met e-mail die de mail niet heeft uitgezet. Optioneel ontstaat een concept-nieuwsbericht.
 
 **Verbetervoorstel.** Een medewerker selecteert tekst, en het voorstel wordt opgeslagen met het citaat en het versienummer van het artikel op dat moment. Redacteuren van die omgeving krijgen (als e-mail is ingesteld) een melding. Hun status en terugkoppeling zijn zichtbaar voor de indiener.
 

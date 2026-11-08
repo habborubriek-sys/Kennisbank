@@ -6,7 +6,7 @@ from django.db import transaction
 
 from . import diensten
 from .inhoud import markdown_naar_html, onboarding_blok, schoon, sectie
-from .models import Artikel, Cluster, Omgeving, Soort, Status, Tag, Zaaktype
+from .models import Artikel, Cluster, Omgeving, Soort, Status, Tag, Zaaktype, normaliseer_tag
 
 FORMAAT = "kennisbank-import"
 # 1 = secties in Markdown + onboarding-veld; 2 = secties in HTML; 3 = één tekst met sectiekoppen (h2.sectie);
@@ -68,8 +68,12 @@ def _controleer(data):
 
 
 @transaction.atomic
-def importeer(data, gebruiker=None, toelichting="Import") -> dict:
-    """Voegt artikelen toe of werkt ze bij (op basis van omgeving + slug). Geeft tellingen terug."""
+def importeer(data, gebruiker=None, toelichting="Import", kleine_correctie=False) -> dict:
+    """Voegt artikelen toe of werkt ze bij (op basis van omgeving + slug). Geeft tellingen terug.
+
+    Een gewijzigd gepubliceerd artikel krijgt een nieuwe versie met `toelichting`; medewerkers zien die als
+    wijzigingsmelding en favoriet-houders krijgen een e-mail — tenzij `kleine_correctie` aan staat.
+    """
     _controleer(data)
     versie = int(data.get("versie", 1))
     o = data["omgeving"]
@@ -97,12 +101,13 @@ def importeer(data, gebruiker=None, toelichting="Import") -> dict:
         )
         telling["nieuw" if nieuw else "bijgewerkt"] += 1
         artikel.clusters.set([Cluster.objects.get_or_create(naam=n)[0] for n in a.get("clusters", [])])
-        artikel.tags.set([Tag.objects.get_or_create(naam=n)[0] for n in a.get("tags", [])])
+        tagnamen = sorted({normaliseer_tag(n) for n in a.get("tags", [])} - {""})
+        artikel.tags.set([Tag.objects.get_or_create(naam=n)[0] for n in tagnamen])
         artikel.zaaktypen.set(
             [Zaaktype.objects.get_or_create(code=c, defaults={"naam": c})[0] for c in a.get("zaaktypen", [])]
         )
         diensten.herbouw_secties(artikel)
-        if diensten.registreer_publicatie(artikel, gebruiker, toelichting):
+        if diensten.registreer_publicatie(artikel, gebruiker, toelichting, kleine_correctie=kleine_correctie):
             telling["nieuwe_versies"] += 1
     return telling
 

@@ -17,6 +17,7 @@ from . import diensten
 from .models import (
     Artikel,
     ArtikelVersie,
+    Bericht,
     Cluster,
     Omgeving,
     Soort,
@@ -25,6 +26,7 @@ from .models import (
     Toegang,
     Verbetervoorstel,
     Zaaktype,
+    normaliseer_tag,
 )
 from .rechten import Rechten
 from .word_import import WordImportFout, lees_docx
@@ -64,7 +66,7 @@ class VersieInline(admin.TabularInline):
     model = ArtikelVersie
     extra = 0
     can_delete = False
-    fields = ["versie", "gepubliceerd_op", "gepubliceerd_door", "toelichting"]
+    fields = ["versie", "gepubliceerd_op", "gepubliceerd_door", "toelichting", "kleine_correctie"]
     readonly_fields = fields
     verbose_name_plural = "Versiegeschiedenis (onveranderlijk)"
 
@@ -92,7 +94,7 @@ class TagsWidget(forms.TextInput):
 def tags_uit_tekst(tekst: str) -> list[str]:
     gezien, uit = set(), []
     for deel in (tekst or "").split(","):
-        naam = " ".join(deel.split()).strip().lower()[:60]
+        naam = normaliseer_tag(deel)
         if naam and naam not in gezien:
             gezien.add(naam)
             uit.append(naam)
@@ -110,8 +112,23 @@ class ArtikelForm(forms.ModelForm):
     wijzigingstoelichting = forms.CharField(
         required=False,
         max_length=300,
+        widget=forms.TextInput(attrs={"style": "width:60%", "placeholder": "Wat is er veranderd, in één zin?"}),
         label="Toelichting bij deze wijziging",
-        help_text="Komt in de versiegeschiedenis. Bijvoorbeeld: 'Termijn tweede rappel aangepast n.a.v. voorstel'.",
+        help_text="Verplicht als een gepubliceerd artikel inhoudelijk wijzigt. Medewerkers zien deze zin als "
+        "melding bij het artikel, en wie het als favoriet heeft krijgt hem per e-mail. "
+        "Bijvoorbeeld: 'Termijn tweede rappel aangepast van 2 naar 3 weken'.",
+    )
+    kleine_correctie = forms.BooleanField(
+        required=False,
+        label="Kleine correctie, geen melding",
+        help_text="Typfout, opmaak, een verouderde naam. De wijziging komt wel in de versiegeschiedenis, "
+        "maar medewerkers krijgen geen melding en geen e-mail.",
+    )
+    nieuwsbericht = forms.BooleanField(
+        required=False,
+        label="Ook als nieuwsbericht plaatsen",
+        help_text="Maakt een concept-nieuwsbericht met deze toelichting, gekoppeld aan dit artikel. "
+        "Je kunt het daarna aanvullen en publiceren.",
     )
 
     class Meta:
@@ -123,6 +140,40 @@ class ArtikelForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance.pk and not self.is_bound:
             self.fields["tags_tekst"].initial = ", ".join(self.instance.tags.values_list("naam", flat=True))
+
+    def clean(self):
+        data = super().clean()
+        if data.get("status") != Status.GEPUBLICEERD or not self.instance.pk:
+            return data
+        # Zou opslaan een nieuwe versie opleveren? Dan is een toelichting verplicht (tenzij kleine correctie),
+        # want die toelichting is precies wat medewerkers als melding te zien krijgen.
+        if self.errors:
+            return data
+        from .inhoud import schoon
+
+        nieuw = {
+            "titel": data.get("titel", ""),
+            "samenvatting": data.get("samenvatting", ""),
+            "soort": data.get("soort", ""),
+            "eigenaar": data.get("eigenaar", ""),
+            "omgeving": data["omgeving"].slug if data.get("omgeving") else "",
+            "clusters": sorted(c.naam for c in data.get("clusters", [])),
+            "tags": sorted(tags_uit_tekst(data.get("tags_tekst", ""))),
+            "zaaktypen": sorted(z.code for z in data.get("zaaktypen", [])),
+            "formaat": "artikel-html",
+            "inhoud": schoon(data.get("inhoud", "")),
+        }
+        if (
+            diensten.is_inhoudelijk_gewijzigd(self.instance, nieuw)
+            and not data.get("kleine_correctie")
+            and not (data.get("wijzigingstoelichting") or "").strip()
+        ):
+            self.add_error(
+                "wijzigingstoelichting",
+                "Geef in één zin aan wat er is gewijzigd; medewerkers zien dit als melding bij het artikel. "
+                "Is het alleen een typfout of opmaak? Vink dan 'Kleine correctie' aan.",
+            )
+        return data
 
 
 class WordImportForm(forms.Form):
@@ -156,7 +207,19 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         (None, {"fields": ["titel", "samenvatting", "inhoud"]}),
         ("Eigenschappen", {"fields": ["soort", "omgeving", "eigenaar", "link"]}),
         ("Vindbaarheid", {"fields": ["clusters", "tags_tekst", "zaaktypen"]}),
-        ("Publicatie", {"fields": ["status", "wijzigingstoelichting", "versie", "gepubliceerd_op"]}),
+        (
+            "Publicatie",
+            {
+                "fields": [
+                    "status",
+                    "wijzigingstoelichting",
+                    "kleine_correctie",
+                    "nieuwsbericht",
+                    "versie",
+                    "gepubliceerd_op",
+                ]
+            },
+        ),
     ]
 
     class Media:
@@ -252,10 +315,35 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         )
         diensten.herbouw_secties(form.instance)  # ook de zoekdocumenten, dus ná de tags
         versie = diensten.registreer_publicatie(
-            form.instance, request.user, form.cleaned_data.get("wijzigingstoelichting", "")
+            form.instance,
+            request.user,
+            form.cleaned_data.get("wijzigingstoelichting", ""),
+            kleine_correctie=bool(form.cleaned_data.get("kleine_correctie")),
         )
         if versie:
-            messages.info(request, f"Gepubliceerd als versie {versie.versie}.")
+            if versie.versie == 1:
+                messages.info(request, "Gepubliceerd als versie 1.")
+            elif versie.kleine_correctie:
+                messages.info(request, f"Gepubliceerd als versie {versie.versie} (kleine correctie, geen melding).")
+            else:
+                messages.info(
+                    request,
+                    f"Gepubliceerd als versie {versie.versie}. Medewerkers zien de toelichting als melding "
+                    "bij het artikel; wie het als favoriet heeft krijgt een e-mail.",
+                )
+            if form.cleaned_data.get("nieuwsbericht"):
+                bericht = diensten.maak_nieuwsconcept(form.instance, versie, request.user)
+                url = reverse("admin:kennisbank_bericht_change", args=[bericht.pk])
+                messages.info(
+                    request,
+                    format_html(
+                        'Er staat een concept-nieuwsbericht klaar: <a href="{}">{}</a>. Vul het aan en publiceer het.',
+                        url,
+                        bericht.titel,
+                    ),
+                )
+        elif form.cleaned_data.get("nieuwsbericht"):
+            messages.warning(request, "Geen nieuwsbericht gemaakt: het artikel is niet (opnieuw) gepubliceerd.")
 
     @admin.action(description="Publiceren")
     def publiceren(self, request, queryset):
@@ -304,6 +392,56 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         super().save_model(request, obj, form, change)
         if "terugkoppeling" in form.changed_data or "status" in form.changed_data:
             diensten.meld_terugkoppeling(obj)
+
+
+class BerichtForm(forms.ModelForm):
+    class Meta:
+        model = Bericht
+        fields = ["titel", "tekst", "omgeving", "artikelen", "status", "vastgepind", "verloopt_op"]
+        widgets = {"tekst": forms.Textarea(attrs={"class": "kb-editor", "rows": 12})}
+
+
+@admin.register(Bericht)
+class BerichtAdmin(RedactieRechtenMixin, admin.ModelAdmin):
+    """Nieuwsberichten: redacteuren schrijven en publiceren ze voor hun eigen omgeving(en)."""
+
+    form = BerichtForm
+    list_display = ["titel", "omgeving", "status", "vastgepind", "gepubliceerd_op", "verloopt_op", "auteur"]
+    list_filter = ["status", "omgeving", "vastgepind"]
+    search_fields = ["titel", "tekst"]
+    filter_horizontal = ["artikelen"]
+    readonly_fields = ["gepubliceerd_op", "auteur"]
+    fieldsets = [
+        (None, {"fields": ["titel", "tekst"]}),
+        ("Waar en waarover", {"fields": ["omgeving", "artikelen"]}),
+        ("Publicatie", {"fields": ["status", "vastgepind", "verloopt_op", "gepubliceerd_op", "auteur"]}),
+    ]
+
+    class Media:
+        css = {"all": ["kennisbank/vendor/jodit/jodit.min.css", "kennisbank/beheer-editor.css"]}
+        js = ["kennisbank/vendor/jodit/jodit.min.js", "kennisbank/beheer-editor.js"]
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "omgeving" and not request.user.is_superuser:
+            kwargs["queryset"] = Omgeving.objects.filter(pk__in=self._omgevingen(request))
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "artikelen":
+            qs = Artikel.objects.exclude(status=Status.GEARCHIVEERD).order_by("titel")
+            if not request.user.is_superuser:
+                qs = qs.filter(omgeving__in=self._omgevingen(request))
+            kwargs["queryset"] = qs
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
+
+    def save_model(self, request, obj, form, change):
+        if not obj.auteur_id:
+            obj.auteur = request.user
+        super().save_model(request, obj, form, change)
+
+    def has_delete_permission(self, request, obj=None):
+        # Een redacteur mag zijn eigen berichten wel weggooien (anders dan bij artikelen, die een geschiedenis hebben).
+        return self.has_module_permission(request)
 
 
 # --- Alleen voor functioneel beheerders ------------------------------------------------

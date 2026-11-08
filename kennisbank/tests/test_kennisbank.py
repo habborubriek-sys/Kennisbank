@@ -78,7 +78,7 @@ class Basis(TestCase):
 class RechtenTests(Basis):
     def test_lezer_ziet_alleen_gepubliceerde_artikelen(self):
         slugs = [a["slug"] for a in self.als(self.lezer).get("/api/v1/artikelen").json()]
-        self.assertEqual(len(slugs), 8)
+        self.assertEqual(len(slugs), 9)
         self.assertNotIn("geheim-concept", slugs)
         self.assertEqual(self.client.get(f"/api/v1/artikelen/{self.concept.pk}").status_code, 404)
 
@@ -660,7 +660,7 @@ class InhoudTests(TestCase):
     def test_import_export_rondgang(self):
         importeer(DEMO)
         uit = exporteer(Omgeving.objects.get(slug="handhaving"))
-        self.assertEqual(len(uit["artikelen"]), 8)
+        self.assertEqual(len(uit["artikelen"]), 9)
         t = importeer(uit)
         self.assertEqual(t["nieuwe_versies"], 0)  # niets gewijzigd → geen nieuwe versies
 
@@ -1039,6 +1039,11 @@ class WordImportTests(Basis):
             "versies-TOTAL_FORMS": "0",
             "versies-INITIAL_FORMS": "0",
         }
+        # Inhoudelijke wijziging (andere tags) van een gepubliceerd artikel: zonder toelichting geweigerd.
+        r = c.post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Geef in één zin aan wat er is gewijzigd")
+        data["wijzigingstoelichting"] = "Tags aangevuld"
         r = c.post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data)
         self.assertEqual(r.status_code, 302, r.content[:500])
         self.assertEqual(sorted(a.tags.values_list("naam", flat=True)), ["mailbox", "nieuwe tag"])
@@ -1082,3 +1087,444 @@ class VoorbeeldTests(Basis):
         self.assertContains(r, 'id="sections"')
         werk_staf_status_bij(self.lezer)
         self.assertIn(self.als(self.lezer).get("/beheer/kennisbank/artikel/voorbeeld/").status_code, (302, 403))
+
+
+class WijzigingTests(Basis):
+    """Wijzigingsmeldingen: 'Gewijzigd op … — toelichting' met 'Ik snap het' (1.7.0)."""
+
+    def _wijzig(self, slug, toelichting="Termijn aangepast", kleine_correctie=False):
+        a = Artikel.objects.get(slug=slug)
+        a.inhoud += f"<p>Extra regel {timezone.now().timestamp()}.</p>"
+        a.save()
+        return diensten.registreer_publicatie(a, self.redacteur, toelichting, kleine_correctie=kleine_correctie)
+
+    def _wijziging_van(self, client, slug):
+        rij = next(x for x in client.get("/api/v1/artikelen").json() if x["slug"] == slug)
+        return rij["wijziging"]
+
+    def test_eerste_versie_geeft_geen_melding(self):
+        c = self.als(self.lezer)
+        self.assertTrue(all(x["wijziging"] is None for x in c.get("/api/v1/artikelen").json()))
+        # Versie 1 is gewoon de publicatie; de vlag staat zoals opgegeven (hier: uit) en toch geen melding.
+        self.assertFalse(ArtikelVersie.objects.get(artikel__slug="rappel-versturen", versie=1).kleine_correctie)
+
+    def test_melding_na_wijziging_en_afvinken(self):
+        v = self._wijzig("rappel-versturen", "Tweede rappel nu na 3 weken")
+        self.assertEqual(v.versie, 2)
+        c = self.als(self.lezer)
+        w = self._wijziging_van(c, "rappel-versturen")
+        self.assertEqual((w["versie"], w["toelichting"]), (2, "Tweede rappel nu na 3 weken"))
+        pk = pk_van("rappel-versturen")
+        self.assertEqual(c.get(f"/api/v1/artikelen/{pk}").json()["wijziging"]["versie"], 2)
+        # Ik snap het
+        self.assertEqual(c.post(f"/api/v1/artikelen/{pk}/gezien").status_code, 204)
+        self.assertIsNone(self._wijziging_van(c, "rappel-versturen"))
+        # Een volgende inhoudelijke wijziging brengt de melding terug, met de nieuwe toelichting.
+        self._wijzig("rappel-versturen", "Nog een keer")
+        self.assertEqual(self._wijziging_van(c, "rappel-versturen")["toelichting"], "Nog een keer")
+
+    def test_kleine_correctie_geeft_geen_melding_maar_wel_versie(self):
+        v = self._wijzig("rappel-versturen", "", kleine_correctie=True)
+        self.assertEqual(v.versie, 2)
+        self.assertTrue(v.kleine_correctie)
+        self.assertIsNone(self._wijziging_van(self.als(self.lezer), "rappel-versturen"))
+        # Een kleine correctie ná een echte wijziging verbergt die echte wijziging niet.
+        self._wijzig("rappel-versturen", "Echte wijziging")
+        self._wijzig("rappel-versturen", "typo", kleine_correctie=True)
+        w = self._wijziging_van(self.als(self.lezer), "rappel-versturen")
+        self.assertEqual((w["versie"], w["toelichting"]), (3, "Echte wijziging"))
+
+    def test_geen_melding_voor_wijzigingen_van_voor_de_eerste_inlog(self):
+        self._wijzig("rappel-versturen")
+        nieuw = User.objects.create_user("nieuweling", password="x")
+        nieuw.groups.add(Group.objects.get(name="lezers"))
+        self.assertIsNone(self._wijziging_van(self.als(nieuw), "rappel-versturen"))
+        self.assertIsNotNone(self._wijziging_van(self.als(self.lezer), "rappel-versturen"))
+
+    def test_alles_gezien(self):
+        self._wijzig("rappel-versturen")
+        self._wijzig("zwerfboot")
+        c = self.als(self.lezer)
+        self.assertEqual(sum(1 for x in c.get("/api/v1/artikelen").json() if x["wijziging"]), 2)
+        self.assertEqual(c.post("/api/v1/wijzigingen/gezien").json()["aantal"], 2)
+        self.assertEqual(sum(1 for x in c.get("/api/v1/artikelen").json() if x["wijziging"]), 0)
+        self.assertEqual(c.post("/api/v1/wijzigingen/gezien").json()["aantal"], 0)
+
+    def test_beheer_kleine_correctie_en_nieuwsbericht(self):
+        from kennisbank.models import Bericht
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        c = self.als(self.redacteur)
+        a = Artikel.objects.get(slug="mailbox")
+        data = {
+            "titel": a.titel,
+            "samenvatting": a.samenvatting + " (aangevuld)",
+            "inhoud": a.inhoud,
+            "soort": a.soort,
+            "omgeving": a.omgeving_id,
+            "eigenaar": a.eigenaar,
+            "status": a.status,
+            "tags_tekst": ", ".join(a.tags.values_list("naam", flat=True)),
+            "wijzigingstoelichting": "",
+            "kleine_correctie": "on",
+            "versies-TOTAL_FORMS": "0",
+            "versies-INITIAL_FORMS": "0",
+        }
+        # Kleine correctie: geen toelichting nodig, wel een versie, geen melding.
+        self.assertEqual(c.post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data).status_code, 302)
+        a.refresh_from_db()
+        self.assertEqual(a.versie, 2)
+        self.assertTrue(a.versies.get(versie=2).kleine_correctie)
+        self.assertIsNone(WijzigingTests._wijziging_van(self, self.als(self.lezer), "mailbox"))
+        # Echte wijziging met toelichting én nieuwsbericht: concept-bericht gekoppeld aan het artikel.
+        c = self.als(self.redacteur)
+        data.update(samenvatting=a.samenvatting + " (nog eens)", wijzigingstoelichting="Samenvatting verduidelijkt")
+        del data["kleine_correctie"]
+        data["nieuwsbericht"] = "on"
+        self.assertEqual(c.post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data).status_code, 302)
+        b = Bericht.objects.get()
+        self.assertEqual((b.status, b.omgeving, list(b.artikelen.all())), ("concept", a.omgeving, [a]))
+        self.assertIn("Samenvatting verduidelijkt", b.tekst)
+        self.assertEqual(self._wijziging_van(self.als(self.lezer), "mailbox")["versie"], 3)
+
+    def test_versie_1_publicatie_in_beheer_vraagt_geen_toelichting(self):
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        c = self.als(self.redacteur)
+        a = self.concept
+        data = {
+            "titel": a.titel,
+            "samenvatting": a.samenvatting,
+            "inhoud": a.inhoud,
+            "soort": a.soort,
+            "omgeving": a.omgeving_id,
+            "eigenaar": a.eigenaar,
+            "status": "gepubliceerd",
+            "tags_tekst": "",
+            "wijzigingstoelichting": "",
+            "versies-TOTAL_FORMS": "0",
+            "versies-INITIAL_FORMS": "0",
+        }
+        self.assertEqual(c.post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data).status_code, 302)
+        a.refresh_from_db()
+        self.assertEqual(a.versie, 1)
+
+
+class FavorietenMailTests(Basis):
+    """E-mail aan wie het artikel als favoriet heeft, gebundeld per ontvanger (KB_FAVORIETEN_MAIL)."""
+
+    def setUp(self):
+        self.lezer.email = "lezer@example.org"
+        self.lezer.first_name = "Lies"
+        self.lezer.save()
+        self.als(self.lezer).put(f"/api/v1/artikelen/{pk_van('rappel-versturen')}/favoriet")
+        self.als(self.lezer).put(f"/api/v1/artikelen/{pk_van('zwerfboot')}/favoriet")
+
+    def _wijzig(self, slug, toelichting, **kw):
+        a = Artikel.objects.get(slug=slug)
+        a.inhoud += f"<p>{toelichting}</p>"
+        a.save()
+        return diensten.registreer_publicatie(a, self.redacteur, toelichting, **kw)
+
+    @override_settings(KB_EMAIL_AAN=True, KB_FAVORIETEN_MAIL="gebundeld")
+    def test_gebundeld_een_mail_per_ontvanger(self):
+        from django.core import mail
+
+        from kennisbank.models import FavorietenMail
+
+        self._wijzig("rappel-versturen", "Termijn aangepast")
+        self._wijzig("rappel-versturen", "Nog iets aangepast")
+        self._wijzig("zwerfboot", "Nieuwe werkwijze")
+        self._wijzig("mailbox", "Geen favoriet van de lezer")
+        self._wijzig("dossier-afsluiten", "typo", kleine_correctie=True)
+        self.assertEqual(FavorietenMail.objects.filter(gebruiker=self.lezer).count(), 3)
+        self.assertEqual(mail.outbox, [])  # nog niets verstuurd
+        self.assertEqual(diensten.verstuur_favorietenmail(), 1)
+        self.assertEqual(len(mail.outbox), 1)
+        m = mail.outbox[0]
+        self.assertEqual(m.to, ["lezer@example.org"])
+        self.assertIn("2 favoriete artikelen", m.subject)
+        self.assertIn("Beste Lies", m.body)
+        self.assertIn("Nog iets aangepast", m.body)
+        self.assertNotIn("Termijn aangepast", m.body)  # per artikel alleen de laatste wijziging
+        self.assertIn("Nieuwe werkwijze", m.body)
+        self.assertIn(f"{settings.KB_BASIS_URL}/artikel/{pk_van('zwerfboot')}/zwerfboot", m.body)
+        self.assertFalse(FavorietenMail.objects.filter(verzonden_op__isnull=True).exists())
+        self.assertEqual(diensten.verstuur_favorietenmail(), 0)  # niets meer open
+
+    @override_settings(KB_EMAIL_AAN=True, KB_FAVORIETEN_MAIL="direct")
+    def test_direct(self):
+        from django.core import mail
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self._wijzig("rappel-versturen", "Direct gemaild")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("'Rappel versturen", mail.outbox[0].subject)
+
+    @override_settings(KB_EMAIL_AAN=True, KB_FAVORIETEN_MAIL="uit")
+    def test_uit(self):
+        from kennisbank.models import FavorietenMail
+
+        self._wijzig("rappel-versturen", "Niemand gemaild")
+        self.assertFalse(FavorietenMail.objects.exists())
+        # De melding in de app is er wél.
+        rij = next(x for x in self.als(self.lezer).get("/api/v1/artikelen").json() if x["slug"] == "rappel-versturen")
+        self.assertIsNotNone(rij["wijziging"])
+
+    @override_settings(KB_EMAIL_AAN=True, KB_FAVORIETEN_MAIL="gebundeld")
+    def test_medewerker_kan_het_zelf_uitzetten(self):
+        from kennisbank.models import FavorietenMail
+
+        c = self.als(self.lezer)
+        r = c.patch("/api/v1/ik", {"mail_bij_favorieten": False}, content_type="application/json")
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(r.json()["mail_bij_favorieten"])
+        self.assertEqual(r.json()["favorieten_mail"], "gebundeld")
+        self._wijzig("rappel-versturen", "Niet gemaild")
+        self.assertFalse(FavorietenMail.objects.filter(gebruiker=self.lezer).exists())
+        # Onzin wordt geweigerd.
+        self.assertEqual(
+            c.patch("/api/v1/ik", {"mail_bij_favorieten": "x"}, content_type="application/json").status_code, 400
+        )
+
+    @override_settings(KB_EMAIL_AAN=True, KB_FAVORIETEN_MAIL="gebundeld")
+    def test_opschonen_verstuurt_en_ruimt_op(self):
+        from django.core import mail
+
+        from kennisbank.models import FavorietenMail
+
+        self._wijzig("rappel-versturen", "Via opschonen")
+        FavorietenMail.objects.create(
+            gebruiker=self.lezer,
+            artikel=Artikel.objects.get(slug="mailbox"),
+            versie=1,
+            verzonden_op=timezone.now() - timezone.timedelta(days=40),
+        )
+        call_command("kennisbank_opschonen", stdout=open("/dev/null", "w"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(
+            FavorietenMail.objects.count(), 1
+        )  # de oude verzonden regel is weg, de nieuwe staat als verzonden
+        self.assertIsNotNone(FavorietenMail.objects.get().verzonden_op)
+
+
+class NieuwsTests(Basis):
+    """Nieuwsberichten per omgeving, met 'ongelezen'-teller."""
+
+    def _bericht(self, titel, omgeving=None, status="gepubliceerd", **kw):
+        from kennisbank.models import Bericht
+
+        return Bericht.objects.create(
+            omgeving=omgeving or self.hh, titel=titel, tekst=f"<p>{titel}</p>", status=status, **kw
+        )
+
+    def test_lezer_ziet_gepubliceerd_nieuws_van_eigen_omgeving(self):
+        self._bericht("Nieuwe werkwijze")
+        self._bericht("Nog concept", status="concept")
+        self._bericht("Elders", omgeving=self.anders)
+        oud = self._bericht("Verlopen", verloopt_op=timezone.now() - timezone.timedelta(days=1))
+        vast = self._bericht("Vastgepind", vastgepind=True)
+        vast.artikelen.add(Artikel.objects.get(slug="mailbox"), self.concept)
+        c = self.als(self.lezer)
+        lijst = c.get("/api/v1/berichten").json()
+        self.assertEqual([b["titel"] for b in lijst], ["Vastgepind", "Verlopen", "Nieuwe werkwijze"])
+        self.assertEqual([b["verlopen"] for b in lijst], [False, True, False])
+        # Alleen artikelen die de lezer mag zien worden genoemd (het concept niet).
+        self.assertEqual([a["titel"] for a in lijst[0]["artikelen"]], ["Gezamenlijke mailbox: wie pakt wat op"])
+        self.assertIsNone(lijst[0]["bewerk_url"])
+        self.assertEqual(
+            self.als(self.redacteur).get("/api/v1/berichten").json()[0]["bewerk_url"],
+            f"/beheer/kennisbank/bericht/{vast.pk}/change/",
+        )
+        self.assertEqual(
+            [b["titel"] for b in self.als(self.buitenstaander).get("/api/v1/berichten").json()], ["Elders"]
+        )
+        self.assertIsNotNone(oud.gepubliceerd_op)
+
+    def test_ongelezen_teller(self):
+        self._bericht("Een")
+        self._bericht("Twee")
+        c = self.als(self.lezer)
+        self.assertEqual(c.get("/api/v1/ik").json()["nieuws_ongelezen"], 2)
+        self.assertEqual(c.post("/api/v1/berichten/gezien").status_code, 204)
+        ik = c.get("/api/v1/ik").json()
+        self.assertEqual(ik["nieuws_ongelezen"], 0)
+        self.assertIsNotNone(ik["nieuws_gezien_op"])
+        self._bericht("Drie")
+        self.assertEqual(c.get("/api/v1/ik").json()["nieuws_ongelezen"], 1)
+
+    def test_tekst_wordt_opgeschoond_en_redacteur_beheert(self):
+        from kennisbank.models import Bericht
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        c = self.als(self.redacteur)
+        r = c.post(
+            "/beheer/kennisbank/bericht/add/",
+            {
+                "titel": "Let op",
+                "tekst": '<p onclick="x()">Hallo <script>alert(1)</script><b>daar</b></p>',
+                "omgeving": self.hh.pk,
+                "status": "gepubliceerd",
+            },
+        )
+        self.assertEqual(r.status_code, 302, r.content[:300])
+        b = Bericht.objects.get()
+        self.assertEqual(b.tekst, "<p>Hallo <strong>daar</strong></p>")
+        self.assertEqual(b.auteur, self.redacteur)
+        self.assertIsNotNone(b.gepubliceerd_op)
+        # Een andere omgeving kiezen mag niet (de keuzelijst is beperkt tot de eigen omgeving).
+        r = c.post(
+            "/beheer/kennisbank/bericht/add/",
+            {"titel": "Elders", "tekst": "<p>x</p>", "omgeving": self.anders.pk, "status": "concept"},
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(Bericht.objects.count(), 1)
+        # Lezers komen het beheer niet in.
+        self.assertNotEqual(self.als(self.lezer).get("/beheer/kennisbank/bericht/").status_code, 200)
+
+
+class ReviewBevindingenTests(Basis):
+    """Gevallen uit de onafhankelijke review van 1.7.0."""
+
+    def _formulier(self, a):
+        return {
+            "titel": a.titel,
+            "samenvatting": a.samenvatting,
+            "inhoud": a.inhoud,
+            "soort": a.soort,
+            "omgeving": a.omgeving_id,
+            "eigenaar": a.eigenaar,
+            "status": a.status,
+            "clusters": list(a.clusters.values_list("pk", flat=True)),
+            "zaaktypen": list(a.zaaktypen.values_list("pk", flat=True)),
+            "tags_tekst": ", ".join(a.tags.values_list("naam", flat=True)),
+            "wijzigingstoelichting": "",
+            "versies-TOTAL_FORMS": "0",
+            "versies-INITIAL_FORMS": "0",
+        }
+
+    def test_ongewijzigd_opslaan_van_elk_demo_artikel_vraagt_niets_en_maakt_geen_versie(self):
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        c = self.als(self.redacteur)
+        for a in Artikel.objects.filter(status=Status.GEPUBLICEERD):
+            r = c.post(f"/beheer/kennisbank/artikel/{a.pk}/change/", self._formulier(a))
+            self.assertEqual(r.status_code, 302, f"{a.slug}: {r.content[:300]}")
+            a.refresh_from_db()
+            self.assertEqual(a.versie, 1, a.slug)
+        self.assertTrue(all(x["wijziging"] is None for x in self.als(self.lezer).get("/api/v1/artikelen").json()))
+
+    def test_tags_worden_overal_genormaliseerd(self):
+        from kennisbank.models import normaliseer_tag
+
+        self.assertEqual(normaliseer_tag("  Omgevings  Wet "), "omgevings wet")
+        self.assertFalse(Tag.objects.filter(naam__regex=r"[A-Z]").exists())  # ook de demo-import
+        t = Tag.objects.create(naam="Hoofdletter")
+        self.assertEqual(t.naam, "hoofdletter")
+
+    @override_settings(KB_EMAIL_AAN=True, KB_FAVORIETEN_MAIL="gebundeld")
+    def test_mislukte_mail_blijft_in_de_wachtrij(self):
+        from kennisbank.models import FavorietenMail
+
+        self.lezer.email = "lezer@example.org"
+        self.lezer.save()
+        a = Artikel.objects.get(slug="rappel-versturen")
+        diensten.zet_favoriet(self.lezer, a, True)
+        a.inhoud += "<p>x</p>"
+        a.save()
+        diensten.registreer_publicatie(a, self.redacteur, "Wijziging")
+        with mock.patch("kennisbank.diensten.send_mail", side_effect=OSError("smtp weg")):
+            self.assertEqual(diensten.verstuur_favorietenmail(), 0)
+        self.assertEqual(FavorietenMail.objects.filter(verzonden_op__isnull=True).count(), 1)
+        self.assertEqual(diensten.verstuur_favorietenmail(), 1)
+        self.assertEqual(FavorietenMail.objects.filter(verzonden_op__isnull=True).count(), 0)
+
+    @override_settings(KB_EMAIL_AAN=True, KB_FAVORIETEN_MAIL="gebundeld")
+    def test_geen_mail_zonder_leesrecht_of_bij_gearchiveerd_artikel(self):
+        from django.core import mail
+
+        from kennisbank.models import FavorietenMail
+
+        a = Artikel.objects.get(slug="rappel-versturen")
+        self.buitenstaander.email = "buiten@example.org"
+        self.buitenstaander.save()
+        diensten.zet_favoriet(self.buitenstaander, a, True)  # heeft geen toegang tot 'handhaving'
+        self.lezer.email = "lezer@example.org"
+        self.lezer.save()
+        diensten.zet_favoriet(self.lezer, a, True)
+        a.inhoud += "<p>x</p>"
+        a.save()
+        diensten.registreer_publicatie(a, self.redacteur, "Wijziging")
+        self.assertEqual(list(FavorietenMail.objects.values_list("gebruiker_id", flat=True)), [self.lezer.pk])
+        Artikel.objects.filter(pk=a.pk).update(status=Status.GEARCHIVEERD)
+        diensten.verstuur_favorietenmail()
+        self.assertEqual(mail.outbox, [])
+        self.assertFalse(FavorietenMail.objects.filter(verzonden_op__isnull=True).exists())
+
+    def test_import_met_kleine_correctie_geeft_geen_melding(self):
+        data = json.loads(json.dumps(DEMO))
+        for a in data["artikelen"]:
+            a["samenvatting"] += " (bijgewerkt)"
+        t = importeer(data, toelichting="Herimport", kleine_correctie=True)
+        self.assertEqual(t["nieuwe_versies"], 9)
+        self.assertTrue(all(x["wijziging"] is None for x in self.als(self.lezer).get("/api/v1/artikelen").json()))
+        for a in data["artikelen"]:
+            a["samenvatting"] += " (nog eens)"
+        importeer(data, toelichting="Echte herimport")
+        rij = next(x for x in self.als(self.lezer).get("/api/v1/artikelen").json() if x["slug"] == "mailbox")
+        self.assertEqual(rij["wijziging"]["toelichting"], "Echte herimport")
+        self.assertEqual(ArtikelVersie.objects.filter(artikel__slug="mailbox", versie=1).get().kleine_correctie, False)
+
+    def test_ik_snap_het_vinkt_af_tot_de_getoonde_versie(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        for toelichting in ("Twee", "Drie"):
+            a.inhoud += f"<p>{toelichting}</p>"
+            a.save()
+            diensten.registreer_publicatie(a, self.redacteur, toelichting)
+        c = self.als(self.lezer)
+        # De gebruiker had versie 2 op het scherm; intussen is versie 3 gepubliceerd.
+        self.assertEqual(
+            c.post(f"/api/v1/artikelen/{a.pk}/gezien", {"versie": 2}, content_type="application/json").status_code, 204
+        )
+        rij = next(x for x in c.get("/api/v1/artikelen").json() if x["slug"] == "rappel-versturen")
+        self.assertEqual(rij["wijziging"]["toelichting"], "Drie")
+        self.assertEqual(
+            c.post(f"/api/v1/artikelen/{a.pk}/gezien", {"versie": 0}, content_type="application/json").status_code, 400
+        )
+        self.assertEqual(c.post(f"/api/v1/artikelen/{a.pk}/gezien").status_code, 204)
+        rij = next(x for x in c.get("/api/v1/artikelen").json() if x["slug"] == "rappel-versturen")
+        self.assertIsNone(rij["wijziging"])
+        # Opnieuw een lagere versie afvinken zet de teller niet terug.
+        c.post(f"/api/v1/artikelen/{a.pk}/gezien", {"versie": 1}, content_type="application/json")
+        rij = next(x for x in c.get("/api/v1/artikelen").json() if x["slug"] == "rappel-versturen")
+        self.assertIsNone(rij["wijziging"])
+
+    def test_zaaktype_endpoint_zonder_query_per_artikel(self):
+        c = self.als(self.lezer)
+        # Sessie, gebruiker, rechten, lijst + prefetches en 2 voor de wijzigingen; niets per artikel.
+        with self.assertNumQueries(9):
+            r = c.get("/api/v1/zaaktypen/Melding/artikelen")
+        self.assertGreater(len(r.json()), 1)
+
+    def test_bericht_terug_naar_concept_telt_bij_herpublicatie_als_nieuw(self):
+        from kennisbank.models import Bericht
+
+        b = Bericht.objects.create(omgeving=self.hh, titel="x", tekst="<p>x</p>", status="gepubliceerd")
+        eerste = b.gepubliceerd_op
+        b.status = "concept"
+        b.save()
+        self.assertIsNone(b.gepubliceerd_op)
+        b.status = "gepubliceerd"
+        b.save()
+        self.assertGreater(b.gepubliceerd_op, eerste)
+
+    def test_bericht_tekst_wordt_ook_bij_tonen_opgeschoond(self):
+        from kennisbank.models import Bericht
+
+        b = Bericht.objects.create(omgeving=self.hh, titel="x", tekst="<p>ok</p>", status="gepubliceerd")
+        Bericht.objects.filter(pk=b.pk).update(tekst='<p>ok<img src=x onerror="alert(1)"></p>')  # buiten save() om
+        self.assertEqual(self.als(self.lezer).get("/api/v1/berichten").json()[0]["tekst"], "<p>ok</p>")

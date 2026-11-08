@@ -315,3 +315,44 @@ body.embed .view h1{font-size:1.3rem}
 .art .inleiding h3{font-size:1.05rem;margin:14px 0 6px}
 .art .inleiding div.onboarding{margin:6px 0 10px}
 .msg a.src{text-decoration:none}
+
+/* --- Wijzigingsmeldingen (1.7.0) --- */
+.nav .count.badge:not(:empty){background:var(--accent);color:var(--accent-fg);border-radius:999px;padding:1px 7px;font-weight:700;font-size:.72rem}
+.status.wijzig{background:var(--accent);color:var(--accent-fg)}
+.status.vast{background:transparent;padding:0}
+.wijziging{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;padding:10px 14px;margin:0 0 14px}
+.wijziging p{margin:4px 0 0;max-width:70ch}
+.wijziging b{color:var(--accent)}
+.wijziging .tb{flex:none}
+
+/* --- Nieuws --- */
+.nieuwsblok{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px 6px;margin:0 0 18px}
+.nieuwsblok .nb-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.nieuwsblok h2{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted);margin:0 0 6px;font-weight:700}
+.nb-item{padding:6px 0;border-top:1px solid var(--line)}
+.nb-item h3{margin:0;font-size:1rem;font-family:var(--font-title);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.nb-item .link{text-decoration:none;color:inherit;font:inherit;text-align:left}
+.nb-item .link:hover{color:var(--accent);text-decoration:underline}
+.nb-meta{margin:2px 0 0;font-size:.8rem;color:var(--fg-muted)}
+.berichten{display:flex;flex-direction:column;gap:12px}
+.bericht{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 20px;max-width:80ch;transition:box-shadow .3s}
+.bericht.vast{border-color:var(--accent)}
+.bericht.licht{box-shadow:0 0 0 3px var(--accent-soft)}
+.bericht .b-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.bericht h2{font-family:var(--font-title);font-size:1.25rem;margin:0;line-height:1.25}
+.b-meta{margin:2px 0 10px;font-size:.84rem;color:var(--fg-muted)}
+.b-body p{margin:0 0 10px}
+.b-body ul,.b-body ol{margin:0 0 10px;padding-left:22px}
+.b-body td,.b-body th{border:1px solid var(--line);padding:6px 10px}
+.b-body table{border-collapse:collapse}
+.b-body h3{font-size:1.05rem;margin:12px 0 4px}
+.b-body section.sectie{border:1px solid var(--line);border-radius:8px;padding:8px 14px;margin:0 0 10px}
+.b-body h2.sectie-kop{font-size:1rem;margin:0 0 6px}
+.b-body div.onboarding{display:block}
+.b-links{border-top:1px solid var(--line);padding-top:8px;font-size:.9rem;color:var(--fg-muted)}
+details.ouder{margin-top:18px}
+details.ouder summary{cursor:pointer;color:var(--fg-muted);font-weight:600;margin-bottom:10px}
+
+/* --- Instellingen in de zijbalk --- */
+.pref{display:flex;gap:8px;align-items:flex-start;font-size:.88rem;color:var(--fg-muted);cursor:pointer}
+.pref input{margin-top:3px;accent-color:var(--accent)}

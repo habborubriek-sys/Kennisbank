@@ -28,9 +28,24 @@ Als **redacteur** schrijf en onderhoud je de artikelen in jouw omgeving, behande
    - *Concept*: alleen zichtbaar voor redacteuren.
    - *Gepubliceerd*: zichtbaar voor iedereen in de omgeving.
    - *Gearchiveerd*: niet meer zichtbaar; de versiegeschiedenis blijft bewaard.
-6. Vul bij een wijziging de **toelichting** in, bijvoorbeeld "Termijn tweede rappel aangepast n.a.v. voorstel". Die komt in de versiegeschiedenis.
+6. Vul bij een wijziging de **toelichting** in, bijvoorbeeld "Termijn tweede rappel aangepast van 2 naar 3 weken". Die is verplicht zodra een gepubliceerd artikel inhoudelijk wijzigt, want medewerkers krijgen precies deze zin te zien (zie hieronder).
 
 Elke keer dat je een gepubliceerd artikel inhoudelijk wijzigt, ontstaat automatisch een nieuwe versie. Onderaan het artikel in het beheer zie je alle versies: wanneer, door wie en waarom. Oude versies zijn niet te wijzigen of te verwijderen.
+
+## Wijzigingsmeldingen: wat medewerkers zien van een wijziging
+
+Als je een gepubliceerd artikel inhoudelijk wijzigt, gebeurt er drie dingen voor medewerkers:
+
+- **Bij het artikel** verschijnt een blok *Gewijzigd op 8 november 2026 — Termijn tweede rappel aangepast van 2 naar 3 weken* met de knop **Ik snap het**. Het blok blijft staan tot de medewerker erop klikt of tot er een volgende wijziging is (dan komt de nieuwe toelichting ervoor in de plaats). In de lijst krijgt het artikel het label *Gewijzigd*, en in het menu staat onder **Gewijzigd** hoeveel er openstaan; daar kan een medewerker ook alles in één keer als gezien markeren.
+- **Per e-mail** krijgen collega's die het artikel als favoriet hebben de toelichting toegestuurd, met een link. Standaard gebundeld: één mail per dag per persoon met alle wijzigingen van die dag (instelbaar door IT met `KB_FAVORIETEN_MAIL`; zie [configuratie](configuratie.md)). Medewerkers kunnen de mail zelf uitzetten onder *Instellingen* in het menu.
+- Een nieuwe collega ziet geen meldingen van wijzigingen van vóór zijn eerste inlog: die kende het artikel niet anders.
+
+Twee hulpmiddelen om meldingsmoeheid te voorkomen:
+
+- **Kleine correctie, geen melding**: vink dit aan bij een typfout, opmaak of een verouderde naam. Er ontstaat wel een versie, maar medewerkers krijgen geen melding en geen e-mail. Een toelichting is dan niet verplicht.
+- Schrijf de toelichting voor de lezer, niet voor jezelf: *wat* is anders en *wat moet hij nu anders doen*. "Tekst aangepast" zegt niets; "Tweede rappel nu na 3 weken in plaats van 2" wel.
+
+Wil je een wijziging breder aankondigen, vink dan **Ook als nieuwsbericht plaatsen** aan: er staat dan een concept-nieuwsbericht klaar met je toelichting, gekoppeld aan het artikel (zie [Nieuws](#nieuws)).
 
 **De link van een artikel** wordt bij het opslaan toegekend en heeft de vorm `/artikel/412/melding-registreren`. Het nummer is wat telt: dat verandert nooit, ook niet als je de titel aanpast of het artikel naar een andere omgeving verhuist. De naam erachter is alleen voor de leesbaarheid. Twee afdelingen kunnen dus gerust een artikel met dezelfde titel hebben.
 
@@ -81,6 +96,21 @@ Bestaande werkinstructies in Word hoef je niet over te typen: **Beheer → Artik
 - Het artikel is een **concept** tot je de status op *Gepubliceerd* zet.
 
 Een `.doc` of PDF upload je niet rechtstreeks: open het in Word en sla het op als `.docx`.
+
+## Nieuws
+
+Onder **Nieuws** in de kennisbank staan mededelingen voor de medewerkers van jouw omgeving: een nieuwe werkwijze, een gewijzigd artikel dat iedereen moet kennen, een aankondiging. Medewerkers zien in het menu hoeveel berichten ze nog niet hebben gezien, en de laatste berichten staan ook bovenaan hun startpagina. In het zaaksysteem (ingebed) wordt nieuws niet getoond; daar gaat het om de artikelen bij de zaak.
+
+Berichten maak je in het beheer onder **Nieuwsberichten** (of via *Nieuw bericht schrijven* op de nieuwspagina):
+
+- **Titel** en **tekst**, met dezelfde opmaak als een artikel (vet, lijsten, links, tabellen).
+- **Omgeving**: het bericht is alleen zichtbaar voor medewerkers van die omgeving.
+- **Artikelen**: koppel de artikelen waar het bericht over gaat; die verschijnen als links onder het bericht.
+- **Status**: *Concept* (alleen zichtbaar in het beheer) of *Gepubliceerd*.
+- **Vastgepind**: blijft bovenaan staan, bijvoorbeeld "Nieuwe werkwijze per 1 januari".
+- **Verloopt op**: daarna zakt het bericht naar *Ouder nieuws* (inklapbaar onderaan); het blijft wel vindbaar. Leeg = geen einddatum.
+
+Een bericht kun je, anders dan een artikel, gewoon verwijderen. Nieuwsberichten gaan niet per e-mail; daarvoor is de nieuwspagina.
 
 ## Verbetervoorstellen behandelen
 

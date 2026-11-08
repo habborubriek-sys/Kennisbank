@@ -7,7 +7,7 @@ beheer kennisbank_import artikelen.json --toelichting "Eerste vulling"
 beheer kennisbank_export handhaving export.json
 ```
 
-Bestaande artikelen (zelfde `slug`) worden bijgewerkt. Als een gepubliceerd artikel daardoor inhoudelijk wijzigt, ontstaat een nieuwe versie met de opgegeven toelichting. Een import is één transactie: bij een fout wordt niets doorgevoerd.
+Bestaande artikelen (zelfde `slug`) worden bijgewerkt. Als een gepubliceerd artikel daardoor inhoudelijk wijzigt, ontstaat een nieuwe versie met de opgegeven toelichting — en **medewerkers zien die toelichting als wijzigingsmelding bij het artikel; wie het als favoriet heeft krijgt een e-mail**. Kies de toelichting dus met zorg, of gebruik `--kleine-correctie` als de wijzigingen geen melding waard zijn (dan ontstaat wel een versie, maar geen melding of e-mail). Een import is één transactie: bij een fout wordt niets doorgevoerd. Tags worden genormaliseerd naar kleine letters.
 
 ```json
 {
@@ -44,4 +44,4 @@ Bestaande artikelen (zelfde `slug`) worden bijgewerkt. Als een gepubliceerd arti
 | `inhoud` | | De hele artikeltekst als HTML (opgeschoond tot: p, strong, em, u, s, sub, sup, ul, ol, li, a, h3, h4, table, blockquote, code, hr, section.sectie, h2.sectie-kop, div.onboarding). Een sectie is `<section class="sectie"><h2 class="sectie-kop">Titel</h2>…</section>`; onboarding-uitleg is `<div class="onboarding">…</div>`. Tekst buiten een sectie is altijd zichtbaar. |
 | `versie` | | `4` = sectiekaders (huidig). `3` = sectiekoppen `<h2 class="sectie">`; `2` = `secties[]` met HTML; `1` = `secties[]` in Markdown met apart veld `onboarding`. Oudere versies worden bij import omgezet. |
 
-Een voorbeeld met acht artikelen staat in [demo/voorbeeldinhoud.json](../demo/voorbeeldinhoud.json). Losse Word-documenten importeer je eenvoudiger via **Beheer → Artikelen → Importeren uit Word** (zie [functioneel-beheer](functioneel-beheer.md)); dit JSON-formaat is bedoeld voor bulk en voor uitwisseling tussen installaties.
+Een voorbeeld met negen artikelen staat in [demo/voorbeeldinhoud.json](../demo/voorbeeldinhoud.json). Losse Word-documenten importeer je eenvoudiger via **Beheer → Artikelen → Importeren uit Word** (zie [functioneel-beheer](functioneel-beheer.md)); dit JSON-formaat is bedoeld voor bulk en voor uitwisseling tussen installaties.

@@ -65,7 +65,7 @@ Zie [ai-assistent](ai-assistent.md).
 
 ## Bewaartermijnen
 
-Uitgevoerd door het commando `opschonen` (dagelijks inplannen); dat verwijdert ook verlopen sessies uit de database. Zie [beveiliging-en-privacy](beveiliging-en-privacy.md).
+Uitgevoerd door het commando `opschonen` (dagelijks inplannen); dat verwijdert ook verlopen sessies uit de database, verstuurt de gebundelde favorietenmail en ruimt verzonden mailregels na 30 dagen op. Zie [beveiliging-en-privacy](beveiliging-en-privacy.md).
 
 | Variabele | Standaard | Omschrijving |
 |---|---|---|
@@ -85,6 +85,16 @@ Zonder `KB_EMAIL_HOST` worden geen e-mails verstuurd. Meldingen zijn dan alleen 
 | `KB_EMAIL_GEBRUIKER`, `KB_EMAIL_WACHTWOORD` | leeg |
 | `KB_EMAIL_TLS` | `ja` |
 | `KB_EMAIL_AFZENDER` | `kennisbank@localhost` |
+
+Voor test en demo: `KB_EMAIL_HOST=console` verstuurt niets maar schrijft elke e-mail in de serverlog (terminal), zodat je ziet wat er verstuurd zou worden.
+
+### E-mail bij wijziging van een favoriet artikel
+
+Wie een artikel als favoriet heeft, krijgt een e-mail als het inhoudelijk wijzigt (niet bij een *kleine correctie*). Elke medewerker kan dit zelf uitzetten onder *Instellingen* in het menu; IT bepaalt de werkwijze:
+
+| Variabele | Standaard | Omschrijving |
+|---|---|---|
+| `KB_FAVORIETEN_MAIL` | `gebundeld` | `gebundeld`: wijzigingen worden verzameld en per ontvanger als één e-mail verstuurd zodra `kennisbank_favorietenmail` draait — dat gebeurt in elk geval bij het dagelijkse `opschonen`, dus standaard één mail per dag. Vaker mailen? Plan `beheer kennisbank_favorietenmail` apart in (bijv. elk uur). `direct`: meteen één mail per wijziging. `uit`: geen e-mail; de melding in de kennisbank zelf blijft. |
 
 ## Webserver en logging
 

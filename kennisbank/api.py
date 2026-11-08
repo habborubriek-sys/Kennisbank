@@ -3,6 +3,7 @@
 Documentatie: /api/schema/ (OpenAPI) en /api/docs/ (interactief).
 """
 
+from django.conf import settings
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -20,6 +21,7 @@ from .models import (
     Artikel,
     ArtikelVersie,
     AssistentTelling,
+    Bericht,
     Cluster,
     Favoriet,
     Omgeving,
@@ -44,6 +46,7 @@ class ArtikelKortSerializer(serializers.ModelSerializer):
     zaaktypen = serializers.SlugRelatedField(many=True, read_only=True, slug_field="code")
     omgeving = serializers.SlugRelatedField(read_only=True, slug_field="slug")
     url = serializers.CharField(source="get_absolute_url", read_only=True)
+    wijziging = serializers.SerializerMethodField()
 
     class Meta:
         model = Artikel
@@ -62,7 +65,16 @@ class ArtikelKortSerializer(serializers.ModelSerializer):
             "gepubliceerd_op",
             "eigenaar",
             "url",
+            "wijziging",
         ]
+
+    def get_wijziging(self, obj) -> dict | None:
+        """De nog niet afgevinkte inhoudelijke wijziging voor de huidige gebruiker: {versie, datum, toelichting}."""
+        wijzigingen = self.context.get("wijzigingen")
+        if wijzigingen is None:
+            request = self.context.get("request")
+            wijzigingen = diensten.wijzigingen_voor(request.user if request else None, [obj])
+        return wijzigingen.get(obj.pk)
 
 
 class ArtikelSerializer(ArtikelKortSerializer):
@@ -201,8 +213,11 @@ def _artikel_of_404(request, pk):
     return artikel
 
 
-def _ctx(request):
-    return {"request": request, "rechten": rechten(request)}
+def _ctx(request, artikelen=None):
+    ctx = {"request": request, "rechten": rechten(request)}
+    if artikelen is not None:
+        ctx["wijzigingen"] = diensten.wijzigingen_voor(request.user, artikelen)
+    return ctx
 
 
 # --- Endpoints ------------------------------------------------------------------------
@@ -210,6 +225,7 @@ def _ctx(request):
 
 class IkWijzigenSerializer(serializers.Serializer):
     onboarding = serializers.BooleanField(required=False)
+    mail_bij_favorieten = serializers.BooleanField(required=False)
 
 
 @extend_schema(
@@ -221,6 +237,10 @@ class IkWijzigenSerializer(serializers.Serializer):
             "naam": serializers.CharField(),
             "is_redacteur": serializers.BooleanField(),
             "onboarding": serializers.BooleanField(),
+            "mail_bij_favorieten": serializers.BooleanField(),
+            "favorieten_mail": serializers.CharField(help_text="KB_FAVORIETEN_MAIL: gebundeld, direct of uit"),
+            "nieuws_gezien_op": serializers.DateTimeField(allow_null=True),
+            "nieuws_ongelezen": serializers.IntegerField(),
             "favorieten": serializers.ListField(child=serializers.IntegerField(), help_text="Artikel-id's"),
             "recent": inline_serializer(
                 "RecentBezocht",
@@ -239,25 +259,33 @@ class IkWijzigenSerializer(serializers.Serializer):
 def ik(request):
     p = diensten.profiel(request.user)
     if request.method == "PATCH":
-        if "onboarding" in request.data:
-            s = IkWijzigenSerializer(data=request.data)
-            s.is_valid(raise_exception=True)  # 400 {"onboarding": [...]} bij onzin
-            p.onboarding = s.validated_data["onboarding"]
-            p.save(update_fields=["onboarding"])
+        s = IkWijzigenSerializer(data=request.data)
+        s.is_valid(raise_exception=True)  # 400 {"onboarding": [...]} bij onzin
+        velden = [veld for veld in ("onboarding", "mail_bij_favorieten") if veld in s.validated_data]
+        for veld in velden:
+            setattr(p, veld, s.validated_data[veld])
+        if velden:
+            p.save(update_fields=velden)
     r = rechten(request)
+    berichten = diensten.berichten_voor(request.user, r.leesbare_omgevingen)
+    nieuws_ongelezen = (
+        berichten.filter(gepubliceerd_op__gt=p.nieuws_gezien_op).count() if p.nieuws_gezien_op else berichten.count()
+    )
     zichtbaar = r.gepubliceerde_artikelen()
     recent = (
         RecentBezocht.objects.filter(gebruiker=request.user, artikel__in=zichtbaar)
         .select_related("artikel")
         .order_by("-bezocht_op")
     )
-    from django.conf import settings
-
     return Response(
         {
             "naam": request.user.get_full_name() or request.user.get_username(),
             "is_redacteur": r.is_redacteur,
             "onboarding": p.onboarding,
+            "mail_bij_favorieten": p.mail_bij_favorieten,
+            "favorieten_mail": settings.KB_FAVORIETEN_MAIL,
+            "nieuws_gezien_op": p.nieuws_gezien_op,
+            "nieuws_ongelezen": nieuws_ongelezen,
             "favorieten": list(
                 Favoriet.objects.filter(gebruiker=request.user, artikel__in=zichtbaar).values_list(
                     "artikel_id", flat=True
@@ -336,7 +364,8 @@ def artikelen(request):
             diensten.registreer_zoekopdracht(q, len(resultaat), _gezochte_omgevingen(request))
     else:
         resultaat = qs.order_by("titel")
-    return Response(ArtikelKortSerializer(resultaat, many=True, context=_ctx(request)).data)
+    resultaat = list(resultaat)
+    return Response(ArtikelKortSerializer(resultaat, many=True, context=_ctx(request, resultaat)).data)
 
 
 @extend_schema(summary="Eén artikel met secties", responses=ArtikelSerializer)
@@ -371,6 +400,7 @@ def favoriet(request, pk):
             "gepubliceerd_op": serializers.DateTimeField(),
             "gepubliceerd_door": serializers.CharField(allow_null=True),
             "toelichting": serializers.CharField(),
+            "kleine_correctie": serializers.BooleanField(),
             "inhoud": serializers.DictField(help_text="Momentopname: {formaat, titel, samenvatting, inhoud, ...}"),
         },
         many=True,
@@ -388,6 +418,7 @@ def versies(request, pk):
                 "gepubliceerd_op": v.gepubliceerd_op,
                 "gepubliceerd_door": v.gepubliceerd_door.get_full_name() if v.gepubliceerd_door else None,
                 "toelichting": v.toelichting,
+                "kleine_correctie": v.kleine_correctie,
                 "inhoud": v.inhoud,
             }
             for v in ArtikelVersie.objects.filter(artikel=a).select_related("gepubliceerd_door")
@@ -607,8 +638,120 @@ def assistent(request):
 @api_view(["GET"])
 def zaaktype_artikelen(request, code):
     qs = rechten(request).gepubliceerde_artikelen().filter(zaaktypen__code=code).distinct()
-    qs = qs.select_related("omgeving").prefetch_related("clusters", "tags", "zaaktypen").order_by("titel")
-    return Response(ArtikelKortSerializer(qs, many=True, context=_ctx(request)).data)
+    qs = list(qs.select_related("omgeving").prefetch_related("clusters", "tags", "zaaktypen").order_by("titel"))
+    return Response(ArtikelKortSerializer(qs, many=True, context=_ctx(request, qs)).data)
+
+
+# --- Wijzigingsmeldingen en nieuws ------------------------------------------------------
+
+
+class GezienSerializer(serializers.Serializer):
+    versie = serializers.IntegerField(
+        required=False, min_value=1, help_text="De versie die de gebruiker te zien kreeg (standaard: de huidige)."
+    )
+
+
+@extend_schema(
+    summary="Wijzigingsmelding van een artikel afvinken ('Ik snap het')",
+    description="Daarna verschijnt de melding pas weer bij een volgende inhoudelijke wijziging. Stuur de getoonde "
+    "`versie` mee: een versie die intussen is gepubliceerd blijft dan als melding staan.",
+    request=GezienSerializer,
+    responses={204: None},
+)
+@api_view(["POST"])
+def wijziging_gezien(request, pk):
+    a = _artikel_of_404(request, pk)
+    s = GezienSerializer(data=request.data)
+    s.is_valid(raise_exception=True)
+    diensten.markeer_gezien(request.user, [a], tot_versie=s.validated_data.get("versie"))
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(
+    summary="Alle openstaande wijzigingsmeldingen afvinken ('Alles gezien')",
+    request=None,
+    responses=inline_serializer("AllesGezien", {"aantal": serializers.IntegerField()}),
+)
+@api_view(["POST"])
+def wijzigingen_gezien(request):
+    zichtbaar = rechten(request).artikelen()
+    open_ids = diensten.wijzigingen_voor(request.user, zichtbaar)
+    n = diensten.markeer_gezien(request.user, zichtbaar.filter(pk__in=open_ids))
+    return Response({"aantal": n})
+
+
+class BerichtSerializer(serializers.ModelSerializer):
+    omgeving = serializers.SlugRelatedField(read_only=True, slug_field="slug")
+    tekst = serializers.SerializerMethodField()
+    auteur = serializers.SerializerMethodField()
+    artikelen = serializers.SerializerMethodField()
+    verlopen = serializers.SerializerMethodField()
+    bewerk_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Bericht
+        fields = [
+            "id",
+            "titel",
+            "tekst",
+            "omgeving",
+            "artikelen",
+            "vastgepind",
+            "gepubliceerd_op",
+            "verloopt_op",
+            "verlopen",
+            "auteur",
+            "bewerk_url",
+        ]
+
+    def get_tekst(self, obj) -> str:
+        """Net als artikelinhoud ook bij tonen opgeschoond (tweede linie, naast de opschoning bij opslaan)."""
+        from .inhoud import schoon
+
+        return schoon(obj.tekst)
+
+    def get_auteur(self, obj) -> str:
+        return (obj.auteur.get_full_name() or obj.auteur.get_username()) if obj.auteur else "Procesmanagement"
+
+    def get_artikelen(self, obj) -> list[dict]:
+        r = self.context["rechten"]
+        return [
+            {"id": a.pk, "titel": a.titel, "url": a.get_absolute_url()} for a in obj.artikelen.all() if r.mag_lezen(a)
+        ]
+
+    def get_verlopen(self, obj) -> bool:
+        return bool(obj.verloopt_op and obj.verloopt_op <= timezone.now())
+
+    def get_bewerk_url(self, obj) -> str | None:
+        if obj.omgeving_id in self.context["rechten"].redactie_omgevingen:
+            return f"/beheer/kennisbank/bericht/{obj.pk}/change/"
+        return None
+
+
+@extend_schema(
+    summary="Nieuwsberichten in de omgeving(en) van de gebruiker",
+    description="Gepubliceerde berichten, vastgepinde eerst en dan op datum (nieuwste bovenaan). "
+    "Verlopen berichten staan er ook in, met `verlopen: true`.",
+    responses=BerichtSerializer(many=True),
+)
+@api_view(["GET"])
+def berichten(request):
+    r = rechten(request)
+    qs = diensten.berichten_voor(request.user, r.leesbare_omgevingen)
+    return Response(BerichtSerializer(qs, many=True, context=_ctx(request)).data)
+
+
+@extend_schema(
+    summary="Nieuws als gelezen markeren (de teller 'ongelezen' gaat naar nul)",
+    request=None,
+    responses={204: None},
+)
+@api_view(["POST"])
+def berichten_gezien(request):
+    p = diensten.profiel(request.user)
+    p.nieuws_gezien_op = timezone.now()
+    p.save(update_fields=["nieuws_gezien_op"])
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @extend_schema(exclude=True)

@@ -74,3 +74,43 @@ class UpgradeVanaf10Tests(TransactionTestCase):
 
         self.assertTrue(Artikel.objects.filter(zoekvector=SearchQuery("rappel", config="dutch")).exists())
         self.assertTrue(Sectie.objects.filter(zoekvector=SearchQuery("buddy", config="dutch")).exists())
+
+
+class UpgradeNaar17Tests(TransactionTestCase):
+    """Migratie 0009: tags normaliseren/samenvoegen en bestaande versies als gezien markeren."""
+
+    def _migreer_naar(self, naam):
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()
+        executor.migrate([("kennisbank", naam)])
+        return executor.loader.project_state([("kennisbank", naam)]).apps
+
+    def test_bestaande_gegevens(self):
+        oud = self._migreer_naar("0008_wijzigingen_en_nieuws")
+        Omgeving = oud.get_model("kennisbank", "Omgeving")
+        Artikel = oud.get_model("kennisbank", "Artikel")
+        Tag = oud.get_model("kennisbank", "Tag")
+        User = oud.get_model("auth", "User")
+        o = Omgeving.objects.create(slug="handhaving", naam="Handhaving", beschrijving="")
+        a1 = Artikel.objects.create(omgeving=o, slug="a", titel="A", samenvatting="x", versie=3)
+        a2 = Artikel.objects.create(omgeving=o, slug="b", titel="B", samenvatting="x", versie=1)
+        t_hoofd = Tag.objects.create(naam="Omgevingswet")
+        t_klein = Tag.objects.create(naam="omgevingswet")
+        t_spatie = Tag.objects.create(naam="  Twee   woorden ")
+        a1.tags.add(t_hoofd)
+        a2.tags.add(t_klein, t_spatie)
+        User.objects.create(username="een")
+        User.objects.create(username="twee")
+
+        nieuw = self._migreer_naar("0009_bestaande_gegevens_1_7")
+        Tag = nieuw.get_model("kennisbank", "Tag")
+        Artikel = nieuw.get_model("kennisbank", "Artikel")
+        WijzigingGezien = nieuw.get_model("kennisbank", "WijzigingGezien")
+        self.assertEqual(sorted(Tag.objects.values_list("naam", flat=True)), ["omgevingswet", "twee woorden"])
+        self.assertEqual(sorted(Artikel.objects.get(slug="a").tags.values_list("naam", flat=True)), ["omgevingswet"])
+        self.assertEqual(
+            sorted(Artikel.objects.get(slug="b").tags.values_list("naam", flat=True)), ["omgevingswet", "twee woorden"]
+        )
+        # Alleen het artikel met versie > 1 is afgevinkt, voor beide gebruikers, tot en met de huidige versie.
+        self.assertEqual(WijzigingGezien.objects.count(), 2)
+        self.assertEqual(set(WijzigingGezien.objects.values_list("artikel__slug", "versie")), {("a", 3)})

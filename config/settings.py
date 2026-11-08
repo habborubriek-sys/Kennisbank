@@ -266,7 +266,11 @@ KB_RECENT_MAX = env_int("KB_RECENT_MAX", 10)
 # --- E-mail (optioneel) -------------------------------------------------------------
 # Zonder KB_EMAIL_HOST worden geen e-mails verstuurd; meldingen staan dan alleen in de app.
 
-if env("KB_EMAIL_HOST", ""):
+if env("KB_EMAIL_HOST", "") == "console":
+    # Voor test en demo: e-mails worden niet verstuurd maar in de serverlog (terminal) getoond.
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    KB_EMAIL_AAN = True
+elif env("KB_EMAIL_HOST", ""):
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = env("KB_EMAIL_HOST")
     EMAIL_PORT = env_int("KB_EMAIL_PORT", 587)
@@ -279,6 +283,15 @@ else:
     KB_EMAIL_AAN = False
 DEFAULT_FROM_EMAIL = env("KB_EMAIL_AFZENDER", "kennisbank@localhost")
 KB_BASIS_URL = env("KB_BASIS_URL", "http://localhost:8000")
+
+# E-mail aan medewerkers als een favoriet artikel inhoudelijk wijzigt:
+#   gebundeld = in de wachtrij; `kennisbank_favorietenmail` (ook via `kennisbank_opschonen`) stuurt per
+#               ontvanger één mail met alles wat open staat — dagelijks als dat commando dagelijks draait.
+#   direct    = meteen één mail per wijziging.
+#   uit       = geen e-mail; de melding in de kennisbank zelf blijft.
+KB_FAVORIETEN_MAIL = env("KB_FAVORIETEN_MAIL", "gebundeld").lower()
+if KB_FAVORIETEN_MAIL not in {"gebundeld", "direct", "uit"}:
+    raise ImproperlyConfigured("KB_FAVORIETEN_MAIL moet 'gebundeld', 'direct' of 'uit' zijn.")
 
 # --- Logging ------------------------------------------------------------------------
 # Gestructureerde JSON-regels naar stdout, zodat het platform ze kan oppikken.

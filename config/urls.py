@@ -19,6 +19,10 @@ api_v1 = [
     path("artikelen/<int:pk>/weergave", api.weergave, name="api-weergave"),
     path("artikelen/<int:pk>/favoriet", api.favoriet, name="api-favoriet"),
     path("artikelen/<int:pk>/versies", api.versies, name="api-versies"),
+    path("artikelen/<int:pk>/gezien", api.wijziging_gezien, name="api-wijziging-gezien"),
+    path("wijzigingen/gezien", api.wijzigingen_gezien, name="api-wijzigingen-gezien"),
+    path("berichten", api.berichten, name="api-berichten"),
+    path("berichten/gezien", api.berichten_gezien, name="api-berichten-gezien"),
     path("voorstellen", api.voorstellen, name="api-voorstellen"),
     path("voorstellen/<int:pk>", api.voorstel, name="api-voorstel"),
     path("statistieken", api.statistieken, name="api-statistieken"),
@@ -53,5 +57,5 @@ urlpatterns = [
     path("", views.app, name="app"),
     re_path(r"^artikel/(?P<pk>\d+)(?:/[\w-]*)?/?$", views.app, name="artikel"),
     re_path(r"^artikel/(?P<slug>[\w-]+)/?$", views.oude_artikel_link),
-    re_path(r"^(?:artikelen|favorieten|recent|voorstellen|statistieken)/?$", views.app),
+    re_path(r"^(?:artikelen|favorieten|recent|gewijzigd|nieuws|voorstellen|statistieken)/?$", views.app),
 ]

@@ -32,11 +32,16 @@
       <button type="button" data-view="recent">Recent bezocht <span class="count" id="cRec"></span></button>
       <button type="button" data-view="artikelen">Alle artikelen <span class="count" id="cAll"></span></button>
       <button type="button" data-view="favorieten">Favorieten <span class="count" id="cFav"></span></button>
+      <button type="button" data-view="gewijzigd">Gewijzigd <span class="count badge" id="cWijz"></span></button>
+      <button type="button" data-view="nieuws" id="navNieuws">Nieuws <span class="count badge" id="cNieuws"></span></button>
       <button type="button" data-view="voorstellen">Verbetervoorstellen <span class="count" id="cProp"></span></button>
       <button type="button" data-view="statistieken" id="navStats" hidden>Gebruiksstatistieken</button>
     </nav>
     <div><h2 class="side-h">Cluster</h2><div class="chips" id="fCluster"></div></div>
     <div><h2 class="side-h">Soort</h2><div class="chips" id="fType"></div></div>
+    <div id="instellingen" hidden><h2 class="side-h">Instellingen</h2>
+      <label class="pref"><input type="checkbox" id="mailPref"> E-mail als een favoriet artikel wijzigt</label>
+    </div>
     <div class="meer" id="meer"></div>
   </aside>
 

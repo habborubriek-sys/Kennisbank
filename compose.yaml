@@ -21,7 +21,7 @@ services:
 
   app:
     build: .
-    image: kennisbank:1.6.1
+    image: kennisbank:1.7.0
     depends_on:
       db:
         condition: service_healthy

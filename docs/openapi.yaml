@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.6.1
+  version: 1.7.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -117,6 +117,38 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/artikelen/{id}/gezien:
+    post:
+      operationId: v1_artikelen_gezien_create
+      description: 'Daarna verschijnt de melding pas weer bij een volgende inhoudelijke
+        wijziging. Stuur de getoonde `versie` mee: een versie die intussen is gepubliceerd
+        blijft dan als melding staan.'
+      summary: Wijzigingsmelding van een artikel afvinken ('Ik snap het')
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GezienRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GezienRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GezienRequest'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/artikelen/{id}/versies:
     get:
       operationId: v1_artikelen_versies_list
@@ -187,6 +219,38 @@ paths:
               schema:
                 $ref: '#/components/schemas/AssistentAntwoord'
           description: ''
+  /api/v1/berichten:
+    get:
+      operationId: v1_berichten_list
+      description: 'Gepubliceerde berichten, vastgepinde eerst en dan op datum (nieuwste
+        bovenaan). Verlopen berichten staan er ook in, met `verlopen: true`.'
+      summary: Nieuwsberichten in de omgeving(en) van de gebruiker
+      tags:
+      - v1
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Bericht'
+          description: ''
+  /api/v1/berichten/gezien:
+    post:
+      operationId: v1_berichten_gezien_create
+      summary: Nieuws als gelezen markeren (de teller 'ongelezen' gaat naar nul)
+      tags:
+      - v1
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/ik:
     get:
       operationId: v1_ik_retrieve
@@ -347,6 +411,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/Voorstel'
           description: ''
+  /api/v1/wijzigingen/gezien:
+    post:
+      operationId: v1_wijzigingen_gezien_create
+      summary: Alle openstaande wijzigingsmeldingen afvinken ('Alles gezien')
+      tags:
+      - v1
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllesGezien'
+          description: ''
   /api/v1/zaaktypen/{code}/artikelen:
     get:
       operationId: v1_zaaktypen_artikelen_list
@@ -375,6 +455,13 @@ paths:
           description: ''
 components:
   schemas:
+    AllesGezien:
+      type: object
+      properties:
+        aantal:
+          type: integer
+      required:
+      - aantal
     Artikel:
       type: object
       properties:
@@ -431,6 +518,13 @@ components:
         url:
           type: string
           readOnly: true
+        wijziging:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          description: 'De nog niet afgevinkte inhoudelijke wijziging voor de huidige
+            gebruiker: {versie, datum, toelichting}.'
+          readOnly: true
         blokken:
           type: array
           items:
@@ -463,6 +557,7 @@ components:
       - titel
       - url
       - versie
+      - wijziging
       - zaaktypen
     ArtikelKort:
       type: object
@@ -520,6 +615,13 @@ components:
         url:
           type: string
           readOnly: true
+        wijziging:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          description: 'De nog niet afgevinkte inhoudelijke wijziging voor de huidige
+            gebruiker: {versie, datum, toelichting}.'
+          readOnly: true
       required:
       - clusters
       - gepubliceerd_op
@@ -531,6 +633,7 @@ components:
       - titel
       - url
       - versie
+      - wijziging
       - zaaktypen
     ArtikelStatistiek:
       type: object
@@ -583,6 +686,8 @@ components:
           nullable: true
         toelichting:
           type: string
+        kleine_correctie:
+          type: boolean
         inhoud:
           type: object
           additionalProperties: {}
@@ -591,6 +696,7 @@ components:
       - gepubliceerd_door
       - gepubliceerd_op
       - inhoud
+      - kleine_correctie
       - toelichting
       - versie
     AssistentAntwoord:
@@ -622,6 +728,70 @@ components:
           maxLength: 80
       required:
       - vraag
+    Bericht:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        titel:
+          type: string
+          maxLength: 200
+        tekst:
+          type: string
+          description: Net als artikelinhoud ook bij tonen opgeschoond (tweede linie,
+            naast de opschoning bij opslaan).
+          readOnly: true
+        omgeving:
+          type: string
+          readOnly: true
+        artikelen:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+        vastgepind:
+          type: boolean
+          description: Bovenaan de nieuwspagina houden.
+        gepubliceerd_op:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        verloopt_op:
+          type: string
+          format: date-time
+          nullable: true
+          description: Daarna staat het bericht onder 'Ouder nieuws' (leeg = geen
+            einddatum).
+        verlopen:
+          type: boolean
+          readOnly: true
+        auteur:
+          type: string
+          readOnly: true
+        bewerk_url:
+          type: string
+          nullable: true
+          readOnly: true
+      required:
+      - artikelen
+      - auteur
+      - bewerk_url
+      - gepubliceerd_op
+      - id
+      - omgeving
+      - tekst
+      - titel
+      - verlopen
+    GezienRequest:
+      type: object
+      properties:
+        versie:
+          type: integer
+          minimum: 1
+          description: 'De versie die de gebruiker te zien kreeg (standaard: de huidige).'
     Ik:
       type: object
       properties:
@@ -631,6 +801,17 @@ components:
           type: boolean
         onboarding:
           type: boolean
+        mail_bij_favorieten:
+          type: boolean
+        favorieten_mail:
+          type: string
+          description: 'KB_FAVORIETEN_MAIL: gebundeld, direct of uit'
+        nieuws_gezien_op:
+          type: string
+          format: date-time
+          nullable: true
+        nieuws_ongelezen:
+          type: integer
         favorieten:
           type: array
           items:
@@ -656,8 +837,12 @@ components:
       - app_naam
       - beheer_url
       - favorieten
+      - favorieten_mail
       - is_redacteur
+      - mail_bij_favorieten
       - naam
+      - nieuws_gezien_op
+      - nieuws_ongelezen
       - onboarding
       - recent
       - recent_max
@@ -690,6 +875,8 @@ components:
       type: object
       properties:
         onboarding:
+          type: boolean
+        mail_bij_favorieten:
           type: boolean
     PatchedVoorstelBehandelRequest:
       type: object

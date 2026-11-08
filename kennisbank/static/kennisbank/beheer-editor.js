@@ -282,10 +282,16 @@
     }
   };
 
+  // Voor andere teksten dan de artikelinhoud (bijv. een nieuwsbericht): alleen de opmaakknoppen,
+  // zonder volledig scherm, secties en onboarding.
+  var configEenvoudig = Object.assign({}, config, {
+    buttons: config.buttons.slice(0, config.buttons.indexOf("redo") + 1)
+  });
+
   function init(textarea) {
     if (textarea.dataset.kbEditor) return;
     textarea.dataset.kbEditor = "1";
-    var editor = Jodit.make(textarea, config);
+    var editor = Jodit.make(textarea, textarea.name === "inhoud" ? config : configEenvoudig);
     ruimteRondSecties(editor);
     editor.events.on("change", function () { if (ruimteRondSecties(editor)) editor.synchronizeValues(); });
     // Na "Opslaan en doorgaan" vanuit het volledige scherm: dat scherm weer openen.
