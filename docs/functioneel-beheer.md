@@ -103,6 +103,12 @@ Een paar dingen die de kennisbank bewust tegenhoudt bij het opslaan:
 - Een **titel die al bestaat** in dezelfde omgeving wordt geweigerd bij het aanmaken. Meestal betekent het dat je per ongeluk twee keer op *Opslaan* hebt geklikt; de melding noemt het nummer van het bestaande artikel.
 - Een **heel groot artikel** (meer dan 4 MB tekst) wordt geweigerd met de vraag het op te splitsen. Dat gebeurt vrijwel alleen bij plakken uit Word met veel opmaak.
 
+## Wie nog geen toegang heeft
+
+Een medewerker die nog niet aan een omgeving is gekoppeld, ziet geen lege kennisbank maar een scherm met uitleg: *"Je hebt nog geen toegang"*, met het contactadres uit de instelling `KB_CONTACT`. Zodra je zijn groep koppelt (zie *Toegang*), staan de artikelen er meteen — opnieuw inloggen is niet nodig.
+
+Vul `KB_CONTACT` altijd: zonder dat adres weet iemand zonder toegang niet waar hij moet zijn. Het verschijnt ook in de zijbalk onder *Hulp*.
+
 ## Een Word-document importeren
 
 Bestaande werkinstructies in Word hoef je niet over te typen: **Beheer → Artikelen → Importeren uit Word**, kies het `.docx`-bestand en de omgeving.

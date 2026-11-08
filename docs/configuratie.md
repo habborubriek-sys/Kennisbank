@@ -12,6 +12,7 @@ Alle instellingen zijn omgevingsvariabelen. Elke variabele kan ook uit een besta
 | `KB_CSRF_TRUSTED_ORIGINS` | leeg | Volledige origins, bijv. `https://kennisbank.example.nl`. |
 | `KB_BASIS_URL` | `http://localhost:8000` | Publieke URL, voor links in e-mails. |
 | `KB_APP_NAAM` | `Kennisbank` | Naam in de kop en de titel. |
+| `KB_CONTACT` | _(leeg)_ | Waar medewerkers terechtkunnen met vragen over de kennisbank: een e-mailadres, een Teams-kanaal of een naam. Verschijnt in de zijbalk en op het scherm voor wie nog geen toegang heeft. Leeg laten kan, maar dan heeft een gebruiker zonder toegang geen bestemming. |
 | `KB_TIJDZONE` | `Europe/Amsterdam` | |
 | `KB_DEBUG` | `nee` | **Nooit aan in productie.** |
 | `KB_DEMO_MODUS` | `nee` | Laadt voorbeeldinhoud en demo-accounts met een bekend wachtwoord, en zet de demopagina van het zaaksysteem aan. **Alleen voor test en demo.** |

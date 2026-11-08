@@ -40,6 +40,11 @@ def zoek_artikelen(queryset, tekst: str):
     )
 
 
+#: Ondergrens voor de score van een sectietreffer. Onder deze waarde is het verband met de vraag zo
+#: zwak dat "dit staat in …" misleidend is; de assistent zegt dan liever dat hij het niet weet.
+MINIMALE_RANG = 0.05
+
+
 def zoek_secties(artikelen_qs, tekst: str, zaaktype: str | None = None, aantal: int = 5):
     """Meest relevante secties voor een vraag, voor de assistent."""
     vraag = zoekvraag(tekst, alle_termen=False)
@@ -47,6 +52,7 @@ def zoek_secties(artikelen_qs, tekst: str, zaaktype: str | None = None, aantal: 
         return []
     kandidaten = list(
         Sectie.objects.filter(artikel__in=artikelen_qs, zoekvector=vraag)
+        .exclude(inhoud__regex=r"^\s*$")  # een sectie zonder tekst valt niets uit te citeren
         .annotate(rang=SearchRank(F("zoekvector"), vraag))
         .select_related("artikel")
         .prefetch_related("artikel__zaaktypen")
@@ -58,7 +64,9 @@ def zoek_secties(artikelen_qs, tekst: str, zaaktype: str | None = None, aantal: 
                 s.rang *= 1.5
         kandidaten.sort(key=lambda s: -s.rang)
     if kandidaten:
-        # Zwakke treffers weglaten: alleen secties die in de buurt komen van de beste.
-        grens = kandidaten[0].rang * 0.25
+        # Zwakke treffers weglaten: alleen secties die in de buurt komen van de beste, én die op
+        # zichzelf iets voorstellen. Zonder die absolute ondergrens levert één toevallig woord uit de
+        # titel al een "dit staat in …" op.
+        grens = max(kandidaten[0].rang * 0.25, MINIMALE_RANG)
         kandidaten = [s for s in kandidaten if s.rang >= grens]
     return kandidaten[:aantal]

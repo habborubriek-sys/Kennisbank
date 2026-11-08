@@ -297,6 +297,11 @@ def ik(request):
             "uitlog_url": "/oidc/logout/" if settings.KB_AUTH_MODUS == "oidc" else "/uitloggen/",
             "ai_aan": settings.KB_AI_PROVIDER != "uit",
             "app_naam": settings.KB_APP_NAAM,
+            # Zonder toegangsregel ziet de kennisbank er precies zo uit als een lege kennisbank. Dat
+            # is de meest voorkomende melding bij invoering, en de minst herkenbare; daarom zegt de
+            # frontend het nu met zoveel woorden.
+            "geen_toegang": not r.leesbare_omgevingen and not request.user.is_superuser,
+            "contact": settings.KB_CONTACT,
         }
     )
 
@@ -637,8 +642,21 @@ def assistent(request):
 )
 @api_view(["GET"])
 def zaaktype_artikelen(request, code):
+    """De artikelen bij een zaaktype, de meest geraadpleegde eerst.
+
+    Alfabetisch sorteren werkt prima bij tien artikelen, maar een breed zaaktype als "Melding" kan er
+    honderd hebben. Dan is een alfabetische muur naast een zaak geen hulp. Daarom hier de volgorde van
+    het gebruik in de laatste 90 dagen; de frontend toont er een handvol van met een uitklap.
+    """
     qs = rechten(request).gepubliceerde_artikelen().filter(zaaktypen__code=code).distinct()
-    qs = list(qs.select_related("omgeving").prefetch_related("clusters", "tags", "zaaktypen").order_by("titel"))
+    qs = list(qs.select_related("omgeving").prefetch_related("clusters", "tags", "zaaktypen"))
+    sinds = timezone.now().date() - timezone.timedelta(days=90)
+    weergaven = dict(
+        WeergaveTelling.objects.filter(artikel__in=qs, datum__gte=sinds)
+        .values_list("artikel")
+        .annotate(n=Sum("aantal"))
+    )
+    qs.sort(key=lambda a: (-weergaven.get(a.pk, 0), a.titel.lower()))
     return Response(ArtikelKortSerializer(qs, many=True, context=_ctx(request, qs)).data)
 
 

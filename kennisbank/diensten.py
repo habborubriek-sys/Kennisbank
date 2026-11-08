@@ -51,7 +51,12 @@ def herbouw_secties(artikel: Artikel) -> int:
 
     alle = blokken(artikel.inhoud)
     vrije_tekst = "".join(b["html"] for b in alle if b["type"] == "tekst")
-    rijen = [Sectie(artikel=artikel, volgorde=0, kop="", inhoud=vrije_tekst)]
+    # Alleen een rij voor de vrije tekst als die er ook echt is. Een lege rij droeg wél de artikeltitel
+    # in zijn zoekdocument en won daarmee regelmatig de zoekopdracht, waarna de assistent "Dit staat
+    # in …" zei en vervolgens niets kon citeren.
+    rijen = []
+    if vrije_tekst.strip():
+        rijen.append(Sectie(artikel=artikel, volgorde=0, kop="", inhoud=vrije_tekst))
     rijen += [
         Sectie(artikel=artikel, volgorde=b["nummer"], kop=b["kop"], inhoud=b["html"])
         for b in alle
@@ -60,7 +65,7 @@ def herbouw_secties(artikel: Artikel) -> int:
     artikel.secties.all().delete()
     Sectie.objects.bulk_create(rijen)
     werk_zoekvectoren_bij(artikel.pk)
-    return len(rijen) - 1
+    return sum(1 for r in rijen if r.volgorde)
 
 
 # Zoekdocumenten in PostgreSQL. Dezelfde SQL staat (bevroren) in migratie 0007 voor de eerste vulling.

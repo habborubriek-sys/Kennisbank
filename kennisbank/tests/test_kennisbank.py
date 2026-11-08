@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 from unittest import mock
 
@@ -20,13 +21,16 @@ from kennisbank.models import (
     Omgeving,
     RecentBezocht,
     Rol,
+    Sectie,
     Status,
     Tag,
     Toegang,
     Verbetervoorstel,
     WeergaveTelling,
+    Zaaktype,
     ZoekTelling,
 )
+from kennisbank.rechten import Rechten
 from kennisbank.uitwisseling import exporteer, importeer
 from kennisbank.word_import import WordImportFout, lees_docx
 
@@ -592,7 +596,8 @@ class InhoudTests(TestCase):
         self.assertIn('<section class="sectie"><h2 class="sectie-kop">K</h2>', a.inhoud)
         self.assertIn("<li><strong>vet</strong></li>", a.inhoud)
         self.assertIn('<div class="onboarding"><p>Extra <em>uitleg</em></p></div>', a.inhoud)
-        self.assertEqual([s.kop for s in a.secties.all()], ["", "K"])
+        # Geen lege vrije-tekst-sectie meer (1.8.0): dit artikel heeft alleen de sectie "K".
+        self.assertEqual([s.kop for s in a.secties.all()], ["K"])
 
     def test_artikel_wordt_bij_opslaan_opgeschoond(self):
         importeer(DEMO)
@@ -1563,8 +1568,9 @@ class ReviewBevindingenTests(Basis):
 
     def test_zaaktype_endpoint_zonder_query_per_artikel(self):
         c = self.als(self.lezer)
-        # Sessie, gebruiker, rechten, lijst + prefetches en 2 voor de wijzigingen; niets per artikel.
-        with self.assertNumQueries(9):
+        # Sessie, gebruiker, rechten, lijst + prefetches, de weergaventelling voor de volgorde en
+        # 2 voor de wijzigingen; alle vast, niets per artikel.
+        with self.assertNumQueries(10):
             r = c.get("/api/v1/zaaktypen/Melding/artikelen")
         self.assertGreater(len(r.json()), 1)
 
@@ -1833,3 +1839,86 @@ class TagNaamTests(Basis):
         r = self.als(self.redacteur).post("/beheer/kennisbank/tag/add/", {"naam": "  Nieuwe  Tag  "})
         self.assertEqual(r.status_code, 302)
         self.assertTrue(Tag.objects.filter(naam="nieuwe tag").exists())
+
+
+class AssistentLegeSectieTests(Basis):
+    """De assistent beweerde dat iets ergens stond en toonde vervolgens niets (1.8.0)."""
+
+    def test_een_artikel_zonder_vrije_tekst_krijgt_geen_lege_sectie(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        a.inhoud = '<section class="sectie"><h2 class="sectie-kop">Kop</h2><p>Tekst</p></section>'
+        a.save()
+        diensten.herbouw_secties(a)
+        self.assertFalse(a.secties.filter(volgorde=0).exists())
+        self.assertEqual(a.secties.count(), 1)
+
+    def test_vrije_tekst_krijgt_wel_een_sectie(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        a.inhoud = '<p>Losse inleiding</p><section class="sectie"><h2 class="sectie-kop">Kop</h2><p>Tekst</p></section>'
+        a.save()
+        diensten.herbouw_secties(a)
+        self.assertIn("Losse inleiding", a.secties.get(volgorde=0).inhoud)
+
+    def test_zoeken_levert_nooit_een_sectie_zonder_tekst_op(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        Sectie.objects.create(artikel=a, volgorde=0, kop="", inhoud="")
+        diensten.werk_zoekvectoren_bij(a.pk)
+        from kennisbank.zoeken import zoek_secties
+
+        for s in zoek_secties(Artikel.objects.all(), a.titel):
+            self.assertTrue(s.inhoud.strip(), f"lege sectie in de resultaten: {s.pk}")
+
+    def test_antwoord_bevat_altijd_tekst_of_zegt_dat_het_er_niet_is(self):
+        from kennisbank.assistent import beantwoord
+
+        qs = Rechten(self.lezer).artikelen()
+        for vraag in ["rappel", "mag ik een boete uitschrijven voor een zwerfboot", "melding registreren"]:
+            with self.subTest(vraag=vraag):
+                antwoord = beantwoord(vraag, qs)
+                tekst = re.sub(r"<[^>]+>", " ", antwoord.html)
+                if "Dit staat in" in antwoord.html:
+                    # Dan moet er ook echt iets te lezen zijn, en geen leeg kopje.
+                    self.assertNotIn("onder het kopje <i></i>", antwoord.html)
+                    na_kopje = antwoord.html.split("</p>", 1)[1]
+                    self.assertTrue(re.sub(r"<[^>]+>", "", na_kopje).strip(), f"leeg citaat bij: {vraag}")
+                self.assertTrue(tekst.strip())
+
+
+class GeenToegangTests(Basis):
+    """Zonder toegangsregel zag de kennisbank eruit als een lege kennisbank (1.8.0)."""
+
+    def test_api_meldt_geen_toegang_en_het_contactadres(self):
+        nieuw = User.objects.create_user("nieuwkomer", password="x")
+        with override_settings(KB_CONTACT="pm@example.org"):
+            d = self.als(nieuw).get("/api/v1/ik").json()
+        self.assertTrue(d["geen_toegang"])
+        self.assertEqual(d["contact"], "pm@example.org")
+
+    def test_wie_wel_toegang_heeft_krijgt_die_melding_niet(self):
+        d = self.als(self.lezer).get("/api/v1/ik").json()
+        self.assertFalse(d["geen_toegang"])
+
+
+class ZaaktypeVolgordeTests(Basis):
+    """Het paneel in het zaaksysteem toonde alles alfabetisch; nu de meest geraadpleegde eerst (1.8.0)."""
+
+    def test_meest_geraadpleegde_artikel_staat_vooraan(self):
+        zt = Zaaktype.objects.first()
+        arts = list(Artikel.objects.gepubliceerd()[:3])
+        for a in arts:
+            a.zaaktypen.add(zt)
+        # Het alfabetisch laatste artikel krijgt de meeste weergaven.
+        arts.sort(key=lambda a: a.titel.lower())
+        WeergaveTelling.objects.create(artikel=arts[-1], datum=timezone.now().date(), aantal=500)
+        d = self.als(self.lezer).get(f"/api/v1/zaaktypen/{zt.code}/artikelen").json()
+        self.assertEqual(d[0]["id"], arts[-1].pk)
+
+    def test_oude_weergaven_tellen_niet_mee(self):
+        zt = Zaaktype.objects.first()
+        arts = sorted(Artikel.objects.gepubliceerd()[:2], key=lambda a: a.titel.lower())
+        for a in arts:
+            a.zaaktypen.add(zt)
+        oud = timezone.now().date() - timezone.timedelta(days=200)
+        WeergaveTelling.objects.create(artikel=arts[-1], datum=oud, aantal=9999)
+        d = self.als(self.lezer).get(f"/api/v1/zaaktypen/{zt.code}/artikelen").json()
+        self.assertEqual(d[0]["id"], arts[0].pk)  # terug naar alfabetisch

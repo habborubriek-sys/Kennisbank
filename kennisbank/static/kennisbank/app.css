@@ -371,3 +371,8 @@ details.ouder summary{cursor:pointer;color:var(--fg-muted);font-weight:600;margi
 /* Tabellen mogen breder dan de leesbreedte van de lopende tekst: daar helpt ruimte juist. */
 details.sec .body table,.art .inleiding table{width:auto;max-width:none}
 details.sec .body>.tabelbreed,.art .inleiding>.tabelbreed{max-width:none}
+.side-contact{margin:4px 0 0;font-size:.88rem;color:var(--muted);line-height:1.45;overflow-wrap:anywhere}
+/* Vaste weg terug in de ingebedde weergave (het zaaksysteem toont de zijbalk niet). */
+.embed-terug{display:none}
+body.embed .embed-terug{display:inline-block;margin:10px 16px 0;font-size:.9rem}
+body.embed .embed-terug[hidden]{display:none}

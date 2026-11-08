@@ -138,6 +138,18 @@
     $("#cNieuws").textContent = (berichten ? (nieuwsGezienStraks ? 0 : nieuwsOngelezen()) : (ik && ik.nieuws_ongelezen)) || "";
     $("#navNieuws").hidden = EMBED;  // in het zaaksysteem alleen de artikelen; nieuws hoort in de kennisbank zelf
     $("#navStats").hidden = !isPM();
+    const terug = $("#embedTerug");
+    if (terug) {
+      // Vaste weg terug in het zaaksysteem: de zijbalk is daar verborgen, dus zonder deze knop kom je
+      // na een zoekactie of vanuit een artikel niet meer bij de artikelen van de zaak.
+      terug.hidden = !(EMBED && ZAAKTYPE) || (state.view === "zaaktype" && !state.artikel && !state.q.trim());
+      if (!terug.hidden) terug.textContent = "← Artikelen bij " + ZAAKTYPE;
+    }
+    const hulp = $("#hulpblok");
+    if (hulp) {
+      hulp.hidden = !(ik && ik.contact);
+      if (ik && ik.contact) $("#hulpContact").textContent = "Vragen over de kennisbank? " + ik.contact;
+    }
     $$(".nav button").forEach((b) => b.setAttribute("aria-current", b.dataset.view === state.view && !state.artikel ? "page" : "false"));
   }
 
@@ -155,6 +167,7 @@
     const m = $("#main");
     try {
       if (!ik) { m.innerHTML = renderLogin(); wireLogin(); return; }
+      if (ik.geen_toegang) { m.innerHTML = renderGeenToegang(); wireList(); return; }
       if (state.artikel) {
         if (!huidigArtikel || huidigArtikel.id !== state.artikel) {
           m.innerHTML = '<p class="loading">Laden…</p>';
@@ -186,6 +199,22 @@
       wireList();
     }
     if (focus) { m.scrollTop = 0; window.scrollTo(0, 0); m.focus({ preventScroll: true }); }
+  }
+
+  // Zonder toegangsregel zag de kennisbank er precies zo uit als een lege kennisbank ("probeer een
+  // ander trefwoord"). Dat is de meest voorkomende en minst herkenbare melding bij invoering.
+  function renderGeenToegang() {
+    const contact = ik.contact
+      ? `<p>Vraag toegang aan via <b>${esc(ik.contact)}</b>.</p>`
+      : "<p>Vraag toegang aan bij de beheerder van de kennisbank.</p>";
+    return `<div class="view">
+      <h1>Je hebt nog geen toegang</h1>
+      <p class="lead">Je bent ingelogd als <b>${esc(ik.naam)}</b>, maar je account is nog niet gekoppeld aan
+        een onderdeel van deze kennisbank. Daarom zie je hier geen artikelen.</p>
+      ${contact}
+      <p class="hint">Dit is geen storing: zodra je bent toegevoegd, staan de artikelen er meteen —
+        opnieuw inloggen is niet nodig.</p>
+    </div>`;
   }
 
   function renderLijstView() {
@@ -332,11 +361,18 @@
 
   function zetBalken() { $$(".bar i[data-w]").forEach((i) => { i.style.width = i.dataset.w + "%"; }); }
 
+  const ZAAKTYPE_TOP = 8;  // een paneel naast een zaak heeft weinig ruimte; de rest zit achter een uitklap
+  let zaaktypeAlles = false;
+
   function renderZaaktype() {
+    // De server levert ze al op volgorde van gebruik in de laatste 90 dagen.
     const lijst = artikelen.filter((a) => a.zaaktypen.includes(ZAAKTYPE));
+    const tonen = zaaktypeAlles ? lijst : lijst.slice(0, ZAAKTYPE_TOP);
+    const rest = lijst.length - tonen.length;
     return `<div class="view"><h1>Kennisbank bij ${esc(ZAAKTYPE)}</h1>
-      <p class="lead">${lijst.length} ${lijst.length === 1 ? "artikel hoort" : "artikelen horen"} bij dit zaaktype.</p>
-      ${lijst.length ? `<div class="cards">${lijst.map((a) => cardHTML(a)).join("")}</div>` : '<div class="empty">Er zijn nog geen artikelen aan dit zaaktype gekoppeld.</div>'}
+      <p class="lead">${lijst.length} ${lijst.length === 1 ? "artikel hoort" : "artikelen horen"} bij dit zaaktype${rest > 0 ? ", de meest geraadpleegde eerst" : ""}.</p>
+      ${tonen.length ? `<div class="cards">${tonen.map((a) => cardHTML(a)).join("")}</div>` : '<div class="empty">Er zijn nog geen artikelen aan dit zaaktype gekoppeld.</div>'}
+      ${rest > 0 ? `<p><button class="tb" type="button" id="zaaktypeMeer">Toon alle ${lijst.length} artikelen</button></p>` : ""}
       <p class="hint">Iets anders nodig? Zoek hierboven of <button class="link" type="button" id="askBot">vraag het de assistent</button>.</p></div>`;
   }
 
@@ -388,6 +424,17 @@
     $$("[data-fav]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); toggleFav(b.dataset.fav); }));
     const c = $("#clearF");
     if (c) c.addEventListener("click", () => { state.q = ""; $("#q").value = ""; state.zoekresultaat = null; state.cluster = null; state.soort = null; state.tags.clear(); render(false); });
+    const et = $("#embedTerug");
+    if (et && !et.dataset.aan) {
+      et.dataset.aan = "1";
+      et.addEventListener("click", () => {
+        state.q = ""; $("#q").value = ""; state.zoekresultaat = null;
+        state.artikel = null; huidigArtikel = null; state.view = "zaaktype"; zaaktypeAlles = false;
+        render(true);
+      });
+    }
+    const zm = $("#zaaktypeMeer");
+    if (zm) zm.addEventListener("click", () => { zaaktypeAlles = true; render(false); });
     const ab = $("#askBot");
     if (ab) ab.addEventListener("click", () => { openChat(); $("#chatIn").value = state.q; $("#chatIn").focus(); });
     const ag = $("#allesGezien");
@@ -487,7 +534,10 @@
     state.q = e.target.value;
     state.zoekresultaat = null;
     if (state.artikel) { state.artikel = null; huidigArtikel = null; }
-    if (!["artikelen", "favorieten"].includes(state.view)) state.view = "artikelen";
+    // In het zaaksysteem is "alle artikelen" een doodlopende weg: de zijbalk is daar verborgen, dus
+    // zonder deze terugval kom je na één zoekactie niet meer bij de artikelen van de zaak.
+    if (EMBED && ZAAKTYPE && !e.target.value.trim()) state.view = "zaaktype";
+    else if (!["artikelen", "favorieten"].includes(state.view)) state.view = "artikelen";
     if (!EMBED) zetUrl(true);
     render(false);
     clearTimeout(zoekT); clearTimeout(registreerT);

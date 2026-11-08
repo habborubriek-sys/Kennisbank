@@ -119,14 +119,24 @@ def _citeer(sectie, bronnen) -> Antwoord:
     """Zonder taalmodel: toon de best passende sectie (kort) of een ingekort fragment."""
     hoofdtekst = zonder_onboarding(sectie.inhoud)
     fragment = naar_platte_tekst(hoofdtekst)
+    if not fragment.strip():
+        # Niets te citeren: dan is "Dit staat in …" een bewering die we niet waar kunnen maken.
+        return Antwoord(
+            html=(
+                "<p>Ik vond hier geen antwoord op in de kennisbank. Dit lijkt er het meest op; "
+                "kijk zelf even of het klopt:</p>"
+            ),
+            bronnen=bronnen,
+        )
     if len(fragment) <= 450:
         citaat = f"<blockquote>{schoon(hoofdtekst)}</blockquote>"
     else:
         citaat = f"<p>“{html.escape(fragment[:300].rsplit(' ', 1)[0])}…”</p>"
+    kop = sectie.kop.strip() or "Inleiding"
     return Antwoord(
         html=(
             f"<p>Dit staat in <b>{html.escape(sectie.artikel.titel)}</b>, onder het kopje "
-            f"<i>{html.escape(sectie.kop)}</i>:</p>{citaat}"
+            f"<i>{html.escape(kop)}</i>:</p>{citaat}"
         ),
         bronnen=bronnen,
     )

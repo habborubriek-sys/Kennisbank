@@ -32,6 +32,9 @@ CSRF_TRUSTED_ORIGINS = env_list("KB_CSRF_TRUSTED_ORIGINS", [])
 
 # Naam die in de kop van de applicatie staat, en de standaard-omgeving.
 KB_APP_NAAM = env("KB_APP_NAAM", "Kennisbank")
+# Waar een medewerker terechtkan met vragen over de kennisbank: een e-mailadres, een Teams-kanaal of
+# een naam. Wordt getoond in de zijbalk en op het scherm voor wie nog geen toegang heeft.
+KB_CONTACT = env("KB_CONTACT", "")
 KB_DEMO_MODUS = env_bool("KB_DEMO_MODUS", False)
 
 INSTALLED_APPS = [

@@ -1,5 +1,16 @@
 # Wijzigingen
 
+## 1.8.1 – 2026-11-08
+
+Tweede ronde na de functionele review: de dingen die in een demo of bij invoering het eerst misgaan.
+
+- **De assistent beweert niets meer wat hij niet kan laten zien.** Elk artikel kreeg een lege sectierij voor de tekst vóór de eerste sectiekop, ook als die tekst er niet was. Zo'n lege rij droeg in zijn zoekdocument wél de artikeltitel en won daardoor regelmatig de zoekopdracht; de assistent antwoordde dan met "Dit staat in … onder het kopje :" gevolgd door niets. Die rijen worden niet meer aangemaakt, een bestaande installatie ruimt ze op bij het bijwerken (migratie 0011), lege secties tellen niet meer mee bij het zoeken, en bij een leeg citaat zegt de assistent voortaan dat hij geen antwoord heeft gevonden. Een sectie zonder kop heet in het antwoord "Inleiding".
+- **Geen toegang ziet er niet meer uit als een lege kennisbank.** Wie nog niet aan een omgeving is gekoppeld, kreeg een normale kennisbank te zien met de tekst "Geen artikelen gevonden. Probeer een ander trefwoord" — de meest voorkomende en minst herkenbare melding bij invoering. Nu volgt een eigen scherm met uitleg en een contactadres.
+- **Nieuwe instelling `KB_CONTACT`**: waar medewerkers terechtkunnen met vragen. Verschijnt in de zijbalk onder "Hulp" en op het scherm hierboven.
+- **In het zaaksysteem is zoeken geen doodlopende weg meer.** De zijbalk is daar verborgen, dus na één zoekactie kwam je niet meer terug bij de artikelen van de zaak. Er staat nu een vaste knop "← Artikelen bij …" boven het paneel, en het zoekveld leegmaken brengt je er ook terug.
+- **Het zaaksysteem-paneel schaalt mee.** Bij een breed zaaktype stonden alle artikelen alfabetisch onder elkaar — bij 49 artikelen een lijst van ruim vierduizend pixels naast een zaak. Nu staan de acht meest geraadpleegde artikelen van de laatste 90 dagen bovenaan, met "Toon alle N artikelen" eronder.
+- **Tests** (nu 122): lege secties, antwoorden van de assistent, het scherm bij geen toegang, en de volgorde van het zaaktype-paneel.
+
 ## 1.8.0 – 2026-11-08
 
 Eerste ronde na twee onafhankelijke beoordelingen (een functionele review en twee hardingstests). Deze versie gaat volledig over gegevensintegriteit: niemand mag stilletjes het werk van een ander overschrijven, en een verkeerd teken in een webadres mag de kennisbank niet laten omvallen.
