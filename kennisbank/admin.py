@@ -7,7 +7,6 @@
 
 import datetime
 import json
-import re
 
 from django import forms
 from django.conf import settings
@@ -24,7 +23,6 @@ from django.utils.formats import date_format
 from django.utils.html import format_html
 
 from . import diensten
-from . import inhoud as inhoud_mod
 from .models import (
     GUID_PATROON,
     MAX_INHOUD,
@@ -168,26 +166,6 @@ class HerzieningFilter(admin.SimpleListFilter):
         return queryset
 
 
-#: Titels die onmiskenbaar nog uit de bestandsmap komen in plaats van uit de kennisbank. Alleen gebruikt
-#: bij de eerste publicatie, als zachte vangnet: een redacteur ziet het meestal zelf, maar niet altijd.
-#: Let op: "concept" en "definitief" in gewone schrijfwijze zijn gewone woorden ("conceptbesluit"), dus
-#: daar gaan we niet op af. Alleen op schreeuwende kapitalen en op wat er verder in bestandsnamen staat.
-_TITEL_RUIS = re.compile(
-    r"\.(docx?|pdf|odt|rtf|txt)\s*$"
-    r"|\b(kopie\s+van|nieuwe\s+map)\b"
-    r"|\bversie\s*\d|\bv\d+[._]\d+\b|[_\s-]v\d",
-    re.I,
-)
-#: Schreeuwende kapitalen zijn een bestandsnaam-gewoonte; in kleine letters zijn het gewone woorden.
-_TITEL_RUIS_KAPITAAL = re.compile(r"\b(DEFINITIEF|DEFINITIEVE|FINAL|CONCEPT)\b")
-
-#: Samenvattingen die net zo goed leeg hadden kunnen zijn.
-_SAMENVATTING_RUIS = {
-    "", "nvt", "n.v.t", "n.v.t.", "geen", "volgt", "volgt nog", "nog invullen", "nog in te vullen",
-    "tbd", "todo", "to do", "x", "xxx", "test", "tekst", "samenvatting", "zie artikel", "zie inhoud",
-}
-
-
 class ArtikelForm(forms.ModelForm):
     tags_tekst = forms.CharField(
         required=False,
@@ -287,41 +265,17 @@ class ArtikelForm(forms.ModelForm):
     def _controleer_eerste_publicatie(self, data):
         """Laatste controle voordat een artikel voor het eerst zichtbaar wordt voor medewerkers.
 
-        Alleen bij de eerste publicatie, en alleen op dingen die onmiskenbaar nog niet af zijn: een
-        bestandsnaam als titel, een lege of nietszeggende samenvatting, of een sectie zonder titel
-        (die heet voor de lezer "Sectie 1"). Een redacteur die bewust iets anders wil, kan het artikel
-        als concept opslaan en in twee stappen publiceren.
+        De regel zelf staat in `diensten.problemen_eerste_publicatie`, zodat de lijstactie Publiceren
+        hem ook gebruikt; hier worden de meldingen alleen aan de juiste velden gehangen.
         """
         if data.get("status") != Status.GEPUBLICEERD or self.instance.versie:
             return
-        titel = (data.get("titel") or "").strip()
-        if titel and (_TITEL_RUIS.search(titel) or _TITEL_RUIS_KAPITAAL.search(titel)):
-            self.add_error(
-                "titel",
-                "Deze titel lijkt een bestandsnaam of een versie-aanduiding. Medewerkers zoeken op de titel, "
-                "dus geef het artikel de naam waaronder zij het zouden zoeken.",
-            )
-        samenvatting = " ".join((data.get("samenvatting") or "").split())
-        if not samenvatting:
-            self.add_error(
-                "samenvatting",
-                "Vul een samenvatting in. Medewerkers zien die in de lijst en in de zoekresultaten; zonder "
-                "samenvatting moeten zij elk artikel openen om te zien of het het juiste is.",
-            )
-        elif samenvatting.strip(" .-–—_").lower() in _SAMENVATTING_RUIS or len(samenvatting) < 20:
-            self.add_error(
-                "samenvatting",
-                "Deze samenvatting zegt nog niets. Schrijf één of twee zinnen over waar dit artikel over gaat.",
-            )
-        zonder_kop = inhoud_mod.secties_zonder_kop(data.get("inhoud") or "")
-        if zonder_kop:
-            nummers = ", ".join(str(n) for n in zonder_kop)
-            self.add_error(
-                "inhoud",
-                f"Er {'is een sectie' if len(zonder_kop) == 1 else 'zijn secties'} zonder titel "
-                f"(nummer {nummers}). Medewerkers zien dat kader dan dichtgeklapt staan als "
-                f"'Sectie {zonder_kop[0]}'. Geef elke sectie een titel, of haal het kader weg.",
-            )
+        for veld, melding in diensten.problemen_eerste_publicatie(
+            titel=data.get("titel") or "",
+            samenvatting=data.get("samenvatting") or "",
+            inhoud=data.get("inhoud") or "",
+        ).items():
+            self.add_error(veld, melding)
 
     def _controleer_omvang(self, data):
         inhoud = data.get("inhoud") or ""
@@ -779,27 +733,57 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
 
     @admin.action(description="Publiceren")
     def publiceren(self, request, queryset):
-        n, geweigerd = 0, []
+        n, zonder_toelichting, onaf = 0, [], []
         for a in queryset:
-            # Dezelfde regel als in het bewerkscherm: een inhoudelijke wijziging hoort een toelichting
-            # te krijgen, want medewerkers zien die als melding. Via deze lijstactie is er geen veld om
-            # er een te typen, dus sturen we de redacteur naar het bewerkscherm in plaats van een
-            # nietszeggende "Gepubliceerd via lijstactie" aan iedereen te tonen.
+            # Elke route naar publiceren moet dezelfde regels volgen als het bewerkscherm. Doet deze
+            # actie dat niet, dan is zij een achterdeur om die regels te omzeilen — en dat is hier al
+            # twee keer gebeurd: eerst bij de verplichte wijzigingstoelichting, daarna bij de controle
+            # op een onaf artikel.
+            if not a.versie:
+                problemen = diensten.problemen_eerste_publicatie(
+                    titel=a.titel, samenvatting=a.samenvatting, inhoud=a.inhoud
+                )
+                if problemen:
+                    onaf.append((a, problemen))
+                    continue
+            # Een inhoudelijke wijziging hoort een toelichting te krijgen, want medewerkers zien die
+            # als melding. Via deze lijstactie is er geen veld om er een te typen, dus sturen we de
+            # redacteur naar het bewerkscherm.
             if diensten.is_inhoudelijk_gewijzigd(a, diensten.momentopname(a)):
-                geweigerd.append(a)
+                zonder_toelichting.append(a)
                 continue
             a.status = Status.GEPUBLICEERD
             a.save(update_fields=["status", "gewijzigd_op"])
             if diensten.registreer_publicatie(a, request.user, "Gepubliceerd via lijstactie"):
                 n += 1
         self.message_user(request, f"{n} artikel(en) gepubliceerd.")
-        if geweigerd:
-            namen = ", ".join(a.titel for a in geweigerd[:5]) + ("…" if len(geweigerd) > 5 else "")
+        if zonder_toelichting:
+            namen = ", ".join(a.titel for a in zonder_toelichting[:5]) + (
+                "…" if len(zonder_toelichting) > 5 else ""
+            )
             self.message_user(
                 request,
-                f"{len(geweigerd)} artikel(en) niet gepubliceerd omdat de inhoud is gewijzigd zonder "
-                f"toelichting: {namen}. Publiceer die via het bewerkscherm, dan kun je aangeven wat er "
-                "is veranderd.",
+                f"{len(zonder_toelichting)} artikel(en) niet gepubliceerd omdat de inhoud is gewijzigd "
+                f"zonder toelichting: {namen}. Publiceer die via het bewerkscherm, dan kun je aangeven "
+                "wat er is veranderd.",
+                level=messages.WARNING,
+            )
+        for a, problemen in onaf[:5]:
+            self.message_user(
+                request,
+                format_html(
+                    '<b>{}</b> is nog niet gepubliceerd: {} Open het artikel via '
+                    '<a href="{}">het bewerkscherm</a> om dit aan te vullen.',
+                    a.titel,
+                    " ".join(problemen.values()),
+                    reverse("admin:kennisbank_artikel_change", args=[a.pk]),
+                ),
+                level=messages.WARNING,
+            )
+        if len(onaf) > 5:
+            self.message_user(
+                request,
+                f"Nog {len(onaf) - 5} artikel(en) zijn om dezelfde reden niet gepubliceerd.",
                 level=messages.WARNING,
             )
 
@@ -888,16 +872,8 @@ class VoorstelBerichtInline(admin.TabularInline):
         return request.user.is_superuser  # een verstuurd bericht is niet meer ongedaan te maken
 
 
-class VoorstelForm(forms.ModelForm):
-    class Meta:
-        model = Verbetervoorstel
-        fields = ["status", "terugkoppeling"]
-        widgets = {"terugkoppeling": forms.Textarea(attrs={"rows": 6, "cols": 80})}
-
-
 @admin.register(Verbetervoorstel)
 class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
-    form = VoorstelForm
     omgeving_pad = "artikel__omgeving"
     list_display = ["artikel", "status", "ingediend_op", "ingediend_door", "gesprek", "kort"]
     list_filter = [VoorstelOpenFilter, "status", "artikel__omgeving"]
@@ -912,6 +888,7 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         "ingediend_op",
         "behandeld_door",
         "behandeld_op",
+        "laatste_terugkoppeling",
     ]
     fieldsets = [
         (
@@ -921,12 +898,18 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         (
             "Behandeling",
             {
-                "fields": ["status", "terugkoppeling", "behandeld_door", "behandeld_op"],
-                "description": "De terugkoppeling is wat de indiener als antwoord ziet. Wil je er meer dan "
-                "één bericht over sturen, gebruik dan het gesprek onderaan.",
+                "fields": ["status", "laatste_terugkoppeling", "behandeld_door", "behandeld_op"],
+                "description": "Terugkoppelen gaat via de berichten onderaan: elk bericht komt bij de "
+                "indiener binnen als melding en als e-mail. Het laatste bericht is wat hij als antwoord "
+                "ziet staan.",
             },
         ),
     ]
+
+    @admin.display(description="Laatste terugkoppeling")
+    def laatste_terugkoppeling(self, obj):
+        """Alleen ter informatie: dit is het laatste bericht dat de indiener heeft gekregen."""
+        return obj.terugkoppeling or "— nog geen terugkoppeling gestuurd"
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(_berichten=Count("berichten"))
@@ -943,29 +926,41 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         return False
 
     def save_model(self, request, obj, form, change):
-        obj.behandeld_door = request.user
-        obj.behandeld_op = timezone.now()
+        # behandeld_door/op horen bij de status: wie heeft dit voorstel afgehandeld, en wanneer. Een
+        # tussentijds bericht raakt ze niet aan (zie diensten.voorstelbericht_toevoegen), want de
+        # bewaartermijn van de naam van de indiener hangt eraan.
+        if "status" in form.changed_data:
+            obj.behandeld_door = request.user
+            obj.behandeld_op = timezone.now()
         super().save_model(request, obj, form, change)
 
     def save_related(self, request, form, formsets, change):
-        """Nieuwe gespreksberichten en een gewijzigde terugkoppeling leveren precies één melding op."""
+        """Elk nieuw bericht gaat via de dienstlaag, zodat de melding en de e-mail er één keer uitgaan.
+
+        Het formulier schrijft `terugkoppeling` niet meer zelf (het veld is `editable=False`), dus er
+        is maar één schrijver en een nieuw bericht kan niets overschrijven.
+        """
         obj = form.instance
-        nieuwe_berichten = []
+        teksten, leeggemaakt = [], []
         for formset in formsets:
             if formset.model is not VoorstelBericht:
                 continue
             for f in formset.forms:
                 if f.instance.pk is None and (f.cleaned_data.get("tekst") or "").strip():
-                    nieuwe_berichten.append(f.cleaned_data["tekst"])
-                    f.cleaned_data["tekst"] = ""  # we schrijven hem zelf weg via de dienst
+                    teksten.append(f.cleaned_data["tekst"])
+                    # Leegmaken zodat de inline zelf niets wegschrijft; de dienstlaag doet dat, inclusief
+                    # de melding. We houden de rijen bij die we zo hebben leeggemaakt, zodat het opruimen
+                    # hieronder niet per ongeluk een ander bericht raakt.
+                    f.cleaned_data["tekst"] = ""
                     f.instance.tekst = ""
+                    leeggemaakt.append(f.instance)
         super().save_related(request, form, formsets, change)
-        VoorstelBericht.objects.filter(voorstel=obj, tekst="").delete()  # de lege regels van hierboven
-        for tekst in nieuwe_berichten:
+        pks = [b.pk for b in leeggemaakt if b.pk]
+        if pks:
+            VoorstelBericht.objects.filter(pk__in=pks).delete()
+        for tekst in teksten:
             diensten.voorstelbericht_toevoegen(obj, request.user, tekst, van_redactie=True)
-        if not nieuwe_berichten and "terugkoppeling" in form.changed_data and obj.terugkoppeling.strip():
-            diensten.voorstelbericht_toevoegen(obj, request.user, obj.terugkoppeling, van_redactie=True)
-        elif not nieuwe_berichten and "status" in form.changed_data:
+        if not teksten and "status" in form.changed_data:
             diensten.meld_terugkoppeling(obj)
 
 

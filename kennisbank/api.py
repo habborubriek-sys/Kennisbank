@@ -18,6 +18,7 @@ from rest_framework.throttling import UserRateThrottle
 from . import diensten
 from .assistent import beantwoord
 from .models import (
+    MAX_VOORSTELBERICHT,
     Artikel,
     ArtikelVersie,
     AssistentTelling,
@@ -112,10 +113,6 @@ class ArtikelSerializer(ArtikelKortSerializer):
         if self.context["rechten"].mag_redigeren(obj):
             return f"/beheer/kennisbank/artikel/{obj.pk}/change/"
         return None
-
-
-#: Een bericht in het gesprek mag lang zijn (een onderbouwd voorstel of antwoord), maar niet eindeloos.
-MAX_VOORSTELBERICHT = 5000
 
 
 class VoorstelBerichtSerializer(serializers.ModelSerializer):
@@ -467,10 +464,17 @@ def versies(request, pk):
 
 
 class VoorstelBehandelSerializer(serializers.Serializer):
-    """PATCH: beide velden optioneel; wat niet wordt meegestuurd blijft staan."""
+    """PATCH: de status van een voorstel.
+
+    `terugkoppeling` blijft hier geaccepteerd voor bestaande koppelingen, maar wordt verwerkt als een
+    bericht aan de indiener — niet meer als los veld. Zo is er één schrijver van dat veld
+    (`diensten.voorstelbericht_toevoegen`) en kan het niet stil worden overschreven.
+    """
 
     status = serializers.ChoiceField(choices=VoorstelStatus.choices, required=False)
-    terugkoppeling = serializers.CharField(allow_blank=True, max_length=4000, required=False)
+    terugkoppeling = serializers.CharField(
+        allow_blank=True, max_length=MAX_VOORSTELBERICHT, required=False, trim_whitespace=True
+    )
 
 
 @extend_schema(
@@ -518,45 +522,48 @@ def voorstel(request, pk):
     s = VoorstelBehandelSerializer(data=request.data)
     s.is_valid(raise_exception=True)
     nieuwe_status = s.validated_data.get("status", v.status)
-    nieuwe_terugkoppeling = s.validated_data.get("terugkoppeling", v.terugkoppeling).strip()
-    oude_terugkoppeling = v.terugkoppeling
-    gewijzigd = (v.status, v.terugkoppeling) != (nieuwe_status, nieuwe_terugkoppeling)
-    if gewijzigd:
+    if nieuwe_status != v.status:
         v.status = nieuwe_status
-        v.terugkoppeling = nieuwe_terugkoppeling
         v.behandeld_door = request.user
         v.behandeld_op = timezone.now()
-        v.save()
-        # Een terugkoppeling is een bericht in het gesprek; zo staat hij ook in de geschiedenis en
-        # krijgt de indiener er precies één melding van.
-        if nieuwe_terugkoppeling and nieuwe_terugkoppeling != oude_terugkoppeling:
-            diensten.voorstelbericht_toevoegen(v, request.user, nieuwe_terugkoppeling, van_redactie=True)
-        elif v.terugkoppeling:
-            diensten.meld_terugkoppeling(v)
+        v.save(update_fields=["status", "behandeld_door", "behandeld_op"])
+    # Een meegestuurde terugkoppeling wordt een bericht aan de indiener; daar zit de melding en de
+    # e-mail al aan vast. Dubbel versturen voorkomen we door hem over te slaan als hij niet verandert.
+    tekst = (s.validated_data.get("terugkoppeling") or "").strip()
+    if tekst and tekst != v.terugkoppeling:
+        diensten.voorstelbericht_toevoegen(v, request.user, tekst, van_redactie=True)
+        v.refresh_from_db()
     return Response(VoorstelSerializer(v, context=_ctx(request)).data)
 
 
+class VoorstelBerichtInSerializer(serializers.Serializer):
+    """Een terugkoppeling of tussentijdse update van procesmanagement aan de indiener.
+
+    Bewust een serializer en geen handmatige controle op `request.data`: die laat het type, de
+    lengtegrens en nul-bytes allemaal door, en een nul-byte in een tekstkolom is in PostgreSQL een
+    harde fout. Dit was het enige schrijvende endpoint dat de invoer rauw verwerkte.
+    """
+
+    tekst = serializers.CharField(max_length=MAX_VOORSTELBERICHT, trim_whitespace=True)
+
+
 @extend_schema(
-    summary="Bericht toevoegen aan het gesprek over een verbetervoorstel",
-    description="De indiener en de redacteuren van de omgeving kunnen elkaar hier antwoorden. De andere "
-    "kant krijgt er een melding en een e-mail van.",
-    request=inline_serializer("VoorstelBerichtIn", {"tekst": serializers.CharField()}),
+    summary="Terugkoppeling of update sturen bij een verbetervoorstel (redacteuren)",
+    description="Alleen redacteuren van de omgeving van het artikel. De indiener krijgt er een melding "
+    "en een e-mail van. Bewust eenrichtingsverkeer: de indiener kan niet terugschrijven.",
+    request=VoorstelBerichtInSerializer,
     responses=VoorstelSerializer,
 )
 @api_view(["POST"])
 @throttle_classes([VoorstelThrottle])
 def voorstel_bericht(request, pk):
     v = _voorstel_voor(request, pk)
-    tekst = (request.data.get("tekst") or "").strip()
-    if not tekst:
-        return Response({"fout": "Schrijf eerst een bericht."}, status=status.HTTP_400_BAD_REQUEST)
-    if len(tekst) > MAX_VOORSTELBERICHT:
-        return Response(
-            {"fout": f"Dit bericht is te lang (maximaal {MAX_VOORSTELBERICHT} tekens)."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-    van_redactie = v.ingediend_door_id != request.user.pk
-    diensten.voorstelbericht_toevoegen(v, request.user, tekst, van_redactie=van_redactie)
+    if v.artikel.omgeving_id not in rechten(request).redactie_omgevingen:
+        # De indiener mag zijn eigen voorstel zien, maar er niet in schrijven. Zie VoorstelBericht.
+        raise PermissionDenied("Alleen procesmanagement kan een bericht bij een voorstel plaatsen.")
+    s = VoorstelBerichtInSerializer(data=request.data)
+    s.is_valid(raise_exception=True)
+    diensten.voorstelbericht_toevoegen(v, request.user, s.validated_data["tekst"], van_redactie=True)
     v.refresh_from_db()
     return Response(VoorstelSerializer(v, context=_ctx(request)).data, status=status.HTTP_201_CREATED)
 

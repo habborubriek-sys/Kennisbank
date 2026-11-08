@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.10.0 .
-docker push registry.example.nl/kennisbank:1.10.0
+docker build -t registry.example.nl/kennisbank:1.11.0 .
+docker push registry.example.nl/kennisbank:1.11.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -69,7 +69,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.10.0
+  registry.example.nl/kennisbank:1.11.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -84,12 +84,37 @@ Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` e
 | `beheer kennisbank_favorietenmail` | alleen de favorietenmail versturen; optioneel vaker inplannen dan dagelijks (zie `KB_FAVORIETEN_MAIL`) |
 | `beheer <commando>` | beheercommando, bijvoorbeeld `beheer kennisbank_import /data/artikelen.json` |
 
-### Upgraden naar 1.10.0
+### Upgraden
 
-De migraties lopen automatisch mee bij het starten (of via `migreer`). Twee dingen om te weten:
+De migraties lopen automatisch mee bij het starten (of via `migreer`). Maak vooraf een databaseback-up,
+zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens gebeurt; alleen de
+migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
+standaardwaarde.
+
+#### Naar 1.11.0 (vanaf 1.7.0 of later)
+
+- **0011 verwijdert rijen** uit de sectietabel: de lege regels die vóór 1.8.1 voor elk artikel werden
+  aangemaakt, ook als er geen tekst vóór de eerste sectiekop stond. Dat is een *afgeleide* tabel — bij
+  elke opslag opnieuw opgebouwd uit de artikeltekst — dus er gaat geen bron verloren. Die lege rijen
+  wonnen regelmatig de zoekopdracht zonder iets te kunnen laten zien.
+- **0017 maakt van een bestaande terugkoppeling bij een verbetervoorstel een bericht.** Sinds 1.11.0 is
+  de terugkoppeling afgeleid uit de berichten; zonder deze stap zou een medewerker die eerder antwoord
+  kreeg, daarna een leeg gesprek zien. Het oude veld blijft staan, dus deze stap is terug te draaien.
+- **0012 en 0014 voegen kolommen toe met een veilige standaard**: de twee keuzes bij de Word-import
+  staan uit, en `herzien_voor` blijft leeg op bestaande artikelen. Die laatste wordt pas gevuld zodra
+  een artikel opnieuw wordt gepubliceerd — bestaande artikelen verschijnen dus niet meteen als
+  "achterstand" in de lijst. Wil je dat anders, zet dan per artikel een datum of pas
+  `KB_HERZIENINGSTERMIJN_MAANDEN` aan.
+- **Twee nieuwe instellingen**: `KB_CONTACT` (waar medewerkers met vragen terechtkunnen) en
+  `KB_HERZIENINGSTERMIJN_MAANDEN`. Zie [configuratie](configuratie.md).
+- **De naam van de indiener van een verbetervoorstel** verdwijnt na de bewaartermijn nu ook uit zijn
+  berichten. Dat werkt vanaf de eerste keer dat `opschonen` na de upgrade loopt; er is geen
+  eenmalige actie voor nodig.
+
+#### Naar 1.7.0 (vanaf een oudere versie)
 
 - Tags worden overal naar kleine letters gebracht; tags die daardoor samenvallen worden samengevoegd (de artikelen gaan mee).
-- Wijzigingsmeldingen gelden alleen voor wijzigingen vanaf 1.10.0: bestaande versies worden voor alle bestaande gebruikers als gezien gemarkeerd, zodat niemand na de upgrade de hele geschiedenis als openstaande melding krijgt.
+- Wijzigingsmeldingen gelden alleen voor wijzigingen vanaf 1.7.0: bestaande versies worden voor alle bestaande gebruikers als gezien gemarkeerd, zodat niemand na de upgrade de hele geschiedenis als openstaande melding krijgt.
 - E-mail bij wijziging van favorieten staat standaard op `gebundeld`; zonder `KB_EMAIL_HOST` wordt er niets verstuurd. Zie [configuratie](configuratie.md).
 
 ## 5. Toegang en inhoud

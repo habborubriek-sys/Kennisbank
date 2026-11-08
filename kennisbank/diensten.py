@@ -3,6 +3,7 @@
 import calendar
 import datetime
 import logging
+import re
 
 from django.conf import settings
 from django.core.mail import send_mail
@@ -157,6 +158,69 @@ def stand_vastleggen(sleutel: str, melding: str = "") -> None:
 def laatste_stand(sleutel: str):
     """De laatste keer dat een onderhoudstaak liep, of None als dat nooit is vastgelegd."""
     return Systeemstand.objects.filter(sleutel=sleutel).first()
+
+
+#: Titels die onmiskenbaar nog uit de bestandsmap komen. Let op: "concept" en "definitief" in gewone
+#: schrijfwijze zijn gewone woorden ("conceptbesluit"), dus daar gaan we niet op af — alleen op
+#: schreeuwende kapitalen en op wat er verder in bestandsnamen staat.
+_TITEL_RUIS = re.compile(
+    r"\.(docx?|pdf|odt|rtf|txt)\s*$"
+    r"|\b(kopie\s+van|nieuwe\s+map)\b"
+    r"|\bversie\s*\d|\bv\d+[._]\d+\b|[_\s-]v\d",
+    re.I,
+)
+_TITEL_RUIS_KAPITAAL = re.compile(r"\b(DEFINITIEF|DEFINITIEVE|FINAL|CONCEPT)\b")
+
+#: Samenvattingen die net zo goed leeg hadden kunnen zijn.
+_SAMENVATTING_RUIS = {
+    "", "nvt", "n.v.t", "n.v.t.", "geen", "volgt", "volgt nog", "nog invullen", "nog in te vullen",
+    "tbd", "todo", "to do", "x", "xxx", "test", "tekst", "samenvatting", "zie artikel", "zie inhoud",
+}
+
+#: Minimale lengte van een samenvatting die iets zegt.
+MINIMALE_SAMENVATTING = 20
+
+
+def problemen_eerste_publicatie(*, titel: str, samenvatting: str, inhoud: str) -> dict[str, str]:
+    """Wat er nog niet af is aan een artikel dat voor het eerst gepubliceerd gaat worden.
+
+    Geeft per veld een melding terug, of een leeg resultaat als het artikel klaar is. Deze controle
+    hoort bij *elke* route naar publiceren: het bewerkformulier én de lijstactie. In 1.9.0 zat hij
+    alleen in het formulier, waardoor de lijstactie hem omzeilde — dezelfde fout als eerder met de
+    verplichte wijzigingstoelichting.
+
+    Alleen dingen die onmiskenbaar nog niet af zijn: een bestandsnaam of versie-aanduiding als titel,
+    een lege of nietszeggende samenvatting, of een sectie zonder titel (die heet voor de lezer
+    "Sectie 1"). Een ontbrekend zaaktype of tag hoort hier niet: slecht vindbaar is soms de bedoeling.
+    """
+    from .inhoud import secties_zonder_kop
+
+    uit = {}
+    titel = (titel or "").strip()
+    if titel and (_TITEL_RUIS.search(titel) or _TITEL_RUIS_KAPITAAL.search(titel)):
+        uit["titel"] = (
+            "Deze titel lijkt een bestandsnaam of een versie-aanduiding. Medewerkers zoeken op de titel, "
+            "dus geef het artikel de naam waaronder zij het zouden zoeken."
+        )
+    kort = " ".join((samenvatting or "").split())
+    if not kort:
+        uit["samenvatting"] = (
+            "Vul een samenvatting in. Medewerkers zien die in de lijst en in de zoekresultaten; zonder "
+            "samenvatting moeten zij elk artikel openen om te zien of het het juiste is."
+        )
+    elif kort.strip(" .-–—_").lower() in _SAMENVATTING_RUIS or len(kort) < MINIMALE_SAMENVATTING:
+        uit["samenvatting"] = (
+            "Deze samenvatting zegt nog niets. Schrijf één of twee zinnen over waar dit artikel over gaat."
+        )
+    zonder_kop = secties_zonder_kop(inhoud or "")
+    if zonder_kop:
+        nummers = ", ".join(str(n) for n in zonder_kop)
+        uit["inhoud"] = (
+            f"Er {'is een sectie' if len(zonder_kop) == 1 else 'zijn secties'} zonder titel "
+            f"(nummer {nummers}). Medewerkers zien dat kader dan dichtgeklapt staan als "
+            f"'Sectie {zonder_kop[0]}'. Geef elke sectie een titel, of haal het kader weg."
+        )
+    return uit
 
 
 def herzieningsdatum(artikel: Artikel, *, kleine_correctie: bool = False):
@@ -394,13 +458,14 @@ def voorstelbericht_toevoegen(voorstel, auteur, tekst: str, *, van_redactie: boo
         tekst=tekst,
         moment=nu,
     )
-    velden = []
     if van_redactie:
+        # Bewust NIET behandeld_door/behandeld_op bijwerken. Die betekenen "wie heeft dit voorstel
+        # behandeld en wanneer" en worden gezet bij een statuswijziging. Zou een tussentijdse update
+        # ("opgepakt, we kijken ernaar") behandeld_op opschuiven, dan schuift ook de bewaartermijn mee
+        # waarop kennisbank_opschonen de naam van de indiener wist — en dat is precies wat we niet willen.
         voorstel.terugkoppeling = tekst
-        voorstel.behandeld_door = bericht.auteur
-        voorstel.behandeld_op = nu
         voorstel.gelezen_redactie_op = nu
-        velden = ["terugkoppeling", "behandeld_door", "behandeld_op", "gelezen_redactie_op"]
+        velden = ["terugkoppeling", "gelezen_redactie_op"]
     else:
         voorstel.gelezen_indiener_op = nu
         velden = ["gelezen_indiener_op"]
@@ -411,22 +476,23 @@ def voorstelbericht_toevoegen(voorstel, auteur, tekst: str, *, van_redactie: boo
 
 
 def meld_voorstelbericht(bericht):
-    """E-mail aan de andere kant van het gesprek: de indiener, of de redacteur die het behandelt."""
+    """E-mail aan de indiener van het voorstel: procesmanagement heeft iets laten weten.
+
+    Alleen deze richting: berichten gaan van procesmanagement naar de indiener (zie VoorstelBericht).
+    Mocht er uit een oudere installatie nog een bericht van een indiener komen, dan gaat er geen mail
+    uit; dat is in de kennisbank zelf wel te zien aan de ongelezen-teller.
+    """
+    if not bericht.van_redactie:
+        return
     voorstel = bericht.voorstel
-    titel = voorstel.artikel.titel
-    if bericht.van_redactie:
-        ontvanger = voorstel.ingediend_door
-        onderwerp = f"Nieuw bericht over je verbetervoorstel: {titel}"
-        slot = f"Bekijk en reageer: {settings.KB_BASIS_URL}/voorstellen"
-    else:
-        ontvanger = voorstel.behandeld_door
-        onderwerp = f"Reactie van de indiener op een verbetervoorstel: {titel}"
-        slot = f"Bekijk: {settings.KB_BASIS_URL}/voorstellen"
+    ontvanger = voorstel.ingediend_door
     if not ontvanger or not ontvanger.email or not ontvanger.is_active:
         return
     _mail(
-        onderwerp,
-        f"{bericht.naam} schreef:\n\n{bericht.tekst}\n\nStatus: {voorstel.get_status_display()}\n\n{slot}",
+        f"Bericht over je verbetervoorstel: {voorstel.artikel.titel}",
+        f"{bericht.naam} (procesmanagement) schreef:\n\n{bericht.tekst}\n\n"
+        f"Status: {voorstel.get_status_display()}\n\n"
+        f"Bekijk: {settings.KB_BASIS_URL}/voorstellen",
         [ontvanger.email],
     )
 

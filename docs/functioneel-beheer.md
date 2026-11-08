@@ -201,18 +201,36 @@ Een bericht kun je, anders dan een artikel, gewoon verwijderen. Nieuwsberichten 
 
 In de kennisbank onder **Verbetervoorstellen** zie je alle voorstellen bij artikelen in jouw omgeving, met de tekst die de collega had geselecteerd en de artikelversie op dat moment. Bovenaan staan filters: *Nog open* (de standaard), *Verwerkt*, *Afgewezen* en *Alles*.
 
-**Je kunt er met de indiener over doorpraten.** Onder elk voorstel staat het gesprek: elk bericht dat
-jij stuurt, komt bij de indiener als melding in de kennisbank én als e-mail binnen, en hij kan
-antwoorden. Gebruik dat ook voor tussentijdse updates — "opgepakt, we kijken ernaar met Toezicht" —
-zodat een voorstel niet maanden stil lijkt te liggen. In het beheerscherm staat hetzelfde gesprek
-onderaan het voorstel, met een leeg vak om een bericht toe te voegen; in de lijst zie je hoeveel
-berichten er al zijn gewisseld en met het filter *Indiener heeft als laatste geschreven* zie je waar
-iemand op een antwoord wacht. Een verstuurd bericht is niet meer aan te passen — schrijf er dan een
-nieuw bij.
+**Je kunt de indiener tussentijds op de hoogte houden.** Onder elk voorstel staat de lijst berichten die
+je hem hebt gestuurd. Elk bericht komt bij hem binnen als melding in de kennisbank én als e-mail.
+Gebruik dat ook voor een tussenstand — "opgepakt, we kijken ernaar met Toezicht" — zodat een voorstel
+niet maanden stil lijkt te liggen. Het laatste bericht is wat hij als antwoord bij zijn voorstel ziet
+staan.
 
-1. Zet de status: *Nieuw*, *In behandeling*, *Verwerkt* of *Afgewezen*.
-2. Schrijf een terugkoppeling en klik op **Opslaan**. De indiener ziet die bij zijn voorstel (en krijgt een e-mail als die is ingesteld).
-3. Verwerk je het voorstel, pas dan het artikel aan en noem het voorstel in de toelichting.
+**Het is eenrichtingsverkeer.** De medewerker dient een voorstel in; daarna koppel jij terug en houd je
+hem op de hoogte. Hij kan niet terugschrijven in de kennisbank. Dat is een bewuste keuze: een gesprek
+heen en weer zou een tweede kanaal naast Teams en e-mail opleveren, en de verwachting wekken dat er
+altijd iemand meeleest. Moet je echt overleggen, doe dat dan via Teams of e-mail en zet de uitkomst
+hier als bericht.
+
+Werken met voorstellen gaat zo:
+
+1. **Zet de status** in de kennisbank: *Nieuw*, *In behandeling*, *Verwerkt* of *Afgewezen*. Dat legt
+   ook vast wie het voorstel heeft behandeld en wanneer.
+2. **Stuur een bericht** met je terugkoppeling. In de kennisbank staat daarvoor een vak onder het
+   voorstel; in het beheerscherm staat dezelfde lijst onderaan, met een leeg vak eronder. Een verstuurd
+   bericht is niet meer aan te passen — schrijf er dan een nieuw bij.
+3. **Verwerk je het voorstel**, pas dan het artikel aan en noem het voorstel in de wijzigingstoelichting.
+
+In het beheerscherm zie je in de lijst hoeveel berichten er al zijn gestuurd. Het filter
+*Indiener heeft als laatste geschreven* is er voor voorstellen uit een oudere installatie, waarin
+terugschrijven nog kon.
+
+**Namen en bewaartermijnen.** Een jaar na afhandeling verdwijnt de naam van de indiener — van het
+voorstel en van zijn eventuele berichten. Jouw naam blijft bij je berichten staan zolang het voorstel
+bestaat: dat is verantwoording voor wat er aan een collega is toegezegd. Zie
+[beveiliging en privacy](beveiliging-en-privacy.md). Een tussentijds bericht schuift die termijn niet
+op; die loopt vanaf het moment dat je de status voor het laatst hebt gezet.
 
 ## Statistieken
 

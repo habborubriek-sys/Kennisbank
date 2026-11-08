@@ -1,5 +1,5 @@
 # Kennisbank – productie-image.
-# Bouwen:   docker build -t kennisbank:1.10.0 .
+# Bouwen:   docker build -t kennisbank:1.11.0 .
 # Eigen (goedgekeurde) basis-image gebruiken:  --build-arg BASE_IMAGE=<registry>/python:3.13-slim
 ARG BASE_IMAGE=python:3.13-slim-bookworm
 
@@ -18,7 +18,7 @@ FROM ${BASE_IMAGE}
 LABEL org.opencontainers.image.title="Kennisbank" \
       org.opencontainers.image.description="Kennisbank voor werkinstructies, werkafspraken en processen" \
       org.opencontainers.image.licenses="EUPL-1.2" \
-      org.opencontainers.image.version="1.10.0"
+      org.opencontainers.image.version="1.11.0"
 ENV PATH=/opt/venv/bin:$PATH PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 RUN groupadd --system --gid 10001 kennisbank \
  && useradd --system --uid 10001 --gid kennisbank --home-dir /app --shell /usr/sbin/nologin kennisbank

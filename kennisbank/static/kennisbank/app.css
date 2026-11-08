@@ -213,6 +213,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .prop .bericht .wie{display:block;font-size:.78rem;color:var(--fg-muted);margin-bottom:2px}
 .prop .bericht p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .prop .antwoord{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.prop .wacht{margin:0;color:var(--fg-muted);font-size:.93rem}
 .prop .antwoord textarea{flex:1;min-width:220px;min-height:70px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--surface);resize:vertical;font:inherit}
 .prop .nieuwstip{background:var(--accent);color:#fff;border-radius:10px;padding:1px 8px;font-size:.76rem;font-weight:600}
 .propfilter{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}

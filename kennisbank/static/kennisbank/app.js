@@ -329,12 +329,16 @@
   ];
 
   function gesprekHTML(p) {
-    // Het gesprek, oudste bovenaan. De eerste regel is het voorstel zelf; dat staat er al boven.
-    const berichten = p.berichten || [];
-    const regels = berichten.map((b) => `<div class="bericht ${b.van_redactie ? "pm" : "ind"}"><span class="wie">${esc(b.naam)}${b.van_redactie ? " · procesmanagement" : ""} · ${datum(b.moment)}</span><p>${esc(b.tekst)}</p></div>`).join("");
-    const antwoord = `<div class="antwoord"><label class="visually-hidden" for="re-${p.id}">Reactie</label><textarea id="re-${p.id}" data-reactie="${p.id}" maxlength="5000" placeholder="${isPM() ? "Bericht aan de indiener, bijvoorbeeld een tussentijdse update…" : "Reageren of een vraag stellen…"}"></textarea><button class="tb" type="button" data-stuur="${p.id}">Versturen</button></div>`;
-    if (!regels && !p.terugkoppeling) return `<div class="gesprek">${antwoord}</div>`;
-    return `<div class="gesprek">${regels}${antwoord}</div>`;
+    // De terugkoppeling en de updates van procesmanagement, oudste bovenaan. Bewust eenrichting: de
+    // medewerker dient in, procesmanagement koppelt terug en houdt hem op de hoogte. Alleen
+    // procesmanagement krijgt daarom een invoervak te zien.
+    const regels = (p.berichten || []).map((b) => `<div class="bericht ${b.van_redactie ? "pm" : "ind"}"><span class="wie">${esc(b.naam)}${b.van_redactie ? " · procesmanagement" : ""} · ${datum(b.moment)}</span><p>${esc(b.tekst)}</p></div>`).join("");
+    if (!isPM()) {
+      if (!regels) return `<div class="gesprek"><p class="wacht">Je voorstel is ontvangen. Procesmanagement laat hier weten wat ermee gebeurt; je krijgt daar ook een e-mail van.</p></div>`;
+      return `<div class="gesprek">${regels}</div>`;
+    }
+    const invoer = `<div class="antwoord"><label class="visually-hidden" for="re-${p.id}">Bericht aan de indiener</label><textarea id="re-${p.id}" data-reactie="${p.id}" maxlength="5000" placeholder="Terugkoppeling of tussentijdse update aan de indiener…"></textarea><button class="tb" type="button" data-stuur="${p.id}">Versturen</button></div>`;
+    return `<div class="gesprek">${regels}${invoer}</div>`;
   }
 
   function renderProps() {
@@ -344,7 +348,7 @@
     );
     const lead = isPM()
       ? "Voorstellen van collega's bij artikelen in jouw omgeving. Zet de status, geef een terugkoppeling en praat er zo nodig met de indiener over door."
-      : "Jouw voorstellen, met de reacties van procesmanagement. Je kunt er zelf op antwoorden.";
+      : "Jouw voorstellen, met de terugkoppeling van procesmanagement.";
     const knoppen = PROPFILTERS.map(([k, label]) => {
       const n = voorstellen.filter((p) => (k === "alles" ? true : k === "open" ? p.status === "nieuw" || p.status === "in_behandeling" : p.status === k)).length;
       return `<button type="button" data-propfilter="${k}" aria-pressed="${k === filter}">${label}${n ? ` (${n})` : ""}</button>`;
@@ -519,7 +523,7 @@
         const nieuw = await api("voorstellen/" + id + "/berichten", { method: "POST", body: { tekst } });
         voorstellen = voorstellen.map((p) => (String(p.id) === id ? nieuw : p));
         render(false);
-        toast(isPM() ? "Bericht verstuurd; de indiener krijgt een melding." : "Reactie verstuurd.");
+        toast("Bericht verstuurd; de indiener krijgt een melding en een e-mail.");
       } catch (e) {
         b.disabled = false;
         toast(e.status === 429 ? "Je hebt veel berichten verstuurd; probeer het later opnieuw." : "Versturen is mislukt.");

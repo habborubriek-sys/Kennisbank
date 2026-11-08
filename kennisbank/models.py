@@ -506,7 +506,9 @@ class Verbetervoorstel(models.Model):
     )
     ingediend_op = models.DateTimeField(default=timezone.now)
     status = models.CharField(max_length=20, choices=VoorstelStatus.choices, default=VoorstelStatus.NIEUW)
-    terugkoppeling = models.TextField(blank=True)
+    #: Afgeleid: het laatste bericht van procesmanagement. Alleen `diensten.voorstelbericht_toevoegen`
+    #: schrijft hier, zodat er geen tweede invoerveld is dat dit stil kan overschrijven.
+    terugkoppeling = models.TextField(blank=True, editable=False)
     behandeld_door = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -532,20 +534,33 @@ class Verbetervoorstel(models.Model):
         return self.status in {VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING}
 
 
+#: Een bericht mag lang zijn (een onderbouwde terugkoppeling), maar niet eindeloos. Eén bron van
+#: waarheid: de API valideert hierop en het model begrenst hetzelfde veld.
+MAX_VOORSTELBERICHT = 5000
+
+
 class VoorstelBericht(models.Model):
-    """Eén bericht in het gesprek over een verbetervoorstel.
+    """Eén bericht van procesmanagement in de behandeling van een verbetervoorstel.
 
     Een voorstel is zelden in één keer klaar: procesmanagement wil tussentijds kunnen melden dat het
-    is opgepakt, een vraag kunnen stellen, en later kunnen laten weten wat ermee is gebeurd. De
-    indiener kan antwoorden. Elk bericht van de ene kant levert een melding bij de andere kant op.
+    is opgepakt, en later wat ermee is gebeurd. Elk bericht komt bij de indiener binnen als melding en
+    als e-mail.
+
+    Bewust eenrichtingsverkeer: de medewerker dient een voorstel in, procesmanagement koppelt terug en
+    houdt hem op de hoogte. Een gesprek heen en weer in de kennisbank zou een tweede kanaal naast
+    Teams en e-mail opleveren, en de verwachting wekken dat iemand meeleest.
+
+    `van_redactie` staat daarom altijd aan. Het veld blijft bestaan omdat er in een bestaande
+    installatie berichten van een indiener kunnen staan uit de periode dat antwoorden wel kon, en
+    omdat de anonimisering erop filtert.
     """
 
     voorstel = models.ForeignKey(Verbetervoorstel, on_delete=models.CASCADE, related_name="berichten")
     auteur = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     van_redactie = models.BooleanField(
-        default=True, help_text="Van procesmanagement (aan) of van de indiener (uit)."
+        default=True, help_text="Van procesmanagement (aan) of van de indiener (uit; komt niet meer voor)."
     )
-    tekst = models.TextField()
+    tekst = models.TextField(max_length=MAX_VOORSTELBERICHT)
     moment = models.DateTimeField(default=timezone.now)
 
     class Meta:

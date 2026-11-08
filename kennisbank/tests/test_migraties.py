@@ -10,6 +10,7 @@ import json
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
+from django.utils import timezone
 
 
 class UpgradeVanaf10Tests(TransactionTestCase):
@@ -114,3 +115,60 @@ class UpgradeNaar17Tests(TransactionTestCase):
         # Alleen het artikel met versie > 1 is afgevinkt, voor beide gebruikers, tot en met de huidige versie.
         self.assertEqual(WijzigingGezien.objects.count(), 2)
         self.assertEqual(set(WijzigingGezien.objects.values_list("artikel__slug", "versie")), {("a", 3)})
+
+
+class UpgradeNaar110Tests(TransactionTestCase):
+    """Migraties 0010 t/m 0017: wat verdwijnt er, en wat blijft er staan?
+
+    Twee dingen die bij een upgrade van een bestaande installatie echt gebeuren en die tot nu toe geen
+    test hadden: 0011 verwijdert lege sectierijen, en 0017 maakt van een bestaande terugkoppeling een
+    bericht — zonder die laatste zou een medewerker zijn antwoord na de upgrade niet meer zien.
+    """
+
+    def _migreer_naar(self, naam):
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()
+        executor.migrate([("kennisbank", naam)])
+        return executor.loader.project_state([("kennisbank", naam)]).apps
+
+    def test_lege_secties_weg_en_terugkoppelingen_worden_berichten(self):
+        oud = self._migreer_naar("0010_zacht_slot")
+        Omgeving = oud.get_model("kennisbank", "Omgeving")
+        Artikel = oud.get_model("kennisbank", "Artikel")
+        Sectie = oud.get_model("kennisbank", "Sectie")
+        Verbetervoorstel = oud.get_model("kennisbank", "Verbetervoorstel")
+        User = oud.get_model("auth", "User")
+
+        o = Omgeving.objects.create(slug="handhaving", naam="Handhaving", beschrijving="")
+        a = Artikel.objects.create(omgeving=o, slug="a", titel="A", samenvatting="x", versie=1)
+        Sectie.objects.create(artikel=a, volgorde=0, kop="", inhoud="")  # leeg: hoort weg
+        Sectie.objects.create(artikel=a, volgorde=0, kop="", inhoud="   ")  # wit: hoort weg
+        Sectie.objects.create(artikel=a, volgorde=0, kop="", inhoud="<p>Inleiding</p>")  # hoort te blijven
+        Sectie.objects.create(artikel=a, volgorde=1, kop="Stappen", inhoud="<p>Stap 1</p>")
+
+        pm = User.objects.create(username="pm")
+        met = Verbetervoorstel.objects.create(
+            artikel=a, artikel_versie=1, tekst="Termijn klopt niet",
+            terugkoppeling="Aangepast in versie 2.", status="verwerkt",
+            behandeld_door=pm, behandeld_op=timezone.now(),
+        )
+        zonder = Verbetervoorstel.objects.create(
+            artikel=a, artikel_versie=1, tekst="Nog niet bekeken", terugkoppeling="", status="nieuw"
+        )
+
+        nieuw = self._migreer_naar("0017_voorstel_eenrichting")
+        Sectie = nieuw.get_model("kennisbank", "Sectie")
+        VoorstelBericht = nieuw.get_model("kennisbank", "VoorstelBericht")
+
+        # 0011: alleen de werkelijk lege vrije-tekstrijen zijn weg.
+        overgebleven = sorted(Sectie.objects.filter(artikel_id=a.pk).values_list("volgorde", "inhoud"))
+        self.assertEqual(overgebleven, [(0, "<p>Inleiding</p>"), (1, "<p>Stap 1</p>")])
+
+        # 0017: de bestaande terugkoppeling is een bericht geworden, met de juiste auteur en datum.
+        bericht = VoorstelBericht.objects.get(voorstel_id=met.pk)
+        self.assertEqual(bericht.tekst, "Aangepast in versie 2.")
+        self.assertTrue(bericht.van_redactie)
+        self.assertEqual(bericht.auteur_id, pm.pk)
+        self.assertEqual(bericht.moment, met.behandeld_op)
+        # Een voorstel zonder terugkoppeling krijgt niets.
+        self.assertFalse(VoorstelBericht.objects.filter(voorstel_id=zonder.pk).exists())

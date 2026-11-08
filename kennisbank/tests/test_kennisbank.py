@@ -31,6 +31,7 @@ from kennisbank.models import (
     Tag,
     Toegang,
     Verbetervoorstel,
+    VoorstelBericht,
     VoorstelStatus,
     WeergaveTelling,
     Zaaktype,
@@ -2357,17 +2358,15 @@ class VoorstelGesprekTests(Basis):
         self.assertEqual(len(mail.outbox), 2)
         self.assertIn("lezer@example.org", mail.outbox[0].to)
 
-    def test_de_indiener_kan_antwoorden(self):
+    def test_de_indiener_kan_niet_terugschrijven(self):
+        """Bewust eenrichting: hij dient in, procesmanagement koppelt terug en houdt hem op de hoogte."""
         r = self.als(self.lezer).post(
             f"/api/v1/voorstellen/{self.v.pk}/berichten",
             {"tekst": "Dank, nog één ding"},
             content_type="application/json",
         )
-        self.assertEqual(r.status_code, 201)
-        bericht = self.v.berichten.get()
-        self.assertFalse(bericht.van_redactie)
-        self.v.refresh_from_db()
-        self.assertEqual(self.v.terugkoppeling, "")  # een antwoord van de indiener is geen terugkoppeling
+        self.assertEqual(r.status_code, 403)
+        self.assertEqual(self.v.berichten.count(), 0)
 
     def test_de_indiener_ziet_hoeveel_berichten_nieuw_zijn(self):
         diensten.voorstelbericht_toevoegen(self.v, self.redacteur, "Opgepakt", van_redactie=True)
@@ -2395,16 +2394,50 @@ class VoorstelGesprekTests(Basis):
         self.assertEqual(r.status_code, 404)
 
     def test_leeg_bericht_wordt_geweigerd(self):
-        r = self.als(self.lezer).post(
+        r = self.als(self.redacteur).post(
             f"/api/v1/voorstellen/{self.v.pk}/berichten", {"tekst": "   "}, content_type="application/json"
         )
         self.assertEqual(r.status_code, 400)
 
     def test_te_lang_bericht_wordt_geweigerd(self):
-        r = self.als(self.lezer).post(
+        r = self.als(self.redacteur).post(
             f"/api/v1/voorstellen/{self.v.pk}/berichten", {"tekst": "x" * 5001}, content_type="application/json"
         )
         self.assertEqual(r.status_code, 400)
+
+    def test_onzin_in_het_tekstveld_geeft_nooit_een_serverfout(self):
+        """Zonder serializer gaf een getal, lijst of boolean een 500; nu komt er altijd een antwoord."""
+        c = self.als(self.redacteur)
+        for waarde in [123, True, ["lijst"], {"a": 1}, None]:
+            with self.subTest(waarde=waarde):
+                r = c.post(
+                    f"/api/v1/voorstellen/{self.v.pk}/berichten",
+                    {"tekst": waarde},
+                    content_type="application/json",
+                )
+                self.assertLess(r.status_code, 500, f"{waarde!r} gaf {r.status_code}")
+
+    def test_een_lijst_of_object_als_tekst_wordt_geweigerd(self):
+        """Een getal mag een tekstveld in (DRF maakt er "123" van); een lijst of object niet."""
+        c = self.als(self.redacteur)
+        for waarde in [True, ["lijst"], {"a": 1}, None]:
+            with self.subTest(waarde=waarde):
+                r = c.post(
+                    f"/api/v1/voorstellen/{self.v.pk}/berichten",
+                    {"tekst": waarde},
+                    content_type="application/json",
+                )
+                self.assertEqual(r.status_code, 400, f"{waarde!r} gaf {r.status_code}")
+
+    def test_nul_byte_in_een_bericht_wordt_geweigerd(self):
+        """PostgreSQL accepteert geen nul-byte in een tekstkolom; dat hoort een 400 te zijn, geen 500."""
+        r = self.als(self.redacteur).post(
+            f"/api/v1/voorstellen/{self.v.pk}/berichten",
+            {"tekst": "hallo\x00wereld"},
+            content_type="application/json",
+        )
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(self.v.berichten.count(), 0)
 
     def test_filter_op_status(self):
         self.v.status = VoorstelStatus.VERWERKT
@@ -2438,14 +2471,146 @@ class VoorstelGesprekTests(Basis):
         self.v.refresh_from_db()
         self.assertEqual(self.v.terugkoppeling, "Opgepakt, we kijken ernaar.")
 
-    def test_terugkoppeling_via_het_beheerscherm_komt_in_het_gesprek(self):
+    def test_een_bericht_overschrijft_niets_meer(self):
+        """De terugkoppeling is afgeleid uit de berichten; er is geen tweede invoerveld dat hem wist."""
+        diensten.voorstelbericht_toevoegen(self.v, self.redacteur, "Opgepakt", van_redactie=True, melden=False)
         c = self.als(self.redacteur)
         data = {
             "status": VoorstelStatus.VERWERKT,
-            "terugkoppeling": "Aangepast, dank voor de melding.",
-            "berichten-TOTAL_FORMS": "0",
+            "berichten-TOTAL_FORMS": "1",
             "berichten-INITIAL_FORMS": "0",
+            "berichten-0-tekst": "Aangepast, dank voor de melding.",
+            "berichten-0-voorstel": str(self.v.pk),
         }
         r = c.post(f"/beheer/kennisbank/verbetervoorstel/{self.v.pk}/change/", data)
         self.assertEqual(r.status_code, 302, r.content[:400])
-        self.assertEqual([b.tekst for b in self.v.berichten.all()], ["Aangepast, dank voor de melding."])
+        self.assertEqual(
+            [b.tekst for b in self.v.berichten.all()], ["Opgepakt", "Aangepast, dank voor de melding."]
+        )
+        self.v.refresh_from_db()
+        self.assertEqual(self.v.terugkoppeling, "Aangepast, dank voor de melding.")
+
+    def test_het_beheerformulier_heeft_geen_los_terugkoppelingsveld_meer(self):
+        r = self.als(self.redacteur).get(f"/beheer/kennisbank/verbetervoorstel/{self.v.pk}/change/")
+        self.assertNotContains(r, 'name="terugkoppeling"')
+
+    def test_een_tussentijds_bericht_schuift_de_bewaartermijn_niet_op(self):
+        """behandeld_op is de start van de anonimiseringstermijn; een update mag die niet verzetten."""
+        self.v.status = VoorstelStatus.VERWERKT
+        self.v.behandeld_door = self.redacteur
+        self.v.behandeld_op = timezone.now() - datetime.timedelta(days=400)
+        self.v.save(update_fields=["status", "behandeld_door", "behandeld_op"])
+        voor = self.v.behandeld_op
+        diensten.voorstelbericht_toevoegen(self.v, self.redacteur, "Nog een update", van_redactie=True, melden=False)
+        self.v.refresh_from_db()
+        self.assertEqual(self.v.behandeld_op, voor)
+
+
+class AnonimiseringVoorstellenTests(Basis):
+    """Review-bevinding 1 (hoog): de bewaartermijn moet de naam op álle plekken wissen."""
+
+    def setUp(self):
+        self.a = Artikel.objects.get(slug="rappel-versturen")
+        self.v = Verbetervoorstel.objects.create(
+            artikel=self.a,
+            artikel_versie=self.a.versie,
+            tekst="De termijn klopt niet",
+            ingediend_door=self.lezer,
+            status=VoorstelStatus.VERWERKT,
+            behandeld_door=self.redacteur,
+            behandeld_op=timezone.now() - datetime.timedelta(days=400),
+        )
+        # Een bericht van de indiener uit de tijd dat antwoorden nog kon.
+        VoorstelBericht.objects.create(
+            voorstel=self.v, auteur=self.lezer, van_redactie=False, tekst="Aanvulling van mij"
+        )
+        VoorstelBericht.objects.create(
+            voorstel=self.v, auteur=self.redacteur, van_redactie=True, tekst="Opgepakt"
+        )
+
+    def test_de_naam_van_de_indiener_verdwijnt_ook_uit_zijn_berichten(self):
+        call_command("kennisbank_opschonen")
+        self.v.refresh_from_db()
+        self.assertIsNone(self.v.ingediend_door)
+        van_indiener = self.v.berichten.get(van_redactie=False)
+        self.assertIsNone(van_indiener.auteur)
+        self.assertEqual(van_indiener.naam, "Indiener")
+
+    def test_de_api_laat_nergens_meer_een_naam_zien(self):
+        call_command("kennisbank_opschonen")
+        r = self.als(self.redacteur).get("/api/v1/voorstellen")
+        rij = next(x for x in r.json() if x["id"] == self.v.pk)
+        namen = [b["naam"] for b in rij["berichten"] if not b["van_redactie"]]
+        self.assertNotIn(self.lezer.get_username(), str(rij["ingediend_door"]))
+        self.assertEqual(namen, ["Indiener"])
+
+    def test_de_naam_van_de_redacteur_blijft_staan(self):
+        """Verantwoording voor wat er aan een medewerker is toegezegd; zo staat het ook in de docs."""
+        call_command("kennisbank_opschonen")
+        van_redactie = self.v.berichten.get(van_redactie=True)
+        self.assertEqual(van_redactie.auteur, self.redacteur)
+
+    def test_een_voorstel_binnen_de_termijn_blijft_ongemoeid(self):
+        self.v.behandeld_op = timezone.now() - datetime.timedelta(days=10)
+        self.v.save(update_fields=["behandeld_op"])
+        call_command("kennisbank_opschonen")
+        self.v.refresh_from_db()
+        self.assertEqual(self.v.ingediend_door, self.lezer)
+        self.assertEqual(self.v.berichten.get(van_redactie=False).auteur, self.lezer)
+
+
+class PublicerenViaLijstactieTests(Basis):
+    """Eigen hardingstest, bevinding 1 (hoog): de lijstactie mag de publicatiecontrole niet omzeilen."""
+
+    def setUp(self):
+        self.c = self.als(self.redacteur)
+        self.onaf = Artikel.objects.create(
+            omgeving=self.hh,
+            titel="werkinstructie DEFINITIEF.docx",
+            samenvatting="n.v.t.",
+            inhoud='<section class="sectie"><h2 class="sectie-kop"><br></h2><p>Tekst</p></section>',
+            status=Status.CONCEPT,
+        )
+
+    def publiceer(self, artikel):
+        return self.c.post(
+            "/beheer/kennisbank/artikel/",
+            {"action": "publiceren", "_selected_action": str(artikel.pk), "index": "0"},
+            follow=True,
+        )
+
+    def test_een_onaf_artikel_wordt_ook_via_de_lijst_geweigerd(self):
+        r = self.publiceer(self.onaf)
+        self.onaf.refresh_from_db()
+        self.assertEqual(self.onaf.status, Status.CONCEPT)
+        self.assertEqual(self.onaf.versie, 0)
+        meldingen = " ".join(str(m) for m in r.context["messages"])
+        self.assertIn("bestandsnaam", meldingen)
+        self.assertIn("samenvatting", meldingen)
+
+    def test_een_af_artikel_gaat_gewoon_door(self):
+        a = Artikel.objects.create(
+            omgeving=self.hh,
+            titel="Rappel versturen bij een nieuwe zaak",
+            samenvatting="Wanneer en hoe je een tweede rappel verstuurt bij uitblijvende reactie.",
+            inhoud='<section class="sectie"><h2 class="sectie-kop">Stappen</h2><p>Tekst</p></section>',
+            status=Status.CONCEPT,
+        )
+        self.publiceer(a)
+        a.refresh_from_db()
+        self.assertEqual(a.status, Status.GEPUBLICEERD)
+        self.assertEqual(a.versie, 1)
+
+    def test_een_al_gepubliceerd_artikel_wordt_niet_opnieuw_gekeurd(self):
+        """Een artikel van vóór deze controle moet gewoon te herpubliceren blijven, ook al is het onaf."""
+        a = Artikel.objects.create(
+            omgeving=self.hh, titel="oud artikel.docx", samenvatting="n.v.t.", status=Status.GEPUBLICEERD
+        )
+        diensten.registreer_publicatie(a, self.redacteur, "Bestond al")
+        a.refresh_from_db()
+        self.assertEqual(a.versie, 1)
+        a.status = Status.CONCEPT
+        a.save(update_fields=["status", "gewijzigd_op"])
+        self.publiceer(a)
+        a.refresh_from_db()
+        self.assertEqual(a.status, Status.GEPUBLICEERD)

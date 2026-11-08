@@ -12,6 +12,7 @@ from kennisbank.models import (
     FavorietenMail,
     RecentBezocht,
     Verbetervoorstel,
+    VoorstelBericht,
     VoorstelStatus,
     WeergaveTelling,
     ZoekTelling,
@@ -34,11 +35,21 @@ class Command(BaseCommand):
             + AssistentTelling.objects.filter(datum__lt=grens).delete()[0]
             + AssistentDagTotaal.objects.filter(datum__lt=grens).delete()[0]
         )
-        anoniem = Verbetervoorstel.objects.filter(
+        # Anonimiseren van afgehandelde verbetervoorstellen. De naam van de indiener staat op twee
+        # plekken: op het voorstel zelf en op zijn eventuele berichten. Allebei wissen, anders is de
+        # bewaartermijn alleen cosmetisch: het voorstel zegt dan "Onbekend (geanonimiseerd)" terwijl
+        # het bericht eronder nog de volledige naam toont.
+        #
+        # De naam van de redacteur die heeft terugkoppeld, blijft wél staan: dat is verantwoording,
+        # zolang het voorstel bestaat. Die keuze staat in docs/beveiliging-en-privacy.md.
+        verjaard = Verbetervoorstel.objects.filter(
             status__in=[VoorstelStatus.VERWERKT, VoorstelStatus.AFGEWEZEN],
             behandeld_op__lt=nu - timezone.timedelta(days=settings.KB_ANONIMISEER_VOORSTEL_DAGEN),
-            ingediend_door__isnull=False,
-        ).update(ingediend_door=None)
+        )
+        berichten_anoniem = VoorstelBericht.objects.filter(
+            voorstel__in=verjaard, van_redactie=False, auteur__isnull=False
+        ).update(auteur=None)
+        anoniem = verjaard.filter(ingediend_door__isnull=False).update(ingediend_door=None)
         call_command("clearsessions")  # verlopen sessies uit django_session
         # Eerst de openstaande favorietenmail versturen, dan de verzonden regels na 30 dagen opruimen.
         mails = diensten.verstuur_favorietenmail()
@@ -47,7 +58,8 @@ class Command(BaseCommand):
         diensten.stand_vastleggen("opschonen", f"{mails} mail(s) verstuurd, {claims} claim(s) opgeruimd")
         self.stdout.write(
             f"Opgeschoond: {recent} recent-bezocht-regels, {stats} statistiekregels, "
-            f"{anoniem} voorstellen geanonimiseerd, verlopen sessies verwijderd, "
+            f"{anoniem} voorstellen geanonimiseerd ({berichten_anoniem} bericht(en) meegenomen), "
+            f"verlopen sessies verwijderd, "
             f"{mails} favorietenmail(s) verstuurd, {wachtrij} verzonden mailregels opgeruimd, "
             f"{claims} verlopen bewerkclaim(s) opgeruimd."
         )

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.10.0
+  version: 1.11.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -414,9 +414,10 @@ paths:
   /api/v1/voorstellen/{id}/berichten:
     post:
       operationId: v1_voorstellen_berichten_create
-      description: De indiener en de redacteuren van de omgeving kunnen elkaar hier
-        antwoorden. De andere kant krijgt er een melding en een e-mail van.
-      summary: Bericht toevoegen aan het gesprek over een verbetervoorstel
+      description: 'Alleen redacteuren van de omgeving van het artikel. De indiener
+        krijgt er een melding en een e-mail van. Bewust eenrichtingsverkeer: de indiener
+        kan niet terugschrijven.'
+      summary: Terugkoppeling of update sturen bij een verbetervoorstel (redacteuren)
       parameters:
       - in: path
         name: id
@@ -940,14 +941,18 @@ components:
           type: boolean
     PatchedVoorstelBehandelRequest:
       type: object
-      description: 'PATCH: beide velden optioneel; wat niet wordt meegestuurd blijft
-        staan.'
+      description: |-
+        PATCH: de status van een voorstel.
+
+        `terugkoppeling` blijft hier geaccepteerd voor bestaande koppelingen, maar wordt verwerkt als een
+        bericht aan de indiener — niet meer als los veld. Zo is er één schrijver van dat veld
+        (`diensten.voorstelbericht_toevoegen`) en kan het niet stil worden overschreven.
       properties:
         status:
           $ref: '#/components/schemas/VoorstelStatusEnum'
         terugkoppeling:
           type: string
-          maxLength: 4000
+          maxLength: 5000
     RecentBezocht:
       type: object
       properties:
@@ -1103,7 +1108,8 @@ components:
         van_redactie:
           type: boolean
           readOnly: true
-          description: Van procesmanagement (aan) of van de indiener (uit).
+          description: Van procesmanagement (aan) of van de indiener (uit; komt niet
+            meer voor).
         tekst:
           type: string
           readOnly: true
@@ -1119,10 +1125,17 @@ components:
       - van_redactie
     VoorstelBerichtInRequest:
       type: object
+      description: |-
+        Een terugkoppeling of tussentijdse update van procesmanagement aan de indiener.
+
+        Bewust een serializer en geen handmatige controle op `request.data`: die laat het type, de
+        lengtegrens en nul-bytes allemaal door, en een nul-byte in een tekstkolom is in PostgreSQL een
+        harde fout. Dit was het enige schrijvende endpoint dat de invoer rauw verwerkte.
       properties:
         tekst:
           type: string
           minLength: 1
+          maxLength: 5000
       required:
       - tekst
     VoorstelRequest:
