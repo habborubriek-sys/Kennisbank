@@ -141,12 +141,45 @@
 
   window.addEventListener("popstate", () => { leesUrl(); render(true); });
 
+  //: Hoeveel berichtkoppen er op de nieuwspagina in de zijbalk staan. Genoeg om te zien wat er speelt,
+  //  kort genoeg om naast de nav te passen zonder dat de zijbalk zelf gaat schuiven.
+  const KOPPEN_IN_ZIJBALK = 6;
+
+  /* Op de nieuwspagina zeggen cluster, soort en onderwerp niets -- dat zijn artikelfilters. Daar staan
+     in plaats daarvan de koppen van de berichten, als sprong naar het bericht verderop de pagina. */
+  function renderKoppen() {
+    const opNieuws = state.view === "nieuws" && !state.artikel && !EMBED;
+    $("#clusterblok").hidden = opNieuws;
+    $("#soortblok").hidden = opNieuws;
+    const blok = $("#koppenblok");
+    const lijst = opNieuws ? nieuwskoppen().slice(0, KOPPEN_IN_ZIJBALK) : [];
+    blok.hidden = !lijst.length;
+    if (!lijst.length) return;
+    $("#fKoppen").innerHTML = lijst
+      .map((b) => `<button class="kop" type="button" data-kop="${b.id}"><span class="kop-titel">${esc(b.titel)}</span><span class="kop-datum">${esc(datum(b.gepubliceerd_op))}${isNieuw(b) ? ' · <b>Nieuw</b>' : ""}</span></button>`)
+      .join("");
+    $$("#fKoppen [data-kop]").forEach((k) => k.addEventListener("click", () => springNaarBericht(k.dataset.kop)));
+  }
+
+  /* De berichten in de volgorde waarin ze op de pagina staan: eerst wat loopt, dan het oudere nieuws. */
+  const nieuwskoppen = () => [...(berichten || []).filter((b) => !b.verlopen), ...(berichten || []).filter((b) => b.verlopen)];
+
+  function springNaarBericht(id) {
+    const el = state.view === "nieuws" && !state.artikel ? document.getElementById("bericht-" + id) : null;
+    if (!el) { state.scrollNaarBericht = id; ga("nieuws"); return; }
+    const ouder = el.closest("details.ouder");   // ouder nieuws staat ingeklapt; anders springt hij nergens heen
+    if (ouder) ouder.open = true;
+    el.scrollIntoView({ block: "start" });
+    $$(".bericht.licht").forEach((b) => b.classList.remove("licht"));
+    el.classList.add("licht");
+  }
+
   function renderTagfilter() {
     // Gekozen onderwerpen staan altijd bovenaan, zodat een actief filter niet achter "Toon alle" wegvalt.
     const alle = lijsten.tags || [];
     const blok = $("#tagblok");
-    blok.hidden = !alle.length;
-    if (!alle.length) return;
+    blok.hidden = !alle.length || (state.view === "nieuws" && !state.artikel && !EMBED);
+    if (blok.hidden) return;
     const gekozen = alle.filter((t) => state.tags.has(t));
     const rest = alle.filter((t) => !state.tags.has(t));
     const zichtbaar = alleTagsTonen ? [...gekozen, ...rest] : [...gekozen, ...rest].slice(0, TAGS_IN_ZIJBALK);
@@ -168,6 +201,7 @@
     $("#fCluster").innerHTML = lijsten.clusters.map((c) => `<button class="chip" type="button" data-f="cluster" data-v="${esc(c)}" aria-pressed="${state.cluster === c}">${esc(c)}</button>`).join("");
     $("#fType").innerHTML = lijsten.soorten.map((s) => `<button class="chip" type="button" data-f="soort" data-v="${esc(s.waarde)}" aria-pressed="${state.soort === s.waarde}">${esc(s.label)}</button>`).join("");
     renderTagfilter();
+    renderKoppen();
     $("#cAll").textContent = artikelen.length;
     $("#cFav").textContent = favs.size;
     $("#cRec").textContent = ik ? ik.recent.length : "";
@@ -219,7 +253,7 @@
       } else if (state.view === "zaaktype") {
         m.innerHTML = renderZaaktype(); wireList();
       } else if (state.view === "nieuws" && !EMBED) {
-        if (!berichten) { m.innerHTML = '<p class="loading">Laden…</p>'; await laadBerichten(); }
+        if (!berichten) { m.innerHTML = '<p class="loading">Laden…</p>'; await laadBerichten(); renderFilters(); }
         m.innerHTML = renderNieuws(); wireList(); wireNieuws();
         markeerNieuwsGezien();
       } else if (state.view === "voorstellen") {
@@ -280,12 +314,14 @@
     return html;
   }
 
-  /* Startpagina: de laatste nieuwsberichten in het kort. */
+  /* Startpagina: alleen het nieuws dat deze gebruiker nog niet heeft gelezen. Zodra hij de nieuwspagina
+     heeft bekeken verdwijnt het blok hier; anders zou dezelfde mededeling eindeloos op twee plekken
+     staan en zou een aparte nieuwspagina geen doel meer dienen. */
   function nieuwsBlok() {
-    const lijst = (berichten || []).filter((b) => !b.verlopen).slice(0, 3);
+    const lijst = (berichten || []).filter((b) => !b.verlopen && isNieuw(b)).slice(0, 3);
     if (!lijst.length) return "";
-    return `<section class="nieuwsblok" aria-labelledby="nbTitel"><div class="nb-head"><h2 id="nbTitel">Nieuws</h2><button class="link" type="button" data-nav="nieuws">Alle berichten</button></div>
-      ${lijst.map((b) => `<article class="nb-item"><h3><button class="link" type="button" data-bericht="${b.id}">${esc(b.titel)}</button>${isNieuw(b) ? ' <span class="status nieuw">Nieuw</span>' : ""}</h3><p class="nb-meta">${datum(b.gepubliceerd_op)}</p></article>`).join("")}</section>`;
+    return `<section class="nieuwsblok" aria-labelledby="nbTitel"><div class="nb-head"><h2 id="nbTitel">Nieuw sinds je laatste bezoek</h2><button class="link" type="button" data-nav="nieuws">Alle berichten</button></div>
+      ${lijst.map((b) => `<article class="nb-item"><h3><button class="link" type="button" data-bericht="${b.id}">${esc(b.titel)}</button></h3><p class="nb-meta">${datum(b.gepubliceerd_op)}</p></article>`).join("")}</section>`;
   }
 
   function cardHTML(a, when) {
@@ -408,7 +444,7 @@
       <div class="b-body">${b.tekst}</div>
       ${b.artikelen.length ? `<div class="b-links">Dit gaat over: ${b.artikelen.map((a) => `<a href="${esc(a.url)}" data-open="${a.id}" class="linkbtn">${esc(a.titel)}</a>`).join(", ")}</div>` : ""}
     </article>`;
-    return `<div class="view"><h1>Nieuws</h1><p class="lead">Mededelingen en gewijzigde werkwijzen van procesmanagement.${isPM() ? ' <a href="/beheer/kennisbank/bericht/add/">Nieuw bericht schrijven</a>' : ""}</p>
+    return `<div class="view nieuwsview"><h1>Nieuws</h1><p class="lead">Mededelingen en gewijzigde werkwijzen van procesmanagement.${isPM() ? ' <a href="/beheer/kennisbank/bericht/add/">Nieuw bericht schrijven</a>' : ""}</p>
       ${actueel.length ? `<div class="berichten">${actueel.map(item).join("")}</div>` : '<div class="empty">Er is nog geen nieuws.</div>'}
       ${ouder.length ? `<details class="ouder"><summary>Ouder nieuws (${ouder.length})</summary><div class="berichten">${ouder.map(item).join("")}</div></details>` : ""}
     </div>`;

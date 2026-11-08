@@ -1,5 +1,13 @@
 # Wijzigingen
 
+## 1.13.1 – 2026-11-08
+
+Drie aanpassingen aan de nieuwspagina, op verzoek.
+
+- **Een bericht is net zo breed als een artikel.** De berichtkaart stond op een eigen, smallere maat (80 tekens); hij volgt nu dezelfde leeskolom als een artikel, met dezelfde marge. De tekst erin loopt mee.
+- **Het nieuws op de startpagina verdwijnt zodra je het hebt gelezen.** Boven *Recent bezocht* en *Alle artikelen* stond het laatste nieuws permanent; nu staat er alleen wat deze medewerker nog niet heeft gezien, onder de kop "Nieuw sinds je laatste bezoek". Heeft hij de nieuwspagina bekeken, dan is het blok weg. Anders zou dezelfde mededeling eindeloos op twee plekken staan en zou een aparte nieuwspagina geen doel meer dienen.
+- **In de zijbalk staan op de nieuwspagina de koppen van de berichten** (de laatste zes, met datum), in plaats van de filters voor cluster, soort en onderwerp — dat zijn artikelfilters en op die pagina zeggen ze niets. Klikken springt naar het bericht; staat het onder *Ouder nieuws*, dan klapt dat eerst open.
+
 ## 1.13.0 – 2026-11-08
 
 Veegronde: alle resterende punten uit de review van 8 november. Daarmee is de reviewlijst leeg — er staat niets meer open uit een review of hardingstest sinds 1.7.0.

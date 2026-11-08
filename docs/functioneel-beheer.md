@@ -206,7 +206,11 @@ Een `.doc` of PDF upload je niet rechtstreeks: open het in Word en sla het op al
 
 ## Nieuws
 
-Onder **Nieuws** in de kennisbank staan mededelingen voor de medewerkers van jouw omgeving: een nieuwe werkwijze, een gewijzigd artikel dat iedereen moet kennen, een aankondiging. Medewerkers zien in het menu hoeveel berichten ze nog niet hebben gezien, en de laatste berichten staan ook bovenaan hun startpagina. In het zaaksysteem (ingebed) wordt nieuws niet getoond; daar gaat het om de artikelen bij de zaak.
+Onder **Nieuws** in de kennisbank staan mededelingen voor de medewerkers van jouw omgeving: een nieuwe werkwijze, een gewijzigd artikel dat iedereen moet kennen, een aankondiging. Medewerkers zien in het menu hoeveel berichten ze nog niet hebben gezien. In het zaaksysteem (ingebed) wordt nieuws niet getoond; daar gaat het om de artikelen bij de zaak.
+
+**Een bericht komt één keer vanzelf voorbij.** Boven *Recent bezocht* en *Alle artikelen* staat een blokje met het nieuws dat die medewerker nog niet heeft gezien. Heeft hij de nieuwspagina bekeken, dan verdwijnt dat blokje en staat het bericht alleen nog onder **Nieuws**. Zo komt een mededeling onder ogen van wie er nog niet was, zonder dat iedereen hem elke dag opnieuw op zijn startpagina ziet staan.
+
+Op de nieuwspagina zelf staan in de zijbalk de koppen van de laatste berichten, zodat een lange pagina te overzien blijft; klikken springt naar het bericht. De filters voor cluster, soort en onderwerp staan daar niet — dat zijn artikelfilters.
 
 Berichten maak je in het beheer onder **Nieuwsberichten** (of via *Nieuw bericht schrijven* op de nieuwspagina):
 

@@ -37,11 +37,13 @@
       <button type="button" data-view="voorstellen">Verbetervoorstellen <span class="count" id="cProp"></span></button>
       <button type="button" data-view="statistieken" id="navStats" hidden>Gebruiksstatistieken</button>
     </nav>
-    <div><h2 class="side-h">Cluster</h2><div class="chips" id="fCluster"></div></div>
-    <div><h2 class="side-h">Soort</h2><div class="chips" id="fType"></div></div>
+    <div id="clusterblok"><h2 class="side-h">Cluster</h2><div class="chips" id="fCluster"></div></div>
+    <div id="soortblok"><h2 class="side-h">Soort</h2><div class="chips" id="fType"></div></div>
     <div id="tagblok" hidden><h2 class="side-h">Onderwerp</h2><div class="chips" id="fTag"></div>
       <button class="link meer-tags" type="button" id="tagMeer" hidden></button>
     </div>
+    <!-- Op de nieuwspagina zeggen de artikelfilters niets; daar staan de koppen van de berichten. -->
+    <div id="koppenblok" hidden><h2 class="side-h">Berichten</h2><div class="koppen" id="fKoppen"></div></div>
     <div id="instellingen" hidden><h2 class="side-h">Instellingen</h2>
       <label class="pref"><input type="checkbox" id="mailPref"> E-mail als een favoriet artikel wijzigt</label>
     </div>

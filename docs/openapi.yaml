@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.13.0
+  version: 1.13.1
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
