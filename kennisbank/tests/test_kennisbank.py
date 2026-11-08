@@ -1188,6 +1188,32 @@ class WijzigingTests(Basis):
         self.assertIn("Samenvatting verduidelijkt", b.tekst)
         self.assertEqual(self._wijziging_van(self.als(self.lezer), "mailbox")["versie"], 3)
 
+    def test_inhoudelijke_wijziging_zonder_toelichting_wordt_geweigerd(self):
+        """De kernregel: een gepubliceerd artikel inhoudelijk wijzigen zonder toelichting en zonder
+        'kleine correctie' geeft een formulierfout; er ontstaat geen versie en geen melding."""
+        c = self.als(self.redacteur)
+        a = Artikel.objects.get(slug="mailbox")
+        data = {
+            "titel": a.titel,
+            "samenvatting": a.samenvatting + " (aangevuld)",
+            "inhoud": a.inhoud,
+            "soort": a.soort,
+            "omgeving": a.omgeving_id,
+            "eigenaar": a.eigenaar,
+            "status": a.status,
+            "tags_tekst": ", ".join(a.tags.values_list("naam", flat=True)),
+            "wijzigingstoelichting": "",
+            "versies-TOTAL_FORMS": "0",
+            "versies-INITIAL_FORMS": "0",
+        }
+        r = c.post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("wijzigingstoelichting", r.context["adminform"].form.errors)
+        a.refresh_from_db()
+        self.assertEqual(a.versie, 1)
+        self.assertNotIn("(aangevuld)", a.samenvatting)
+        self.assertIsNone(WijzigingTests._wijziging_van(self, self.als(self.lezer), "mailbox"))
+
     def test_versie_1_publicatie_in_beheer_vraagt_geen_toelichting(self):
         from kennisbank.rechten import werk_staf_status_bij
 
