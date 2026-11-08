@@ -1,4 +1,31 @@
 from django.conf import settings
+from django.http import HttpResponseBadRequest
+
+
+class NulByteMiddleware:
+    """Weiger verzoeken met een nul-byte in het pad of de querystring.
+
+    PostgreSQL accepteert geen nul-bytes in tekstvelden, dus zo'n teken in bijvoorbeeld ?tag=%00
+    liet een zoekopdracht of het wegschrijven van een zoekstatistiek klappen met een serverfout.
+    De formuliervelden weren nul-bytes al; de querystring werd nergens gecontroleerd.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Het pad is al gedecodeerd; in de ruwe querystring staat het teken nog als %00, dus daar
+        # kijken we naar de gedecodeerde waarden uit request.GET.
+        if "\x00" in request.path:
+            return self._weiger()
+        for sleutel, waarden in request.GET.lists():
+            if "\x00" in sleutel or any("\x00" in w for w in waarden):
+                return self._weiger()
+        return self.get_response(request)
+
+    @staticmethod
+    def _weiger():
+        return HttpResponseBadRequest("Ongeldig teken in het webadres.")
 
 
 class SecurityHeadersMiddleware:

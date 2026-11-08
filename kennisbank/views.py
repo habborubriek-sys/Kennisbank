@@ -51,9 +51,12 @@ def oude_artikel_link(request, slug):
     from .rechten import rechten
 
     kandidaten = [a for a in Artikel.objects.filter(slug=slug) if rechten(request).mag_lezen(a)]
-    if len(kandidaten) == 1:
-        return redirect(kandidaten[0].get_absolute_url(), permanent=True)
-    raise Http404
+    if not kandidaten:
+        raise Http404
+    # Nieuwe artikelen krijgen een unieke slug, maar in oude gegevens kunnen dubbelen staan. Dan is
+    # doorverwijzen naar het laatst bijgewerkte artikel beter dan iedereen een 404 geven.
+    kandidaten.sort(key=lambda a: a.gewijzigd_op or a.pk, reverse=True)
+    return redirect(kandidaten[0].get_absolute_url(), permanent=len(kandidaten) == 1)
 
 
 def login_voltooid(request):

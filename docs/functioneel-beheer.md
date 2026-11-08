@@ -91,9 +91,17 @@ De kennisbank zet geen slot op een artikel, maar laat je wel zien wanneer je nie
 - Open je een artikel dat een collega op dat moment ook open heeft, dan verschijnt een venster met zijn naam en vanaf hoe laat. Je kiest **Toch bewerken** of **Terug naar de lijst**. Blokkeren doen we niet: dat levert in de praktijk vooral sloten op die blijven hangen als iemand zijn laptop dichtklapt.
 - Zit je er al in en komt er iemand bij, dan verschijnt bovenin *"Let op: ... heeft dit artikel zojuist ook geopend."* Overleg dan even wie het afmaakt.
 - De melding verdwijnt vanzelf zodra de ander het scherm sluit of opslaat; na twee minuten zonder teken van leven vervalt zijn claim.
+- Ook als jullie precies tegelijk op *Opslaan* drukken, wordt er maar één opslag doorgelaten; de ander krijgt de melding hieronder.
 - Slaan jullie toch allebei op, dan **weigert** de kennisbank de tweede opslag met de melding dat het artikel intussen is gewijzigd. Je tekst staat dan nog in het scherm: open het artikel in een nieuw tabblad, kijk wat er nu staat, zet je wijzigingen over en sla opnieuw op. Zo overschrijft niemand stilletjes het werk van een ander.
 
 Staat een bewerkscherm heel lang open en log je ondertussen in een ander tabblad opnieuw in, dan verloopt de beveiligingscode van dat oude scherm. Je krijgt dat bovenin te zien zodra het gebeurt, en bij opslaan een Nederlandse uitlegpagina in plaats van een technische foutmelding. Kopieer in dat geval je tekst, ververs de pagina met Ctrl+F5 en plak hem terug.
+
+Een paar dingen die de kennisbank bewust tegenhoudt bij het opslaan:
+
+- Een artikel **archiveren** telt als een wijziging. Had jij het scherm op dat moment open, dan kun je niet zomaar opslaan; dat voorkomt dat een zojuist ingetrokken instructie weer online komt.
+- Een artikel **publiceren via de lijst** (de actie bij meerdere artikelen tegelijk) lukt alleen als er niets inhoudelijks is veranderd. Is dat wel zo, dan meldt de kennisbank welke artikelen zijn overgeslagen: publiceer die via het bewerkscherm, zodat je een toelichting kunt geven.
+- Een **titel die al bestaat** in dezelfde omgeving wordt geweigerd bij het aanmaken. Meestal betekent het dat je per ongeluk twee keer op *Opslaan* hebt geklikt; de melding noemt het nummer van het bestaande artikel.
+- Een **heel groot artikel** (meer dan 4 MB tekst) wordt geweigerd met de vraag het op te splitsen. Dat gebeurt vrijwel alleen bij plakken uit Word met veel opmaak.
 
 ## Een Word-document importeren
 

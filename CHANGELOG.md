@@ -1,5 +1,20 @@
 # Wijzigingen
 
+## 1.8.0 – 2026-11-08
+
+Eerste ronde na twee onafhankelijke beoordelingen (een functionele review en twee hardingstests). Deze versie gaat volledig over gegevensintegriteit: niemand mag stilletjes het werk van een ander overschrijven, en een verkeerd teken in een webadres mag de kennisbank niet laten omvallen.
+
+- **Archiveren werkt de wijzigingsdatum bij.** De lijstactie gebruikte een bulk-update, waardoor de wijzigingsdatum ongemoeid bleef. Een redacteur met een openstaand bewerkscherm zette een zojuist gearchiveerd artikel daarmee ongemerkt weer online. Gaat nu per artikel, zoals publiceren al deed.
+- **Gelijktijdig opslaan wordt echt tegengehouden.** De controle op tussentijdse wijzigingen las de huidige stand zonder vergrendeling. Sloegen twee redacteuren binnen enkele tientallen milliseconden op, dan kwamen ze er allebei doorheen en verdween het werk van één van beiden zonder melding. Het artikel wordt nu vergrendeld vóór de controle, binnen dezelfde transactie als het schrijven.
+- **Een ontbrekend stempel geldt als conflict.** Een leeg verborgen veld sloeg de hele controle over; hij faalde dus "open". Nu wordt zo'n opslag geweigerd met de uitleg dat het scherm niet te controleren was en dat de tekst nog in het scherm staat.
+- **Publiceren via de lijstactie eist dezelfde toelichting** als het bewerkscherm. Via concept + lijstactie kon een inhoudelijke wijziging anders bij alle medewerkers binnenkomen met de melding "Gepubliceerd via lijstactie". De actie meldt nu hoeveel artikelen zijn overgeslagen en waarom.
+- **Dubbelklikken op "artikel toevoegen" maakt geen dubbele artikelen meer** (ook niet bij exact gelijktijdige verzoeken, dankzij een adviesslot op titel en omgeving), en artikelen met dezelfde titel krijgen elk een eigen webadres. Oude links naar een artikel verwijzen weer door in plaats van een 404 te geven.
+- **Een nul-byte in een webadres geeft een nette 400** in plaats van een serverfout. `?tag=%00` en varianten lieten de database afbreken.
+- **Een tag die alleen in schrijfwijze verschilt** van een bestaande (`Rappel` naast `rappel`) geeft een nette melding in plaats van een serverfout; de naam wordt nu genormaliseerd vóór de controle op dubbelen.
+- **Een te groot artikel** levert een Nederlandse melding in het formulier op (grens 4 MB) in plaats van een kale Engelse foutpagina waarbij alle tekst verloren ging.
+- **Tagveld met echte suggesties.** De oude lijst van de browser vergeleek de hele regel, dus na de eerste komma matchte er niets meer. Nu een eigen lijstje dat opengaat zodra je in het veld klikt, de meest gebruikte tags bovenaan zet, matcht op elk deel van een woord, en al gekozen tags weglaat. De tagbeheerlijst toont hoe vaak elke tag wordt gebruikt.
+- **Tests** (nu 114): gelijktijdig opslaan, archiveren, ontbrekend stempel, dubbele titel, lijstactie publiceren, nul-bytes en tagnamen.
+
 ## 1.7.1 – 2026-11-08
 
 Samen in één artikel werken zonder elkaars werk kwijt te raken, en opslaan dat nooit stilletjes mislukt.

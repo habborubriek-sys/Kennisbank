@@ -1,2 +1,3 @@
 {% include "django/forms/widgets/input.html" %}
-<datalist id="kb-tags-lijst">{% for t in bestaande_tags %}<option value="{{ t }}">{% endfor %}</datalist>
+<div class="kb-tagsuggesties" hidden data-tags="{{ tags_json }}"></div>
+<p class="help">Begin te typen of klik in het vak voor suggesties. Scheid tags met een komma.</p>

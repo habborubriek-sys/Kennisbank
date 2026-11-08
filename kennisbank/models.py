@@ -111,6 +111,12 @@ class ArtikelQuerySet(models.QuerySet):
         return self.filter(status=Status.GEPUBLICEERD)
 
 
+#: Grootste HTML-tekst van één artikel. Afgestemd op de grens van de Word-import (2 MB), met ruimte
+#: om daarna nog te bewerken. De instelling DATA_UPLOAD_MAX_MEMORY_SIZE moet hier ruim boven liggen,
+#: anders kapt Django het verzoek af vóórdat deze nette melding kan verschijnen.
+MAX_INHOUD = 4 * 1024 * 1024
+
+
 class Artikel(models.Model):
     omgeving = models.ForeignKey(Omgeving, on_delete=models.PROTECT, related_name="artikelen")
     slug = models.SlugField(
@@ -164,7 +170,14 @@ class Artikel(models.Model):
         from .inhoud import schoon
 
         if not self.slug:
-            self.slug = slugify(self.titel)[:120] or "artikel"
+            # Twee artikelen met dezelfde titel krijgen elk een eigen slug. Anders kon een oude link
+            # (/artikel/<slug>) naar meerdere artikelen wijzen, en die gaf dan voor allemaal een 404.
+            basis = slugify(self.titel)[:120] or "artikel"
+            kandidaat, n = basis, 1
+            while Artikel.objects.filter(slug=kandidaat).exclude(pk=self.pk).exists():
+                n += 1
+                kandidaat = f"{basis[:115]}-{n}"
+            self.slug = kandidaat
         self.inhoud = schoon(self.inhoud)
         super().save(*args, **kwargs)
 

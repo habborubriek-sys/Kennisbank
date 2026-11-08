@@ -13,6 +13,7 @@ from kennisbank import diensten
 from kennisbank.auth import KennisbankOIDCBackend
 from kennisbank.inhoud import blokken, onboarding_blokken, schoon, zonder_onboarding
 from kennisbank.models import (
+    MAX_INHOUD,
     Artikel,
     ArtikelVersie,
     BewerkClaim,
@@ -1058,6 +1059,7 @@ class WordImportTests(Basis):
             "status": a.status,
             "tags_tekst": "Mailbox, Nieuwe Tag , nieuwe tag,",
             "wijzigingstoelichting": "",
+            "geladen_stempel": a.gewijzigd_op.isoformat() if a.gewijzigd_op else "",
             "versies-TOTAL_FORMS": "0",
             "versies-INITIAL_FORMS": "0",
         }
@@ -1085,6 +1087,7 @@ class WordImportTests(Basis):
             "status": "concept",
             "tags_tekst": "",
             "wijzigingstoelichting": "",
+            "geladen_stempel": "",
             "versies-TOTAL_FORMS": "0",
             "versies-INITIAL_FORMS": "0",
         }
@@ -1190,6 +1193,7 @@ class WijzigingTests(Basis):
             "tags_tekst": ", ".join(a.tags.values_list("naam", flat=True)),
             "wijzigingstoelichting": "",
             "kleine_correctie": "on",
+            "geladen_stempel": a.gewijzigd_op.isoformat() if a.gewijzigd_op else "",
             "versies-TOTAL_FORMS": "0",
             "versies-INITIAL_FORMS": "0",
         }
@@ -1201,6 +1205,9 @@ class WijzigingTests(Basis):
         self.assertIsNone(WijzigingTests._wijziging_van(self, self.als(self.lezer), "mailbox"))
         # Echte wijziging met toelichting én nieuwsbericht: concept-bericht gekoppeld aan het artikel.
         c = self.als(self.redacteur)
+        a.refresh_from_db()
+        # Het scherm opnieuw openen: anders is het stempel verouderd en weigert de conflictcontrole terecht.
+        data["geladen_stempel"] = a.gewijzigd_op.isoformat()
         data.update(samenvatting=a.samenvatting + " (nog eens)", wijzigingstoelichting="Samenvatting verduidelijkt")
         del data["kleine_correctie"]
         data["nieuwsbericht"] = "on"
@@ -1225,6 +1232,7 @@ class WijzigingTests(Basis):
             "status": a.status,
             "tags_tekst": ", ".join(a.tags.values_list("naam", flat=True)),
             "wijzigingstoelichting": "",
+            "geladen_stempel": a.gewijzigd_op.isoformat() if a.gewijzigd_op else "",
             "versies-TOTAL_FORMS": "0",
             "versies-INITIAL_FORMS": "0",
         }
@@ -1252,6 +1260,7 @@ class WijzigingTests(Basis):
             "status": "gepubliceerd",
             "tags_tekst": "",
             "wijzigingstoelichting": "",
+            "geladen_stempel": a.gewijzigd_op.isoformat() if a.gewijzigd_op else "",
             "versies-TOTAL_FORMS": "0",
             "versies-INITIAL_FORMS": "0",
         }
@@ -1450,6 +1459,7 @@ class ReviewBevindingenTests(Basis):
             "zaaktypen": list(a.zaaktypen.values_list("pk", flat=True)),
             "tags_tekst": ", ".join(a.tags.values_list("naam", flat=True)),
             "wijzigingstoelichting": "",
+            "geladen_stempel": a.gewijzigd_op.isoformat() if a.gewijzigd_op else "",
             "versies-TOTAL_FORMS": "0",
             "versies-INITIAL_FORMS": "0",
         }
@@ -1687,3 +1697,139 @@ class CsrfPaginaTests(Basis):
         self.assertIn("Beveiligingscode verlopen", tekst)
         self.assertIn("niet</b> opgeslagen", tekst)
         self.assertNotIn("CSRF verification failed", tekst)
+
+
+class OpslaanVeiligTests(Basis):
+    """Ronde 1 (1.8.0): niemand overschrijft stilletjes het werk van een ander."""
+
+    def test_archiveren_werkt_de_wijzigingsdatum_bij(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        voor = a.gewijzigd_op
+        c = self.als(self.redacteur)
+        c.post(
+            "/beheer/kennisbank/artikel/",
+            {"action": "archiveren", "_selected_action": str(a.pk), "index": "0"},
+        )
+        a.refresh_from_db()
+        self.assertEqual(a.status, Status.GEARCHIVEERD)
+        self.assertGreater(a.gewijzigd_op, voor)
+
+    def test_gearchiveerd_artikel_komt_niet_terug_via_een_oud_scherm(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        stempel = a.gewijzigd_op.isoformat()
+        a.status = Status.GEARCHIVEERD
+        a.save(update_fields=["status", "gewijzigd_op"])
+        data = beheerdata(a, status=Status.GEPUBLICEERD, geladen_stempel=stempel)
+        r = self.als(self.redacteur).post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data)
+        self.assertEqual(r.status_code, 200)
+        a.refresh_from_db()
+        self.assertEqual(a.status, Status.GEARCHIVEERD)
+
+    def test_ontbrekend_stempel_wordt_geweigerd(self):
+        """Zonder stempel kunnen we niets controleren; doorlaten zou het werk van een ander wissen."""
+        a = Artikel.objects.get(slug="rappel-versturen")
+        data = beheerdata(a, samenvatting="Stiekem", geladen_stempel="")
+        r = self.als(self.redacteur).post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("niet worden gecontroleerd", str(r.context["adminform"].form.errors))
+        a.refresh_from_db()
+        self.assertNotEqual(a.samenvatting, "Stiekem")
+
+    def test_te_groot_artikel_geeft_een_nederlandse_melding(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        data = beheerdata(a, inhoud="<p>" + "x" * (MAX_INHOUD + 10) + "</p>")
+        r = self.als(self.redacteur).post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("te groot om op te slaan", str(r.context["adminform"].form.errors))
+
+    def test_zelfde_titel_in_dezelfde_omgeving_wordt_geweigerd(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        data = {
+            "titel": a.titel,
+            "samenvatting": "Nieuw",
+            "inhoud": "<p>x</p>",
+            "soort": a.soort,
+            "omgeving": a.omgeving_id,
+            "eigenaar": "Procesmanagement",
+            "status": Status.CONCEPT,
+            "tags_tekst": "",
+            "wijzigingstoelichting": "",
+            "geladen_stempel": "",
+            "al_gepubliceerd": "",
+            "versies-TOTAL_FORMS": "0",
+            "versies-INITIAL_FORMS": "0",
+        }
+        aantal = Artikel.objects.count()
+        r = self.als(self.redacteur).post("/beheer/kennisbank/artikel/add/", data)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("al een artikel met deze titel", str(r.context["adminform"].form.errors))
+        self.assertEqual(Artikel.objects.count(), aantal)
+
+    def test_slug_blijft_uniek_bij_dezelfde_titel_in_een_andere_omgeving(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        tweede = Artikel.objects.create(
+            titel=a.titel, samenvatting="x", inhoud="<p>x</p>", soort=a.soort, omgeving=self.anders
+        )
+        self.assertNotEqual(tweede.slug, a.slug)
+        # En een oude link blijft werken in plaats van te stranden op meerdere kandidaten.
+        r = self.als(self.redacteur).get(f"/artikel/{a.slug}")
+        self.assertEqual(r.status_code, 301)
+
+    def test_publiceren_via_lijstactie_eist_ook_een_toelichting(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        a.status = Status.CONCEPT
+        a.inhoud = "<p>Heel andere inhoud</p>"
+        a.save()
+        c = self.als(self.redacteur)
+        c.post("/beheer/kennisbank/artikel/", {"action": "publiceren", "_selected_action": str(a.pk), "index": "0"})
+        a.refresh_from_db()
+        self.assertEqual(a.status, Status.CONCEPT)
+        self.assertFalse(a.versies.filter(toelichting="Gepubliceerd via lijstactie").exists())
+
+    def test_publiceren_via_lijstactie_mag_wel_zonder_inhoudelijke_wijziging(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        a.status = Status.CONCEPT
+        a.save(update_fields=["status", "gewijzigd_op"])
+        c = self.als(self.redacteur)
+        c.post("/beheer/kennisbank/artikel/", {"action": "publiceren", "_selected_action": str(a.pk), "index": "0"})
+        a.refresh_from_db()
+        self.assertEqual(a.status, Status.GEPUBLICEERD)
+
+
+class NulByteTests(Basis):
+    """Een nul-byte in het webadres gaf een serverfout (1.8.0)."""
+
+    def test_nulbyte_in_parameters_en_pad_geeft_400(self):
+        c = self.als(self.lezer)
+        for pad in [
+            "/api/v1/artikelen?tag=%00",
+            "/api/v1/artikelen?zaaktype=%00",
+            "/api/v1/artikelen?cluster=%00",
+            "/api/v1/artikelen?q=x%00&registreer=1",
+            "/api/v1/zaaktypen/%00/artikelen",
+        ]:
+            with self.subTest(pad=pad):
+                self.assertEqual(c.get(pad).status_code, 400)
+
+    def test_gewone_verzoeken_blijven_werken(self):
+        c = self.als(self.lezer)
+        self.assertEqual(c.get("/api/v1/artikelen?q=rappel").status_code, 200)
+        self.assertEqual(c.get("/api/v1/artikelen?soort=werkinstructie").status_code, 200)
+
+
+class TagNaamTests(Basis):
+    """Een tag die alleen in schrijfwijze verschilt gaf een serverfout (1.8.0)."""
+
+    def test_zelfde_tag_met_hoofdletters_geeft_een_nette_melding(self):
+        bestaand, _ = Tag.objects.get_or_create(naam="rappel")
+        c = self.als(self.redacteur)
+        for poging in [bestaand.naam.upper(), bestaand.naam.title(), f"  {bestaand.naam}  "]:
+            with self.subTest(poging=poging):
+                r = c.post("/beheer/kennisbank/tag/add/", {"naam": poging})
+                self.assertEqual(r.status_code, 200)
+                self.assertEqual(Tag.objects.filter(naam="rappel").count(), 1)
+
+    def test_nieuwe_tag_wordt_genormaliseerd_opgeslagen(self):
+        r = self.als(self.redacteur).post("/beheer/kennisbank/tag/add/", {"naam": "  Nieuwe  Tag  "})
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(Tag.objects.filter(naam="nieuwe tag").exists())

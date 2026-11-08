@@ -5,9 +5,13 @@
 - Functioneel beheerders (superusers) beheren daarnaast omgevingen, toegang en keuzelijsten.
 """
 
+import json
+
 from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
+from django.db import connection, transaction
+from django.db.models import Count
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
@@ -17,6 +21,7 @@ from django.utils.html import format_html
 
 from . import diensten
 from .models import (
+    MAX_INHOUD,
     Artikel,
     ArtikelVersie,
     Bericht,
@@ -83,13 +88,20 @@ class VersieInline(admin.TabularInline):
 
 
 class TagsWidget(forms.TextInput):
-    """Tekstvak met suggesties van bestaande tags (datalist)."""
+    """Tekstvak met een eigen suggestielijst van bestaande tags.
+
+    Een gewone datalist van de browser vergelijkt de hele veldwaarde met de opties, dus zodra er een
+    komma in staat matcht er niets meer. Daarom een eigen lijstje: het kijkt alleen naar het stukje
+    dat je nu typt, matcht op elk deel van een tag en zet de meest gebruikte tags bovenaan.
+    """
 
     template_name = "admin/kennisbank/tags_widget.html"
 
     def get_context(self, name, value, attrs):
         ctx = super().get_context(name, value, attrs)
-        ctx["bestaande_tags"] = list(Tag.objects.values_list("naam", flat=True))
+        tags = Tag.objects.annotate(_n=Count("artikel")).order_by("-_n", "naam").values_list("naam", "_n")
+        ctx["tags_json"] = json.dumps([{"naam": n, "aantal": a} for n, a in tags])
+        ctx["widget"]["attrs"]["autocomplete"] = "off"
         return ctx
 
 
@@ -152,6 +164,8 @@ class ArtikelForm(forms.ModelForm):
     def clean(self):
         data = super().clean()
         self._controleer_conflict(data)
+        self._controleer_omvang(data)
+        self._controleer_dubbele_titel(data)
         if data.get("status") != Status.GEPUBLICEERD or not self.instance.pk:
             return data
         # Zou opslaan een nieuwe versie opleveren? Dan is een toelichting verplicht (tenzij kleine correctie),
@@ -185,6 +199,37 @@ class ArtikelForm(forms.ModelForm):
         return data
 
 
+    def _controleer_omvang(self, data):
+        inhoud = data.get("inhoud") or ""
+        if len(inhoud.encode("utf-8")) > MAX_INHOUD:
+            mb = MAX_INHOUD / (1024 * 1024)
+            self.add_error(
+                "inhoud",
+                f"Dit artikel is te groot om op te slaan (grens: {mb:.0f} MB). Splits het op in meerdere "
+                "artikelen, of verwijder meegeplakte opmaak uit Word.",
+            )
+
+    def _controleer_dubbele_titel(self, data):
+        """Voorkom dat dubbelklikken of de terugknop hetzelfde artikel twee keer aanmaakt."""
+        if self.instance.pk:
+            return
+        titel, omgeving = data.get("titel"), data.get("omgeving")
+        if not titel or not omgeving:
+            return
+        sleutel = " ".join(titel.split()).lower()
+        # Een adviesslot op titel+omgeving, zodat twee gelijktijdige verzoeken (dubbelklik) niet
+        # allebei "bestaat nog niet" zien. Het slot geldt tot het einde van de transactie, dus het
+        # tweede verzoek wacht tot het eerste is weggeschreven en vindt het artikel dan wél.
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"artikel:{omgeving.pk}:{sleutel}"])
+        bestaand = Artikel.objects.filter(omgeving=omgeving, titel__iexact=titel.strip()).first()
+        if bestaand:
+            self.add_error(
+                "titel",
+                f"Er bestaat in deze omgeving al een artikel met deze titel (nummer {bestaand.pk}). "
+                "Bedoelde je dat artikel te bewerken? Kies anders een andere titel.",
+            )
+
     def _controleer_conflict(self, data):
         """Is het artikel sinds het openen van dit scherm door iemand anders opgeslagen?
 
@@ -194,11 +239,28 @@ class ArtikelForm(forms.ModelForm):
         """
         if not self.instance.pk:
             return
+        # select_for_update: zonder vergrendeling lezen twee gelijktijdige opslagen allebei nog de oude
+        # waarde en komen ze er allebei doorheen, waarna de laatste de ander stil overschrijft. Met de
+        # vergrendeling wacht de tweede transactie tot de eerste klaar is en ziet hij de nieuwe waarde.
+        # De admin draait de hele opslag al in één transactie, dus het slot blijft staan tot na het schrijven.
+        with transaction.atomic():
+            huidig = (
+                Artikel.objects.select_for_update()
+                .filter(pk=self.instance.pk)
+                .values_list("gewijzigd_op", flat=True)
+                .first()
+            )
+        if huidig is None:
+            return
         geladen = (data.get("geladen_stempel") or "").strip()
         if not geladen:
-            return
-        huidig = Artikel.objects.filter(pk=self.instance.pk).values_list("gewijzigd_op", flat=True).first()
-        if huidig is None or geladen == stempel_van_waarde(huidig):
+            # Geen stempel betekent niet "geen controle": het scherm is dan onbetrouwbaar (oude pagina
+            # uit de cache, formulier van buitenaf). Weigeren is hier veiliger dan doorlaten.
+            raise forms.ValidationError(
+                "Dit scherm kon niet worden gecontroleerd op tussentijdse wijzigingen; je wijzigingen "
+                "zijn niet opgeslagen. Kopieer je tekst, open het artikel opnieuw en plak hem terug."
+            )
+        if geladen == stempel_van_waarde(huidig):
             return
         door = ""
         laatste = (
@@ -431,17 +493,40 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
 
     @admin.action(description="Publiceren")
     def publiceren(self, request, queryset):
-        n = 0
+        n, geweigerd = 0, []
         for a in queryset:
+            # Dezelfde regel als in het bewerkscherm: een inhoudelijke wijziging hoort een toelichting
+            # te krijgen, want medewerkers zien die als melding. Via deze lijstactie is er geen veld om
+            # er een te typen, dus sturen we de redacteur naar het bewerkscherm in plaats van een
+            # nietszeggende "Gepubliceerd via lijstactie" aan iedereen te tonen.
+            if diensten.is_inhoudelijk_gewijzigd(a, diensten.momentopname(a)):
+                geweigerd.append(a)
+                continue
             a.status = Status.GEPUBLICEERD
             a.save(update_fields=["status", "gewijzigd_op"])
             if diensten.registreer_publicatie(a, request.user, "Gepubliceerd via lijstactie"):
                 n += 1
         self.message_user(request, f"{n} artikel(en) gepubliceerd.")
+        if geweigerd:
+            namen = ", ".join(a.titel for a in geweigerd[:5]) + ("…" if len(geweigerd) > 5 else "")
+            self.message_user(
+                request,
+                f"{len(geweigerd)} artikel(en) niet gepubliceerd omdat de inhoud is gewijzigd zonder "
+                f"toelichting: {namen}. Publiceer die via het bewerkscherm, dan kun je aangeven wat er "
+                "is veranderd.",
+                level=messages.WARNING,
+            )
 
     @admin.action(description="Archiveren (niet meer zichtbaar voor medewerkers)")
     def archiveren(self, request, queryset):
-        n = queryset.update(status=Status.GEARCHIVEERD)
+        # Per object opslaan in plaats van een bulk-update: alleen zo wordt gewijzigd_op bijgewerkt,
+        # en alleen dan ziet de conflictcontrole dat dit artikel is veranderd. Met een bulk-update kon
+        # een redacteur met een openstaand scherm een zojuist gearchiveerd artikel weer publiceren.
+        n = 0
+        for a in queryset:
+            a.status = Status.GEARCHIVEERD
+            a.save(update_fields=["status", "gewijzigd_op"])
+            n += 1
         self.message_user(request, f"{n} artikel(en) gearchiveerd. De versiegeschiedenis blijft bewaard.")
 
 
@@ -576,9 +661,29 @@ class ClusterAdmin(RedactieKeuzelijstAdmin):
     list_editable = ["volgorde"]
 
 
+class TagForm(forms.ModelForm):
+    class Meta:
+        model = Tag
+        fields = ["naam"]
+
+    def clean_naam(self):
+        # Tag.save() normaliseert de naam; zonder dat hier ook te doen controleert het formulier op
+        # de ongenormaliseerde waarde. "Rappel" naast "rappel" kwam dan door de validatie en liep
+        # daarna stuk op de unieke index — een serverfout in plaats van een nette melding.
+        return normaliseer_tag(self.cleaned_data["naam"])
+
+
 @admin.register(Tag)
 class TagAdmin(RedactieKeuzelijstAdmin):
-    pass
+    form = TagForm
+    list_display = ["naam", "aantal_artikelen"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(_aantal=Count("artikel"))
+
+    @admin.display(description="Gebruikt in", ordering="_aantal")
+    def aantal_artikelen(self, obj):
+        return f"{obj._aantal} artikel(en)"
 
 
 @admin.register(Zaaktype)

@@ -530,9 +530,73 @@
   window.kbToelichtingNodig = toelichtingNodig;
   window.kbVraagToelichting = vraagToelichting;
 
+  /* Suggestielijst bij het tagveld: kijkt alleen naar het stukje achter de laatste komma. */
+  function tagSuggesties() {
+    var doos = document.querySelector(".kb-tagsuggesties");
+    var invoer = veld("tags_tekst");
+    if (!doos || !invoer) return;
+    var alle = [];
+    try { alle = JSON.parse(doos.getAttribute("data-tags") || "[]"); } catch (e) { return; }
+    var actief = -1;
+
+    function huidigDeel() {
+      var tot = invoer.value.slice(0, invoer.selectionStart === null ? invoer.value.length : invoer.selectionStart);
+      var komma = tot.lastIndexOf(",");
+      return tot.slice(komma + 1).trim().toLowerCase();
+    }
+    function alGekozen() {
+      return invoer.value.split(",").map(function (t) { return t.trim().toLowerCase(); }).filter(Boolean);
+    }
+    function kies(naam) {
+      var delen = invoer.value.split(",");
+      delen[delen.length - 1] = " " + naam;
+      invoer.value = delen.join(",").replace(/^[\s,]+/, "") + ", ";
+      invoer.focus();
+      toon();
+    }
+    function toon() {
+      var deel = huidigDeel(), gekozen = alGekozen();
+      var lijst = alle.filter(function (t) {
+        return gekozen.indexOf(t.naam) === -1 && (!deel || t.naam.indexOf(deel) !== -1);
+      }).slice(0, 10);
+      doos.innerHTML = "";
+      if (!lijst.length) { doos.hidden = true; return; }
+      lijst.forEach(function (t, i) {
+        var r = document.createElement("button");
+        r.type = "button";
+        r.className = "kb-tagsuggestie" + (i === actief ? " actief" : "");
+        r.innerHTML = "";
+        var naam = document.createElement("span"); naam.textContent = t.naam;
+        var n = document.createElement("em"); n.textContent = t.aantal + "\u00d7";
+        r.appendChild(naam); r.appendChild(n);
+        r.addEventListener("mousedown", function (e) { e.preventDefault(); kies(t.naam); });
+        doos.appendChild(r);
+      });
+      doos.hidden = false;
+    }
+    invoer.addEventListener("focus", function () { actief = -1; toon(); });
+    invoer.addEventListener("input", function () { actief = -1; toon(); });
+    invoer.addEventListener("blur", function () { setTimeout(function () { doos.hidden = true; }, 120); });
+    invoer.addEventListener("keydown", function (e) {
+      var rijen = doos.querySelectorAll(".kb-tagsuggestie");
+      if (doos.hidden || !rijen.length) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        actief = (actief + (e.key === "ArrowDown" ? 1 : -1) + rijen.length) % rijen.length;
+        toon();
+      } else if ((e.key === "Enter" || e.key === "Tab") && actief >= 0) {
+        e.preventDefault();
+        kies(rijen[actief].querySelector("span").textContent);
+      } else if (e.key === "Escape") {
+        doos.hidden = true;
+      }
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     initAll();
     zachtSlot();
+    tagSuggesties();
     // Beginwaarden onthouden, zodat we weten of er iets inhoudelijks is veranderd.
     window.kbBeginwaarden = {};
     ["titel", "samenvatting", "inhoud", "soort", "eigenaar", "omgeving", "tags_tekst"].forEach(function (naam) {

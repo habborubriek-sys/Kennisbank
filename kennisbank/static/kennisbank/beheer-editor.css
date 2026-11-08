@@ -67,3 +67,9 @@ body.kb-split-open{overflow:hidden}
 .kb-melding{margin:10px 0;padding:10px 14px;border-radius:8px;font-size:.95rem;line-height:1.45}
 .kb-melding-let-op{background:#fff4d6;border-left:4px solid #e2b94f;color:#4a3a08}
 .kb-melding-fout{background:#fdecea;border-left:4px solid #b4352e;color:#7a241e}
+
+/* Suggestielijst bij het tagveld. */
+.kb-tagsuggesties{position:relative;z-index:30;background:#fff;border:1px solid #c9ced6;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.14);max-width:520px;margin-top:2px;overflow:hidden}
+.kb-tagsuggestie{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;padding:6px 11px;font:inherit;cursor:pointer;color:#17212b}
+.kb-tagsuggestie:hover,.kb-tagsuggestie.actief{background:#eef2f7}
+.kb-tagsuggestie em{font-style:normal;font-size:.82rem;color:#6b7280;white-space:nowrap}
