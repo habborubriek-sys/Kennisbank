@@ -28,7 +28,7 @@ flowchart LR
 |---|---|---|
 | Taal en framework | Python 3.12+, Django 5.2 LTS | Breed bekend, LTS met beveiligingsupdates tot april 2028, ingebouwd beheerscherm, rechten en migraties |
 | API | Django REST Framework, OpenAPI 3 via drf-spectacular | Gestandaardiseerd, schema in [openapi.yaml](openapi.yaml) en op `/api/docs/` |
-| Database | PostgreSQL | Ook de zoekmachine (Nederlandse woordstammen); geen aparte zoekdienst nodig |
+| Database | PostgreSQL | Ook de zoekmachine (Nederlandse woordstammen); geen aparte zoekdienst nodig. Een beheerde PostgreSQL werkt zonder aanpassing; wat een ánder databaseproduct zou kosten, staat in [installatie en beheer](installatie-en-beheer.md#een-andere-database-dan-postgresql) |
 | Frontend | Eén HTML-pagina, vanilla JavaScript en CSS, zonder build-stap | Niets te compileren, geen npm-afhankelijkheden in productie, strenge CSP mogelijk |
 | Editor in het beheer | Jodit 4 (MIT), lokaal meegeleverd | Word-achtige opmaak, tabellen, opschonen bij plakken uit Word; geen externe verbindingen |
 | Word-import | mammoth (BSD) | Zet .docx om naar schone HTML (alleen tekst en opmaak; secties en onboarding maak je in de editor) |

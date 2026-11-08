@@ -37,6 +37,56 @@ CREATE DATABASE kennisbank OWNER kennisbank;
 
 Geef de verbinding door als `KB_DATABASE_URL=postgres://kennisbank:...@host:5432/kennisbank?sslmode=require`. Het schema wordt aangemaakt door de migraties (`migreer`, zie hieronder). Er zijn geen extensies nodig.
 
+**Een beheerde PostgreSQL werkt gewoon.** Azure Database for PostgreSQL, Amazon RDS, Google Cloud SQL
+of de beheerde dienst van een Nederlandse hostingpartij: allemaal zonder aanpassing in de code, alleen
+een andere `KB_DATABASE_URL`. Er is geen reden om een database in een container te draaien als de
+organisatie een beheerde dienst heeft; dat is juist de voorkeur, want dan liggen back-ups, patches en
+failover bij de partij die daarvoor is ingericht. De `compose.yaml` in deze repo zet er een container
+naast omdat dat voor proberen en testen het eenvoudigst is.
+
+### Een andere database dan PostgreSQL
+
+Vraagt de organisatie om een andere database, dan is het goed om te weten wat dat raakt. Het antwoord
+hangt sterk af van de vraag.
+
+**Gaat het om "wij beheren zelf geen databases"?** Dan is er geen probleem: zie hierboven. Dit is
+veruit het meest voorkomende bezwaar en het kost niets.
+
+**Gaat het echt om een ander databaseproduct?** Dan is het een project en geen instelling. Zes
+bestanden gebruiken PostgreSQL-specifieke functies, maar het werk is zeer ongelijk verdeeld:
+
+| Onderdeel | Waar | Omvang |
+|---|---|---|
+| Volledige-tekstzoeken met Nederlandse stamherkenning en weging | `kennisbank/zoeken.py`, de twee SQL-blokken in `kennisbank/diensten.py`, migratie `0007` | **Het echte werk.** Dit is het hart van de kennisbank |
+| Opgeslagen zoekvector en GIN-index | `kennisbank/models.py` (4 regels) | Klein |
+| Adviesslot tegen dubbele artikelen en dubbele voorstellen (`pg_advisory_xact_lock`) | `kennisbank/admin.py`, `kennisbank/diensten.py` (samen 5 regels) | Klein |
+| `select_for_update(skip_locked=True)` bij de mailwachtrij | `kennisbank/diensten.py` (1 regel) | Klein |
+| `django.contrib.postgres` in `INSTALLED_APPS` | `config/settings.py` | Triviaal |
+
+De kleine onderdelen zijn samen ongeveer een dagdeel werk. Het zoeken is dat niet: dat gebruikt
+`to_tsvector` met het Nederlandse woordenboek en `setweight`, zodat "rappellen" ook "rappel" vindt en
+een treffer in de titel zwaarder weegt dan een in de tekst. Dat gedrag moet op een andere database
+opnieuw worden gebouwd én opnieuw worden beoordeeld op kwaliteit — de testsuite controleert of zoeken
+werkt, niet of het nog even goed werkt.
+
+Per alternatief:
+
+- **Oracle** — officieel ondersteund door Django. Zoeken herbouwen op Oracle Text, sloten via
+  `DBMS_LOCK`. Reken op één tot twee weken inclusief testen.
+- **SQL Server / Azure SQL** — Django heeft hiervoor geen eigen ondersteuning; nodig is `mssql-django`,
+  dat door Microsoft wordt onderhouden. Zoeken herbouwen op SQL Server full-text, sloten via
+  `sp_getapplock`, `skip_locked` wordt `READPAST`. Zelfde orde werk, plus een blijvende afhankelijkheid
+  van een databasekoppeling buiten Django zelf. Dat laatste is een onderhoudsrisico dat benoemd hoort
+  te worden.
+- **MySQL / MariaDB** — werkt, maar de zoekkwaliteit gaat merkbaar achteruit: geen weging en zwakkere
+  Nederlandse stamherkenning. Functioneel de minst goede uitkomst.
+- **SQLite** — alleen geschikt voor een demo op één machine, niet voor meerdere gebruikers tegelijk.
+
+**Een derde weg** is het zoeken uit de database halen en in een aparte zoekmachine onderbrengen
+(bijvoorbeeld OpenSearch). Dan maakt de keuze van de database voor het zoeken niet meer uit, maar komt
+er wel een component bij die beheerd en bewaakt moet worden. Dat is een reële optie als de organisatie
+zo'n voorziening toch al heeft, en een slechte als die er speciaal voor moet komen.
+
 ## 3. Inloggen via Entra ID
 
 1. Maak een app-registratie (web-applicatie).

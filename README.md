@@ -21,7 +21,7 @@ Open daarna http://localhost:8000 en log in als `medewerker`, `redacteur` of `be
 | Stap | Wat | Waar beschreven |
 |---|---|---|
 | 1 | Image bouwen (of de geleverde gebruiken) en in de eigen registry zetten | [installatie-en-beheer](docs/installatie-en-beheer.md#1-image) |
-| 2 | Een PostgreSQL-database aanmaken | [installatie-en-beheer](docs/installatie-en-beheer.md#2-database) |
+| 2 | Een PostgreSQL-database aanmaken (een beheerde dienst mag, zie [een andere database](docs/installatie-en-beheer.md#een-andere-database-dan-postgresql)) | [installatie-en-beheer](docs/installatie-en-beheer.md#2-database) |
 | 3 | Een app-registratie in Entra ID maken (OIDC, met de groepen-claim) | [installatie-en-beheer](docs/installatie-en-beheer.md#3-inloggen-via-entra-id) |
 | 4 | Configuratie en geheimen invullen, de container uitrollen (Docker of Kubernetes) | [configuratie](docs/configuratie.md), [deploy/kubernetes](deploy/kubernetes) |
 | 5 | Groepen aan rollen koppelen en de inhoud importeren | [installatie-en-beheer](docs/installatie-en-beheer.md#5-toegang-en-inhoud) |
