@@ -18,4 +18,5 @@ class Command(BaseCommand):
             self.stdout.write("KB_FAVORIETEN_MAIL staat uit; er is niets verstuurd.")
             return
         n = diensten.verstuur_favorietenmail()
+        diensten.stand_vastleggen("favorietenmail", f"{n} mail(s) verstuurd")
         self.stdout.write(f"{n} e-mail(s) verstuurd.")

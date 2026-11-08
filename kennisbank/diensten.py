@@ -1,5 +1,7 @@
 """Bedrijfslogica die vanuit meerdere plekken (beheerscherm, API, import) wordt gebruikt."""
 
+import calendar
+import datetime
 import logging
 
 from django.conf import settings
@@ -21,6 +23,8 @@ from .models import (
     RecentBezocht,
     Rol,
     Status,
+    Systeemstand,
+    VoorstelBericht,
     WeergaveTelling,
     WijzigingGezien,
     ZoekTelling,
@@ -131,11 +135,54 @@ def registreer_publicatie(
         gepubliceerd_door=gebruiker if gebruiker and gebruiker.is_authenticated else None,
         gepubliceerd_op=nu,
     )
-    Artikel.objects.filter(pk=artikel.pk).update(versie=nieuw_nummer, gepubliceerd_op=nu)
+    velden = {"versie": nieuw_nummer, "gepubliceerd_op": nu}
+    nieuwe_datum = herzieningsdatum(artikel, kleine_correctie=kleine_correctie)
+    if nieuwe_datum is not None:
+        velden["herzien_voor"] = nieuwe_datum
+        artikel.herzien_voor = nieuwe_datum
+    Artikel.objects.filter(pk=artikel.pk).update(**velden)
     log.info("artikel gepubliceerd", extra={"artikel": artikel.slug, "versie": nieuw_nummer})
     if nieuw_nummer > 1 and not kleine_correctie:
         zet_favorietenmail_klaar(artikel, versie)
     return versie
+
+
+def stand_vastleggen(sleutel: str, melding: str = "") -> None:
+    """Leg vast dat een onderhoudstaak nu heeft gelopen (voor de statuspagina)."""
+    Systeemstand.objects.update_or_create(
+        sleutel=sleutel, defaults={"moment": timezone.now(), "melding": melding[:300]}
+    )
+
+
+def laatste_stand(sleutel: str):
+    """De laatste keer dat een onderhoudstaak liep, of None als dat nooit is vastgelegd."""
+    return Systeemstand.objects.filter(sleutel=sleutel).first()
+
+
+def herzieningsdatum(artikel: Artikel, *, kleine_correctie: bool = False):
+    """De nieuwe datum "opnieuw nakijken voor" bij deze publicatie, of None als die niet verandert.
+
+    Leeg veld wordt gevuld, en een datum die al verstreken is schuift mee: publiceren is immers het
+    moment waarop de redacteur de tekst heeft nagekeken. Een kleine correctie (typfout, opmaak)
+    schuift niets op — dat is geen inhoudelijke herziening. Een datum die de redacteur zelf in de
+    toekomst heeft gezet, laten we staan.
+    """
+    maanden = getattr(settings, "KB_HERZIENINGSTERMIJN_MAANDEN", 12)
+    if maanden <= 0:
+        return None
+    vandaag = timezone.localdate()
+    if artikel.herzien_voor and (artikel.herzien_voor >= vandaag or kleine_correctie):
+        return None
+    jaar, maand = divmod(vandaag.month - 1 + maanden, 12)
+    dag = min(vandaag.day, calendar.monthrange(vandaag.year + jaar, maand + 1)[1])
+    return vandaag.replace(year=vandaag.year + jaar, month=maand + 1, day=dag)
+
+
+def te_herzien(queryset=None, dagen_vooruit: int = 0):
+    """Gepubliceerde artikelen waarvan de herzieningsdatum is verstreken (of binnen `dagen_vooruit` komt)."""
+    qs = queryset if queryset is not None else Artikel.objects.all()
+    grens = timezone.localdate() + datetime.timedelta(days=dagen_vooruit)
+    return qs.filter(status=Status.GEPUBLICEERD, herzien_voor__isnull=False, herzien_voor__lte=grens)
 
 
 def is_inhoudelijk_gewijzigd(artikel: Artikel, nieuwe_momentopname: dict) -> bool:
@@ -327,6 +374,87 @@ def meld_terugkoppeling(voorstel):
         f"Bekijk: {settings.KB_BASIS_URL}/voorstellen",
         [voorstel.ingediend_door.email],
     )
+
+
+def voorstelbericht_toevoegen(voorstel, auteur, tekst: str, *, van_redactie: bool, melden: bool = True):
+    """Voeg een bericht toe aan het gesprek over een voorstel en meld het aan de andere kant.
+
+    Dit is de enige plek waar een bericht ontstaat, zodat de afgeleide gegevens altijd kloppen: het
+    veld `terugkoppeling` houdt het laatste bericht van procesmanagement vast (de app en de API
+    tonen dat), en de leesmomenten worden bijgewerkt voor de kant die net iets heeft geschreven.
+    """
+    tekst = (tekst or "").strip()
+    if not tekst:
+        return None
+    nu = timezone.now()
+    bericht = VoorstelBericht.objects.create(
+        voorstel=voorstel,
+        auteur=auteur if auteur and auteur.is_authenticated else None,
+        van_redactie=van_redactie,
+        tekst=tekst,
+        moment=nu,
+    )
+    velden = []
+    if van_redactie:
+        voorstel.terugkoppeling = tekst
+        voorstel.behandeld_door = bericht.auteur
+        voorstel.behandeld_op = nu
+        voorstel.gelezen_redactie_op = nu
+        velden = ["terugkoppeling", "behandeld_door", "behandeld_op", "gelezen_redactie_op"]
+    else:
+        voorstel.gelezen_indiener_op = nu
+        velden = ["gelezen_indiener_op"]
+    voorstel.save(update_fields=velden)
+    if melden:
+        meld_voorstelbericht(bericht)
+    return bericht
+
+
+def meld_voorstelbericht(bericht):
+    """E-mail aan de andere kant van het gesprek: de indiener, of de redacteur die het behandelt."""
+    voorstel = bericht.voorstel
+    titel = voorstel.artikel.titel
+    if bericht.van_redactie:
+        ontvanger = voorstel.ingediend_door
+        onderwerp = f"Nieuw bericht over je verbetervoorstel: {titel}"
+        slot = f"Bekijk en reageer: {settings.KB_BASIS_URL}/voorstellen"
+    else:
+        ontvanger = voorstel.behandeld_door
+        onderwerp = f"Reactie van de indiener op een verbetervoorstel: {titel}"
+        slot = f"Bekijk: {settings.KB_BASIS_URL}/voorstellen"
+    if not ontvanger or not ontvanger.email or not ontvanger.is_active:
+        return
+    _mail(
+        onderwerp,
+        f"{bericht.naam} schreef:\n\n{bericht.tekst}\n\nStatus: {voorstel.get_status_display()}\n\n{slot}",
+        [ontvanger.email],
+    )
+
+
+def voorstel_ongelezen(voorstel, gebruiker) -> int:
+    """Hoeveel berichten deze gebruiker nog niet heeft gezien in dit gesprek.
+
+    Voor de indiener tellen de berichten van procesmanagement, en omgekeerd; je eigen berichten
+    hoef je niet te lezen.
+    """
+    van_mij_is_indiener = voorstel.ingediend_door_id == getattr(gebruiker, "pk", None)
+    sinds = voorstel.gelezen_indiener_op if van_mij_is_indiener else voorstel.gelezen_redactie_op
+    # Ben ik de indiener, dan zijn de berichten van procesmanagement nieuw voor mij, en omgekeerd.
+    rijen = voorstel.berichten.filter(van_redactie=van_mij_is_indiener)
+    if sinds:
+        rijen = rijen.filter(moment__gt=sinds)
+    return rijen.count()
+
+
+def voorstel_gelezen(voorstel, gebruiker) -> None:
+    """Markeer het gesprek als gelezen voor de kant waar deze gebruiker op zit."""
+    nu = timezone.now()
+    if voorstel.ingediend_door_id == getattr(gebruiker, "pk", None):
+        voorstel.gelezen_indiener_op = nu
+        voorstel.save(update_fields=["gelezen_indiener_op"])
+    else:
+        voorstel.gelezen_redactie_op = nu
+        voorstel.save(update_fields=["gelezen_redactie_op"])
 
 
 # --- E-mail bij wijziging van een favoriet artikel -------------------------------------

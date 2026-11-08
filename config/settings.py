@@ -270,6 +270,10 @@ if KB_AI_PROVIDER != "uit" and not (KB_AI_BASE_URL and KB_AI_MODEL):
 KB_BEWAAR_RECENT_DAGEN = env_int("KB_BEWAAR_RECENT_DAGEN", 90)
 KB_BEWAAR_STATISTIEK_DAGEN = env_int("KB_BEWAAR_STATISTIEK_DAGEN", 730)
 KB_ANONIMISEER_VOORSTEL_DAGEN = env_int("KB_ANONIMISEER_VOORSTEL_DAGEN", 365)
+# Na hoeveel maanden een gepubliceerd artikel opnieuw moet worden nagekeken. Bij publiceren wordt de
+# datum "opnieuw nakijken voor" zo gevuld als de redacteur hem leeg laat. 0 = niet automatisch vullen;
+# de redacteur kan de datum dan nog altijd zelf zetten.
+KB_HERZIENINGSTERMIJN_MAANDEN = env_int("KB_HERZIENINGSTERMIJN_MAANDEN", 12)
 KB_RECENT_MAX = env_int("KB_RECENT_MAX", 10)
 
 # --- E-mail (optioneel) -------------------------------------------------------------

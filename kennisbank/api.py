@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_field, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.exceptions import PermissionDenied
@@ -29,6 +29,7 @@ from .models import (
     Soort,
     Tag,
     Verbetervoorstel,
+    VoorstelBericht,
     VoorstelStatus,
     WeergaveTelling,
     Zaaktype,
@@ -113,6 +114,21 @@ class ArtikelSerializer(ArtikelKortSerializer):
         return None
 
 
+#: Een bericht in het gesprek mag lang zijn (een onderbouwd voorstel of antwoord), maar niet eindeloos.
+MAX_VOORSTELBERICHT = 5000
+
+
+class VoorstelBerichtSerializer(serializers.ModelSerializer):
+    """Eén bericht in het gesprek over een verbetervoorstel."""
+
+    naam = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = VoorstelBericht
+        fields = ["id", "naam", "van_redactie", "tekst", "moment"]
+        read_only_fields = fields
+
+
 class VoorstelSerializer(serializers.ModelSerializer):
     artikel = serializers.PrimaryKeyRelatedField(queryset=Artikel.objects.all())
 
@@ -128,6 +144,8 @@ class VoorstelSerializer(serializers.ModelSerializer):
     artikel_titel = serializers.CharField(source="artikel.titel", read_only=True)
     ingediend_door = serializers.SerializerMethodField()
     van_mij = serializers.SerializerMethodField()
+    berichten = serializers.SerializerMethodField()
+    ongelezen = serializers.SerializerMethodField()
 
     class Meta:
         model = Verbetervoorstel
@@ -145,8 +163,21 @@ class VoorstelSerializer(serializers.ModelSerializer):
             "ingediend_door",
             "van_mij",
             "behandeld_op",
+            "berichten",
+            "ongelezen",
         ]
         read_only_fields = ["artikel_versie", "status", "terugkoppeling", "ingediend_op", "behandeld_op"]
+
+    @extend_schema_field(VoorstelBerichtSerializer(many=True))
+    def get_berichten(self, obj):
+        """Het hele gesprek, oudste eerst."""
+        return VoorstelBerichtSerializer(obj.berichten.all(), many=True).data
+
+    def get_ongelezen(self, obj) -> int:
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return 0
+        return diensten.voorstel_ongelezen(obj, request.user)
 
     def get_ingediend_door(self, obj) -> str:
         if not obj.ingediend_door:
@@ -462,8 +493,13 @@ def voorstellen(request):
         return Response(VoorstelSerializer(v, context=_ctx(request)).data, status=status.HTTP_201_CREATED)
 
     # Lezers zien hun eigen voorstellen; redacteuren alle voorstellen in hun omgeving(en).
-    qs = Verbetervoorstel.objects.select_related("artikel", "ingediend_door")
+    qs = Verbetervoorstel.objects.select_related("artikel", "ingediend_door").prefetch_related("berichten__auteur")
     qs = qs.filter(Q(ingediend_door=request.user) | Q(artikel__omgeving_id__in=r.redactie_omgevingen))
+    gevraagd = request.GET.get("status")
+    if gevraagd == "open":
+        qs = qs.filter(status__in=[VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING])
+    elif gevraagd in dict(VoorstelStatus.choices):
+        qs = qs.filter(status=gevraagd)
     return Response(VoorstelSerializer(qs, many=True, context=_ctx(request)).data)
 
 
@@ -483,6 +519,7 @@ def voorstel(request, pk):
     s.is_valid(raise_exception=True)
     nieuwe_status = s.validated_data.get("status", v.status)
     nieuwe_terugkoppeling = s.validated_data.get("terugkoppeling", v.terugkoppeling).strip()
+    oude_terugkoppeling = v.terugkoppeling
     gewijzigd = (v.status, v.terugkoppeling) != (nieuwe_status, nieuwe_terugkoppeling)
     if gewijzigd:
         v.status = nieuwe_status
@@ -490,9 +527,60 @@ def voorstel(request, pk):
         v.behandeld_door = request.user
         v.behandeld_op = timezone.now()
         v.save()
-        if v.terugkoppeling:
+        # Een terugkoppeling is een bericht in het gesprek; zo staat hij ook in de geschiedenis en
+        # krijgt de indiener er precies één melding van.
+        if nieuwe_terugkoppeling and nieuwe_terugkoppeling != oude_terugkoppeling:
+            diensten.voorstelbericht_toevoegen(v, request.user, nieuwe_terugkoppeling, van_redactie=True)
+        elif v.terugkoppeling:
             diensten.meld_terugkoppeling(v)
     return Response(VoorstelSerializer(v, context=_ctx(request)).data)
+
+
+@extend_schema(
+    summary="Bericht toevoegen aan het gesprek over een verbetervoorstel",
+    description="De indiener en de redacteuren van de omgeving kunnen elkaar hier antwoorden. De andere "
+    "kant krijgt er een melding en een e-mail van.",
+    request=inline_serializer("VoorstelBerichtIn", {"tekst": serializers.CharField()}),
+    responses=VoorstelSerializer,
+)
+@api_view(["POST"])
+@throttle_classes([VoorstelThrottle])
+def voorstel_bericht(request, pk):
+    v = _voorstel_voor(request, pk)
+    tekst = (request.data.get("tekst") or "").strip()
+    if not tekst:
+        return Response({"fout": "Schrijf eerst een bericht."}, status=status.HTTP_400_BAD_REQUEST)
+    if len(tekst) > MAX_VOORSTELBERICHT:
+        return Response(
+            {"fout": f"Dit bericht is te lang (maximaal {MAX_VOORSTELBERICHT} tekens)."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    van_redactie = v.ingediend_door_id != request.user.pk
+    diensten.voorstelbericht_toevoegen(v, request.user, tekst, van_redactie=van_redactie)
+    v.refresh_from_db()
+    return Response(VoorstelSerializer(v, context=_ctx(request)).data, status=status.HTTP_201_CREATED)
+
+
+@extend_schema(
+    summary="Gesprek over een verbetervoorstel als gelezen markeren",
+    request=None,
+    responses={204: None},
+)
+@api_view(["POST"])
+def voorstel_gelezen(request, pk):
+    diensten.voorstel_gelezen(_voorstel_voor(request, pk), request.user)
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def _voorstel_voor(request, pk):
+    """Het voorstel, als deze gebruiker de indiener is of redacteur in de omgeving van het artikel."""
+    r = rechten(request)
+    return get_object_or_404(
+        Verbetervoorstel.objects.select_related("artikel", "ingediend_door", "behandeld_door").filter(
+            Q(ingediend_door=request.user) | Q(artikel__omgeving_id__in=r.redactie_omgevingen)
+        ),
+        pk=pk,
+    )
 
 
 @extend_schema(

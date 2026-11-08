@@ -112,6 +112,58 @@ Een medewerker die nog niet aan een omgeving is gekoppeld, ziet geen lege kennis
 
 Vul `KB_CONTACT` altijd: zonder dat adres weet iemand zonder toegang niet waar hij moet zijn. Het verschijnt ook in de zijbalk onder *Hulp*.
 
+## Statuspagina: loopt alles nog?
+
+**Beheer → Status** (alleen voor functioneel beheerders) geeft per onderdeel een stoplicht: versie en
+instellingen, database en migraties, zoekindex, e-mail en de wachtrij, assistent, de geplande taak,
+toegang, en wat er in de kennisbank staat. Staat iets op oranje of rood, dan staat er direct bij wat
+eraan te doen is. Deze pagina leest alleen; ververs hem om opnieuw te meten.
+
+De dingen die anders stil kapot gaan, zijn hier het snelst te zien: een geplande taak die niet meer
+draait (de favorietenmail blijft dan in de wachtrij staan), secties zonder zoekdocument (niet te
+vinden via de zoekbalk of de assistent), een omgeving waar geen enkele groep aan hangt (daar kan
+niemand bij), en groepen uit Entra ID die alleen een object-id als naam hebben.
+
+## Opnieuw nakijken: voorkomen dat instructies verouderen
+
+Elk gepubliceerd artikel heeft een datum **opnieuw nakijken voor**. Bij het publiceren vult de
+kennisbank die zelf in volgens de termijn die IT heeft ingesteld (standaard twaalf maanden, zie
+`KB_HERZIENINGSTERMIJN_MAANDEN` in [configuratie](configuratie.md)). Zet je zelf een datum in de
+toekomst, dan blijft die staan.
+
+- In de artikelenlijst staat de kolom **Nakijken voor**. Een verstreken datum is rood met het aantal
+  dagen erbij; komt hij binnen dertig dagen, dan is hij oranje.
+- Bovenaan de lijst staat een melding als er artikelen over de datum zijn, met een link naar het
+  filter **Opnieuw nakijken → Datum verstreken**.
+- Klopt een artikel nog gewoon? Selecteer het en kies de actie **Markeren als nagekeken**. De datum
+  schuift dan vooruit; er komt géén nieuwe versie en medewerkers krijgen geen melding.
+- Wijzig en publiceer je het artikel wél, dan schuift de datum automatisch mee — publiceren is immers
+  het moment dat je de tekst hebt nagekeken. Een *kleine correctie* schuift niets op: een typfout
+  herstellen is geen herziening.
+- Medewerkers zien deze datum niet. Hij is een hulpmiddel voor procesmanagement, geen uitspraak over
+  de geldigheid van de instructie.
+
+## Keuzelijsten opruimen
+
+Clusters, tags en zaaktypen groeien: een import, een typefout of een reorganisatie laat items achter
+die nergens meer aan hangen, en die staan daarna wel in elk keuzemenu. Bij elke keuzelijst staat
+daarom hoeveel artikelen het item gebruiken, plus het filter **Gebruik → Nergens gebruikt**.
+
+Selecteer wat weg mag en kies **Verwijderen als ze nergens worden gebruikt**. Items die nog wel in
+gebruik zijn, worden overgeslagen en bij naam genoemd. Alleen een functioneel beheerder kan opruimen;
+een redacteur mag keuzelijsten wel aanvullen.
+
+## Groepen uit Entra ID een leesbare naam geven
+
+Toegang regel je per omgeving met een groep uit Entra ID. In de groepen-claim staan bij RWS vaak
+object-id's (GUID's) in plaats van groepsnamen, en dan zie je in het beheer een lijst codes waarin
+niets terug te kennen is.
+
+Bij **Beheer → Groepen** staat per groep hoeveel mensen ermee hebben ingelogd en tot welke omgevingen
+hij toegang geeft. Vul daar onder **Leesbare naam** in hoe de groep in Entra ID heet
+(`RWS-Handhaving-MN-Procesmanagement`). De kennisbank gebruikt die naam daarna overal; de code blijft
+er grijs bij staan, zodat je hem met Entra ID kunt vergelijken.
+
 ## Een Word-document importeren
 
 Bestaande werkinstructies in Word hoef je niet over te typen: **Beheer → Artikelen → Importeren uit Word**, kies het `.docx`-bestand en de omgeving.
@@ -147,7 +199,16 @@ Een bericht kun je, anders dan een artikel, gewoon verwijderen. Nieuwsberichten 
 
 ## Verbetervoorstellen behandelen
 
-In de kennisbank onder **Verbetervoorstellen** zie je alle voorstellen bij artikelen in jouw omgeving, met de tekst die de collega had geselecteerd en de artikelversie op dat moment.
+In de kennisbank onder **Verbetervoorstellen** zie je alle voorstellen bij artikelen in jouw omgeving, met de tekst die de collega had geselecteerd en de artikelversie op dat moment. Bovenaan staan filters: *Nog open* (de standaard), *Verwerkt*, *Afgewezen* en *Alles*.
+
+**Je kunt er met de indiener over doorpraten.** Onder elk voorstel staat het gesprek: elk bericht dat
+jij stuurt, komt bij de indiener als melding in de kennisbank én als e-mail binnen, en hij kan
+antwoorden. Gebruik dat ook voor tussentijdse updates — "opgepakt, we kijken ernaar met Toezicht" —
+zodat een voorstel niet maanden stil lijkt te liggen. In het beheerscherm staat hetzelfde gesprek
+onderaan het voorstel, met een leeg vak om een bericht toe te voegen; in de lijst zie je hoeveel
+berichten er al zijn gewisseld en met het filter *Indiener heeft als laatste geschreven* zie je waar
+iemand op een antwoord wacht. Een verstuurd bericht is niet meer aan te passen — schrijf er dan een
+nieuw bij.
 
 1. Zet de status: *Nieuw*, *In behandeling*, *Verwerkt* of *Afgewezen*.
 2. Schrijf een terugkoppeling en klik op **Opslaan**. De indiener ziet die bij zijn voorstel (en krijgt een e-mail als die is ingesteld).

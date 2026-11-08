@@ -5,14 +5,17 @@
 - Functioneel beheerders (superusers) beheren daarnaast omgevingen, toegang en keuzelijsten.
 """
 
+import datetime
 import json
 import re
 
 from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
+from django.contrib.auth.admin import GroupAdmin as DjangoGroupAdmin
+from django.contrib.auth.models import Group
 from django.db import connection, transaction
-from django.db.models import Count
+from django.db.models import Count, OuterRef, Subquery
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
@@ -23,17 +26,22 @@ from django.utils.html import format_html
 from . import diensten
 from . import inhoud as inhoud_mod
 from .models import (
+    GUID_PATROON,
     MAX_INHOUD,
     Artikel,
     ArtikelVersie,
     Bericht,
     Cluster,
+    GroepLabel,
     Omgeving,
     Soort,
     Status,
+    Systeemstand,
     Tag,
     Toegang,
     Verbetervoorstel,
+    VoorstelBericht,
+    VoorstelStatus,
     Zaaktype,
     normaliseer_tag,
 )
@@ -126,6 +134,40 @@ def tags_uit_tekst(tekst: str) -> list[str]:
     return uit
 
 
+#: Binnen hoeveel dagen een naderende herziening al wordt gemarkeerd.
+HERZIENING_BINNENKORT = 30
+
+
+class HerzieningFilter(admin.SimpleListFilter):
+    """Filter op de datum "opnieuw nakijken voor", zodat een redacteur zijn achterstand kan zien."""
+
+    title = "opnieuw nakijken"
+    parameter_name = "herziening"
+
+    def lookups(self, request, model_admin):
+        return [
+            ("te_laat", "Datum verstreken"),
+            ("binnenkort", f"Binnen {HERZIENING_BINNENKORT} dagen"),
+            ("later", "Later"),
+            ("geen", "Geen datum ingevuld"),
+        ]
+
+    def queryset(self, request, queryset):
+        vandaag = timezone.localdate()
+        keuze = self.value()
+        if keuze == "te_laat":
+            return queryset.filter(status=Status.GEPUBLICEERD, herzien_voor__lt=vandaag)
+        if keuze == "binnenkort":
+            grens = vandaag + datetime.timedelta(days=HERZIENING_BINNENKORT)
+            return queryset.filter(status=Status.GEPUBLICEERD, herzien_voor__gte=vandaag, herzien_voor__lte=grens)
+        if keuze == "later":
+            grens = vandaag + datetime.timedelta(days=HERZIENING_BINNENKORT)
+            return queryset.filter(herzien_voor__gt=grens)
+        if keuze == "geen":
+            return queryset.filter(herzien_voor__isnull=True)
+        return queryset
+
+
 #: Titels die onmiskenbaar nog uit de bestandsmap komen in plaats van uit de kennisbank. Alleen gebruikt
 #: bij de eerste publicatie, als zachte vangnet: een redacteur ziet het meestal zelf, maar niet altijd.
 #: Let op: "concept" en "definitief" in gewone schrijfwijze zijn gewone woorden ("conceptbesluit"), dus
@@ -182,7 +224,18 @@ class ArtikelForm(forms.ModelForm):
 
     class Meta:
         model = Artikel
-        fields = ["titel", "samenvatting", "inhoud", "soort", "omgeving", "eigenaar", "clusters", "zaaktypen", "status"]
+        fields = [
+            "titel",
+            "samenvatting",
+            "inhoud",
+            "soort",
+            "omgeving",
+            "eigenaar",
+            "herzien_voor",
+            "clusters",
+            "zaaktypen",
+            "status",
+        ]
         widgets = {"inhoud": forms.Textarea(attrs={"class": "kb-editor", "rows": 24})}
 
     def __init__(self, *args, **kwargs):
@@ -393,17 +446,27 @@ class WordImportForm(forms.Form):
 @admin.register(Artikel)
 class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     form = ArtikelForm
-    list_display = ["titel", "nummer", "soort", "status", "versie_label", "omgeving", "gepubliceerd_op", "bekijk"]
-    list_filter = ["status", "soort", "omgeving", "clusters", "zaaktypen"]
+    list_display = [
+        "titel",
+        "nummer",
+        "soort",
+        "status",
+        "versie_label",
+        "omgeving",
+        "gepubliceerd_op",
+        "nakijken",
+        "bekijk",
+    ]
+    list_filter = ["status", "soort", "omgeving", HerzieningFilter, "clusters", "zaaktypen"]
     search_fields = ["titel", "samenvatting", "inhoud", "=id"]
     filter_horizontal = ["clusters", "zaaktypen"]
     inlines = [VersieInline]
     readonly_fields = ["versie", "gepubliceerd_op", "link"]
-    actions = ["publiceren", "archiveren"]
+    actions = ["publiceren", "archiveren", "nagekeken"]
     change_list_template = "admin/kennisbank/artikel/change_list.html"
     fieldsets = [
         (None, {"fields": ["titel", "samenvatting", "inhoud", "geladen_stempel", "al_gepubliceerd"]}),
-        ("Eigenschappen", {"fields": ["soort", "omgeving", "eigenaar", "link"]}),
+        ("Eigenschappen", {"fields": ["soort", "omgeving", "eigenaar", "herzien_voor", "link"]}),
         ("Vindbaarheid", {"fields": ["clusters", "tags_tekst", "zaaktypen"]}),
         (
             "Publicatie",
@@ -444,6 +507,25 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             ),
         ]
         return eigen + super().get_urls()
+
+    def changelist_view(self, request, extra_context=None):
+        """Een waarschuwing bovenaan de lijst als er artikelen zijn waarvan de nakijkdatum is verstreken.
+
+        Alleen over de artikelen die deze redacteur mag zien, en niet als hij al op dat filter staat.
+        """
+        eigen = self.get_queryset(request)
+        extra = extra_context or {}
+        if not request.GET.get("herziening"):
+            vandaag = timezone.localdate()
+            extra["te_herzien"] = diensten.te_herzien(eigen).count()
+            extra["herzien_binnenkort"] = (
+                eigen.filter(
+                    status=Status.GEPUBLICEERD,
+                    herzien_voor__gte=vandaag,
+                    herzien_voor__lte=vandaag + datetime.timedelta(days=HERZIENING_BINNENKORT),
+                ).count()
+            )
+        return super().changelist_view(request, extra)
 
     def bewerkclaim(self, request, pk):
         """Hartslag van het bewerkscherm: verleng mijn claim en zeg wie er nog meer in dit artikel zit.
@@ -596,6 +678,23 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     def bekijk(self, obj):
         return format_html('<a href="{}" target="_blank">Bekijk</a>', obj.get_absolute_url())
 
+    @admin.display(description="Nakijken voor", ordering="herzien_voor")
+    def nakijken(self, obj):
+        """De herzieningsdatum, met kleur zodra hij in zicht komt of verstreken is."""
+        if not obj.herzien_voor:
+            return format_html('<span style="color:#888">—</span>')
+        dagen = (obj.herzien_voor - timezone.localdate()).days
+        datum = date_format(obj.herzien_voor, "j M Y")
+        if obj.status != Status.GEPUBLICEERD:
+            return format_html('<span style="color:#888">{}</span>', datum)
+        if dagen < 0:
+            return format_html(
+                '<b style="color:#a6192e">{} · {} dagen te laat</b>', datum, -dagen
+            )
+        if dagen <= HERZIENING_BINNENKORT:
+            return format_html('<span style="color:#8a5a00">{} · over {} dagen</span>', datum, dagen)
+        return datum
+
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "omgeving" and not request.user.is_superuser:
             kwargs["queryset"] = Omgeving.objects.filter(pk__in=self._omgevingen(request))
@@ -652,6 +751,32 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         elif form.cleaned_data.get("nieuwsbericht"):
             messages.warning(request, "Geen nieuwsbericht gemaakt: het artikel is niet (opnieuw) gepubliceerd.")
 
+    @admin.action(description="Markeren als nagekeken (nakijkdatum opschuiven)")
+    def nagekeken(self, request, queryset):
+        """Voor artikelen die nog kloppen: de nakijkdatum opschuiven zonder een nieuwe versie te maken.
+
+        Dit is geen wijziging van de tekst, dus er komt geen versie en geen melding bij medewerkers.
+        """
+        maanden = settings.KB_HERZIENINGSTERMIJN_MAANDEN
+        if maanden <= 0:
+            messages.error(
+                request,
+                "Er is geen herzieningstermijn ingesteld (KB_HERZIENINGSTERMIJN_MAANDEN). "
+                "Vul de datum per artikel in, of vraag IT de termijn in te stellen.",
+            )
+            return
+        n = 0
+        for a in queryset:
+            a.herzien_voor = None  # leegmaken, zodat de termijn vanaf vandaag opnieuw gaat tellen
+            nieuw = diensten.herzieningsdatum(a)
+            Artikel.objects.filter(pk=a.pk).update(herzien_voor=nieuw)
+            n += 1
+        messages.success(
+            request,
+            f"{n} artikel(en) gemarkeerd als nagekeken; de nakijkdatum staat nu {maanden} maanden vooruit. "
+            "Er is geen nieuwe versie gemaakt en medewerkers krijgen hiervan geen melding.",
+        )
+
     @admin.action(description="Publiceren")
     def publiceren(self, request, queryset):
         n, geweigerd = 0, []
@@ -691,12 +816,93 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         self.message_user(request, f"{n} artikel(en) gearchiveerd. De versiegeschiedenis blijft bewaard.")
 
 
+class VoorstelOpenFilter(admin.SimpleListFilter):
+    """Standaardblik voor een redacteur: wat ligt er nog, en waar wacht de indiener op antwoord?"""
+
+    title = "wat ligt er"
+    parameter_name = "ligt"
+
+    def lookups(self, request, model_admin):
+        return [
+            ("open", "Nog te behandelen"),
+            ("wacht", "Indiener heeft als laatste geschreven"),
+            ("klaar", "Afgehandeld"),
+        ]
+
+    def queryset(self, request, queryset):
+        keuze = self.value()
+        if keuze == "open":
+            return queryset.filter(status__in=[VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING])
+        if keuze == "klaar":
+            return queryset.filter(status__in=[VoorstelStatus.VERWERKT, VoorstelStatus.AFGEWEZEN])
+        if keuze == "wacht":
+            laatste = (
+                VoorstelBericht.objects.filter(voorstel=OuterRef("pk"))
+                .order_by("-moment", "-pk")
+                .values("van_redactie")[:1]
+            )
+            return queryset.annotate(_laatste_van_redactie=Subquery(laatste)).filter(_laatste_van_redactie=False)
+        return queryset
+
+
+class VoorstelBerichtInline(admin.TabularInline):
+    """Het gesprek tot nu toe, en één lege regel om een bericht toe te voegen."""
+
+    model = VoorstelBericht
+    extra = 1
+    fields = ["moment", "wie", "tekst"]
+    readonly_fields = ["moment", "wie"]
+    verbose_name = "bericht"
+    verbose_name_plural = "Gesprek met de indiener"
+
+    @admin.display(description="Van")
+    def wie(self, obj):
+        if not obj or not obj.pk:
+            return ""
+        return f"{obj.naam} ({'procesmanagement' if obj.van_redactie else 'indiener'})"
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super().get_formset(request, obj, **kwargs)
+        formset.form.base_fields["tekst"].widget = forms.Textarea(attrs={"rows": 4, "cols": 70})
+        formset.form.base_fields["tekst"].help_text = (
+            "Een nieuw bericht gaat als melding en e-mail naar de indiener. Gebruik dit ook voor "
+            "tussentijdse updates: 'opgepakt, we kijken ernaar met Toezicht'."
+        )
+        return formset
+
+    # De rechten van de redacteur komen uit zijn omgevingen (RedactieRechtenMixin op het voorstel),
+    # niet uit de Django-rechtentabel. Zonder deze methoden laat Django de inline helemaal weg.
+    def _mag(self, request):
+        return request.user.is_superuser or Rechten(request.user).is_redacteur
+
+    def has_view_permission(self, request, obj=None):
+        return self._mag(request)
+
+    def has_add_permission(self, request, obj=None):
+        return self._mag(request)
+
+    def has_change_permission(self, request, obj=None):
+        return False  # een verstuurd bericht pas je niet meer aan; schrijf er een nieuw bij
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser  # een verstuurd bericht is niet meer ongedaan te maken
+
+
+class VoorstelForm(forms.ModelForm):
+    class Meta:
+        model = Verbetervoorstel
+        fields = ["status", "terugkoppeling"]
+        widgets = {"terugkoppeling": forms.Textarea(attrs={"rows": 6, "cols": 80})}
+
+
 @admin.register(Verbetervoorstel)
 class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
+    form = VoorstelForm
     omgeving_pad = "artikel__omgeving"
-    list_display = ["artikel", "status", "ingediend_op", "ingediend_door", "kort"]
-    list_filter = ["status", "artikel__omgeving"]
-    search_fields = ["tekst", "citaat", "artikel__titel"]
+    list_display = ["artikel", "status", "ingediend_op", "ingediend_door", "gesprek", "kort"]
+    list_filter = [VoorstelOpenFilter, "status", "artikel__omgeving"]
+    search_fields = ["tekst", "citaat", "artikel__titel", "berichten__tekst"]
+    inlines = [VoorstelBerichtInline]
     readonly_fields = [
         "artikel",
         "artikel_versie",
@@ -707,7 +913,27 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         "behandeld_door",
         "behandeld_op",
     ]
-    fields = readonly_fields[:6] + ["status", "terugkoppeling", "behandeld_door", "behandeld_op"]
+    fieldsets = [
+        (
+            "Het voorstel",
+            {"fields": ["artikel", "artikel_versie", "citaat", "tekst", "ingediend_door", "ingediend_op"]},
+        ),
+        (
+            "Behandeling",
+            {
+                "fields": ["status", "terugkoppeling", "behandeld_door", "behandeld_op"],
+                "description": "De terugkoppeling is wat de indiener als antwoord ziet. Wil je er meer dan "
+                "één bericht over sturen, gebruik dan het gesprek onderaan.",
+            },
+        ),
+    ]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(_berichten=Count("berichten"))
+
+    @admin.display(description="Gesprek", ordering="_berichten")
+    def gesprek(self, obj):
+        return f"{obj._berichten} bericht(en)" if obj._berichten else "—"
 
     @admin.display(description="Voorstel")
     def kort(self, obj):
@@ -720,7 +946,26 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         obj.behandeld_door = request.user
         obj.behandeld_op = timezone.now()
         super().save_model(request, obj, form, change)
-        if "terugkoppeling" in form.changed_data or "status" in form.changed_data:
+
+    def save_related(self, request, form, formsets, change):
+        """Nieuwe gespreksberichten en een gewijzigde terugkoppeling leveren precies één melding op."""
+        obj = form.instance
+        nieuwe_berichten = []
+        for formset in formsets:
+            if formset.model is not VoorstelBericht:
+                continue
+            for f in formset.forms:
+                if f.instance.pk is None and (f.cleaned_data.get("tekst") or "").strip():
+                    nieuwe_berichten.append(f.cleaned_data["tekst"])
+                    f.cleaned_data["tekst"] = ""  # we schrijven hem zelf weg via de dienst
+                    f.instance.tekst = ""
+        super().save_related(request, form, formsets, change)
+        VoorstelBericht.objects.filter(voorstel=obj, tekst="").delete()  # de lege regels van hierboven
+        for tekst in nieuwe_berichten:
+            diensten.voorstelbericht_toevoegen(obj, request.user, tekst, van_redactie=True)
+        if not nieuwe_berichten and "terugkoppeling" in form.changed_data and obj.terugkoppeling.strip():
+            diensten.voorstelbericht_toevoegen(obj, request.user, obj.terugkoppeling, van_redactie=True)
+        elif not nieuwe_berichten and "status" in form.changed_data:
             diensten.meld_terugkoppeling(obj)
 
 
@@ -781,20 +1026,164 @@ class ToegangInline(admin.TabularInline):
     model = Toegang
     extra = 1
     autocomplete_fields = ["groep"]
+    fields = ["groep", "groep_uitleg", "rol"]
+    readonly_fields = ["groep_uitleg"]
+    verbose_name = "groep met toegang"
+    verbose_name_plural = "Wie heeft toegang tot deze omgeving"
+
+    @admin.display(description="Welke groep is dit?")
+    def groep_uitleg(self, obj):
+        """De leesbare naam erbij, want in Entra ID is de groepsnaam vaak een object-id."""
+        if not obj or not obj.groep_id:
+            return ""
+        return groep_omschrijving(obj.groep)
 
 
 @admin.register(Omgeving)
 class OmgevingAdmin(admin.ModelAdmin):
-    list_display = ["naam", "slug"]
+    list_display = ["naam", "slug", "aantal_groepen", "aantal_artikelen"]
     prepopulated_fields = {"slug": ["naam"]}
     inlines = [ToegangInline]
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .annotate(_groepen=Count("toegang", distinct=True), _artikelen=Count("artikel", distinct=True))
+        )
+
+    @admin.display(description="Groepen met toegang", ordering="_groepen")
+    def aantal_groepen(self, obj):
+        return obj._groepen
+
+    @admin.display(description="Artikelen", ordering="_artikelen")
+    def aantal_artikelen(self, obj):
+        return obj._artikelen
 
 
 @admin.register(Toegang)
 class ToegangAdmin(admin.ModelAdmin):
-    list_display = ["groep", "rol", "omgeving"]
+    list_display = ["welke_groep", "groepscode", "rol", "omgeving"]
     list_filter = ["omgeving", "rol"]
     autocomplete_fields = ["groep"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("groep__kennisbank_label", "omgeving")
+
+    @admin.display(description="Groep")
+    def welke_groep(self, obj):
+        return groep_omschrijving(obj.groep)
+
+    @admin.display(description="Code uit Entra ID")
+    def groepscode(self, obj):
+        """De ruwe naam uit de groepen-claim. Een GUID zetten we er grijs bij, die leest niemand."""
+        naam = obj.groep.name
+        if GUID_PATROON.match(naam):
+            return format_html('<span style="color:#666">{}</span>', naam)
+        return naam
+
+
+def groep_omschrijving(groep) -> str:
+    """Leesbare naam van een groep; valt terug op de code met een duidelijke hint als er geen label is."""
+    label = getattr(groep, "kennisbank_label", None)
+    if label:
+        return label.omschrijving
+    if GUID_PATROON.match(groep.name):
+        return "(nog geen naam ingevuld — zie Groepsnamen)"
+    return groep.name
+
+
+class GroepLabelInline(admin.StackedInline):
+    model = GroepLabel
+    can_delete = True
+    verbose_name_plural = "Leesbare naam"
+    extra = 0
+    max_num = 1
+
+
+class GroepAdmin(DjangoGroupAdmin):
+    """Django's groepenscherm met de leesbare naam en waar de groep voor wordt gebruikt erbij.
+
+    In Entra ID-modus worden groepen automatisch aangemaakt vanuit de groepen-claim bij het inloggen.
+    De naam daarin is bij RWS vaak een object-id, dus zonder deze toevoeging ziet een beheerder een
+    lijst codes.
+    """
+
+    inlines = [GroepLabelInline]
+    list_display = ["welke_groep", "naam_uit_entra", "aantal_gebruikers", "waarvoor"]
+    search_fields = ["name", "kennisbank_label__omschrijving"]
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("kennisbank_label")
+            .prefetch_related("kennisbank_toegang__omgeving")
+            .annotate(_gebruikers=Count("user", distinct=True))
+        )
+
+    @admin.display(description="Groep")
+    def welke_groep(self, obj):
+        return groep_omschrijving(obj)
+
+    @admin.display(description="Naam uit Entra ID", ordering="name")
+    def naam_uit_entra(self, obj):
+        return obj.name
+
+    @admin.display(description="Heeft ingelogd", ordering="_gebruikers")
+    def aantal_gebruikers(self, obj):
+        return f"{obj._gebruikers} gebruiker(s)"
+
+    @admin.display(description="Toegang tot")
+    def waarvoor(self, obj):
+        rijen = [f"{t.omgeving.naam} ({t.get_rol_display()})" for t in obj.kennisbank_toegang.all()]
+        return ", ".join(rijen) or "—"
+
+
+admin.site.unregister(Group)
+admin.site.register(Group, GroepAdmin)
+
+
+@admin.register(Systeemstand)
+class StatusAdmin(admin.ModelAdmin):
+    """Eén scherm waarop de functioneel beheerder ziet of alles nog loopt.
+
+    Hangt aan het model Systeemstand, zodat "Status" gewoon in het beheermenu staat. De lijst zelf is
+    vervangen door de statuspagina; er valt hier niets te wijzigen.
+    """
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def changelist_view(self, request, extra_context=None):
+        from django.core.exceptions import PermissionDenied
+
+        if not self.has_view_permission(request):
+            raise PermissionDenied
+        from . import status as status_mod
+
+        return render(
+            request,
+            "admin/kennisbank/status.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Status",
+                "overzicht": status_mod.overzicht(),
+                "opts": self.model._meta,
+            },
+        )
 
 
 class RedactieKeuzelijstAdmin(admin.ModelAdmin):
@@ -816,9 +1205,67 @@ class RedactieKeuzelijstAdmin(admin.ModelAdmin):
         return request.user.is_superuser
 
 
+class OngebruiktFilter(admin.SimpleListFilter):
+    """Filter op "nergens gebruikt", zodat een beheerder een keuzelijst kan opruimen."""
+
+    title = "gebruik"
+    parameter_name = "gebruik"
+
+    def lookups(self, request, model_admin):
+        return [("ongebruikt", "Nergens gebruikt"), ("gebruikt", "In gebruik")]
+
+    def queryset(self, request, queryset):
+        if self.value() == "ongebruikt":
+            return queryset.filter(_aantal=0)
+        if self.value() == "gebruikt":
+            return queryset.filter(_aantal__gt=0)
+        return queryset
+
+
+class OpruimbareKeuzelijstAdmin(RedactieKeuzelijstAdmin):
+    """Keuzelijst met een gebruiksteller, een filter op "nergens gebruikt" en een opruimactie.
+
+    Keuzelijsten groeien: een import, een typefout of een reorganisatie laat items achter die nergens
+    meer aan hangen. Die staan vervolgens wel in elk keuzemenu. Verwijderen mag alleen een beheerder,
+    en alleen items die echt nergens meer in gebruik zijn.
+    """
+
+    #: Naam van de relatie naar Artikel waarop we het gebruik tellen.
+    gebruiksrelatie = "artikel"
+    list_filter = [OngebruiktFilter]
+    actions = ["ongebruikte_verwijderen"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(_aantal=Count(self.gebruiksrelatie, distinct=True))
+
+    @admin.display(description="Gebruikt in", ordering="_aantal")
+    def aantal_artikelen(self, obj):
+        return f"{obj._aantal} artikel(en)"
+
+    @admin.action(description="Verwijderen als ze nergens worden gebruikt")
+    def ongebruikte_verwijderen(self, request, queryset):
+        if not request.user.is_superuser:
+            messages.error(request, "Alleen een functioneel beheerder kan keuzelijsten opruimen.")
+            return
+        in_gebruik = [str(o) for o in queryset.filter(_aantal__gt=0)]
+        aantal, _ = queryset.filter(_aantal=0).delete()
+        if aantal:
+            messages.success(request, f"{aantal} ongebruikt(e) item(s) verwijderd.")
+        if in_gebruik:
+            messages.warning(
+                request,
+                f"Overgeslagen omdat ze nog in gebruik zijn: {', '.join(in_gebruik[:10])}"
+                + (f" en {len(in_gebruik) - 10} andere" if len(in_gebruik) > 10 else "")
+                + ". Haal ze eerst bij die artikelen weg.",
+            )
+        if not aantal and not in_gebruik:
+            messages.info(request, "Niets geselecteerd om op te ruimen.")
+
+
 @admin.register(Cluster)
-class ClusterAdmin(RedactieKeuzelijstAdmin):
-    list_display = ["naam", "volgorde"]
+class ClusterAdmin(OpruimbareKeuzelijstAdmin):
+    gebruiksrelatie = "artikel"
+    list_display = ["naam", "volgorde", "aantal_artikelen"]
     list_editable = ["volgorde"]
 
 
@@ -835,19 +1282,14 @@ class TagForm(forms.ModelForm):
 
 
 @admin.register(Tag)
-class TagAdmin(RedactieKeuzelijstAdmin):
+class TagAdmin(OpruimbareKeuzelijstAdmin):
     form = TagForm
+    gebruiksrelatie = "artikel"
     list_display = ["naam", "aantal_artikelen"]
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).annotate(_aantal=Count("artikel"))
-
-    @admin.display(description="Gebruikt in", ordering="_aantal")
-    def aantal_artikelen(self, obj):
-        return f"{obj._aantal} artikel(en)"
 
 
 @admin.register(Zaaktype)
-class ZaaktypeAdmin(RedactieKeuzelijstAdmin):
-    list_display = ["naam", "code"]
+class ZaaktypeAdmin(OpruimbareKeuzelijstAdmin):
+    gebruiksrelatie = "artikel"
+    list_display = ["naam", "code", "aantal_artikelen"]
     search_fields = ["naam", "code"]

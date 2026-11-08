@@ -74,6 +74,7 @@ Uitgevoerd door het commando `opschonen` (dagelijks inplannen); dat verwijdert o
 | `KB_RECENT_MAX` | `10` | Maximaal aantal regels "recent bezocht" per gebruiker. |
 | `KB_BEWAAR_STATISTIEK_DAGEN` | `730` | Geanonimiseerde tellingen (weergaven, zoektermen). |
 | `KB_ANONIMISEER_VOORSTEL_DAGEN` | `365` | Na afhandeling wordt de naam van de indiener van een voorstel verwijderd. |
+| `KB_HERZIENINGSTERMIJN_MAANDEN` | `12` | Na hoeveel maanden een gepubliceerd artikel opnieuw moet worden nagekeken. Bij publiceren vult de kennisbank de datum "opnieuw nakijken voor" zo in als de redacteur hem leeg laat; een datum die al verstreken was, schuift mee. `0` = niet automatisch vullen (de redacteur kan de datum dan nog altijd zelf zetten). |
 
 ## E-mail (optioneel)
 

@@ -44,6 +44,7 @@ class Command(BaseCommand):
         mails = diensten.verstuur_favorietenmail()
         wachtrij = FavorietenMail.objects.filter(verzonden_op__lt=nu - timezone.timedelta(days=30)).delete()[0]
         claims = diensten.verlopen_claims_opruimen()
+        diensten.stand_vastleggen("opschonen", f"{mails} mail(s) verstuurd, {claims} claim(s) opgeruimd")
         self.stdout.write(
             f"Opgeschoond: {recent} recent-bezocht-regels, {stats} statistiekregels, "
             f"{anoniem} voorstellen geanonimiseerd, verlopen sessies verwijderd, "

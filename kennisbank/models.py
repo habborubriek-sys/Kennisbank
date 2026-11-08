@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.contrib.postgres.indexes import GinIndex
@@ -44,6 +46,39 @@ class Toegang(models.Model):
 
     def __str__(self):
         return f"{self.groep} → {self.get_rol_display()} in {self.omgeving}"
+
+
+class GroepLabel(models.Model):
+    """Een leesbare naam bij een groep uit de identity provider.
+
+    In Entra ID bevat de groepen-claim vaak object-id's (GUID's) in plaats van groepsnamen. Een
+    beheerder die toegang regelt, ziet dan een lijst codes waarin hij niets terugkent. Hier zet hij
+    erbij welke groep dat is; de kennisbank gebruikt dat label overal waar de groep wordt getoond.
+    """
+
+    groep = models.OneToOneField(Group, on_delete=models.CASCADE, related_name="kennisbank_label")
+    omschrijving = models.CharField(
+        max_length=120,
+        help_text="Hoe deze groep in Entra ID heet, bijvoorbeeld 'RWS-Handhaving-MN-Procesmanagement'.",
+    )
+
+    class Meta:
+        verbose_name = "groepsnaam"
+        verbose_name_plural = "groepsnamen"
+        ordering = ["omschrijving"]
+
+    def __str__(self):
+        return self.omschrijving
+
+
+def groepnaam(groep: Group) -> str:
+    """De leesbare naam van een groep: het label als de beheerder er een heeft gezet, anders de code."""
+    label = getattr(groep, "kennisbank_label", None)
+    return label.omschrijving if label else groep.name
+
+
+#: Een groepsnaam die eruitziet als een object-id uit Entra ID en dus voor niemand leesbaar is.
+GUID_PATROON = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
 
 
 class Cluster(models.Model):
@@ -143,6 +178,14 @@ class Artikel(models.Model):
     )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.CONCEPT)
     eigenaar = models.CharField(max_length=120, default="Procesmanagement")
+    herzien_voor = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="opnieuw nakijken voor",
+        help_text="Wanneer dit artikel uiterlijk opnieuw moet worden nagekeken. Leeg laten mag; bij het "
+        "publiceren vult de kennisbank hem zelf in volgens de termijn die IT heeft ingesteld. "
+        "Alleen zichtbaar voor redacteuren.",
+    )
     versie = models.PositiveIntegerField(default=0, editable=False)
     gepubliceerd_op = models.DateTimeField(null=True, blank=True, editable=False)
     aangemaakt_op = models.DateTimeField(auto_now_add=True)
@@ -421,6 +464,27 @@ class AssistentDagTotaal(models.Model):
     modelaanroepen = models.PositiveIntegerField(default=0)
 
 
+class Systeemstand(models.Model):
+    """Wanneer een onderhoudstaak voor het laatst heeft gelopen.
+
+    Eén regel per taak (bijvoorbeeld "opschonen"). De statuspagina gebruikt dit om te zien of de
+    geplande taken daadwerkelijk lopen; zonder deze registratie is "de cron staat niet aan" pas te
+    merken als er iets niet meer werkt.
+    """
+
+    sleutel = models.CharField(max_length=60, unique=True)
+    moment = models.DateTimeField(default=timezone.now)
+    melding = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        verbose_name = "status"
+        verbose_name_plural = "status"
+        ordering = ["sleutel"]
+
+    def __str__(self):
+        return f"{self.sleutel}: {self.moment:%Y-%m-%d %H:%M}"
+
+
 class VoorstelStatus(models.TextChoices):
     NIEUW = "nieuw", "Nieuw"
     IN_BEHANDELING = "in_behandeling", "In behandeling"
@@ -451,6 +515,9 @@ class Verbetervoorstel(models.Model):
         related_name="behandelde_voorstellen",
     )
     behandeld_op = models.DateTimeField(null=True, blank=True)
+    #: Tot wanneer beide kanten het gesprek hebben gelezen; bepaalt of er een "nieuw"-stip staat.
+    gelezen_indiener_op = models.DateTimeField(null=True, blank=True, editable=False)
+    gelezen_redactie_op = models.DateTimeField(null=True, blank=True, editable=False)
 
     class Meta:
         verbose_name = "verbetervoorstel"
@@ -463,6 +530,38 @@ class Verbetervoorstel(models.Model):
     @property
     def is_open(self):
         return self.status in {VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING}
+
+
+class VoorstelBericht(models.Model):
+    """Eén bericht in het gesprek over een verbetervoorstel.
+
+    Een voorstel is zelden in één keer klaar: procesmanagement wil tussentijds kunnen melden dat het
+    is opgepakt, een vraag kunnen stellen, en later kunnen laten weten wat ermee is gebeurd. De
+    indiener kan antwoorden. Elk bericht van de ene kant levert een melding bij de andere kant op.
+    """
+
+    voorstel = models.ForeignKey(Verbetervoorstel, on_delete=models.CASCADE, related_name="berichten")
+    auteur = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    van_redactie = models.BooleanField(
+        default=True, help_text="Van procesmanagement (aan) of van de indiener (uit)."
+    )
+    tekst = models.TextField()
+    moment = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "bericht bij een voorstel"
+        verbose_name_plural = "gesprek"
+        ordering = ["moment", "pk"]
+
+    def __str__(self):
+        return f"{'Procesmanagement' if self.van_redactie else 'Indiener'}: {self.tekst[:60]}"
+
+    @property
+    def naam(self) -> str:
+        """Wie het bericht schreef, of 'Procesmanagement' / 'Indiener' als de naam is verwijderd."""
+        if self.auteur:
+            return self.auteur.get_full_name() or self.auteur.get_username()
+        return "Procesmanagement" if self.van_redactie else "Indiener"
 
 
 class BewerkClaim(models.Model):

@@ -1,3 +1,4 @@
+import datetime
 import io
 import json
 import re
@@ -7,10 +8,12 @@ from unittest import mock
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.core import mail
 from django.core.management import call_command
 from django.test import Client, TestCase, override_settings
 from django.utils import timezone
 
+from kennisbank import admin as admin_mod
 from kennisbank import diensten
 from kennisbank.auth import KennisbankOIDCBackend
 from kennisbank.inhoud import blokken, onboarding_blokken, schoon, zonder_onboarding
@@ -19,6 +22,7 @@ from kennisbank.models import (
     Artikel,
     ArtikelVersie,
     BewerkClaim,
+    GroepLabel,
     Omgeving,
     RecentBezocht,
     Rol,
@@ -27,6 +31,7 @@ from kennisbank.models import (
     Tag,
     Toegang,
     Verbetervoorstel,
+    VoorstelStatus,
     WeergaveTelling,
     Zaaktype,
     ZoekTelling,
@@ -2112,3 +2117,335 @@ class WordImportKeuzesTests(Basis):
         p.save(update_fields=["import_kop_als_titel"])
         r = c.get("/beheer/kennisbank/artikel/importeren-word/")
         self.assertTrue(r.context["form"]["kop_als_titel"].value())
+
+
+class HerzieningTests(Basis):
+    """Ronde 4 (punt 21): de datum 'opnieuw nakijken voor'."""
+
+    def setUp(self):
+        self.a = Artikel.objects.get(slug="rappel-versturen")
+        self.c = self.als(self.redacteur)
+
+    def test_publiceren_vult_een_lege_nakijkdatum(self):
+        a = self.concept
+        a.herzien_voor = None
+        a.save(update_fields=["herzien_voor", "gewijzigd_op"])
+        data = beheerdata(a, status=Status.GEPUBLICEERD)
+        self.assertEqual(self.c.post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data).status_code, 302)
+        a.refresh_from_db()
+        verwacht = timezone.localdate() + datetime.timedelta(days=364)
+        self.assertIsNotNone(a.herzien_voor)
+        self.assertGreaterEqual(a.herzien_voor, verwacht)
+
+    def test_een_eigen_datum_in_de_toekomst_blijft_staan(self):
+        eigen = timezone.localdate() + datetime.timedelta(days=30)
+        self.a.herzien_voor = eigen
+        self.a.save(update_fields=["herzien_voor", "gewijzigd_op"])
+        self.assertIsNone(diensten.herzieningsdatum(self.a))
+
+    def test_een_verstreken_datum_schuift_mee_bij_publiceren(self):
+        self.a.herzien_voor = timezone.localdate() - datetime.timedelta(days=5)
+        self.a.save(update_fields=["herzien_voor", "gewijzigd_op"])
+        nieuw = diensten.herzieningsdatum(self.a)
+        self.assertIsNotNone(nieuw)
+        self.assertGreater(nieuw, timezone.localdate())
+
+    def test_een_kleine_correctie_schuift_niets_op(self):
+        verstreken = timezone.localdate() - datetime.timedelta(days=5)
+        self.a.herzien_voor = verstreken
+        self.a.save(update_fields=["herzien_voor", "gewijzigd_op"])
+        self.assertIsNone(diensten.herzieningsdatum(self.a, kleine_correctie=True))
+
+    @override_settings(KB_HERZIENINGSTERMIJN_MAANDEN=0)
+    def test_termijn_uit_vult_niets(self):
+        self.a.herzien_voor = None
+        self.assertIsNone(diensten.herzieningsdatum(self.a))
+
+    def test_de_nakijkdatum_maakt_geen_nieuwe_versie(self):
+        """Anders zou een administratieve datum een wijzigingsmelding bij medewerkers opleveren."""
+        voor = diensten.momentopname(self.a)
+        self.a.herzien_voor = timezone.localdate() + datetime.timedelta(days=100)
+        self.a.save(update_fields=["herzien_voor", "gewijzigd_op"])
+        self.assertEqual(diensten.momentopname(self.a), voor)
+
+    def test_de_lijst_waarschuwt_over_verstreken_artikelen(self):
+        self.a.herzien_voor = timezone.localdate() - datetime.timedelta(days=3)
+        self.a.save(update_fields=["herzien_voor", "gewijzigd_op"])
+        r = self.c.get("/beheer/kennisbank/artikel/")
+        self.assertEqual(r.context["te_herzien"], 1)
+        self.assertContains(r, "opnieuw worden nagekeken")
+
+    def test_filter_op_verstreken_datum(self):
+        self.a.herzien_voor = timezone.localdate() - datetime.timedelta(days=3)
+        self.a.save(update_fields=["herzien_voor", "gewijzigd_op"])
+        r = self.c.get("/beheer/kennisbank/artikel/?herziening=te_laat")
+        self.assertEqual([x.pk for x in r.context["cl"].result_list], [self.a.pk])
+
+    def test_actie_nagekeken_schuift_op_zonder_nieuwe_versie(self):
+        self.a.herzien_voor = timezone.localdate() - datetime.timedelta(days=3)
+        self.a.save(update_fields=["herzien_voor", "gewijzigd_op"])
+        versies = self.a.versies.count()
+        self.c.post(
+            "/beheer/kennisbank/artikel/",
+            {"action": "nagekeken", "_selected_action": str(self.a.pk), "index": "0"},
+        )
+        self.a.refresh_from_db()
+        self.assertGreater(self.a.herzien_voor, timezone.localdate())
+        self.assertEqual(self.a.versies.count(), versies)
+
+    def test_medewerkers_zien_de_nakijkdatum_niet(self):
+        self.a.herzien_voor = timezone.localdate() - datetime.timedelta(days=3)
+        self.a.save(update_fields=["herzien_voor", "gewijzigd_op"])
+        r = self.als(self.lezer).get(f"/api/v1/artikelen/{self.a.pk}")
+        self.assertNotIn("herzien_voor", r.json())
+
+
+class GroepLabelTests(Basis):
+    """Ronde 4 (punt 19): een GUID uit Entra ID krijgt een leesbare naam."""
+
+    def setUp(self):
+        self.groep = Group.objects.create(name="3f2504e0-4f89-11d3-9a0c-0305e82c3301")
+        Toegang.objects.create(omgeving=self.hh, groep=self.groep, rol=Rol.REDACTEUR)
+        self.c = self.als(User.objects.create_superuser('beheer-test', 'b@x.nl', 'geheim'))
+
+    def test_zonder_label_wijst_het_scherm_naar_groepsnamen(self):
+        r = self.c.get("/beheer/kennisbank/toegang/")
+        self.assertContains(r, "nog geen naam ingevuld")
+
+    def test_met_label_staat_de_leesbare_naam_in_de_lijst(self):
+        GroepLabel.objects.create(groep=self.groep, omschrijving="RWS-Handhaving-MN-Procesmanagement")
+        r = self.c.get("/beheer/kennisbank/toegang/")
+        self.assertContains(r, "RWS-Handhaving-MN-Procesmanagement")
+
+    def test_een_gewone_groepsnaam_wordt_gewoon_getoond(self):
+        g = Group.objects.create(name="Procesmanagement Midden-Nederland")
+        self.assertEqual(admin_mod.groep_omschrijving(g), "Procesmanagement Midden-Nederland")
+
+    def test_het_groepenscherm_toont_waar_de_groep_toegang_heeft(self):
+        r = self.c.get("/beheer/auth/group/")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, self.hh.naam)
+
+
+class KeuzelijstOpruimenTests(Basis):
+    """Ronde 4 (punt 23): ongebruikte keuzelijst-items vinden en verwijderen."""
+
+    def setUp(self):
+        self.los = Tag.objects.create(naam="nergens gebruikt")
+        self.gebruikt = Tag.objects.create(naam="wel gebruikt")
+        Artikel.objects.get(slug="rappel-versturen").tags.add(self.gebruikt)
+        self.c = self.als(User.objects.create_superuser('beheer-test', 'b@x.nl', 'geheim'))
+
+    def test_filter_toont_alleen_ongebruikte(self):
+        r = self.c.get("/beheer/kennisbank/tag/?gebruik=ongebruikt")
+        namen = [t.naam for t in r.context["cl"].result_list]
+        self.assertIn(self.los.naam, namen)
+        self.assertNotIn(self.gebruikt.naam, namen)
+
+    def test_actie_verwijdert_alleen_wat_nergens_hangt(self):
+        self.c.post(
+            "/beheer/kennisbank/tag/",
+            {
+                "action": "ongebruikte_verwijderen",
+                "_selected_action": [str(self.los.pk), str(self.gebruikt.pk)],
+                "index": "0",
+            },
+        )
+        self.assertFalse(Tag.objects.filter(pk=self.los.pk).exists())
+        self.assertTrue(Tag.objects.filter(pk=self.gebruikt.pk).exists())
+
+    def test_een_redacteur_mag_niet_opruimen(self):
+        self.als(self.redacteur).post(
+            "/beheer/kennisbank/tag/",
+            {"action": "ongebruikte_verwijderen", "_selected_action": str(self.los.pk), "index": "0"},
+        )
+        self.assertTrue(Tag.objects.filter(pk=self.los.pk).exists())
+
+
+class StatuspaginaTests(Basis):
+    """Ronde 4 (punt 20): de statuspagina voor de functioneel beheerder."""
+
+    def setUp(self):
+        self.beheer = User.objects.create_superuser("beheer-status", "b@x.nl", "geheim")
+
+    def test_beheerder_ziet_de_statuspagina(self):
+        r = self.als(self.beheer).get("/beheer/kennisbank/systeemstand/")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Versie en instellingen")
+        self.assertContains(r, "Databasestructuur")
+
+    def test_redacteur_mag_er_niet_bij(self):
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        r = self.als(self.redacteur).get("/beheer/kennisbank/systeemstand/")
+        self.assertIn(r.status_code, (302, 403))
+
+    def test_zonder_opschoonronde_staat_onderhoud_op_fout(self):
+        from kennisbank import status as status_mod
+
+        rijen = status_mod._onderhoud()
+        self.assertEqual(rijen[0]["stand"], status_mod.FOUT)
+        self.assertIn("nooit gelopen", rijen[0]["waarde"])
+
+    def test_na_opschonen_staat_onderhoud_op_goed(self):
+        from kennisbank import status as status_mod
+
+        call_command("kennisbank_opschonen")
+        rijen = status_mod._onderhoud()
+        self.assertEqual(rijen[0]["stand"], status_mod.GOED)
+
+    def test_omgeving_zonder_toegang_wordt_gemeld(self):
+        from kennisbank import status as status_mod
+
+        Omgeving.objects.create(slug="niemand", naam="Niemand kan hierbij")
+        rijen = status_mod._toegang()
+        self.assertEqual(rijen[0]["stand"], status_mod.FOUT)
+        self.assertIn("Niemand kan hierbij", rijen[0]["waarde"])
+
+    def test_een_kapotte_controle_sloopt_de_pagina_niet(self):
+        from kennisbank import status as status_mod
+
+        def stuk():
+            raise RuntimeError("test")
+
+        with mock.patch.object(status_mod, "ONDERDELEN", [("Database", stuk)]):
+            uit = status_mod.overzicht()
+        self.assertEqual(uit["totaal"], status_mod.LET_OP)
+        self.assertIn("controle mislukt", uit["groepen"][0]["rijen"][0]["waarde"])
+
+    def test_secties_zonder_zoekdocument_worden_gemeld(self):
+        from kennisbank import status as status_mod
+
+        Sectie.objects.filter(pk=Sectie.objects.first().pk).update(zoekvector=None)
+        rijen = status_mod._zoekindex()
+        self.assertEqual(rijen[0]["stand"], status_mod.FOUT)
+
+
+class VoorstelGesprekTests(Basis):
+    """Ronde 4 (punt 22): meerdere updates per voorstel, met een melding aan de andere kant."""
+
+    def setUp(self):
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        self.a = Artikel.objects.get(slug="rappel-versturen")
+        self.v = Verbetervoorstel.objects.create(
+            artikel=self.a,
+            artikel_versie=self.a.versie,
+            tekst="De termijn klopt niet meer",
+            ingediend_door=self.lezer,
+        )
+        self.lezer.email = "lezer@example.org"
+        self.lezer.save(update_fields=["email"])
+
+    def test_redacteur_kan_meerdere_updates_sturen(self):
+        c = self.als(self.redacteur)
+        for tekst in ["Opgepakt, we kijken ernaar.", "Overlegd met Toezicht.", "Aangepast in versie 3."]:
+            r = c.post(f"/api/v1/voorstellen/{self.v.pk}/berichten", {"tekst": tekst}, content_type="application/json")
+            self.assertEqual(r.status_code, 201, r.content)
+        self.assertEqual(self.v.berichten.count(), 3)
+        self.v.refresh_from_db()
+        self.assertEqual(self.v.terugkoppeling, "Aangepast in versie 3.")
+
+    @override_settings(KB_EMAIL_AAN=True)
+    def test_elke_update_levert_een_mail_bij_de_indiener(self):
+        c = self.als(self.redacteur)
+        mail.outbox = []
+        c.post(f"/api/v1/voorstellen/{self.v.pk}/berichten", {"tekst": "Opgepakt"}, content_type="application/json")
+        c.post(f"/api/v1/voorstellen/{self.v.pk}/berichten", {"tekst": "Klaar"}, content_type="application/json")
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertIn("lezer@example.org", mail.outbox[0].to)
+
+    def test_de_indiener_kan_antwoorden(self):
+        r = self.als(self.lezer).post(
+            f"/api/v1/voorstellen/{self.v.pk}/berichten",
+            {"tekst": "Dank, nog één ding"},
+            content_type="application/json",
+        )
+        self.assertEqual(r.status_code, 201)
+        bericht = self.v.berichten.get()
+        self.assertFalse(bericht.van_redactie)
+        self.v.refresh_from_db()
+        self.assertEqual(self.v.terugkoppeling, "")  # een antwoord van de indiener is geen terugkoppeling
+
+    def test_de_indiener_ziet_hoeveel_berichten_nieuw_zijn(self):
+        diensten.voorstelbericht_toevoegen(self.v, self.redacteur, "Opgepakt", van_redactie=True)
+        diensten.voorstelbericht_toevoegen(self.v, self.redacteur, "Klaar", van_redactie=True)
+        r = self.als(self.lezer).get("/api/v1/voorstellen")
+        rij = next(x for x in r.json() if x["id"] == self.v.pk)
+        self.assertEqual(rij["ongelezen"], 2)
+        self.assertEqual(len(rij["berichten"]), 2)
+
+    def test_na_gelezen_staat_de_teller_op_nul(self):
+        diensten.voorstelbericht_toevoegen(self.v, self.redacteur, "Opgepakt", van_redactie=True)
+        c = self.als(self.lezer)
+        self.assertEqual(c.post(f"/api/v1/voorstellen/{self.v.pk}/gelezen").status_code, 204)
+        self.v.refresh_from_db()
+        self.assertEqual(diensten.voorstel_ongelezen(self.v, self.lezer), 0)
+
+    def test_je_eigen_berichten_tellen_niet_als_ongelezen(self):
+        diensten.voorstelbericht_toevoegen(self.v, self.lezer, "Nog een aanvulling", van_redactie=False)
+        self.assertEqual(diensten.voorstel_ongelezen(self.v, self.lezer), 0)
+
+    def test_een_buitenstaander_komt_er_niet_bij(self):
+        r = self.als(self.buitenstaander).post(
+            f"/api/v1/voorstellen/{self.v.pk}/berichten", {"tekst": "hoi"}, content_type="application/json"
+        )
+        self.assertEqual(r.status_code, 404)
+
+    def test_leeg_bericht_wordt_geweigerd(self):
+        r = self.als(self.lezer).post(
+            f"/api/v1/voorstellen/{self.v.pk}/berichten", {"tekst": "   "}, content_type="application/json"
+        )
+        self.assertEqual(r.status_code, 400)
+
+    def test_te_lang_bericht_wordt_geweigerd(self):
+        r = self.als(self.lezer).post(
+            f"/api/v1/voorstellen/{self.v.pk}/berichten", {"tekst": "x" * 5001}, content_type="application/json"
+        )
+        self.assertEqual(r.status_code, 400)
+
+    def test_filter_op_status(self):
+        self.v.status = VoorstelStatus.VERWERKT
+        self.v.save(update_fields=["status"])
+        c = self.als(self.redacteur)
+        self.assertEqual(len(c.get("/api/v1/voorstellen?status=open").json()), 0)
+        self.assertEqual(len(c.get("/api/v1/voorstellen?status=verwerkt").json()), 1)
+
+    def test_het_beheerscherm_toont_het_gesprek(self):
+        """De inline rechten komen uit de omgeving, niet uit de Django-rechtentabel; zonder de
+        expliciete methoden liet Django de hele inline weg en zag de redacteur het gesprek niet."""
+        diensten.voorstelbericht_toevoegen(self.v, self.redacteur, "Opgepakt", van_redactie=True, melden=False)
+        r = self.als(self.redacteur).get(f"/beheer/kennisbank/verbetervoorstel/{self.v.pk}/change/")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Gesprek met de indiener")
+        self.assertContains(r, "Opgepakt")
+
+    def test_een_bericht_via_de_inline_wordt_verstuurd(self):
+        c = self.als(self.redacteur)
+        data = {
+            "status": self.v.status,
+            "terugkoppeling": "",
+            "berichten-TOTAL_FORMS": "1",
+            "berichten-INITIAL_FORMS": "0",
+            "berichten-0-tekst": "Opgepakt, we kijken ernaar.",
+            "berichten-0-voorstel": str(self.v.pk),
+        }
+        r = c.post(f"/beheer/kennisbank/verbetervoorstel/{self.v.pk}/change/", data)
+        self.assertEqual(r.status_code, 302, r.content[:400])
+        self.assertEqual([b.tekst for b in self.v.berichten.all()], ["Opgepakt, we kijken ernaar."])
+        self.v.refresh_from_db()
+        self.assertEqual(self.v.terugkoppeling, "Opgepakt, we kijken ernaar.")
+
+    def test_terugkoppeling_via_het_beheerscherm_komt_in_het_gesprek(self):
+        c = self.als(self.redacteur)
+        data = {
+            "status": VoorstelStatus.VERWERKT,
+            "terugkoppeling": "Aangepast, dank voor de melding.",
+            "berichten-TOTAL_FORMS": "0",
+            "berichten-INITIAL_FORMS": "0",
+        }
+        r = c.post(f"/beheer/kennisbank/verbetervoorstel/{self.v.pk}/change/", data)
+        self.assertEqual(r.status_code, 302, r.content[:400])
+        self.assertEqual([b.tekst for b in self.v.berichten.all()], ["Aangepast, dank voor de melding."])

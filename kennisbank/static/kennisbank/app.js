@@ -146,7 +146,8 @@
     $("#cAll").textContent = artikelen.length;
     $("#cFav").textContent = favs.size;
     $("#cRec").textContent = ik ? ik.recent.length : "";
-    $("#cProp").textContent = voorstellen.filter((p) => p.status === "nieuw" || p.status === "in_behandeling").length || "";
+    // Open voorstellen plus voorstellen met een bericht dat je nog niet hebt gelezen.
+    $("#cProp").textContent = voorstellen.filter((p) => p.ongelezen || p.status === "nieuw" || p.status === "in_behandeling").length || "";
     $("#cWijz").textContent = gewijzigd().length || "";
     $("#cNieuws").textContent = (berichten ? (nieuwsGezienStraks ? 0 : nieuwsOngelezen()) : (ik && ik.nieuws_ongelezen)) || "";
     $("#navNieuws").hidden = EMBED;  // in het zaaksysteem alleen de artikelen; nieuws hoort in de kennisbank zelf
@@ -197,7 +198,7 @@
         m.innerHTML = renderNieuws(); wireList(); wireNieuws();
         markeerNieuwsGezien();
       } else if (state.view === "voorstellen") {
-        m.innerHTML = renderProps(); wireList();
+        m.innerHTML = renderProps(); wireList(); wireProps();
       } else if (state.view === "statistieken") {
         m.innerHTML = '<p class="loading">Laden…</p>';
         const s = await api("statistieken?dagen=30");
@@ -320,19 +321,47 @@
      </article></div>`;
   }
 
+  const PROPFILTERS = [
+    ["open", "Nog open"],
+    ["verwerkt", "Verwerkt"],
+    ["afgewezen", "Afgewezen"],
+    ["alles", "Alles"],
+  ];
+
+  function gesprekHTML(p) {
+    // Het gesprek, oudste bovenaan. De eerste regel is het voorstel zelf; dat staat er al boven.
+    const berichten = p.berichten || [];
+    const regels = berichten.map((b) => `<div class="bericht ${b.van_redactie ? "pm" : "ind"}"><span class="wie">${esc(b.naam)}${b.van_redactie ? " · procesmanagement" : ""} · ${datum(b.moment)}</span><p>${esc(b.tekst)}</p></div>`).join("");
+    const antwoord = `<div class="antwoord"><label class="visually-hidden" for="re-${p.id}">Reactie</label><textarea id="re-${p.id}" data-reactie="${p.id}" maxlength="5000" placeholder="${isPM() ? "Bericht aan de indiener, bijvoorbeeld een tussentijdse update…" : "Reageren of een vraag stellen…"}"></textarea><button class="tb" type="button" data-stuur="${p.id}">Versturen</button></div>`;
+    if (!regels && !p.terugkoppeling) return `<div class="gesprek">${antwoord}</div>`;
+    return `<div class="gesprek">${regels}${antwoord}</div>`;
+  }
+
   function renderProps() {
-    const lijst = [...voorstellen];
+    const filter = state.propfilter || "open";
+    const lijst = voorstellen.filter((p) =>
+      filter === "alles" ? true : filter === "open" ? p.status === "nieuw" || p.status === "in_behandeling" : p.status === filter,
+    );
     const lead = isPM()
-      ? "Voorstellen van collega's bij artikelen in jouw omgeving. Zet de status en geef een terugkoppeling; de indiener ziet die hier terug."
-      : "Jouw voorstellen, met de terugkoppeling van procesmanagement.";
+      ? "Voorstellen van collega's bij artikelen in jouw omgeving. Zet de status, geef een terugkoppeling en praat er zo nodig met de indiener over door."
+      : "Jouw voorstellen, met de reacties van procesmanagement. Je kunt er zelf op antwoorden.";
+    const knoppen = PROPFILTERS.map(([k, label]) => {
+      const n = voorstellen.filter((p) => (k === "alles" ? true : k === "open" ? p.status === "nieuw" || p.status === "in_behandeling" : p.status === k)).length;
+      return `<button type="button" data-propfilter="${k}" aria-pressed="${k === filter}">${label}${n ? ` (${n})` : ""}</button>`;
+    }).join("");
+    const leeg =
+      filter === "open"
+        ? '<div class="empty">Niets staat meer open. Kies hierboven een ander filter om afgehandelde voorstellen te zien.</div>'
+        : '<div class="empty">Geen voorstellen in dit filter.</div>';
     return `<div class="view"><h1>Verbetervoorstellen</h1><p class="lead">${lead}</p>
-     ${lijst.length ? `<div class="props">${lijst.map((p) => `<div class="prop">
-      <div class="ph"><span><a class="tb" href="${esc(p.artikel_url)}" data-open="${p.artikel}">${esc(p.artikel_titel)}</a> &nbsp;${esc(p.van_mij ? "Jij" : p.ingediend_door)} · ${datum(p.ingediend_op)} · bij versie ${p.artikel_versie}</span><span class="status ${esc(p.status)}">${esc(VOORSTEL_LABEL[p.status] || p.status)}</span></div>
+     ${voorstellen.length ? `<div class="propfilter" role="group" aria-label="Filter op status">${knoppen}</div>` : ""}
+     ${lijst.length ? `<div class="props">${lijst.map((p) => `<div class="prop" data-prop="${p.id}">
+      <div class="ph"><span><a class="tb" href="${esc(p.artikel_url)}" data-open="${p.artikel}">${esc(p.artikel_titel)}</a> &nbsp;${esc(p.van_mij ? "Jij" : p.ingediend_door)} · ${datum(p.ingediend_op)} · bij versie ${p.artikel_versie}</span><span>${p.ongelezen ? `<span class="nieuwstip">${p.ongelezen} nieuw</span> ` : ""}<span class="status ${esc(p.status)}">${esc(VOORSTEL_LABEL[p.status] || p.status)}</span></span></div>
       ${p.citaat ? `<blockquote>“${esc(p.citaat)}”</blockquote>` : ""}
       <div>${esc(p.tekst)}</div>
-      ${p.terugkoppeling ? `<div class="fb"><b>Terugkoppeling procesmanagement</b>${esc(p.terugkoppeling)}</div>` : ""}
-      ${isPM() ? `<div class="manage"><label class="visually-hidden" for="st-${p.id}">Status</label><select id="st-${p.id}" data-status="${p.id}">${Object.entries(VOORSTEL_LABEL).map(([k, v]) => `<option value="${k}" ${p.status === k ? "selected" : ""}>${v}</option>`).join("")}</select><label class="visually-hidden" for="fb-${p.id}">Terugkoppeling</label><input id="fb-${p.id}" data-fb="${p.id}" placeholder="Terugkoppeling aan de indiener…" value="${esc(p.terugkoppeling || "")}"><button class="tb" type="button" data-save="${p.id}">Opslaan</button></div>` : ""}
-     </div>`).join("")}</div>` : '<div class="empty">Nog geen verbetervoorstellen. Open een artikel en selecteer tekst om er een in te dienen.</div>'}</div>`;
+      ${gesprekHTML(p)}
+      ${isPM() ? `<div class="manage"><label class="visually-hidden" for="st-${p.id}">Status</label><select id="st-${p.id}" data-status="${p.id}">${Object.entries(VOORSTEL_LABEL).map(([k, v]) => `<option value="${k}" ${p.status === k ? "selected" : ""}>${v}</option>`).join("")}</select><button class="tb" type="button" data-save="${p.id}">Status opslaan</button></div>` : ""}
+     </div>`).join("")}</div>` : (voorstellen.length ? leeg : '<div class="empty">Nog geen verbetervoorstellen. Open een artikel en selecteer tekst om er een in te dienen.</div>')}</div>`;
   }
 
   function renderNieuws() {
@@ -463,15 +492,45 @@
       } catch (e) { ag.disabled = false; toast("Markeren is mislukt"); }
     });
     $$("[data-bericht]").forEach((b) => b.addEventListener("click", () => { state.scrollNaarBericht = b.dataset.bericht; ga("nieuws"); }));
+  }
+
+  // Alleen voor de voorstellenweergave: de knoppen bij het gesprek, en het afvinken van wat je nu
+  // voor je ziet. Dit hoort NIET in wireList(): die loopt bij elke weergave, waardoor berichten als
+  // gelezen werden gemarkeerd terwijl de gebruiker naar de artikelenlijst keek.
+  function wireProps() {
     $$("[data-save]").forEach((b) => b.addEventListener("click", async () => {
       const id = b.dataset.save;
       try {
-        const nieuw = await api("voorstellen/" + id, { method: "PATCH", body: { status: $(`[data-status="${id}"]`).value, terugkoppeling: $(`[data-fb="${id}"]`).value.trim() } });
+        const nieuw = await api("voorstellen/" + id, { method: "PATCH", body: { status: $(`[data-status="${id}"]`).value } });
         voorstellen = voorstellen.map((p) => (String(p.id) === id ? nieuw : p));
         render(false);
-        toast("Terugkoppeling opgeslagen");
+        toast("Status opgeslagen");
       } catch (e) { toast("Opslaan is mislukt"); }
     }));
+    $$("[data-propfilter]").forEach((b) => b.addEventListener("click", () => {
+      state.propfilter = b.dataset.propfilter;
+      render(false);
+    }));
+    $$("[data-stuur]").forEach((b) => b.addEventListener("click", async () => {
+      const id = b.dataset.stuur, vak = $(`[data-reactie="${id}"]`), tekst = vak.value.trim();
+      if (!tekst) { vak.focus(); return; }
+      b.disabled = true;
+      try {
+        const nieuw = await api("voorstellen/" + id + "/berichten", { method: "POST", body: { tekst } });
+        voorstellen = voorstellen.map((p) => (String(p.id) === id ? nieuw : p));
+        render(false);
+        toast(isPM() ? "Bericht verstuurd; de indiener krijgt een melding." : "Reactie verstuurd.");
+      } catch (e) {
+        b.disabled = false;
+        toast(e.status === 429 ? "Je hebt veel berichten verstuurd; probeer het later opnieuw." : "Versturen is mislukt.");
+      }
+    }));
+    // Wat je nu voor je ziet, heb je gelezen: de teller gaat naar nul zonder dat je iets hoeft te doen.
+    const ongelezen = voorstellen.filter((p) => p.ongelezen);
+    if (ongelezen.length) {
+      Promise.all(ongelezen.map((p) => api("voorstellen/" + p.id + "/gelezen", { method: "POST" }).catch(() => {})))
+        .then(() => { ongelezen.forEach((p) => { p.ongelezen = 0; }); });
+    }
   }
 
   function wireArticle() {

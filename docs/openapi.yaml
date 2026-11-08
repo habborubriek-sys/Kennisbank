@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.9.0
+  version: 1.10.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -411,6 +411,60 @@ paths:
               schema:
                 $ref: '#/components/schemas/Voorstel'
           description: ''
+  /api/v1/voorstellen/{id}/berichten:
+    post:
+      operationId: v1_voorstellen_berichten_create
+      description: De indiener en de redacteuren van de omgeving kunnen elkaar hier
+        antwoorden. De andere kant krijgt er een melding en een e-mail van.
+      summary: Bericht toevoegen aan het gesprek over een verbetervoorstel
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoorstelBerichtInRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VoorstelBerichtInRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VoorstelBerichtInRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Voorstel'
+          description: ''
+  /api/v1/voorstellen/{id}/gelezen:
+    post:
+      operationId: v1_voorstellen_gelezen_create
+      summary: Gesprek over een verbetervoorstel als gelezen markeren
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/wijzigingen/gezien:
     post:
       operationId: v1_wijzigingen_gezien_create
@@ -1013,19 +1067,64 @@ components:
           format: date-time
           readOnly: true
           nullable: true
+        berichten:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoorstelBericht'
+          readOnly: true
+        ongelezen:
+          type: integer
+          readOnly: true
       required:
       - artikel
       - artikel_titel
       - artikel_url
       - artikel_versie
       - behandeld_op
+      - berichten
       - id
       - ingediend_door
       - ingediend_op
+      - ongelezen
       - status
       - tekst
       - terugkoppeling
       - van_mij
+    VoorstelBericht:
+      type: object
+      description: Eén bericht in het gesprek over een verbetervoorstel.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        naam:
+          type: string
+          readOnly: true
+        van_redactie:
+          type: boolean
+          readOnly: true
+          description: Van procesmanagement (aan) of van de indiener (uit).
+        tekst:
+          type: string
+          readOnly: true
+        moment:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - id
+      - moment
+      - naam
+      - tekst
+      - van_redactie
+    VoorstelBerichtInRequest:
+      type: object
+      properties:
+        tekst:
+          type: string
+          minLength: 1
+      required:
+      - tekst
     VoorstelRequest:
       type: object
       properties:

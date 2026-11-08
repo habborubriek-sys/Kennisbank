@@ -3,3 +3,14 @@
   <li><a href="{% url 'admin:kennisbank_artikel_importeren_word' %}" class="addlink">Importeren uit Word</a></li>
   {{ block.super }}
 {% endblock %}
+{% block content_title %}
+{{ block.super }}
+{% if te_herzien %}
+<p class="warning" style="background:#fdf3d8;border-left:4px solid #c89b1c;padding:10px 14px;margin:10px 0">
+  <b>{{ te_herzien }} artikel{{ te_herzien|pluralize:"en" }}</b> moet{% if te_herzien == 1 %}{% else %}en{% endif %} opnieuw worden nagekeken: de datum is verstreken.
+  <a href="?herziening=te_laat">Laat ze zien</a>{% if herzien_binnenkort %} · {{ herzien_binnenkort }} volg{{ herzien_binnenkort|pluralize:"t,en" }} binnen 30 dagen (<a href="?herziening=binnenkort">bekijken</a>){% endif %}.
+</p>
+{% elif herzien_binnenkort %}
+<p style="color:#555;margin:10px 0">{{ herzien_binnenkort }} artikel{{ herzien_binnenkort|pluralize:"en" }} moet{% if herzien_binnenkort == 1 %}{% else %}en{% endif %} binnen 30 dagen opnieuw worden nagekeken. <a href="?herziening=binnenkort">Bekijken</a></p>
+{% endif %}
+{% endblock %}
