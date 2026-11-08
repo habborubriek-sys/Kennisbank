@@ -14,6 +14,7 @@ from .models import (
     ArtikelVersie,
     Bericht,
     BerichtStatus,
+    BewerkClaim,
     Favoriet,
     FavorietenMail,
     Profiel,
@@ -411,3 +412,45 @@ def _favorieten_tekst(gebruiker, rijen) -> str:
         f"Uitzetten kan in de kennisbank, onder 'Instellingen' in het menu: {settings.KB_BASIS_URL}/"
     )
     return "\n".join(regels)
+
+
+# --- Zacht slot bij bewerken --------------------------------------------------------------
+
+#: Hoe lang een claim meegaat zonder verlenging. Het bewerkscherm verlengt elke 30 seconden;
+#: valt het tabblad weg, dan vervalt de claim vanzelf en staat niemand voor een dicht artikel.
+CLAIM_VERVALT_NA = 120
+
+
+def _claimgrens():
+    return timezone.now() - timezone.timedelta(seconds=CLAIM_VERVALT_NA)
+
+
+def actieve_claims(artikel: Artikel, behalve=None):
+    """De redacteuren die dit artikel nu open hebben, zonder de opgegeven gebruiker."""
+    qs = BewerkClaim.objects.filter(artikel=artikel, laatst_gezien__gte=_claimgrens()).select_related("gebruiker")
+    if behalve is not None and behalve.is_authenticated:
+        qs = qs.exclude(gebruiker=behalve)
+    return list(qs.order_by("begonnen_op"))
+
+
+def claim_vernieuwen(artikel: Artikel, gebruiker) -> list[BewerkClaim]:
+    """Leg vast dat deze gebruiker het artikel open heeft en geef terug wie er nog meer in zit."""
+    nu = timezone.now()
+    claim, nieuw = BewerkClaim.objects.get_or_create(
+        artikel=artikel, gebruiker=gebruiker, defaults={"begonnen_op": nu, "laatst_gezien": nu}
+    )
+    if not nieuw:
+        velden = {"laatst_gezien": nu}
+        if claim.laatst_gezien < _claimgrens():
+            velden["begonnen_op"] = nu  # vervallen claim: opnieuw begonnen
+        BewerkClaim.objects.filter(pk=claim.pk).update(**velden)
+    return actieve_claims(artikel, behalve=gebruiker)
+
+
+def claim_opheffen(artikel: Artikel, gebruiker) -> None:
+    BewerkClaim.objects.filter(artikel=artikel, gebruiker=gebruiker).delete()
+
+
+def verlopen_claims_opruimen() -> int:
+    aantal, _ = BewerkClaim.objects.filter(laatst_gezien__lt=_claimgrens()).delete()
+    return aantal

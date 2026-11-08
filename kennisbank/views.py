@@ -99,3 +99,14 @@ def beheer_login_via_idp(request):
             request=request,
         )
     )
+
+
+def csrf_verlopen(request, reason=""):
+    """Eigen pagina bij een mislukte CSRF-controle, in plaats van het Engelse Django-scherm.
+
+    Komt in de praktijk vooral voor als een bewerkscherm lang openstaat en de redacteur intussen in
+    een ander tabblad opnieuw inlogt: de code in het oude scherm hoort dan niet meer bij de sessie.
+    """
+    return HttpResponseForbidden(
+        render_to_string("kennisbank/csrf_verlopen.html", {"app_naam": settings.KB_APP_NAAM}, request=request)
+    )

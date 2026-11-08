@@ -12,6 +12,9 @@
   --accent-fg:#ffffff;
   --onb:#fff4d6;         /* onboarding-blok */
   --onb-line:#e2b94f;
+  --wijzig-bg:#fffbea;   /* kaart met een openstaande wijziging: heel licht, anders wordt de lijst één vlek */
+  --wijzig-balk:#ffe08a; /* de balk erboven mag wel opvallen */
+  --wijzig-fg:#4a3a08;
   --ok:#256638; --warn:#8a4a0c; --crit:#b4352e;
   --shadow:0 8px 24px rgba(23,33,43,.12);
   --font-ui:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -21,12 +24,14 @@
   :root:not([data-theme="light"]){
     --bg:#121820; --surface:#1a222c; --surface-2:#222d39; --fg:#e6ebf1; --fg-muted:#9aa7b6; --line:#2f3b49;
     --accent:#7fb1e6; --accent-soft:#1f3a58; --accent-fg:#0f1a26; --onb:#3a2f14; --onb-line:#b8902d;
+    --wijzig-bg:#2b2616; --wijzig-balk:#8a6d1f; --wijzig-fg:#f6e9c6;
     --ok:#6fcf86; --warn:#e6a35b; --crit:#f08a84; --shadow:0 8px 24px rgba(0,0,0,.45); color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#121820; --surface:#1a222c; --surface-2:#222d39; --fg:#e6ebf1; --fg-muted:#9aa7b6; --line:#2f3b49;
   --accent:#7fb1e6; --accent-soft:#1f3a58; --accent-fg:#0f1a26; --onb:#3a2f14; --onb-line:#b8902d;
+    --wijzig-bg:#2b2616; --wijzig-balk:#8a6d1f; --wijzig-fg:#f6e9c6;
   --ok:#6fcf86; --warn:#e6a35b; --crit:#f08a84; --shadow:0 8px 24px rgba(0,0,0,.45); color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -82,6 +87,9 @@ a{color:var(--accent)}
 
 .main{min-width:0;padding-block:22px 60px;padding-left:max(40px,4vw);padding-right:max(40px,4vw,env(safe-area-inset-right,0px));overflow:auto}
 .view{max-width:1120px;margin:0 auto}
+/* Een artikel is één leeskolom: de kaart volgt de regellengte, zodat de tekst de kaart ook echt vult.
+   Tabellen mogen daarbinnen wel breder dan de lopende tekst (zie onderaan). */
+.view.artikelview{max-width:880px}
 .view h1{font-family:var(--font-title);font-size:1.7rem;line-height:1.2;margin:0 0 4px;text-wrap:balance}
 .lead{color:var(--fg-muted);margin:0 0 18px}
 .resulthead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
@@ -91,6 +99,8 @@ a{color:var(--accent)}
 .cards{display:flex;flex-direction:column;gap:8px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:5px;min-width:0;position:relative}
 .card:hover{border-color:var(--accent)}
+.card.gewijzigd{background:var(--wijzig-bg);border-color:var(--wijzig-balk)}
+.card .wijzigbalk{background:var(--wijzig-balk);color:var(--wijzig-fg);font-size:.82rem;font-weight:600;letter-spacing:.01em;margin:-12px -16px 2px;padding:5px 16px;border-radius:9px 9px 0 0}
 .card h2{font-family:var(--font-title);font-size:1.12rem;line-height:1.25;margin:0;padding-right:28px}
 .card h2 button{all:unset;cursor:pointer;color:inherit}
 .card h2 button::after{content:"";position:absolute;inset:0}
@@ -129,7 +139,7 @@ details.sec summary{cursor:pointer;list-style:none;padding:11px 14px;font-weight
 details.sec summary::-webkit-details-marker{display:none}
 details.sec summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--fg-muted);border-bottom:2px solid var(--fg-muted);transform:rotate(-45deg);transition:transform .15s;flex:none}
 details.sec[open] summary::before{transform:rotate(45deg)}
-details.sec .body{padding:0 16px 14px 32px;max-width:70ch}
+details.sec .body{padding:0 16px 14px 32px;max-width:90ch}
 details.sec .body p{margin:0 0 10px}
 details.sec .body ul,details.sec .body ol{margin:0 0 10px;padding-left:22px}
 details.sec .body li{margin-bottom:4px}
@@ -141,7 +151,7 @@ body.onboarding div.onboarding{display:block}
 details.sec .body h3{font-size:1.05rem;margin:14px 0 6px}
 details.sec .body h4{font-size:.95rem;margin:12px 0 4px}
 details.sec .body td,details.sec .body th{border:1px solid var(--line);padding:6px 10px}
-details.sec .body table{border-collapse:collapse;width:auto}
+details.sec .body table{border-collapse:collapse;width:auto;max-width:100%}
 details.sec .body blockquote{margin:0 0 10px;padding:6px 12px;border-left:3px solid var(--line);color:var(--fg-muted)}
 details.sec .body u{text-decoration-thickness:1px}
 .flow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:4px 0 12px}
@@ -310,7 +320,7 @@ body.embed .view h1{font-size:1.3rem}
 .msg blockquote{margin:6px 0;padding:6px 10px;border-left:3px solid var(--accent);background:var(--surface);border-radius:0 6px 6px 0}
 .msg blockquote ul,.msg blockquote ol{margin:0;padding-left:18px}
 .msg blockquote p{margin:0 0 4px}
-.art .inleiding{max-width:70ch;margin:0 0 16px}
+.art .inleiding{max-width:90ch;margin:0 0 16px}
 .art .inleiding p{margin:0 0 10px}
 .art .inleiding h3{font-size:1.05rem;margin:14px 0 6px}
 .art .inleiding div.onboarding{margin:6px 0 10px}
@@ -318,11 +328,10 @@ body.embed .view h1{font-size:1.3rem}
 
 /* --- Wijzigingsmeldingen (1.7.0) --- */
 .nav .count.badge:not(:empty){background:var(--accent);color:var(--accent-fg);border-radius:999px;padding:1px 7px;font-weight:700;font-size:.72rem}
-.status.wijzig{background:var(--accent);color:var(--accent-fg)}
 .status.vast{background:transparent;padding:0}
-.wijziging{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 8px 8px 0;padding:10px 14px;margin:0 0 14px}
-.wijziging p{margin:4px 0 0;max-width:70ch}
-.wijziging b{color:var(--accent)}
+.wijziging{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--wijzig-bg);border:1px solid var(--wijzig-balk);border-left:4px solid var(--wijzig-balk);border-radius:0 8px 8px 0;padding:10px 14px;margin:0 0 14px}
+.wijziging p{margin:4px 0 0;max-width:90ch}
+.wijziging b{color:inherit}
 .wijziging .tb{flex:none}
 
 /* --- Nieuws --- */
@@ -356,3 +365,7 @@ details.ouder summary{cursor:pointer;color:var(--fg-muted);font-weight:600;margi
 /* --- Instellingen in de zijbalk --- */
 .pref{display:flex;gap:8px;align-items:flex-start;font-size:.88rem;color:var(--fg-muted);cursor:pointer}
 .pref input{margin-top:3px;accent-color:var(--accent)}
+
+/* Tabellen mogen breder dan de leesbreedte van de lopende tekst: daar helpt ruimte juist. */
+details.sec .body table,.art .inleiding table{width:auto;max-width:none}
+details.sec .body>.tabelbreed,.art .inleiding>.tabelbreed{max-width:none}

@@ -1,0 +1,21 @@
+{% load static %}<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Beveiligingscode verlopen – {{ app_naam }}</title>
+<link rel="icon" href="{% static 'kennisbank/favicon.svg' %}" type="image/svg+xml">
+<link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}"><link rel="stylesheet" href="{% static 'kennisbank/app.css' %}"></head>
+<body>
+<header class="top"><div class="brand"><span class="mark" aria-hidden="true">K</span>{{ app_naam }}</div></header>
+<main class="main" id="main">
+  <div class="modal login">
+    <h1>Beveiligingscode verlopen</h1>
+    <p>Dit scherm stond al even open en is intussen verlopen — meestal doordat je in een ander tabblad
+      opnieuw bent ingelogd of uitgelogd. Je gegevens zijn <b>niet</b> opgeslagen.</p>
+    <p class="hint">Ga terug met de knop hieronder. In de meeste browsers staat je tekst er dan nog;
+      kopieer hem voor de zekerheid, ververs daarna de pagina met Ctrl+F5 en plak hem terug.</p>
+    <div class="row">
+      <button type="button" class="tb primary" onclick="history.back()">Terug naar het vorige scherm</button>
+      <a class="tb" href="/beheer/">Naar het beheer</a>
+    </div>
+  </div>
+</main>
+</body></html>

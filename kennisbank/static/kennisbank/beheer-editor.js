@@ -216,9 +216,28 @@
     laag.querySelector("#kb-split-sluiten").addEventListener("click", sluiten);
     laag.querySelector("#kb-split-opslaan").addEventListener("click", function () {
       editor.synchronizeValues();
-      try { sessionStorage.setItem("kb.split.heropen", "1"); } catch (e) {}
-      var knop = form.querySelector('input[name="_continue"]');
-      if (knop) knop.click(); else form.submit();
+      if (window.kbCodeVerlopen && window.kbCodeVerlopen()) {
+        window.kbMelding({
+          titel: "Opslaan lukt nu niet",
+          alineas: [
+            "Dit scherm is verlopen, waarschijnlijk doordat je in een ander tabblad opnieuw bent ingelogd.",
+            "Je tekst staat er nog: kopieer hem, ververs de pagina met Ctrl+F5 en plak hem terug.",
+          ],
+        });
+        return;
+      }
+      function bewaren() {
+        try { sessionStorage.setItem("kb.split.heropen", "1"); } catch (e) {}
+        var knop = form.querySelector('input[name="_continue"]');
+        if (knop) knop.click(); else form.submit();
+      }
+      // De toelichting bij publiceren staat op het scherm eronder; vraag hem hier, anders mislukt
+      // het opslaan op een foutmelding die in het volledige scherm niet te zien is.
+      if (window.kbToelichtingNodig && window.kbToelichtingNodig(window.kbBeginwaarden || {})) {
+        window.kbVraagToelichting(null, bewaren);
+        return;
+      }
+      bewaren();
     });
     editor.s.focus();
   }
@@ -308,8 +327,221 @@
     });
   }
 
+  /* ----------------------------------------------------------------------------------------
+   * Zacht slot, beveiligingscode en de toelichting bij opslaan.
+   *
+   * Het bewerkscherm meldt elke 30 seconden aan de server dat het nog openstaat. Dat doet drie
+   * dingen tegelijk: het houdt de claim op dit artikel levend, het vertelt wie er nog meer in zit,
+   * en het merkt het meteen als de beveiligingscode (CSRF) niet meer geldig is — bijvoorbeeld
+   * doordat de redacteur in een ander tabblad opnieuw is ingelogd. Dat laatste zou anders pas bij
+   * het opslaan blijken, met een foutpagina en een leeg scherm als resultaat.
+   * -------------------------------------------------------------------------------------- */
+  var HARTSLAG_MS = 30000;
+
+  function veld(naam) { return document.querySelector('[name="' + naam + '"]'); }
+
+  function vensterTonen(opties) {
+    var laag = document.createElement("div");
+    laag.className = "kb-venster-laag";
+    var vak = document.createElement("div");
+    vak.className = "kb-venster";
+    var titel = document.createElement("h2");
+    titel.textContent = opties.titel;
+    vak.appendChild(titel);
+    (opties.alineas || []).forEach(function (t) { var p = document.createElement("p"); p.textContent = t; vak.appendChild(p); });
+    if (opties.inhoud) vak.appendChild(opties.inhoud);
+    var rij = document.createElement("div");
+    rij.className = "kb-venster-knoppen";
+    (opties.knoppen || []).forEach(function (k) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "button" + (k.primair ? "" : " kb-knop-rustig");
+      b.textContent = k.tekst;
+      b.addEventListener("click", function () { if (k.doen && k.doen() === false) return; sluit(); });
+      rij.appendChild(b);
+    });
+    vak.appendChild(rij);
+    laag.appendChild(vak);
+    document.body.appendChild(laag);
+    function sluit() { if (laag.parentNode) laag.parentNode.removeChild(laag); }
+    var eerste = vak.querySelector("textarea, input, button");
+    if (eerste) eerste.focus();
+    return { sluit: sluit, vak: vak };
+  }
+
+  function balkTonen(klasse, tekst) {
+    var bestaand = document.querySelector("." + klasse);
+    if (bestaand) { bestaand.textContent = tekst; return; }
+    var balk = document.createElement("div");
+    balk.className = "kb-melding " + klasse;
+    balk.setAttribute("role", "status");
+    balk.textContent = tekst;
+    var doel = document.querySelector("#content h1") || document.querySelector("#content");
+    if (doel && doel.parentNode) doel.parentNode.insertBefore(balk, doel.nextSibling);
+  }
+
+  function zachtSlot() {
+    var pad = location.pathname.match(/^(.*)\/kennisbank\/artikel\/(\d+)\/change\//);
+    var form = document.querySelector("#artikel_form, form#content-main form, #content form");
+    if (!pad || !form) return;
+    var url = pad[1] + "/kennisbank/artikel/" + pad[2] + "/bewerkclaim/";
+    var bekend = {};
+    var eerste = true;
+    var codeVerlopen = false;
+
+    function token() { var t = form.querySelector('[name="csrfmiddlewaretoken"]'); return t ? t.value : ""; }
+
+    function ping(stoppen) {
+      var body = new URLSearchParams();
+      body.set("csrfmiddlewaretoken", token());
+      if (stoppen) body.set("stoppen", "1");
+      return fetch(url, { method: "POST", body: body, credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
+        .then(function (r) {
+          if (r.status === 403 || r.status === 401) { codeVerlopenMelden(); return null; }
+          return r.ok ? r.json() : null;
+        })
+        .catch(function () { return null; });
+    }
+
+    function codeVerlopenMelden() {
+      if (codeVerlopen) return;
+      codeVerlopen = true;
+      balkTonen(
+        "kb-melding-fout",
+        "Let op: dit scherm is verlopen, waarschijnlijk doordat je in een ander tabblad opnieuw bent " +
+          "ingelogd. Opslaan lukt nu niet. Kopieer je tekst, ververs deze pagina met Ctrl+F5 en plak hem terug."
+      );
+    }
+
+    function anderenVerwerken(gegevens) {
+      if (!gegevens) return;
+      var anderen = gegevens.anderen || [];
+      if (eerste) {
+        eerste = false;
+        anderen.forEach(function (a) { bekend[a.naam] = true; });
+        if (anderen.length) {
+          var wie = anderen.map(function (a) { return a.naam + " (sinds " + a.sinds + ")"; }).join(", ");
+          vensterTonen({
+            titel: "Iemand anders bewerkt dit artikel",
+            alineas: [
+              wie + " heeft dit artikel nu ook open.",
+              "Als jullie allebei opslaan, kan het werk van de een dat van de ander overschrijven. " +
+                "Overleg even voordat je verdergaat.",
+            ],
+            knoppen: [
+              { tekst: "Terug naar de lijst", doen: function () { location.href = pad[1] + "/kennisbank/artikel/"; } },
+              { tekst: "Toch bewerken", primair: true },
+            ],
+          });
+        }
+        return;
+      }
+      anderen.forEach(function (a) {
+        if (bekend[a.naam]) return;
+        bekend[a.naam] = true;
+        balkTonen("kb-melding-let-op", "Let op: " + a.naam + " heeft dit artikel zojuist ook geopend.");
+      });
+    }
+
+    ping(false).then(anderenVerwerken);
+    setInterval(function () { ping(false).then(anderenVerwerken); }, HARTSLAG_MS);
+    window.addEventListener("pagehide", function () {
+      var body = new URLSearchParams();
+      body.set("csrfmiddlewaretoken", token());
+      body.set("stoppen", "1");
+      if (navigator.sendBeacon) navigator.sendBeacon(url, body);
+    });
+    form.addEventListener("submit", function () { codeVerlopen = false; });
+    window.kbCodeVerlopen = function () { return codeVerlopen; };
+  }
+
+  /* De toelichting bij publiceren staat buiten het volledige scherm. Zonder deze controle zou
+   * opslaan vanuit het volledige scherm stilletjes mislukken op een foutmelding die je niet ziet. */
+  function toelichtingNodig(beginwaarden) {
+    var status = veld("status");
+    if (!status || status.value !== "gepubliceerd") return false;
+    var hint = veld("al_gepubliceerd");
+    if (!hint || !hint.value) return false;
+    var toel = veld("wijzigingstoelichting");
+    var klein = veld("kleine_correctie");
+    if (toel && toel.value.trim()) return false;
+    if (klein && klein.checked) return false;
+    return Object.keys(beginwaarden).some(function (naam) {
+      var el = veld(naam);
+      return el && el.value !== beginwaarden[naam];
+    });
+  }
+
+  function vraagToelichting(melding, daarna) {
+    var toel = veld("wijzigingstoelichting");
+    var klein = veld("kleine_correctie");
+    var vak = document.createElement("div");
+    vak.className = "kb-venster-veld";
+    var label = document.createElement("label");
+    label.textContent = "Wat is er gewijzigd?";
+    label.setAttribute("for", "kb-toel");
+    var invoer = document.createElement("textarea");
+    invoer.id = "kb-toel";
+    invoer.rows = 3;
+    invoer.maxLength = 300;
+    invoer.value = toel ? toel.value : "";
+    var keuze = document.createElement("label");
+    keuze.className = "kb-venster-keuze";
+    var hok = document.createElement("input");
+    hok.type = "checkbox";
+    keuze.appendChild(hok);
+    keuze.appendChild(document.createTextNode(" Kleine correctie (typfout of opmaak): geen melding en geen e-mail"));
+    var fout = document.createElement("p");
+    fout.className = "kb-venster-fout";
+    fout.hidden = true;
+    vak.appendChild(label);
+    vak.appendChild(invoer);
+    vak.appendChild(keuze);
+    vak.appendChild(fout);
+    function opslaan() {
+      if (!hok.checked && !invoer.value.trim()) {
+        fout.textContent = "Geef in één zin aan wat er is gewijzigd, of vink 'Kleine correctie' aan.";
+        fout.hidden = false;
+        invoer.focus();
+        return false;
+      }
+      if (toel) toel.value = invoer.value;
+      if (klein) klein.checked = hok.checked;
+      if (daarna) daarna();
+      return true;
+    }
+    hok.addEventListener("change", function () { invoer.disabled = hok.checked; });
+    vensterTonen({
+      titel: "Wat is er gewijzigd?",
+      alineas: [
+        melding ||
+          "Dit artikel is gepubliceerd. Medewerkers krijgen jouw toelichting als melding te zien; " +
+            "wie het als favoriet heeft, krijgt hem per e-mail.",
+      ],
+      inhoud: vak,
+      knoppen: [{ tekst: "Annuleren" }, { tekst: "Opslaan", primair: true, doen: opslaan }],
+    });
+    return true;
+  }
+
+  window.kbMelding = function (opties) {
+    vensterTonen({ titel: opties.titel, alineas: opties.alineas, knoppen: [{ tekst: "Sluiten", primair: true }] });
+  };
+  window.kbToelichtingNodig = toelichtingNodig;
+  window.kbVraagToelichting = vraagToelichting;
+
   document.addEventListener("DOMContentLoaded", function () {
     initAll();
+    zachtSlot();
+    // Beginwaarden onthouden, zodat we weten of er iets inhoudelijks is veranderd.
+    window.kbBeginwaarden = {};
+    ["titel", "samenvatting", "inhoud", "soort", "eigenaar", "omgeving", "tags_tekst"].forEach(function (naam) {
+      var el = veld(naam);
+      if (el) window.kbBeginwaarden[naam] = el.value;
+    });
+    // Mislukte opslag door de ontbrekende toelichting: toon hem alsnog in beeld.
+    var foutje = document.querySelector(".field-wijzigingstoelichting .errorlist li");
+    if (foutje) setTimeout(function () { vraagToelichting(foutje.textContent); }, 60);
     // Nieuwe sectie toegevoegd via "Nog een sectie toevoegen".
     document.addEventListener("formset:added", function (e) {
       initAll(e.target);

@@ -53,7 +53,7 @@ Wil je een wijziging breder aankondigen, vink dan **Ook als nieuwsbericht plaats
 
 Klik in de werkbalk op **Volledig scherm**. Links staan de titel, de samenvatting en de editor; rechts zie je het artikel zoals lezers het zien: inklapbare secties, de onboarding-schakelaar, alles. Terwijl je typt loopt het voorbeeld mee. Sleep de balk in het midden om de editor breder of smaller te maken; die verdeling wordt onthouden. De pagina eronder is zolang vergrendeld.
 
-- **Opslaan en doorgaan** slaat het artikel op (met versie, als het gepubliceerd is) en opent het volledige scherm daarna meteen weer.
+- **Opslaan en doorgaan** slaat het artikel op (met versie, als het gepubliceerd is) en opent het volledige scherm daarna meteen weer. Is een toelichting nodig omdat je een gepubliceerd artikel inhoudelijk hebt gewijzigd, dan vraagt het volledige scherm daar eerst om in een venstertje — het veld zelf staat op de pagina eronder, dus zonder dat venster zou het opslaan mislukken op een melding die je niet ziet.
 - **Sluiten** (of de Esc-toets) brengt je terug naar het gewone bewerkscherm, met je tekst erin; sluiten is niet opslaan.
 
 ## Secties
@@ -83,6 +83,17 @@ Nieuwe collega's hebben meer uitleg nodig dan ervaren collega's. Die extra uitle
 3. Nogmaals klikken op **Onboarding** haalt de markering weer weg.
 
 Dit kan zo vaak als je wilt, ook in de inleiding, dus je kunt bij elke stap een verdieping geven. De assistent gebruikt de onboarding-uitleg ook, als extra context.
+
+## Met z'n tweeën in hetzelfde artikel
+
+De kennisbank zet geen slot op een artikel, maar laat je wel zien wanneer je niet alleen bent.
+
+- Open je een artikel dat een collega op dat moment ook open heeft, dan verschijnt een venster met zijn naam en vanaf hoe laat. Je kiest **Toch bewerken** of **Terug naar de lijst**. Blokkeren doen we niet: dat levert in de praktijk vooral sloten op die blijven hangen als iemand zijn laptop dichtklapt.
+- Zit je er al in en komt er iemand bij, dan verschijnt bovenin *"Let op: ... heeft dit artikel zojuist ook geopend."* Overleg dan even wie het afmaakt.
+- De melding verdwijnt vanzelf zodra de ander het scherm sluit of opslaat; na twee minuten zonder teken van leven vervalt zijn claim.
+- Slaan jullie toch allebei op, dan **weigert** de kennisbank de tweede opslag met de melding dat het artikel intussen is gewijzigd. Je tekst staat dan nog in het scherm: open het artikel in een nieuw tabblad, kijk wat er nu staat, zet je wijzigingen over en sla opnieuw op. Zo overschrijft niemand stilletjes het werk van een ander.
+
+Staat een bewerkscherm heel lang open en log je ondertussen in een ander tabblad opnieuw in, dan verloopt de beveiligingscode van dat oude scherm. Je krijgt dat bovenin te zien zodra het gebeurt, en bij opslaan een Nederlandse uitlegpagina in plaats van een technische foutmelding. Kopieer in dat geval je tekst, ververs de pagina met Ctrl+F5 en plak hem terug.
 
 ## Een Word-document importeren
 

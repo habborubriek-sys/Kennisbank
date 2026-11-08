@@ -442,3 +442,31 @@ class Verbetervoorstel(models.Model):
     @property
     def is_open(self):
         return self.status in {VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING}
+
+
+class BewerkClaim(models.Model):
+    """Wie heeft dit artikel op dit moment in het bewerkscherm open.
+
+    Een zacht slot: het informeert, het blokkeert niet. Een tweede redacteur mag doorgaan na een
+    waarschuwing; beiden zien van elkaar dat ze in hetzelfde artikel zitten en kunnen overleggen.
+    De claim wordt vanuit het bewerkscherm periodiek verlengd en vervalt daarna vanzelf, zodat een
+    gesloten tabblad of een dichtgeklapte laptop nooit een artikel op slot laat staan.
+    """
+
+    artikel = models.ForeignKey(Artikel, on_delete=models.CASCADE, related_name="bewerkclaims")
+    gebruiker = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    begonnen_op = models.DateTimeField(default=timezone.now)
+    laatst_gezien = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "bewerkclaim"
+        verbose_name_plural = "bewerkclaims"
+        constraints = [models.UniqueConstraint(fields=["artikel", "gebruiker"], name="uniek_claim_per_gebruiker")]
+        indexes = [models.Index(fields=["artikel", "laatst_gezien"])]
+
+    def __str__(self):
+        return f"{self.gebruiker} bewerkt {self.artikel}"
+
+    @property
+    def naam(self) -> str:
+        return self.gebruiker.get_full_name() or self.gebruiker.get_username()

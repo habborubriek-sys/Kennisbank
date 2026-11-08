@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.management import call_command
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.utils import timezone
 
 from kennisbank import diensten
@@ -15,6 +15,7 @@ from kennisbank.inhoud import blokken, onboarding_blokken, schoon, zonder_onboar
 from kennisbank.models import (
     Artikel,
     ArtikelVersie,
+    BewerkClaim,
     Omgeving,
     RecentBezocht,
     Rol,
@@ -33,6 +34,27 @@ User = get_user_model()
 
 def pk_van(slug):
     return Artikel.objects.get(slug=slug).pk
+
+
+def beheerdata(artikel, **overschrijf):
+    """De velden van het beheerformulier voor een artikel, zodat een test kan opslaan zoals een redacteur."""
+    data = {
+        "titel": artikel.titel,
+        "samenvatting": artikel.samenvatting,
+        "inhoud": artikel.inhoud,
+        "soort": artikel.soort,
+        "omgeving": artikel.omgeving_id,
+        "eigenaar": artikel.eigenaar,
+        "status": artikel.status,
+        "tags_tekst": ", ".join(artikel.tags.values_list("naam", flat=True)),
+        "wijzigingstoelichting": "Aangepast in een test",
+        "geladen_stempel": artikel.gewijzigd_op.isoformat() if artikel.gewijzigd_op else "",
+        "al_gepubliceerd": "1" if artikel.versie else "",
+        "versies-TOTAL_FORMS": "0",
+        "versies-INITIAL_FORMS": "0",
+    }
+    data.update(overschrijf)
+    return data
 
 
 DEMO = json.loads((Path(settings.BASE_DIR) / "demo" / "voorbeeldinhoud.json").read_text(encoding="utf-8"))
@@ -1554,3 +1576,114 @@ class ReviewBevindingenTests(Basis):
         b = Bericht.objects.create(omgeving=self.hh, titel="x", tekst="<p>ok</p>", status="gepubliceerd")
         Bericht.objects.filter(pk=b.pk).update(tekst='<p>ok<img src=x onerror="alert(1)"></p>')  # buiten save() om
         self.assertEqual(self.als(self.lezer).get("/api/v1/berichten").json()[0]["tekst"], "<p>ok</p>")
+
+
+class ZachtSlotTests(Basis):
+    """Zacht slot bij bewerken (1.7.1): informeren, niet blokkeren."""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.tweede = User.objects.create_user("tweede", password="x", first_name="Priya", last_name="de Vries")
+        cls.tweede.groups.add(Group.objects.get(name="redactie"))
+
+    def _claim(self, gebruiker, artikel, stoppen=False):
+        data = {"stoppen": "1"} if stoppen else {}
+        return self.als(gebruiker).post(f"/beheer/kennisbank/artikel/{artikel.pk}/bewerkclaim/", data)
+
+    def test_tweede_redacteur_ziet_wie_er_in_zit(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        self.assertEqual(self._claim(self.redacteur, a).json()["anderen"], [])
+        antwoord = self._claim(self.tweede, a).json()
+        self.assertEqual([x["naam"] for x in antwoord["anderen"]], ["redacteur"])
+        # En andersom ziet de eerste de tweede er nu ook bij staan.
+        namen = [x["naam"] for x in self._claim(self.redacteur, a).json()["anderen"]]
+        self.assertEqual(namen, ["Priya de Vries"])
+
+    def test_claim_vervalt_vanzelf(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        self._claim(self.redacteur, a)
+        BewerkClaim.objects.filter(gebruiker=self.redacteur).update(
+            laatst_gezien=timezone.now() - timezone.timedelta(seconds=diensten.CLAIM_VERVALT_NA + 5)
+        )
+        self.assertEqual(self._claim(self.tweede, a).json()["anderen"], [])
+
+    def test_opslaan_en_stoppen_heffen_de_claim_op(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        self._claim(self.redacteur, a)
+        self._claim(self.redacteur, a, stoppen=True)
+        self.assertFalse(BewerkClaim.objects.filter(artikel=a, gebruiker=self.redacteur).exists())
+        self._claim(self.redacteur, a)
+        self.als(self.redacteur).post(f"/beheer/kennisbank/artikel/{a.pk}/change/", beheerdata(a, samenvatting="x"))
+        self.assertFalse(BewerkClaim.objects.filter(artikel=a, gebruiker=self.redacteur).exists())
+
+    def test_claim_alleen_voor_wie_mag_bewerken(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        # Een lezer komt het beheer niet in (Django stuurt naar het inlogscherm) en legt dus geen claim.
+        self.assertNotEqual(self._claim(self.lezer, a).status_code, 200)
+        # Een redacteur van een ándere omgeving komt er wel in, maar niet bij dit artikel.
+        elders = User.objects.create_user("elders", password="x")
+        groep = Group.objects.create(name="redactie-anders")
+        Toegang.objects.create(omgeving=self.anders, groep=groep, rol=Rol.REDACTEUR)
+        elders.groups.add(groep)
+        self.assertEqual(self._claim(elders, a).status_code, 403)
+        self.assertFalse(BewerkClaim.objects.exists())
+        # En het is een POST-endpoint.
+        r = self.als(self.redacteur).get(f"/beheer/kennisbank/artikel/{a.pk}/bewerkclaim/")
+        self.assertEqual(r.status_code, 403)
+
+    def test_opschonen_ruimt_verlopen_claims_op(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        self._claim(self.redacteur, a)
+        BewerkClaim.objects.update(laatst_gezien=timezone.now() - timezone.timedelta(hours=2))
+        call_command("kennisbank_opschonen")
+        self.assertFalse(BewerkClaim.objects.exists())
+
+
+class ConflictTests(Basis):
+    """Twee redacteuren slaan na elkaar op: de tweede wordt tegengehouden (1.7.1)."""
+
+    def test_opslaan_met_verouderd_scherm_wordt_geweigerd(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        oud_stempel = a.gewijzigd_op.isoformat()
+        # Iemand anders slaat intussen op.
+        a.samenvatting = "Door een ander aangepast"
+        a.save()
+        a.refresh_from_db()
+        self.assertNotEqual(a.gewijzigd_op.isoformat(), oud_stempel)
+        data = beheerdata(a, samenvatting="Mijn eigen tekst", geladen_stempel=oud_stempel)
+        r = self.als(self.redacteur).post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data)
+        self.assertEqual(r.status_code, 200)
+        fouten = str(r.context["adminform"].form.errors)
+        self.assertIn("opgeslagen terwijl jij het openhad", fouten)
+        a.refresh_from_db()
+        self.assertEqual(a.samenvatting, "Door een ander aangepast")  # niets overschreven
+
+    def test_opslaan_met_actueel_scherm_gaat_gewoon_door(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        data = beheerdata(a, samenvatting="Nieuwe samenvatting", geladen_stempel=a.gewijzigd_op.isoformat())
+        r = self.als(self.redacteur).post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data)
+        self.assertEqual(r.status_code, 302)
+        a.refresh_from_db()
+        self.assertEqual(a.samenvatting, "Nieuwe samenvatting")
+
+    def test_bewerkscherm_geeft_het_stempel_mee(self):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        r = self.als(self.redacteur).get(f"/beheer/kennisbank/artikel/{a.pk}/change/")
+        self.assertEqual(r.context["adminform"].form["geladen_stempel"].value(), a.gewijzigd_op.isoformat())
+        self.assertEqual(r.context["adminform"].form["al_gepubliceerd"].value(), "1")
+
+
+class CsrfPaginaTests(Basis):
+    """Eigen Nederlandse pagina bij een verlopen beveiligingscode (1.7.1)."""
+
+    def test_eigen_pagina_in_het_nederlands(self):
+        klant = Client(enforce_csrf_checks=True)
+        klant.force_login(self.redacteur)
+        a = Artikel.objects.get(slug="rappel-versturen")
+        r = klant.post(f"/beheer/kennisbank/artikel/{a.pk}/change/", beheerdata(a), HTTP_HOST="testserver")
+        self.assertEqual(r.status_code, 403)
+        tekst = r.content.decode()
+        self.assertIn("Beveiligingscode verlopen", tekst)
+        self.assertIn("niet</b> opgeslagen", tekst)
+        self.assertNotIn("CSRF verification failed", tekst)

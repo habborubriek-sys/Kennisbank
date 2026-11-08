@@ -176,6 +176,8 @@ SESSION_COOKIE_SAMESITE = env("KB_COOKIE_SAMESITE", "Lax")
 CSRF_COOKIE_SAMESITE = SESSION_COOKIE_SAMESITE
 SESSION_COOKIE_SECURE = env_bool("KB_COOKIES_SECURE", not DEBUG)
 CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
+# Eigen, Nederlandstalige pagina bij een verlopen beveiligingscode (zie kennisbank/views.py).
+CSRF_FAILURE_VIEW = "kennisbank.views.csrf_verlopen"
 
 # --- Beveiligingsheaders ------------------------------------------------------
 

@@ -54,6 +54,7 @@ erDiagram
   GEBRUIKER ||--o{ VERBETERVOORSTEL : "dient in"
   GEBRUIKER ||--o{ WIJZIGINGGEZIEN : "Ik snap het"
   GEBRUIKER ||--o{ FAVORIETENMAIL : "wachtrij"
+  GEBRUIKER ||--o{ BEWERKCLAIM : "heeft open"
   OMGEVING ||--o{ BERICHT : "nieuws"
   BERICHT }o--o{ ARTIKEL : "gaat over"
 ```
@@ -67,6 +68,7 @@ erDiagram
 - **Artikelversie**: elke wijziging van een gepubliceerd artikel levert een onveranderlijke momentopname op, met wie, wanneer en waarom. Zo is altijd te reconstrueren welke instructie op welk moment gold. De vlag `kleine_correctie` (typfout, opmaak) zorgt dat zo'n versie geen melding of e-mail oplevert; versie 1 (de publicatie zelf) telt ook niet als wijziging.
 - **WijzigingGezien**: per gebruiker en artikel het versienummer tot waar de wijzigingsmelding is afgevinkt. `diensten.wijzigingen_voor()` bepaalt per artikel de openstaande melding: de hoogste inhoudelijke versie > 1, gepubliceerd ná de eerste inlog van de gebruiker (`date_joined`) en hoger dan het afgevinkte nummer.
 - **FavorietenMail**: wachtrij voor de e-mail aan wie het artikel als favoriet heeft; `diensten.verstuur_favorietenmail()` bundelt per ontvanger (zie `KB_FAVORIETEN_MAIL`).
+- **BewerkClaim**: wie heeft dit artikel nu in het bewerkscherm open. Een zacht slot: het bewerkscherm verlengt de claim elke 30 seconden en hij vervalt na twee minuten (`diensten.CLAIM_VERVALT_NA`), zodat een gesloten tabblad nooit een artikel op slot laat staan. Een tweede redacteur krijgt een waarschuwing en mag doorgaan; beiden zien van elkaar dat ze in hetzelfde artikel zitten. Hetzelfde verzoek is meteen de controle op de beveiligingscode: komt er een 403 terug, dan meldt het scherm dat de sessie is verlopen vóórdat er wordt opgeslagen. Daarnaast weigert het beheerformulier een opslag waarvan het scherm ouder is dan de laatste wijziging (verborgen veld `geladen_stempel` tegen `Artikel.gewijzigd_op`), zodat niemand stilletjes het werk van een ander overschrijft.
 - **Bericht**: nieuwsbericht per omgeving, met dezelfde opschoning als artikelinhoud, optioneel gekoppeld aan artikelen, vastgepind en/of met een vervaldatum. Niet in de export/import; nieuws is tijdgebonden.
 - **Tellingen** (weergaven, zoektermen, assistentgebruik) zijn per dag en per omgeving geaggregeerd en bevatten geen gebruikers.
 

@@ -227,8 +227,8 @@
       if (a.status !== "gepubliceerd") meta.push(`<span class="status nieuw">${esc(a.status)}</span>`);
     }
     if (when) meta.push((isPM() ? "<span>·</span>" : "") + `<span class="when">${esc(when)}</span>`);
-    if (a.wijziging) meta.unshift(`<span class="status wijzig" title="${esc(a.wijziging.toelichting)}">Gewijzigd ${esc(datum(a.wijziging.datum))}</span>`);
-    return `<article class="card">
+    return `<article class="card${a.wijziging ? " gewijzigd" : ""}">
+      ${a.wijziging ? `<div class="wijzigbalk">Gewijzigd ${esc(datum(a.wijziging.datum))}</div>` : ""}
       <button class="star" type="button" data-fav="${a.id}" aria-pressed="${favs.has(a.id)}" aria-label="${favs.has(a.id) ? "Verwijder uit favorieten" : "Voeg toe aan favorieten"}: ${esc(a.titel)}">${favs.has(a.id) ? "★" : "☆"}</button>
       <h2><a href="${esc(a.url)}" data-open="${a.id}" class="linkbtn card-link">${esc(a.titel)}</a></h2>
       <p>${esc(a.samenvatting)}</p>
@@ -251,7 +251,8 @@
 
   function renderArticle(a) {
     const zt = a.zaaktypen.length ? a.zaaktypen.map(esc).join(", ") : "alle zaaktypen";
-    return `<div class="view">
+    // Eigen, smallere kolom: zo sluiten de witte kaart en de leesbare regellengte op elkaar aan.
+    return `<div class="view artikelview">
      ${EMBED ? `<div class="crumb"><button type="button" id="back">← Terug naar artikelen bij ${esc(ZAAKTYPE)}</button></div>` : '<div class="crumb"><button type="button" id="back">← Terug</button></div>'}
      <article class="art" id="artikel" aria-labelledby="artTitel">
       ${a.status !== "gepubliceerd" ? `<div class="concept-banner">Dit artikel is <b>${esc(a.status)}</b> en niet zichtbaar voor medewerkers.</div>` : ""}

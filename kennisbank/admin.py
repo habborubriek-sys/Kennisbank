@@ -8,9 +8,11 @@
 from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
 from django.utils import timezone
+from django.utils.formats import date_format
 from django.utils.html import format_html
 
 from . import diensten
@@ -124,6 +126,10 @@ class ArtikelForm(forms.ModelForm):
         help_text="Typfout, opmaak, een verouderde naam. De wijziging komt wel in de versiegeschiedenis, "
         "maar medewerkers krijgen geen melding en geen e-mail.",
     )
+    geladen_stempel = forms.CharField(required=False, widget=forms.HiddenInput)
+    #: Alleen een hint voor het bewerkscherm (is dit artikel al eens gepubliceerd?), zodat het
+    #: volledige scherm weet wanneer het om een toelichting moet vragen. De regel zelf staat in clean().
+    al_gepubliceerd = forms.CharField(required=False, widget=forms.HiddenInput)
     nieuwsbericht = forms.BooleanField(
         required=False,
         label="Ook als nieuwsbericht plaatsen",
@@ -140,9 +146,12 @@ class ArtikelForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance.pk and not self.is_bound:
             self.fields["tags_tekst"].initial = ", ".join(self.instance.tags.values_list("naam", flat=True))
+            self.fields["geladen_stempel"].initial = stempel_van(self.instance)
+            self.fields["al_gepubliceerd"].initial = "1" if self.instance.versie else ""
 
     def clean(self):
         data = super().clean()
+        self._controleer_conflict(data)
         if data.get("status") != Status.GEPUBLICEERD or not self.instance.pk:
             return data
         # Zou opslaan een nieuwe versie opleveren? Dan is een toelichting verplicht (tenzij kleine correctie),
@@ -176,6 +185,47 @@ class ArtikelForm(forms.ModelForm):
         return data
 
 
+    def _controleer_conflict(self, data):
+        """Is het artikel sinds het openen van dit scherm door iemand anders opgeslagen?
+
+        Zonder deze controle zou de laatste opslag de wijzigingen van de ander stilletjes
+        overschrijven. We weigeren dan liever, zodat de redacteur zijn tekst nog in de editor heeft
+        staan en zelf kan samenvoegen.
+        """
+        if not self.instance.pk:
+            return
+        geladen = (data.get("geladen_stempel") or "").strip()
+        if not geladen:
+            return
+        huidig = Artikel.objects.filter(pk=self.instance.pk).values_list("gewijzigd_op", flat=True).first()
+        if huidig is None or geladen == stempel_van_waarde(huidig):
+            return
+        door = ""
+        laatste = (
+            ArtikelVersie.objects.filter(artikel_id=self.instance.pk)
+            .select_related("gepubliceerd_door")
+            .order_by("-versie")
+            .first()
+        )
+        if laatste and laatste.gepubliceerd_door:
+            naam = laatste.gepubliceerd_door.get_full_name() or laatste.gepubliceerd_door.get_username()
+            door = f" door {naam}"
+        tijd = date_format(timezone.localtime(huidig), "j F Y H:i")
+        raise forms.ValidationError(
+            f"Dit artikel is op {tijd}{door} opgeslagen terwijl jij het openhad. Je wijzigingen zijn "
+            "niet opgeslagen; ze staan nog in dit scherm. Open het artikel in een nieuw tabblad om te "
+            "zien wat er nu staat, zet je wijzigingen over en sla daarna opnieuw op."
+        )
+
+
+def stempel_van_waarde(gewijzigd_op) -> str:
+    return gewijzigd_op.isoformat() if gewijzigd_op else ""
+
+
+def stempel_van(artikel) -> str:
+    return stempel_van_waarde(getattr(artikel, "gewijzigd_op", None))
+
+
 class WordImportForm(forms.Form):
     bestand = forms.FileField(label="Word-document (.docx)")
     omgeving = forms.ModelChoiceField(queryset=Omgeving.objects.all(), label="Omgeving")
@@ -204,7 +254,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     actions = ["publiceren", "archiveren"]
     change_list_template = "admin/kennisbank/artikel/change_list.html"
     fieldsets = [
-        (None, {"fields": ["titel", "samenvatting", "inhoud"]}),
+        (None, {"fields": ["titel", "samenvatting", "inhoud", "geladen_stempel", "al_gepubliceerd"]}),
         ("Eigenschappen", {"fields": ["soort", "omgeving", "eigenaar", "link"]}),
         ("Vindbaarheid", {"fields": ["clusters", "tags_tekst", "zaaktypen"]}),
         (
@@ -234,8 +284,41 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 name="kennisbank_artikel_importeren_word",
             ),
             path("voorbeeld/", self.admin_site.admin_view(self.voorbeeld), name="kennisbank_artikel_voorbeeld"),
+            path(
+                "<int:pk>/bewerkclaim/",
+                self.admin_site.admin_view(self.bewerkclaim),
+                name="kennisbank_artikel_bewerkclaim",
+            ),
         ]
         return eigen + super().get_urls()
+
+    def bewerkclaim(self, request, pk):
+        """Hartslag van het bewerkscherm: verleng mijn claim en zeg wie er nog meer in dit artikel zit.
+
+        Dit is meteen de controle op de beveiligingscode (CSRF): mislukt dit verzoek met 403, dan weet
+        het bewerkscherm dat de code verlopen is en kan het dat melden vóórdat de redacteur opslaat.
+        """
+        from django.core.exceptions import PermissionDenied
+
+        # Via get_queryset, want has_change_permission kijkt niet naar het object zelf: zo geldt
+        # dezelfde beperking per omgeving als overal in het beheer.
+        artikel = self.get_queryset(request).filter(pk=pk).first()
+        if artikel is None or not self.has_change_permission(request, artikel):
+            raise PermissionDenied
+        if request.method != "POST":
+            raise PermissionDenied
+        if request.POST.get("stoppen"):
+            diensten.claim_opheffen(artikel, request.user)
+            return JsonResponse({"anderen": []})
+        anderen = diensten.claim_vernieuwen(artikel, request.user)
+        return JsonResponse(
+            {
+                "anderen": [
+                    {"naam": c.naam, "sinds": date_format(timezone.localtime(c.begonnen_op), "H:i")} for c in anderen
+                ],
+                "stempel": stempel_van(artikel),
+            }
+        )
 
     def voorbeeld(self, request):
         """Lege voorbeeldpagina voor in het splitscreen; de inhoud komt via postMessage uit de editor."""
@@ -310,6 +393,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
+        diensten.claim_opheffen(form.instance, request.user)  # opgeslagen = niet meer aan het bewerken
         form.instance.tags.set(
             [Tag.objects.get_or_create(naam=n)[0] for n in tags_uit_tekst(form.cleaned_data.get("tags_tekst", ""))]
         )

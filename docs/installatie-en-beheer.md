@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.7.0 .
-docker push registry.example.nl/kennisbank:1.7.0
+docker build -t registry.example.nl/kennisbank:1.7.1 .
+docker push registry.example.nl/kennisbank:1.7.1
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -69,7 +69,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.7.0
+  registry.example.nl/kennisbank:1.7.1
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -84,12 +84,12 @@ Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` e
 | `beheer kennisbank_favorietenmail` | alleen de favorietenmail versturen; optioneel vaker inplannen dan dagelijks (zie `KB_FAVORIETEN_MAIL`) |
 | `beheer <commando>` | beheercommando, bijvoorbeeld `beheer kennisbank_import /data/artikelen.json` |
 
-### Upgraden naar 1.7.0
+### Upgraden naar 1.7.1
 
 De migraties lopen automatisch mee bij het starten (of via `migreer`). Twee dingen om te weten:
 
 - Tags worden overal naar kleine letters gebracht; tags die daardoor samenvallen worden samengevoegd (de artikelen gaan mee).
-- Wijzigingsmeldingen gelden alleen voor wijzigingen vanaf 1.7.0: bestaande versies worden voor alle bestaande gebruikers als gezien gemarkeerd, zodat niemand na de upgrade de hele geschiedenis als openstaande melding krijgt.
+- Wijzigingsmeldingen gelden alleen voor wijzigingen vanaf 1.7.1: bestaande versies worden voor alle bestaande gebruikers als gezien gemarkeerd, zodat niemand na de upgrade de hele geschiedenis als openstaande melding krijgt.
 - E-mail bij wijziging van favorieten staat standaard op `gebundeld`; zonder `KB_EMAIL_HOST` wordt er niets verstuurd. Zie [configuratie](configuratie.md).
 
 ## 5. Toegang en inhoud
