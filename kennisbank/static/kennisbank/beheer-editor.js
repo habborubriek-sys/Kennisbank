@@ -48,9 +48,19 @@
     var a = top(start), z = top(eind), blokken = [], n = a;
     while (n) { blokken.push(n); if (n === z) break; n = n.nextSibling; }
     var sec = doc.createElement("section"); sec.className = SEC;
-    var titel = doc.createElement("h2"); titel.className = KOP; titel.appendChild(doc.createElement("br"));
+    var titel = doc.createElement("h2"); titel.className = KOP;
+    // Begint de selectie met een kop (zoals na een Word-import), dan nemen we die tekst over als
+    // sectietitel in plaats van hem als dubbele kop binnen het kader te laten staan. Dat scheelt per
+    // sectie twee handelingen en voorkomt kaders die voor de lezer "Sectie 1" heten omdat de titel
+    // nog leeg was. De knop zelf werkt onveranderd: er ontstaat alleen een sectie als jij erop drukt.
+    var kopblok = blokken.length && /^H[1-6]$/.test(blokken[0].tagName) && blokken[0].textContent.trim()
+      ? blokken.shift() : null;
+    if (kopblok) titel.textContent = kopblok.textContent.trim();
+    else titel.appendChild(doc.createElement("br"));
     sec.appendChild(titel);
     a.parentNode.insertBefore(sec, a);
+    if (kopblok) kopblok.parentNode.removeChild(kopblok);
+    if (!blokken.length) { var leeg = doc.createElement("p"); leeg.appendChild(doc.createElement("br")); sec.appendChild(leeg); }
     blokken.forEach(function (b) {
       if (b.tagName === "P" && b.classList.contains(RUIMTE)) { b.parentNode.removeChild(b); return; }  // typ-ruimte hoort niet in de sectie
       if (b.tagName === "SECTION") { // een bestaande sectie in de selectie: opnemen zonder te nesten

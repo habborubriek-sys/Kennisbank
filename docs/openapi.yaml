@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.8.1
+  version: 1.9.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -522,8 +522,11 @@ components:
           type: object
           additionalProperties: {}
           nullable: true
-          description: 'De nog niet afgevinkte inhoudelijke wijziging voor de huidige
-            gebruiker: {versie, datum, toelichting}.'
+          description: |-
+            De nog niet afgevinkte inhoudelijke wijzigingen voor de huidige gebruiker.
+
+            {versie, datum, toelichting, eerdere: [{versie, datum, toelichting}, ...]} — `eerdere` bevat de
+            wijzigingen die daarvoor zijn gemist, nieuwste eerst, of is leeg.
           readOnly: true
         blokken:
           type: array
@@ -619,8 +622,11 @@ components:
           type: object
           additionalProperties: {}
           nullable: true
-          description: 'De nog niet afgevinkte inhoudelijke wijziging voor de huidige
-            gebruiker: {versie, datum, toelichting}.'
+          description: |-
+            De nog niet afgevinkte inhoudelijke wijzigingen voor de huidige gebruiker.
+
+            {versie, datum, toelichting, eerdere: [{versie, datum, toelichting}, ...]} — `eerdere` bevat de
+            wijzigingen die daarvoor zijn gemist, nieuwste eerst, of is leeg.
           readOnly: true
       required:
       - clusters

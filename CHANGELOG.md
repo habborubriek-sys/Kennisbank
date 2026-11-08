@@ -1,5 +1,17 @@
 # Wijzigingen
 
+## 1.9.0 – 2026-11-08
+
+Derde ronde na de beoordelingen, en deze keer helemaal aan de kant van de redacteur: van een Word-document naar een artikel dat af is, en van "er is iets gewijzigd" naar "dit is er gewijzigd".
+
+- **De knop *Sectie* neemt de kop over die je selecteert.** Begon je selectie met een kop — na een Word-import is dat bijna altijd zo — dan kreeg je een sectie met een lege titel en diezelfde kop er nog eens ín. Voor de lezer heette dat kader dan "Sectie 1". Nu wordt die kop de titel van de sectie en verdwijnt hij uit de tekst. De knop zelf werkt onveranderd: er ontstaat alleen een sectie als jij erop drukt.
+- **Een laatste controle bij de eerste publicatie.** Een artikel dat voor het eerst zichtbaar wordt voor medewerkers, wordt geweigerd als de titel een bestandsnaam of versie-aanduiding is, als de samenvatting leeg of nietszeggend is, of als er een sectie zonder titel in staat — met per geval de uitleg wat eraan moet gebeuren. Ontbreekt er alleen een zaaktype of tag, dan volgt een waarschuwing en gaat de publicatie door: slecht vindbaar is soms de bedoeling. Een al gepubliceerd artikel wordt niet opnieuw gekeurd, zodat een typfout altijd te herstellen blijft.
+- **De tekst van een eerdere versie is terug te lezen.** In de versiegeschiedenis staat bij elke regel "Tekst bekijken". Dat opent de opgeslagen momentopname van die versie, zoals medewerkers hem toen zagen — niet de tekst van vandaag. Dat is precies waar de versiegeschiedenis voor bedoeld was.
+- **Wie meerdere wijzigingen miste, ziet ze allemaal.** Na een vakantie van drie weken toonde de melding alleen de laatste wijziging; de twee daarvoor waren weg. Nu staat de nieuwste bovenaan met de eerder gemiste eronder (maximaal vier), en vinkt één keer "Ik snap het" ze samen af.
+- **Afdrukken of opslaan als PDF.** Een knop in het artikel klapt alle secties open, zet er een regel met titel, versienummer, afdrukdatum en webadres onder, en opent het printvenster van de browser. Daar kiest de medewerker zelf "Opslaan als PDF". Op papier vallen zijbalk, knoppen en meldingen weg en worden de sectiekaders gewone koppen met tekst eronder. Bewust geen PDF-bouwer op de server: niets extra's om te beheren, en de afdruk komt altijd uit de tekst van nu.
+- **Twee keuzes bij de Word-import, standaard uit.** "Gebruik de eerste kop in het document als titel" en "Eerste rij van een tabel als koprij". Beide staan standaard uit, want de opmaak in een Word-document zegt niet betrouwbaar wat de bedoeling was; je laatste keuze staat de volgende keer alvast goed. Vind je geen kop om als titel te gebruiken, dan blijft de bestandsnaam de titel en meldt de import dat.
+- **Tests** (nu 143): de controle bij de eerste publicatie, het terugkijken van een versie inclusief de rechten per omgeving, meerdere gemiste wijzigingen, en de twee importkeuzes. Daarnaast een browsercontrole van de sectieknop, de printknop en de meldingen.
+
 ## 1.8.1 – 2026-11-08
 
 Tweede ronde na de functionele review: de dingen die in een demo of bij invoering het eerst misgaan.

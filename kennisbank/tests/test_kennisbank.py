@@ -1,3 +1,4 @@
+import io
 import json
 import re
 from pathlib import Path
@@ -88,7 +89,7 @@ class Basis(TestCase):
         cls.concept = Artikel.objects.create(
             omgeving=cls.hh,
             titel="Geheim concept",
-            samenvatting="Nog niet af",
+            samenvatting="Nog niet af; conceptartikel over het versturen van een rappel.",
             status=Status.CONCEPT,
         )
         cls.concept.inhoud = (
@@ -1922,3 +1923,192 @@ class ZaaktypeVolgordeTests(Basis):
         WeergaveTelling.objects.create(artikel=arts[-1], datum=oud, aantal=9999)
         d = self.als(self.lezer).get(f"/api/v1/zaaktypen/{zt.code}/artikelen").json()
         self.assertEqual(d[0]["id"], arts[0].pk)  # terug naar alfabetisch
+
+
+class EerstePublicatieTests(Basis):
+    """Ronde 3 (punt 14): de laatste controle voordat een artikel voor medewerkers zichtbaar wordt."""
+
+    def setUp(self):
+        self.c = self.als(self.redacteur)
+        self.a = self.concept
+
+    def publiceer(self, **overschrijf):
+        data = beheerdata(self.a, status=Status.GEPUBLICEERD, **overschrijf)
+        return self.c.post(f"/beheer/kennisbank/artikel/{self.a.pk}/change/", data)
+
+    def fouten(self, respons):
+        return str(respons.context["adminform"].form.errors)
+
+    def test_een_nette_eerste_publicatie_gaat_door(self):
+        r = self.publiceer()
+        self.assertEqual(r.status_code, 302)
+        self.a.refresh_from_db()
+        self.assertEqual(self.a.versie, 1)
+
+    def test_bestandsnaam_als_titel_wordt_geweigerd(self):
+        r = self.publiceer(titel="Werkinstructie rappel DEFINITIEF.docx")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("bestandsnaam", self.fouten(r))
+
+    def test_lege_samenvatting_wordt_geweigerd(self):
+        r = self.publiceer(samenvatting="   ")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("samenvatting", self.fouten(r).lower())
+
+    def test_nietszeggende_samenvatting_wordt_geweigerd(self):
+        r = self.publiceer(samenvatting="n.v.t.")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("zegt nog niets", self.fouten(r))
+
+    def test_sectie_zonder_titel_wordt_geweigerd(self):
+        inhoud = self.a.inhoud + '<section class="sectie"><h2 class="sectie-kop"><br></h2><p>Tekst</p></section>'
+        r = self.publiceer(inhoud=inhoud)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("zonder titel", self.fouten(r))
+
+    def test_concept_opslaan_mag_wel_onaf_zijn(self):
+        """De controle hoort bij publiceren, niet bij tussentijds opslaan."""
+        data = beheerdata(self.a, samenvatting="n.v.t.", titel="iets.docx")
+        r = self.c.post(f"/beheer/kennisbank/artikel/{self.a.pk}/change/", data)
+        self.assertEqual(r.status_code, 302)
+
+    def test_latere_publicatie_wordt_niet_opnieuw_gekeurd(self):
+        """Een al gepubliceerd artikel blokkeren we niet; anders kan niemand meer een typfout herstellen."""
+        a = Artikel.objects.get(slug="rappel-versturen")
+        data = beheerdata(a, samenvatting="n.v.t.")
+        r = self.c.post(f"/beheer/kennisbank/artikel/{a.pk}/change/", data)
+        self.assertEqual(r.status_code, 302)
+
+    def test_zonder_zaaktype_of_tag_volgt_een_waarschuwing(self):
+        data = beheerdata(self.a, status=Status.GEPUBLICEERD)
+        r = self.c.post(f"/beheer/kennisbank/artikel/{self.a.pk}/change/", data, follow=True)
+        meldingen = [str(m) for m in r.context["messages"]]
+        self.assertTrue(any("geen zaaktype" in m for m in meldingen), meldingen)
+
+
+class VersieBekijkenTests(Basis):
+    """Ronde 3 (punt 15): de opgeslagen tekst van een eerdere versie terugzien."""
+
+    def setUp(self):
+        self.a = Artikel.objects.get(slug="rappel-versturen")
+        self.v1 = self.a.versies.order_by("versie").first()
+
+    def test_redacteur_ziet_de_tekst_van_een_eerdere_versie(self):
+        r = self.als(self.redacteur).get(f"/beheer/kennisbank/artikel/{self.a.pk}/versie/{self.v1.versie}/")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, f"versie {self.v1.versie}")
+        self.assertContains(r, "vasteInhoud")
+
+    def test_de_tekst_komt_uit_de_momentopname_en_niet_uit_het_artikel(self):
+        self.a.titel = "Titel van vandaag"
+        self.a.save(update_fields=["titel", "gewijzigd_op"])
+        r = self.als(self.redacteur).get(f"/beheer/kennisbank/artikel/{self.a.pk}/versie/{self.v1.versie}/")
+        self.assertNotContains(r, "Titel van vandaag")
+
+    def test_onbestaande_versie_geeft_404(self):
+        r = self.als(self.redacteur).get(f"/beheer/kennisbank/artikel/{self.a.pk}/versie/99/")
+        self.assertEqual(r.status_code, 404)
+
+    def test_redacteur_van_een_andere_omgeving_mag_er_niet_bij(self):
+        a = Artikel.objects.create(
+            omgeving=self.anders, titel="Instructie van de andere afdeling", samenvatting="x", versie=1
+        )
+        ArtikelVersie.objects.create(artikel=a, versie=1, inhoud=diensten.momentopname(a))
+        r = self.als(self.redacteur).get(f"/beheer/kennisbank/artikel/{a.pk}/versie/1/")
+        self.assertEqual(r.status_code, 403)
+
+
+class GemisteWijzigingenTests(Basis):
+    """Ronde 3 (punt 16): wie meerdere wijzigingen miste, ziet ze allemaal."""
+
+    def setUp(self):
+        self.a = Artikel.objects.get(slug="rappel-versturen")
+        self.a.versies.all().delete()
+        for n, tekst in [(1, "eerste"), (2, "tweede"), (3, "derde"), (4, "vierde")]:
+            ArtikelVersie.objects.create(
+                artikel=self.a,
+                versie=n,
+                inhoud=diensten.momentopname(self.a),
+                toelichting=f"Wijziging {tekst}",
+                gepubliceerd_op=timezone.now(),
+            )
+        self.a.versie = 4
+        self.a.save(update_fields=["versie", "gewijzigd_op"])
+
+    def test_alle_gemiste_wijzigingen_staan_erbij_nieuwste_eerst(self):
+        uit = diensten.wijzigingen_voor(self.lezer, [self.a])[self.a.pk]
+        self.assertEqual(uit["versie"], 4)
+        self.assertEqual([e["versie"] for e in uit["eerdere"]], [3, 2])
+
+    def test_afgevinkte_wijzigingen_komen_niet_terug(self):
+        diensten.markeer_gezien(self.lezer, [self.a], tot_versie=3)
+        uit = diensten.wijzigingen_voor(self.lezer, [self.a])[self.a.pk]
+        self.assertEqual(uit["versie"], 4)
+        self.assertEqual(uit["eerdere"], [])
+
+    def test_eenmaal_afvinken_ruimt_alle_regels_op(self):
+        c = self.als(self.lezer)
+        r = c.post(f"/api/v1/artikelen/{self.a.pk}/gezien", {"versie": 4}, content_type="application/json")
+        self.assertIn(r.status_code, (200, 204))
+        self.assertEqual(diensten.wijzigingen_voor(self.lezer, [self.a]), {})
+
+    def test_de_api_geeft_de_eerdere_wijzigingen_mee(self):
+        r = self.als(self.lezer).get(f"/api/v1/artikelen/{self.a.pk}")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.json()["wijziging"]["eerdere"]), 2)
+
+
+class WordImportKeuzesTests(Basis):
+    """Ronde 3 (punt 18): twee keuzes bij de Word-import, standaard uit, laatste keuze onthouden."""
+
+    HTML = (
+        "<h1>Rappel versturen</h1><p>Tekst</p>"
+        "<table><tr><td>Stap</td><td>Wie</td></tr><tr><td>1</td><td>JB</td></tr></table>"
+    )
+
+    def lees(self, **keuzes):
+        from unittest.mock import patch
+
+        from kennisbank.word_import import lees_docx
+
+        class Nep:
+            value = self.HTML
+            messages = []
+
+        with (
+            patch("kennisbank.word_import._controleer_grootte", lambda b: None),
+            patch("kennisbank.word_import.mammoth.convert_to_html", return_value=Nep()),
+        ):
+            return lees_docx(io.BytesIO(b"x"), "werkinstructie_rappel.docx", **keuzes)
+
+    def test_standaard_blijft_de_bestandsnaam_de_titel(self):
+        uit = self.lees()
+        self.assertEqual(uit.titel, "werkinstructie rappel")
+        self.assertIn("Rappel versturen", uit.inhoud)
+        self.assertNotIn("<th", uit.inhoud)
+
+    def test_kop_als_titel_haalt_de_kop_uit_de_tekst(self):
+        uit = self.lees(kop_als_titel=True)
+        self.assertEqual(uit.titel, "Rappel versturen")
+        self.assertNotIn("Rappel versturen", uit.inhoud)
+
+    def test_zonder_kop_valt_het_terug_op_de_bestandsnaam_met_melding(self):
+        self.HTML = "<p>Alleen tekst</p>"
+        uit = self.lees(kop_als_titel=True)
+        self.assertEqual(uit.titel, "werkinstructie rappel")
+        self.assertTrue(any("Geen kop" in m for m in uit.meldingen), uit.meldingen)
+
+    def test_tabelkoprij_maakt_alleen_de_eerste_rij_kop(self):
+        uit = self.lees(tabelkoprij=True)
+        self.assertEqual(uit.inhoud.count("<th"), 2)
+        self.assertIn("<td>1</td>", uit.inhoud)
+
+    def test_de_keuze_wordt_onthouden_voor_de_volgende_import(self):
+        c = self.als(self.redacteur)
+        r = c.get("/beheer/kennisbank/artikel/importeren-word/")
+        self.assertFalse(r.context["form"]["kop_als_titel"].value())
+        p = diensten.profiel(self.redacteur)
+        p.import_kop_als_titel = True
+        p.save(update_fields=["import_kop_als_titel"])
+        r = c.get("/beheer/kennisbank/artikel/importeren-word/")
+        self.assertTrue(r.context["form"]["kop_als_titel"].value())

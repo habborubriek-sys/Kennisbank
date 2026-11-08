@@ -147,12 +147,21 @@ def is_inhoudelijk_gewijzigd(artikel: Artikel, nieuwe_momentopname: dict) -> boo
 # --- Wijzigingsmeldingen ---------------------------------------------------------------
 
 
+#: Hoeveel eerdere gemiste wijzigingen we onder de nieuwste tonen. Meer dan dit is geen melding meer
+#: maar een geschiedenis; daarvoor is de versiegeschiedenis in het beheerscherm.
+MAX_EERDERE_WIJZIGINGEN = 4
+
+
 def wijzigingen_voor(gebruiker, artikelen) -> dict[int, dict]:
     """Per artikel-id de nog niet afgevinkte inhoudelijke wijziging voor deze gebruiker, of niets.
 
     Een wijziging telt als: een versie hoger dan 1, geen kleine correctie, gepubliceerd nadat de
     gebruiker voor het eerst inlogde (eerder gepubliceerd = nooit anders gekend), en hoger dan de
-    versie die de gebruiker met "Ik snap het" heeft afgevinkt. Van meerdere wijzigingen telt de laatste.
+    versie die de gebruiker met "Ik snap het" heeft afgevinkt.
+
+    Zijn er meerdere wijzigingen gemist (bijvoorbeeld na een vakantie), dan staat de nieuwste bovenaan
+    en staan de eerdere eronder in `eerdere`, nieuwste eerst. Afvinken gebeurt op de nieuwste versie en
+    daarmee in één keer op alle regels: wie ze alle drie leest, hoeft niet drie keer te klikken.
     """
     if hasattr(artikelen, "values_list"):
         ids = list(artikelen.values_list("pk", flat=True))
@@ -173,11 +182,14 @@ def wijzigingen_voor(gebruiker, artikelen) -> dict[int, dict]:
     uit = {}
     for v in versies:
         aid = v["artikel_id"]
-        if aid in uit:
-            continue  # alleen de hoogste per artikel (de volgorde is -versie)
         if v["versie"] <= gezien.get(aid, 0):
             continue
-        uit[aid] = {"versie": v["versie"], "toelichting": v["toelichting"], "datum": v["gepubliceerd_op"]}
+        regel = {"versie": v["versie"], "toelichting": v["toelichting"], "datum": v["gepubliceerd_op"]}
+        if aid in uit:
+            if len(uit[aid]["eerdere"]) < MAX_EERDERE_WIJZIGINGEN:
+                uit[aid]["eerdere"].append(regel)  # de volgorde is -versie, dus al nieuwste eerst
+            continue
+        uit[aid] = dict(regel, eerdere=[])
     return uit
 
 

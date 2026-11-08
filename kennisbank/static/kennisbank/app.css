@@ -334,6 +334,8 @@ body.embed .view h1{font-size:1.3rem}
 .wijziging{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--wijzig-bg);border:1px solid var(--wijzig-balk);border-left:4px solid var(--wijzig-balk);border-radius:0 8px 8px 0;padding:10px 14px;margin:0 0 14px}
 .wijziging p{margin:4px 0 0;max-width:90ch}
 .wijziging b{color:inherit}
+.wijziging .wijzkop{margin:0;font-weight:600}
+.wijziging .wijzregel+.wijzregel{padding-top:6px;border-top:1px solid var(--wijzig-balk)}
 .wijziging .tb{flex:none}
 
 /* --- Nieuws --- */
@@ -376,3 +378,32 @@ details.sec .body>.tabelbreed,.art .inleiding>.tabelbreed{max-width:none}
 .embed-terug{display:none}
 body.embed .embed-terug{display:inline-block;margin:10px 16px 0;font-size:.9rem}
 body.embed .embed-terug[hidden]{display:none}
+
+/* ---- Afdrukken / opslaan als PDF -------------------------------------------------------------
+ * De knop zet eerst alle secties open (zie app.js) en roept dan window.print(). Hier halen we weg
+ * wat op papier niets doet: zijbalk, knoppen, zoekbalk, meldingen. De sectie-kaders worden platte
+ * koppen met tekst eronder, zodat een afdruk eruitziet als een document en niet als een website. */
+@media print {
+  :root{--bg:#fff;--card:#fff;--line:#bbb;--muted:#444}
+  .top,.side,.nav,.crumb,.toolbar,.secbar,.hint,.chips,.wijziging,.concept-banner,
+  .assist,.assistent,.modal,.toast,.embed-terug,.resulthead,#printBtn{display:none !important}
+  body{background:#fff;color:#000}
+  .shell,.main,.view,.artikelview{display:block;margin:0;padding:0;max-width:none;width:auto}
+  .art{box-shadow:none;border:0;border-radius:0;margin:0;padding:0;max-width:none}
+  .art h1{font-size:20pt;margin:0 0 6pt}
+  .summary{font-size:11pt;color:#000}
+  .docline{font-size:9pt;color:#333;border-bottom:1pt solid #bbb;padding-bottom:4pt}
+  details.sec{border:0;margin:0 0 10pt;break-inside:avoid}
+  details.sec>summary{list-style:none;font-size:13pt;font-weight:700;padding:0;margin:10pt 0 4pt;background:none;border:0}
+  details.sec>summary::marker,details.sec>summary::-webkit-details-marker{display:none}
+  details.sec>.body{padding:0}
+  .related{break-inside:avoid}
+  a{color:#000;text-decoration:underline}
+  a[href^="http"]::after{content:" (" attr(href) ")";font-size:8pt;color:#444}
+  table{border-collapse:collapse}
+  th,td{border:.5pt solid #999}
+  .printregel{display:block;margin-top:12pt;padding-top:4pt;border-top:1pt solid #bbb;font-size:8pt;color:#333}
+  @page{margin:18mm 16mm}
+}
+/* Op het scherm is die regel alleen voor de afdruk bedoeld. */
+@media screen{.printregel{display:none}}

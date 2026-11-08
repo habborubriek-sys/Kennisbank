@@ -214,6 +214,20 @@ def blokken(html: str) -> list[dict]:
     return uit
 
 
+def secties_zonder_kop(html: str) -> list[int]:
+    """Nummers van de secties waarvan de titel leeg is.
+
+    Zo'n sectie krijgt voor de lezer de naam "Sectie 1"; dat is bijna altijd een vergeten titel na een
+    Word-import, dus het is iets om vóór publicatie op te vangen.
+    """
+    uit = []
+    for n, m in enumerate(_SECTIE.finditer(schoon(html)), start=1):
+        kop = _html.unescape(_WIT.sub(" ", _TAG.sub("", m.group(1) or "")).replace("&nbsp;", " ")).strip()
+        if not kop:
+            uit.append(n)
+    return uit
+
+
 def sectie(kop: str, inhoud_html: str) -> str:
     """Bouw een sectie-kader (voor imports en migraties)."""
     import html as _html

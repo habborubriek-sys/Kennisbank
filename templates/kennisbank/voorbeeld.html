@@ -1,11 +1,11 @@
 {% load static %}<!doctype html>
 <html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Voorbeeld</title>
+<title>{{ vaste_titelbalk|default:"Voorbeeld" }}</title>
 <link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}"><link rel="stylesheet" href="{% static 'kennisbank/app.css' %}">
 <script src="{% static 'kennisbank/voorbeeld.js' %}" defer></script></head>
 <body class="embed voorbeeld">
 <header class="top">
-  <div class="brand"><span class="mark" aria-hidden="true">K</span><span>{{ app_naam }}</span> <span class="proto">Voorbeeld</span></div>
+  <div class="brand"><span class="mark" aria-hidden="true">K</span><span>{{ app_naam }}</span> <span class="proto">{{ vaste_titelbalk|default:"Voorbeeld" }}</span></div>
   <div class="topbtns">
     <button class="toggle" id="onbToggle" type="button" aria-pressed="false" title="Toon extra uitleg voor nieuwe collega's"><span class="sw" aria-hidden="true"></span>Onboarding</button>
   </div>
@@ -16,9 +16,10 @@
   <div class="head"><span class="type" id="soort" hidden></span></div>
   <h1 id="artTitel">(nog geen titel)</h1>
   <p class="summary" id="samenvatting" hidden></p>
-  <p class="docline">voorbeeld · zoals het artikel er gepubliceerd uitziet</p>
+  <p class="docline">{{ vaste_regel|default:"voorbeeld · zoals het artikel er gepubliceerd uitziet" }}</p>
   <div class="secbar" id="secbar" hidden><button class="tb" type="button" id="toggleAll">Alles uitklappen</button></div>
   <div class="sections" id="sections"><div class="empty">Begin met typen in de editor; het voorbeeld loopt mee.</div></div>
  </article>
 </div></main></div>
+{% if vaste_inhoud %}{{ vaste_inhoud|json_script:"vasteInhoud" }}{% endif %}
 </body></html>

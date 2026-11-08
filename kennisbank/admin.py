@@ -6,6 +6,7 @@
 """
 
 import json
+import re
 
 from django import forms
 from django.conf import settings
@@ -20,6 +21,7 @@ from django.utils.formats import date_format
 from django.utils.html import format_html
 
 from . import diensten
+from . import inhoud as inhoud_mod
 from .models import (
     MAX_INHOUD,
     Artikel,
@@ -72,10 +74,19 @@ class RedactieRechtenMixin:
 class VersieInline(admin.TabularInline):
     model = ArtikelVersie
     extra = 0
+    max_num = 0  # geen lege regel onderaan; er valt hier niets toe te voegen
     can_delete = False
-    fields = ["versie", "gepubliceerd_op", "gepubliceerd_door", "toelichting", "kleine_correctie"]
+    fields = ["versie", "gepubliceerd_op", "gepubliceerd_door", "toelichting", "kleine_correctie", "bekijk"]
     readonly_fields = fields
     verbose_name_plural = "Versiegeschiedenis (onveranderlijk)"
+
+    @admin.display(description="")
+    def bekijk(self, obj):
+        """Link naar de opgeslagen tekst van die versie, zoals medewerkers hem toen zagen."""
+        if not obj.pk:
+            return ""
+        url = reverse("admin:kennisbank_artikel_versie", args=[obj.artikel_id, obj.versie])
+        return format_html('<a href="{}" target="_blank" rel="noopener">Tekst bekijken</a>', url)
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -113,6 +124,26 @@ def tags_uit_tekst(tekst: str) -> list[str]:
             gezien.add(naam)
             uit.append(naam)
     return uit
+
+
+#: Titels die onmiskenbaar nog uit de bestandsmap komen in plaats van uit de kennisbank. Alleen gebruikt
+#: bij de eerste publicatie, als zachte vangnet: een redacteur ziet het meestal zelf, maar niet altijd.
+#: Let op: "concept" en "definitief" in gewone schrijfwijze zijn gewone woorden ("conceptbesluit"), dus
+#: daar gaan we niet op af. Alleen op schreeuwende kapitalen en op wat er verder in bestandsnamen staat.
+_TITEL_RUIS = re.compile(
+    r"\.(docx?|pdf|odt|rtf|txt)\s*$"
+    r"|\b(kopie\s+van|nieuwe\s+map)\b"
+    r"|\bversie\s*\d|\bv\d+[._]\d+\b|[_\s-]v\d",
+    re.I,
+)
+#: Schreeuwende kapitalen zijn een bestandsnaam-gewoonte; in kleine letters zijn het gewone woorden.
+_TITEL_RUIS_KAPITAAL = re.compile(r"\b(DEFINITIEF|DEFINITIEVE|FINAL|CONCEPT)\b")
+
+#: Samenvattingen die net zo goed leeg hadden kunnen zijn.
+_SAMENVATTING_RUIS = {
+    "", "nvt", "n.v.t", "n.v.t.", "geen", "volgt", "volgt nog", "nog invullen", "nog in te vullen",
+    "tbd", "todo", "to do", "x", "xxx", "test", "tekst", "samenvatting", "zie artikel", "zie inhoud",
+}
 
 
 class ArtikelForm(forms.ModelForm):
@@ -166,6 +197,7 @@ class ArtikelForm(forms.ModelForm):
         self._controleer_conflict(data)
         self._controleer_omvang(data)
         self._controleer_dubbele_titel(data)
+        self._controleer_eerste_publicatie(data)
         if data.get("status") != Status.GEPUBLICEERD or not self.instance.pk:
             return data
         # Zou opslaan een nieuwe versie opleveren? Dan is een toelichting verplicht (tenzij kleine correctie),
@@ -198,6 +230,45 @@ class ArtikelForm(forms.ModelForm):
             )
         return data
 
+
+    def _controleer_eerste_publicatie(self, data):
+        """Laatste controle voordat een artikel voor het eerst zichtbaar wordt voor medewerkers.
+
+        Alleen bij de eerste publicatie, en alleen op dingen die onmiskenbaar nog niet af zijn: een
+        bestandsnaam als titel, een lege of nietszeggende samenvatting, of een sectie zonder titel
+        (die heet voor de lezer "Sectie 1"). Een redacteur die bewust iets anders wil, kan het artikel
+        als concept opslaan en in twee stappen publiceren.
+        """
+        if data.get("status") != Status.GEPUBLICEERD or self.instance.versie:
+            return
+        titel = (data.get("titel") or "").strip()
+        if titel and (_TITEL_RUIS.search(titel) or _TITEL_RUIS_KAPITAAL.search(titel)):
+            self.add_error(
+                "titel",
+                "Deze titel lijkt een bestandsnaam of een versie-aanduiding. Medewerkers zoeken op de titel, "
+                "dus geef het artikel de naam waaronder zij het zouden zoeken.",
+            )
+        samenvatting = " ".join((data.get("samenvatting") or "").split())
+        if not samenvatting:
+            self.add_error(
+                "samenvatting",
+                "Vul een samenvatting in. Medewerkers zien die in de lijst en in de zoekresultaten; zonder "
+                "samenvatting moeten zij elk artikel openen om te zien of het het juiste is.",
+            )
+        elif samenvatting.strip(" .-–—_").lower() in _SAMENVATTING_RUIS or len(samenvatting) < 20:
+            self.add_error(
+                "samenvatting",
+                "Deze samenvatting zegt nog niets. Schrijf één of twee zinnen over waar dit artikel over gaat.",
+            )
+        zonder_kop = inhoud_mod.secties_zonder_kop(data.get("inhoud") or "")
+        if zonder_kop:
+            nummers = ", ".join(str(n) for n in zonder_kop)
+            self.add_error(
+                "inhoud",
+                f"Er {'is een sectie' if len(zonder_kop) == 1 else 'zijn secties'} zonder titel "
+                f"(nummer {nummers}). Medewerkers zien dat kader dan dichtgeklapt staan als "
+                f"'Sectie {zonder_kop[0]}'. Geef elke sectie een titel, of haal het kader weg.",
+            )
 
     def _controleer_omvang(self, data):
         inhoud = data.get("inhoud") or ""
@@ -292,6 +363,21 @@ class WordImportForm(forms.Form):
     bestand = forms.FileField(label="Word-document (.docx)")
     omgeving = forms.ModelChoiceField(queryset=Omgeving.objects.all(), label="Omgeving")
     soort = forms.ChoiceField(choices=Soort.choices, initial=Soort.WERKINSTRUCTIE, label="Soort")
+    # Bewust twee losse keuzes, standaard uit. De opmaak in een Word-document zegt niet betrouwbaar wat
+    # de bedoeling was, dus de redacteur bepaalt per document of hij deze omzettingen wil. Je laatste
+    # keuze staat de volgende keer alvast goed.
+    kop_als_titel = forms.BooleanField(
+        required=False,
+        label="Gebruik de eerste kop in het document als titel",
+        help_text="Anders wordt de bestandsnaam de titel. De kop verdwijnt dan uit de tekst, zodat de "
+        "titel er niet twee keer staat.",
+    )
+    tabelkoprij = forms.BooleanField(
+        required=False,
+        label="Eerste rij van een tabel als koprij",
+        help_text="Maakt van de eerste rij van elke tabel een koprij. Handig bij tabellen met kolomnamen, "
+        "onhandig bij tabellen die meteen met gegevens beginnen.",
+    )
 
     def clean_bestand(self):
         f = self.cleaned_data["bestand"]
@@ -347,6 +433,11 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             ),
             path("voorbeeld/", self.admin_site.admin_view(self.voorbeeld), name="kennisbank_artikel_voorbeeld"),
             path(
+                "<int:pk>/versie/<int:versie>/",
+                self.admin_site.admin_view(self.versie_bekijken),
+                name="kennisbank_artikel_versie",
+            ),
+            path(
                 "<int:pk>/bewerkclaim/",
                 self.admin_site.admin_view(self.bewerkclaim),
                 name="kennisbank_artikel_bewerkclaim",
@@ -390,18 +481,75 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             raise PermissionDenied
         return render(request, "kennisbank/voorbeeld.html", {"app_naam": settings.KB_APP_NAAM})
 
+    def versie_bekijken(self, request, pk, versie):
+        """De tekst van een eerdere versie, zoals medewerkers die toen zagen.
+
+        We tonen de opgeslagen momentopname, niet de huidige tekst: dat is precies waarvoor de
+        versiegeschiedenis bestaat (Archiefwet, "welke instructie gold er toen").
+        """
+        from django.core.exceptions import PermissionDenied
+        from django.http import Http404
+
+        artikel = self.get_queryset(request).filter(pk=pk).first()
+        if artikel is None or not self.has_view_permission(request, artikel):
+            raise PermissionDenied
+        rij = artikel.versies.filter(versie=versie).first()
+        if rij is None:
+            raise Http404("Deze versie bestaat niet.")
+        momentopname = rij.inhoud if isinstance(rij.inhoud, dict) else {}
+        door = rij.gepubliceerd_door
+        naam = (door.get_full_name() or door.get_username()) if door else "onbekend"
+        return render(
+            request,
+            "kennisbank/voorbeeld.html",
+            {
+                "app_naam": settings.KB_APP_NAAM,
+                "vaste_inhoud": {
+                    "titel": momentopname.get("titel", artikel.titel),
+                    "samenvatting": momentopname.get("samenvatting", ""),
+                    "soort": momentopname.get("soort", artikel.soort),
+                    "inhoud": momentopname.get("inhoud", ""),
+                },
+                "vaste_regel": (
+                    f"versie {rij.versie} · gepubliceerd {date_format(rij.gepubliceerd_op, 'j F Y')} "
+                    f"door {naam}" + (f" · {rij.toelichting}" if rij.toelichting else "")
+                ),
+                "vaste_titelbalk": f"Versie {rij.versie}",
+            },
+        )
+
     def importeren_word(self, request):
         """Upload een .docx; het wordt een concept-artikel met secties. Daarna door naar het bewerkscherm."""
         if not self.has_add_permission(request):
             from django.core.exceptions import PermissionDenied
 
             raise PermissionDenied
-        form = WordImportForm(request.POST or None, request.FILES or None)
+        profiel = diensten.profiel(request.user)
+        form = WordImportForm(
+            request.POST or None,
+            request.FILES or None,
+            # De keuzes van de vorige import staan alvast goed; wijzigen doet de redacteur zelf.
+            initial={
+                "kop_als_titel": profiel.import_kop_als_titel,
+                "tabelkoprij": profiel.import_tabelkoprij,
+            },
+        )
         if not request.user.is_superuser:
             form.fields["omgeving"].queryset = Omgeving.objects.filter(pk__in=self._omgevingen(request))
         if request.method == "POST" and form.is_valid():
+            kop_als_titel = bool(form.cleaned_data["kop_als_titel"])
+            tabelkoprij = bool(form.cleaned_data["tabelkoprij"])
+            if (profiel.import_kop_als_titel, profiel.import_tabelkoprij) != (kop_als_titel, tabelkoprij):
+                profiel.import_kop_als_titel = kop_als_titel
+                profiel.import_tabelkoprij = tabelkoprij
+                profiel.save(update_fields=["import_kop_als_titel", "import_tabelkoprij"])
             try:
-                gelezen = lees_docx(form.cleaned_data["bestand"], form.cleaned_data["bestand"].name)
+                gelezen = lees_docx(
+                    form.cleaned_data["bestand"],
+                    form.cleaned_data["bestand"].name,
+                    kop_als_titel=kop_als_titel,
+                    tabelkoprij=tabelkoprij,
+                )
             except WordImportFout as e:
                 form.add_error("bestand", str(e))
             else:
@@ -469,6 +617,19 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         if versie:
             if versie.versie == 1:
                 messages.info(request, "Gepubliceerd als versie 1.")
+                # Niet blokkerend: zonder zaaktype of tag is het artikel gepubliceerd maar slecht
+                # vindbaar. Dat is soms de bedoeling, dus we zeggen het en laten het aan de redacteur.
+                mist = []
+                if not form.instance.zaaktypen.exists():
+                    mist.append("geen zaaktype")
+                if not form.instance.tags.exists():
+                    mist.append("geen tags")
+                if mist:
+                    messages.warning(
+                        request,
+                        f"Dit artikel heeft {' en '.join(mist)}. Medewerkers vinden het dan alleen via de "
+                        "zoekbalk op woorden uit de tekst, niet via het zaaksysteem of een onderwerp.",
+                    )
             elif versie.kleine_correctie:
                 messages.info(request, f"Gepubliceerd als versie {versie.versie} (kleine correctie, geen melding).")
             else:

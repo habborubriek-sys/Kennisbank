@@ -58,6 +58,14 @@
     this.textContent = o ? "Alles inklappen" : "Alles uitklappen";
   });
 
+  // Vaste inhoud: dit scherm wordt ook gebruikt om een eerdere versie te bekijken. Dan staat de tekst
+  // al in de pagina en is er geen editor die hem doorgeeft.
+  var vast = document.getElementById("vasteInhoud");
+  if (vast) {
+    try { render(JSON.parse(vast.textContent)); } catch (e) {}
+    return;
+  }
+
   window.addEventListener("message", function (e) {
     if (e.origin !== location.origin || !e.data || e.data.type !== "kb-voorbeeld") return;
     render(e.data);

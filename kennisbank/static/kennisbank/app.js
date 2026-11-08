@@ -92,6 +92,19 @@
   /* ---------- Navigatie (echte URL's, zodat links te delen zijn) ---------- */
   const VIEWS = ["recent", "artikelen", "favorieten", "gewijzigd", "nieuws", "voorstellen", "statistieken"];
   const gewijzigd = () => artikelen.filter((a) => a.wijziging);
+
+  // Melding bij een gewijzigd artikel. Wie langer weg was, heeft soms meerdere wijzigingen gemist; die
+  // staan er dan allemaal in, nieuwste bovenaan. Eén keer "Ik snap het" vinkt ze samen af.
+  function wijzigingRegel(w, kop) {
+    return `<p class="wijzregel"><b>${kop} ${esc(datum(w.datum))}</b> (versie ${w.versie})<br>${esc(w.toelichting) || "Het artikel is inhoudelijk bijgewerkt."}</p>`;
+  }
+  function wijzigingBlok(w) {
+    const eerdere = w.eerdere || [];
+    const kop = eerdere.length
+      ? `<p class="wijzkop">Er zijn ${eerdere.length + 1} wijzigingen die je nog niet had gezien:</p>`
+      : "";
+    return `<div class="wijziging" id="wijzBlok" role="status"><div>${kop}${wijzigingRegel(w, "Gewijzigd op")}${eerdere.map((e) => wijzigingRegel(e, "Eerder, op")).join("")}</div><button class="tb primary" type="button" id="wijzGezien">Ik snap het</button></div>`;
+  }
   const nieuwsOngelezen = () => (berichten || []).filter((b) => isNieuw(b)).length;
   const isNieuw = (b) => !nieuwsGezienOp || new Date(b.gepubliceerd_op) > new Date(nieuwsGezienOp);
 
@@ -289,12 +302,13 @@
        <div class="toolbar">
         <button class="tb" type="button" id="favBtn" aria-pressed="${favs.has(a.id)}">${favs.has(a.id) ? "★ Favoriet" : "☆ Favoriet"}</button>
         <button class="tb" type="button" id="shareBtn">⤴ Delen</button>
+        <button class="tb" type="button" id="printBtn">🖨 Afdrukken of opslaan als PDF</button>
         ${EMBED ? `<a class="tb" href="${esc(a.url)}" target="_blank" rel="noopener">↗ Open in kennisbank</a>` : ""}
         ${a.bewerk_url ? `<a class="tb primary" href="${esc(a.bewerk_url)}" ${EMBED ? 'target="_blank" rel="noopener"' : ""}>Bewerken</a>` : ""}
        </div></div>
       <h1 id="artTitel">${esc(a.titel)}</h1>
       <p class="summary">${esc(a.samenvatting)}</p>
-      ${a.wijziging ? `<div class="wijziging" id="wijzBlok" role="status"><div><b>Gewijzigd op ${esc(datum(a.wijziging.datum))}</b> (versie ${a.wijziging.versie})<p>${esc(a.wijziging.toelichting) || "Het artikel is inhoudelijk bijgewerkt."}</p></div><button class="tb primary" type="button" id="wijzGezien">Ik snap het</button></div>` : ""}
+      ${a.wijziging ? wijzigingBlok(a.wijziging) : ""}
       <p class="docline">${esc(clusterLabel(a))} · ${zt} · versie ${a.versie}, bijgewerkt ${datum(a.gepubliceerd_op)} · eigenaar ${esc(a.eigenaar)}</p>
       ${a.blokken.some((b) => b.type === "sectie") ? '<div class="secbar"><button class="tb" type="button" id="toggleAll">Alles uitklappen</button></div>' : ""}
       <div class="sections">${a.blokken.map((b) => b.type === "tekst" ? `<div class="inleiding">${b.html}</div>` : `<details class="sec" id="sectie-${b.nummer}" ${b.nummer === 1 ? "open" : ""}><summary>${esc(b.kop)}</summary><div class="body">${b.html}</div></details>`).join("")}</div>
@@ -475,6 +489,18 @@
       const klaar = () => toast("Link gekopieerd");
       if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(klaar).catch(() => toast("Link: " + url));
       else toast("Link: " + url);
+    });
+    // Afdrukken: alle secties open, een regel met versie en afdrukdatum erbij, en daarna het
+    // printvenster van de browser. Daar kiest de medewerker zelf "Opslaan als PDF"; we hebben dus geen
+    // PDF-bouwer op de server nodig, en de afdruk komt altijd uit de tekst van nu.
+    $("#printBtn").addEventListener("click", () => {
+      document.querySelectorAll("#artikel details.sec").forEach((d) => { d.open = true; });
+      const regel = document.getElementById("printregel") || document.createElement("p");
+      regel.id = "printregel"; regel.className = "printregel";
+      regel.textContent = `${a.titel} · versie ${a.versie} · afgedrukt op ${datum(new Date().toISOString())} · ${location.origin + a.url}`;
+      const art = document.getElementById("artikel");
+      if (art && regel.parentNode !== art) art.appendChild(regel);
+      window.print();
     });
     $("#propBtn").addEventListener("click", () => openProp(""));
     const wg = $("#wijzGezien");

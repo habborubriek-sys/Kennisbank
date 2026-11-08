@@ -30,13 +30,15 @@ Als **redacteur** schrijf en onderhoud je de artikelen in jouw omgeving, behande
    - *Gearchiveerd*: niet meer zichtbaar; de versiegeschiedenis blijft bewaard.
 6. Vul bij een wijziging de **toelichting** in, bijvoorbeeld "Termijn tweede rappel aangepast van 2 naar 3 weken". Die is verplicht zodra een gepubliceerd artikel inhoudelijk wijzigt, want medewerkers krijgen precies deze zin te zien (zie hieronder).
 
-Elke keer dat je een gepubliceerd artikel inhoudelijk wijzigt, ontstaat automatisch een nieuwe versie. Onderaan het artikel in het beheer zie je alle versies: wanneer, door wie en waarom. Oude versies zijn niet te wijzigen of te verwijderen.
+Elke keer dat je een gepubliceerd artikel inhoudelijk wijzigt, ontstaat automatisch een nieuwe versie. Onderaan het artikel in het beheer zie je alle versies: wanneer, door wie en waarom. Oude versies zijn niet te wijzigen of te verwijderen. Achter elke regel staat **Tekst bekijken**: dat opent de tekst zoals die bij die versie is opgeslagen — dus zoals medewerkers hem toen zagen, niet de tekst van vandaag.
+
+**Een artikel voor het eerst publiceren** gaat langs een laatste controle. De publicatie wordt geweigerd als de titel een bestandsnaam of versie-aanduiding is (`werkinstructie DEFINITIEF.docx`), als de samenvatting leeg of nietszeggend is, of als er een sectie zonder titel in staat — die heet voor de lezer namelijk "Sectie 1". Je krijgt per geval te zien wat eraan moet gebeuren. Ontbreekt alleen een zaaktype of tag, dan volgt een waarschuwing en gaat de publicatie door: slecht vindbaar is soms de bedoeling. Een artikel dat al eens is gepubliceerd, wordt niet opnieuw gekeurd, zodat een typfout altijd te herstellen blijft.
 
 ## Wijzigingsmeldingen: wat medewerkers zien van een wijziging
 
 Als je een gepubliceerd artikel inhoudelijk wijzigt, gebeurt er drie dingen voor medewerkers:
 
-- **Bij het artikel** verschijnt een blok *Gewijzigd op 8 november 2026 — Termijn tweede rappel aangepast van 2 naar 3 weken* met de knop **Ik snap het**. Het blok blijft staan tot de medewerker erop klikt of tot er een volgende wijziging is (dan komt de nieuwe toelichting ervoor in de plaats). In de lijst krijgt het artikel het label *Gewijzigd*, en in het menu staat onder **Gewijzigd** hoeveel er openstaan; daar kan een medewerker ook alles in één keer als gezien markeren.
+- **Bij het artikel** verschijnt een blok *Gewijzigd op 8 november 2026 — Termijn tweede rappel aangepast van 2 naar 3 weken* met de knop **Ik snap het**. Het blok blijft staan tot de medewerker erop klikt. Miste hij meerdere wijzigingen (na een vakantie bijvoorbeeld), dan staan ze er allemaal in — de nieuwste bovenaan, daaronder tot vier eerdere — en vinkt één keer **Ik snap het** ze samen af. In de lijst krijgt het artikel het label *Gewijzigd*, en in het menu staat onder **Gewijzigd** hoeveel er openstaan; daar kan een medewerker ook alles in één keer als gezien markeren.
 - **Per e-mail** krijgen collega's die het artikel als favoriet hebben de toelichting toegestuurd, met een link. Standaard gebundeld: één mail per dag per persoon met alle wijzigingen van die dag (instelbaar door IT met `KB_FAVORIETEN_MAIL`; zie [configuratie](configuratie.md)). Medewerkers kunnen de mail zelf uitzetten onder *Instellingen* in het menu.
 - Een nieuwe collega ziet geen meldingen van wijzigingen van vóór zijn eerste inlog: die kende het artikel niet anders.
 
@@ -62,6 +64,7 @@ Een artikel is één doorlopende tekst. Een **sectie** is een kader om een stuk 
 
 1. Selecteer de alinea's die samen een sectie moeten worden en klik op **Sectie** in de werkbalk.
 2. Er verschijnt een blauw kader om de tekst, met een donkerblauwe titelbalk erboven. De cursor staat in die balk: typ de titel van de sectie (de balk toont "Sectiekop titel" zolang hij leeg is).
+   Begint je selectie met een **kop** — na een Word-import is dat bijna altijd zo — dan wordt die kop meteen de titel van de sectie en verdwijnt hij uit de tekst, zodat de titel er niet twee keer staat.
 3. Tekst **buiten** een kader (ervoor, ertussen, erna) is in de kennisbank altijd zichtbaar. De volgorde is simpelweg de volgorde in de tekst.
 4. Een onboarding-blok dat binnen het kader valt, staat er zichtbaar iets ingesprongen in; zo zie je meteen of het bij de sectie hoort.
 5. Staat de cursor in een sectie en klik je nogmaals op **Sectie**, dan gaat het kader weg: de titel wordt een gewone kop en de tekst komt weer los te staan.
@@ -118,6 +121,11 @@ Bestaande werkinstructies in Word hoef je niet over te typen: **Beheer → Artik
 - **Lege regels** uit Word blijven staan; meerdere lege regels achter elkaar worden er één.
 - De **titel** wordt de bestandsnaam en de **samenvatting** staat op "(vul een samenvatting in)": allebei pas je aan in het bewerkscherm, waar je direct in terechtkomt.
 - **Secties** en **onboarding-uitleg** maak je daarna in de editor, zoals hierboven beschreven. Er wordt bewust niets automatisch tot sectie gemaakt; zo weet je zeker dat de indeling klopt.
+- Twee **keuzes** op het importscherm, beide standaard uit (je laatste keuze staat de volgende keer alvast goed):
+  - *Gebruik de eerste kop in het document als titel* — dan wordt die kop de artikeltitel en verdwijnt hij uit de tekst. Is er geen kop, dan blijft de bestandsnaam de titel en meldt de import dat.
+  - *Eerste rij van een tabel als koprij* — maakt van de eerste rij van elke tabel een koprij. Handig bij tabellen met kolomnamen, onhandig bij tabellen die meteen met gegevens beginnen.
+
+  Ze staan standaard uit omdat de opmaak in een Word-document niet betrouwbaar zegt wat de bedoeling was; jij bepaalt het per document.
 - Het artikel is een **concept** tot je de status op *Gepubliceerd* zet.
 
 Een `.doc` of PDF upload je niet rechtstreeks: open het in Word en sla het op als `.docx`.

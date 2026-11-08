@@ -7,6 +7,7 @@ op hun plek komt de tekst "[afbeelding weggelaten]" en het aantal wordt teruggem
 Word blijven staan; meerdere lege regels achter elkaar worden er één.
 """
 
+import html as _html
 import re
 import zipfile
 from dataclasses import dataclass, field
@@ -57,7 +58,49 @@ class WordArtikel:
     meldingen: list[str] = field(default_factory=list)
 
 
-def lees_docx(bestand, bestandsnaam: str = "") -> WordArtikel:
+def _eerste_kop_als_titel(html: str) -> tuple[str, str]:
+    """Haal de eerste kop uit de tekst en geef hem terug als titel.
+
+    Veel werkinstructies beginnen met hun eigen titel als kop. Staat die kop ook in het artikel, dan
+    leest hij als een dubbele titel. Dit is bewust een keuze van de redacteur: de opmaak in Word zegt
+    niet betrouwbaar wat de bedoeling was.
+    """
+    m = re.search(r"<h[1-3]\b[^>]*>(.*?)</h[1-3]>", html, re.S | re.I)
+    if not m:
+        return "", html
+    titel = _html.unescape(re.sub(r"<[^>]+>", "", m.group(1))).strip()
+    titel = re.sub(r"\s+", " ", titel)
+    if not titel:
+        return "", html
+    return titel, (html[: m.start()] + html[m.end() :])
+
+
+def _eerste_tabelrij_als_koprij(html: str) -> str:
+    """Maak van de cellen in de eerste rij van elke tabel koppen (<th>).
+
+    Mammoth levert alle cellen als <td>; welke rij een koprij was, is uit de Word-opmaak niet
+    betrouwbaar af te leiden. Daarom ook dit als keuze van de redacteur.
+    """
+
+    def per_tabel(m):
+        tabel = m.group(0)
+        rij = re.search(r"<tr\b[^>]*>.*?</tr>", tabel, re.S | re.I)
+        if not rij:
+            return tabel
+        nieuw = re.sub(r"<td(\b[^>]*)>", r"<th\1 scope=\"col\">", rij.group(0), flags=re.I)
+        nieuw = re.sub(r"</td>", "</th>", nieuw, flags=re.I)
+        return tabel[: rij.start()] + nieuw + tabel[rij.end() :]
+
+    return re.sub(r"<table\b.*?</table>", per_tabel, html, flags=re.S | re.I)
+
+
+def lees_docx(
+    bestand,
+    bestandsnaam: str = "",
+    *,
+    kop_als_titel: bool = False,
+    tabelkoprij: bool = False,
+) -> WordArtikel:
     teller = {"afbeeldingen": 0}
 
     def geen_afbeelding(image):
@@ -86,7 +129,18 @@ def lees_docx(bestand, bestandsnaam: str = "") -> WordArtikel:
     html = re.sub(r"^(<p><br></p>)+|(<p><br></p>)+$", "", html.strip())
 
     titel = re.sub(r"[-_]+", " ", re.sub(r"\.docx$", "", bestandsnaam, flags=re.I)).strip() or "Nieuw artikel"
+    uit_de_kop = ""
+    if kop_als_titel:
+        uit_de_kop, html = _eerste_kop_als_titel(html)
+        if uit_de_kop:
+            titel = uit_de_kop
+    if tabelkoprij:
+        html = _eerste_tabelrij_als_koprij(html)
     artikel = WordArtikel(titel=titel[:200], inhoud=schoon(html), afbeeldingen_overgeslagen=teller["afbeeldingen"])
+    if kop_als_titel and not uit_de_kop:
+        artikel.meldingen.append(
+            "Geen kop gevonden om als titel te gebruiken; de bestandsnaam is de titel geworden."
+        )
     if teller["afbeeldingen"]:
         artikel.meldingen.append(
             f"{teller['afbeeldingen']} afbeelding(en) overgeslagen: de kennisbank ondersteunt nog geen afbeeldingen. "

@@ -244,6 +244,14 @@ class Profiel(models.Model):
     nieuws_gezien_op = models.DateTimeField(
         null=True, blank=True, help_text="Wanneer de gebruiker de nieuwspagina voor het laatst opende."
     )
+    #: Keuzes bij de Word-import. Standaard uit: de opmaak in een Word-document zegt niet betrouwbaar
+    #: wat de bedoeling was, dus de redacteur zet dit per geval zelf aan. Zijn laatste keuze blijft staan.
+    import_kop_als_titel = models.BooleanField(
+        default=False, help_text="Bij een Word-import de eerste kop in het document als artikeltitel gebruiken."
+    )
+    import_tabelkoprij = models.BooleanField(
+        default=False, help_text="Bij een Word-import de eerste rij van elke tabel als koprij opmaken."
+    )
 
 
 class WijzigingGezien(models.Model):
