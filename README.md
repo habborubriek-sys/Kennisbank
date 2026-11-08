@@ -2,7 +2,7 @@
 
 Eén centrale plek voor werkinstructies, werkafspraken en processen. Medewerkers zoeken en lezen artikelen, zetten extra uitleg voor nieuwe collega's aan, bewaren favorieten, zien bij een artikel wat er is gewijzigd (en krijgen daar als favoriet-houder een e-mail van), drukken een artikel af of bewaren het als PDF, lezen het nieuws van hun afdeling, dienen verbetervoorstellen in — en praten daar met procesmanagement over door — en stellen vragen aan een assistent die alleen antwoordt uit de kennisbank. Procesmanagement schrijft artikelen in een editor met Word-opmaak of importeert ze uit Word, behandelt voorstellen, houdt bij welke artikelen opnieuw moeten worden nagekeken en ziet welke kennis gebruikt en gemist wordt. Functioneel beheer heeft een statuspagina waarop in één oogopslag te zien is of alles nog loopt. Het zaaksysteem kan per zaaktype de juiste artikelen tonen.
 
-> Versie 1.12.0 · Licentie EUPL-1.2 · Python 3.12+ / Django 5.2 LTS / PostgreSQL 14+
+> Versie 1.13.0 · Licentie EUPL-1.2 · Python 3.12+ / Django 5.2 LTS / PostgreSQL 14+
 
 ## Proberen in één commando
 
@@ -36,7 +36,7 @@ Er is geen maatwerk aan de infrastructuur nodig: één stateless container achte
 | Applicatie | Django-applicatie met REST-API (`/api/v1/`, OpenAPI in [docs/openapi.yaml](docs/openapi.yaml)) en een frontend zonder build-stap of externe bibliotheken |
 | Container | [Dockerfile](Dockerfile) (niet-root, read-only filesystem mogelijk, healthcheck), [compose.yaml](compose.yaml) om te proberen |
 | Kubernetes | [deploy/kubernetes](deploy/kubernetes): Deployment, Service, Ingress, migratie-Job, CronJob voor bewaartermijnen |
-| Kwaliteit | ruim 220 geautomatiseerde tests, lint, CI-pipelines voor [GitHub](.github/workflows/ci.yml) en [GitLab](.gitlab-ci.yml), SBOM ([sbom.cdx.json](sbom.cdx.json)) |
+| Kwaliteit | geautomatiseerde tests (zie de CHANGELOG voor het aantal per versie), lint, CI-pipelines voor [GitHub](.github/workflows/ci.yml) en [GitLab](.gitlab-ci.yml), SBOM ([sbom.cdx.json](sbom.cdx.json)) |
 | Documentatie | Zie hieronder |
 
 ## Documentatie

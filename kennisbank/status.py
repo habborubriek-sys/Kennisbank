@@ -226,30 +226,42 @@ def _assistent():
 
 
 def _onderhoud():
-    stand = diensten.laatste_stand("opschonen")
+    rijen = _onderhoudstaak(
+        "opschonen",
+        "Zet 'python manage.py kennisbank_opschonen' dagelijks in de planning. Die verstuurt "
+        "de favorietenmail, ruimt oude statistieken en bewerkclaims op en anonimiseert "
+        "afgehandelde verbetervoorstellen.",
+        verplicht=True,
+    )
+    # De favorietenmail hoeft niet apart te zijn ingepland: 'opschonen' verstuurt hem ook. Loopt hij
+    # wel apart, dan is het nuttig om te zien wanneer dat voor het laatst was.
+    los = diensten.laatste_stand("favorietenmail")
+    if los is not None:
+        rijen += _onderhoudstaak("favorietenmail", "", verplicht=False)
+    return rijen
+
+
+def _onderhoudstaak(sleutel, advies, *, verplicht):
+    naam = f"Geplande taak '{sleutel}'"
+    stand = diensten.laatste_stand(sleutel)
     if stand is None:
-        return [
-            _regel(
-                "Geplande taak 'opschonen'",
-                FOUT,
-                "nog nooit gelopen",
-                "Zet 'python manage.py kennisbank_opschonen' dagelijks in de planning. Die verstuurt "
-                "de favorietenmail, ruimt oude statistieken en bewerkclaims op en anonimiseert "
-                "afgehandelde verbetervoorstellen.",
-            )
-        ]
+        if not verplicht:
+            return []
+        return [_regel(naam, FOUT, "nog nooit gelopen", advies)]
     uren = (timezone.now() - stand.moment).total_seconds() / 3600
     wanneer = date_format(timezone.localtime(stand.moment), "j F Y, H:i")
-    if uren > ONDERHOUD_GRENS_UREN:
+    # De samenvatting die het commando zelf heeft achtergelaten; precies wat een beheerder wil zien.
+    uitkomst = f" — {stand.melding}" if stand.melding else ""
+    if verplicht and uren > ONDERHOUD_GRENS_UREN:
         return [
             _regel(
-                "Geplande taak 'opschonen'",
+                naam,
                 FOUT,
-                f"laatst {wanneer} ({uren:.0f} uur geleden)",
+                f"laatst {wanneer} ({uren:.0f} uur geleden){uitkomst}",
                 "Hoort dagelijks te lopen. Controleer de planning (cronjob of Kubernetes CronJob).",
             )
         ]
-    return [_regel("Geplande taak 'opschonen'", GOED, f"laatst {wanneer}")]
+    return [_regel(naam, GOED, f"laatst {wanneer}{uitkomst}")]
 
 
 def _toegang():

@@ -182,9 +182,12 @@ SESSION_COOKIE_SECURE = env_bool("KB_COOKIES_SECURE", not DEBUG)
 CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
 # Eigen, Nederlandstalige pagina bij een verlopen beveiligingscode (zie kennisbank/views.py).
 CSRF_FAILURE_VIEW = "kennisbank.views.csrf_verlopen"
-# Ruim boven kennisbank.models.MAX_INHOUD, zodat een te groot artikel een nette Nederlandse melding
-# in het formulier oplevert in plaats van een kale "Bad Request (400)" van Django.
-DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
+# Net boven kennisbank.models.MAX_INHOUD (4 MB), zodat een te groot artikel een nette Nederlandse
+# melding in het formulier oplevert in plaats van een kale "Bad Request (400)" van Django. Bewust niet
+# ruimer: deze grens geldt voor élk verzoek, niet alleen voor het artikelformulier, en bepaalt hoeveel
+# geheugen een willekeurige POST kan laten bufferen. De standaard van Django is 2,5 MB.
+# Instelbaar, want een organisatie die MAX_INHOUD wil verhogen moet deze meeverhogen.
+DATA_UPLOAD_MAX_MEMORY_SIZE = env_int("KB_MAX_VERZOEK_MB", 6) * 1024 * 1024
 
 # --- Beveiligingsheaders ------------------------------------------------------
 

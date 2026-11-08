@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.12.0
+  version: 1.13.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -580,8 +580,9 @@ components:
           description: |-
             De nog niet afgevinkte inhoudelijke wijzigingen voor de huidige gebruiker.
 
-            {versie, datum, toelichting, eerdere: [{versie, datum, toelichting}, ...]} — `eerdere` bevat de
-            wijzigingen die daarvoor zijn gemist, nieuwste eerst, of is leeg.
+            {versie, datum, toelichting, aantal, eerdere: [{versie, datum, toelichting}, ...]} — `eerdere`
+            bevat de wijzigingen die daarvoor zijn gemist, nieuwste eerst, of is leeg; `aantal` is het
+            werkelijke aantal gemiste wijzigingen, ook als `eerdere` er maar vier toont.
           readOnly: true
         blokken:
           type: array
@@ -680,8 +681,9 @@ components:
           description: |-
             De nog niet afgevinkte inhoudelijke wijzigingen voor de huidige gebruiker.
 
-            {versie, datum, toelichting, eerdere: [{versie, datum, toelichting}, ...]} — `eerdere` bevat de
-            wijzigingen die daarvoor zijn gemist, nieuwste eerst, of is leeg.
+            {versie, datum, toelichting, aantal, eerdere: [{versie, datum, toelichting}, ...]} — `eerdere`
+            bevat de wijzigingen die daarvoor zijn gemist, nieuwste eerst, of is leeg; `aantal` is het
+            werkelijke aantal gemiste wijzigingen, ook als `eerdere` er maar vier toont.
           readOnly: true
       required:
       - clusters

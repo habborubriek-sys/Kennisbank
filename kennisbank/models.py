@@ -236,7 +236,11 @@ class Artikel(models.Model):
         verbose_name = "artikel"
         verbose_name_plural = "artikelen"
         ordering = ["titel"]
-        indexes = [GinIndex(fields=["zoekvector"], name="artikel_zoekvector_gin")]
+        indexes = [
+            GinIndex(fields=["zoekvector"], name="artikel_zoekvector_gin"),
+            # De artikelenlijst in het beheer en de statuspagina filteren hier elke keer op.
+            models.Index(fields=["status", "herzien_voor"], name="artikel_herzien_idx"),
+        ]
 
     def __str__(self):
         return self.titel
@@ -250,11 +254,25 @@ class Artikel(models.Model):
         from .inhoud import schoon
 
         if not self.slug:
-            # Twee artikelen met dezelfde titel krijgen elk een eigen slug. Anders kon een oude link
-            # (/artikel/<slug>) naar meerdere artikelen wijzen, en die gaf dan voor allemaal een 404.
+            # Twee artikelen met dezelfde titel binnen één omgeving krijgen elk een eigen slug. Anders
+            # kon een oude link (/artikel/<slug>) naar meerdere artikelen wijzen, en die gaf dan voor
+            # allemaal een 404.
+            #
+            # Bewust alleen binnen de eigen omgeving: keek de controle over omgevingen heen, dan kon een
+            # redacteur uit de "-2" achter zijn slug afleiden dat er elders in de installatie een artikel
+            # met exact dezelfde titel bestaat. Dat is informatie over een omgeving waar hij niets mag
+            # zien, en overal elders is de afscherming wél per omgeving.
+            #
+            # In één query in plaats van een lus: die deed er één per poging, dus het dertiende artikel
+            # met dezelfde titel kostte veertien queries.
             basis = slugify(self.titel)[:120] or "artikel"
+            bezet = set(
+                Artikel.objects.filter(omgeving_id=self.omgeving_id, slug__startswith=basis[:115])
+                .exclude(pk=self.pk)
+                .values_list("slug", flat=True)
+            )
             kandidaat, n = basis, 1
-            while Artikel.objects.filter(slug=kandidaat).exclude(pk=self.pk).exists():
+            while kandidaat in bezet:
                 n += 1
                 kandidaat = f"{basis[:115]}-{n}"
             self.slug = kandidaat
@@ -576,8 +594,15 @@ class Verbetervoorstel(models.Model):
         related_name="behandelde_voorstellen",
     )
     behandeld_op = models.DateTimeField(null=True, blank=True)
-    #: Tot wanneer beide kanten het gesprek hebben gelezen; bepaalt of er een "nieuw"-stip staat.
+    #: Tot wanneer de indiener het gesprek heeft gelezen. Per persoon, want een voorstel heeft
+    #: precies één indiener.
     gelezen_indiener_op = models.DateTimeField(null=True, blank=True, editable=False)
+    #: Tot wanneer *de redactie* het gesprek heeft gelezen -- bewust één stempel voor de hele
+    #: redactie, niet per redacteur. Opent redacteur A het voorstel, dan is de stip ook voor B weg.
+    #: Dat is de bedoeling: dit is een teampostvak. Een rij per redacteur (het patroon van
+    #: WijzigingGezien) zou een nieuwe collega bij binnenkomst elk afgehandeld voorstel als
+    #: ongelezen tonen, en omdat het gesprek eenrichting is krijgt de redactie na het eerste
+    #: bericht niets meer binnen. Wie het heeft opgepakt staat in behandeld_door.
     gelezen_redactie_op = models.DateTimeField(null=True, blank=True, editable=False)
 
     class Meta:

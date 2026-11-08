@@ -457,13 +457,14 @@ class VoorstelTests(Basis):
 
     @override_settings(KB_EMAIL_AAN=True)
     def test_mail_naar_redacteuren(self):
-        from django.core import mail
-
-        self.als(self.lezer).post(
-            "/api/v1/voorstellen",
-            {"artikel": pk_van("mailbox"), "tekst": "Graag aanvullen"},
-            content_type="application/json",
-        )
+        # De mail gaat via transaction.on_commit, zodat er niets wordt verstuurd als de transactie
+        # alsnog terugrolt. In een test komt die commit er niet, dus voeren we de callbacks zelf uit.
+        with self.captureOnCommitCallbacks(execute=True):
+            self.als(self.lezer).post(
+                "/api/v1/voorstellen",
+                {"artikel": pk_van("mailbox"), "tekst": "Graag aanvullen"},
+                content_type="application/json",
+            )
         self.assertEqual(mail.outbox[0].to, ["pm@example.org"])
 
 
@@ -1877,20 +1878,55 @@ class AssistentLegeSectieTests(Basis):
         for s in zoek_secties(Artikel.objects.all(), a.titel):
             self.assertTrue(s.inhoud.strip(), f"lege sectie in de resultaten: {s.pk}")
 
-    def test_antwoord_bevat_altijd_tekst_of_zegt_dat_het_er_niet_is(self):
+    def test_een_vraag_met_een_bekend_antwoord_levert_een_echt_citaat(self):
+        """De oude versie hing zijn echte controle in een `if` en zou ook zijn geslaagd als de
+        assistent op elke vraag "ik weet het niet" had gezegd — precies het gedrag dat we wilden
+        vangen. Deze vraag heeft een antwoord in de demo-inhoud, dus er hoort een citaat te komen."""
+        from kennisbank.assistent import beantwoord
+
+        antwoord = beantwoord("rappel", Rechten(self.lezer).artikelen())
+        self.assertIn("Dit staat in", antwoord.html, f"geen citaat: {antwoord.html[:200]}")
+        self.assertTrue(antwoord.bronnen)
+        self.assertNotIn("onder het kopje <i></i>", antwoord.html)
+        na_kopje = antwoord.html.split("</p>", 1)[1]
+        self.assertTrue(re.sub(r"<[^>]+>", "", na_kopje).strip(), "leeg citaat")
+
+    def test_antwoord_bevat_altijd_tekst(self):
         from kennisbank.assistent import beantwoord
 
         qs = Rechten(self.lezer).artikelen()
         for vraag in ["rappel", "mag ik een boete uitschrijven voor een zwerfboot", "melding registreren"]:
             with self.subTest(vraag=vraag):
-                antwoord = beantwoord(vraag, qs)
-                tekst = re.sub(r"<[^>]+>", " ", antwoord.html)
-                if "Dit staat in" in antwoord.html:
-                    # Dan moet er ook echt iets te lezen zijn, en geen leeg kopje.
-                    self.assertNotIn("onder het kopje <i></i>", antwoord.html)
-                    na_kopje = antwoord.html.split("</p>", 1)[1]
-                    self.assertTrue(re.sub(r"<[^>]+>", "", na_kopje).strip(), f"leeg citaat bij: {vraag}")
+                tekst = re.sub(r"<[^>]+>", " ", beantwoord(vraag, qs).html)
                 self.assertTrue(tekst.strip())
+
+    def test_een_lege_bron_laat_de_volgende_bron_aan_het_woord(self):
+        """R6: een sectie met alleen onboarding-uitleg is in de database niet leeg, komt dus door alle
+        filters, maar levert bij het citeren niets op. Daarop stoppen verbergt het echte antwoord."""
+        from kennisbank.assistent import beantwoord
+
+        hh = self.hh
+        leeg = Artikel.objects.create(
+            omgeving=hh,
+            titel="Zwerfkat in de berm",
+            samenvatting="Over de zwerfkat, met alleen uitleg voor nieuwe collega's.",
+            inhoud='<section class="sectie"><h2 class="sectie-kop">Zwerfkat</h2>'
+            '<div class="onboarding"><p>Zwerfkat is intern jargon.</p></div></section>',
+            status=Status.GEPUBLICEERD,
+        )
+        diensten.herbouw_secties(leeg)
+        echt = Artikel.objects.create(
+            omgeving=hh,
+            titel="Zwerfkat melden en registreren",
+            samenvatting="Hoe je een zwerfkat meldt en in welk systeem dat gaat.",
+            inhoud='<section class="sectie"><h2 class="sectie-kop">Werkwijze zwerfkat</h2>'
+            "<p>Meld een zwerfkat binnen twee werkdagen bij de dierenambulance.</p></section>",
+            status=Status.GEPUBLICEERD,
+        )
+        diensten.herbouw_secties(echt)
+        antwoord = beantwoord("zwerfkat", Rechten(self.lezer).artikelen())
+        self.assertIn("Dit staat in", antwoord.html, f"gaf op terwijl het antwoord er was: {antwoord.html[:200]}")
+        self.assertIn("dierenambulance", antwoord.html)
 
 
 class GeenToegangTests(Basis):
@@ -2209,7 +2245,7 @@ class GroepLabelTests(Basis):
     def setUp(self):
         self.groep = Group.objects.create(name="3f2504e0-4f89-11d3-9a0c-0305e82c3301")
         Toegang.objects.create(omgeving=self.hh, groep=self.groep, rol=Rol.REDACTEUR)
-        self.c = self.als(User.objects.create_superuser('beheer-test', 'b@x.nl', 'geheim'))
+        self.c = self.als(User.objects.create_superuser("beheer-test", "b@x.nl", "geheim"))
 
     def test_zonder_label_wijst_het_scherm_naar_groepsnamen(self):
         r = self.c.get("/beheer/kennisbank/toegang/")
@@ -2237,7 +2273,7 @@ class KeuzelijstOpruimenTests(Basis):
         self.los = Tag.objects.create(naam="nergens gebruikt")
         self.gebruikt = Tag.objects.create(naam="wel gebruikt")
         Artikel.objects.get(slug="rappel-versturen").tags.add(self.gebruikt)
-        self.c = self.als(User.objects.create_superuser('beheer-test', 'b@x.nl', 'geheim'))
+        self.c = self.als(User.objects.create_superuser("beheer-test", "b@x.nl", "geheim"))
 
     def test_filter_toont_alleen_ongebruikte(self):
         r = self.c.get("/beheer/kennisbank/tag/?gebruik=ongebruikt")
@@ -2342,6 +2378,39 @@ class VoorstelGesprekTests(Basis):
         self.lezer.email = "lezer@example.org"
         self.lezer.save(update_fields=["email"])
 
+    def test_gelezen_geldt_voor_de_hele_redactie(self):
+        """R8: bewuste keuze -- een teampostvak, geen rij per redacteur.
+
+        Zie de toelichting bij Verbetervoorstel.gelezen_redactie_op en
+        docs/functioneel-beheer.md. Deze test staat er zodat een wijziging hierin een besluit is
+        en geen ongeluk.
+
+        Aan de redactiekant kan er alleen nog iets ongelezen staan bij voorstellen van voor 1.11.0,
+        toen de medewerker nog kon terugschrijven; daarom begint deze test met zo'n bericht.
+        """
+        from kennisbank.rechten import werk_staf_status_bij
+
+        tweede = User.objects.create_user("redacteur2", password="x")
+        tweede.groups.add(Group.objects.get(name="redactie"))
+        werk_staf_status_bij(tweede)
+        diensten.voorstelbericht_toevoegen(self.v, self.lezer, "Nog een gedachte.", van_redactie=False)
+        self.v.refresh_from_db()
+
+        self.assertEqual(diensten.voorstel_ongelezen(self.v, self.redacteur), 1)
+        self.assertEqual(diensten.voorstel_ongelezen(self.v, tweede), 1)
+
+        diensten.voorstel_gelezen(self.v, self.redacteur)
+        self.v.refresh_from_db()
+        self.assertEqual(diensten.voorstel_ongelezen(self.v, tweede), 0, "stip bleef staan bij de collega")
+
+        # De indiener staat er los van: die heeft zijn eigen stempel.
+        diensten.voorstelbericht_toevoegen(self.v, self.redacteur, "Opgepakt.", van_redactie=True)
+        self.v.refresh_from_db()
+        self.assertEqual(diensten.voorstel_ongelezen(self.v, self.lezer), 1)
+        # En een nieuw voorstel laat bij de redactie niets ongelezen staan: het gesprek is eenrichting,
+        # dus na de eerste melding komt er aan die kant niets meer binnen.
+        self.assertEqual(diensten.voorstel_ongelezen(self.v, tweede), 0)
+
     def test_redacteur_kan_meerdere_updates_sturen(self):
         c = self.als(self.redacteur)
         for tekst in ["Opgepakt, we kijken ernaar.", "Overlegd met Toezicht.", "Aangepast in versie 3."]:
@@ -2355,8 +2424,9 @@ class VoorstelGesprekTests(Basis):
     def test_elke_update_levert_een_mail_bij_de_indiener(self):
         c = self.als(self.redacteur)
         mail.outbox = []
-        c.post(f"/api/v1/voorstellen/{self.v.pk}/berichten", {"tekst": "Opgepakt"}, content_type="application/json")
-        c.post(f"/api/v1/voorstellen/{self.v.pk}/berichten", {"tekst": "Klaar"}, content_type="application/json")
+        with self.captureOnCommitCallbacks(execute=True):
+            c.post(f"/api/v1/voorstellen/{self.v.pk}/berichten", {"tekst": "Opgepakt"}, content_type="application/json")
+            c.post(f"/api/v1/voorstellen/{self.v.pk}/berichten", {"tekst": "Klaar"}, content_type="application/json")
         self.assertEqual(len(mail.outbox), 2)
         self.assertIn("lezer@example.org", mail.outbox[0].to)
 
@@ -2486,9 +2556,7 @@ class VoorstelGesprekTests(Basis):
         }
         r = c.post(f"/beheer/kennisbank/verbetervoorstel/{self.v.pk}/change/", data)
         self.assertEqual(r.status_code, 302, r.content[:400])
-        self.assertEqual(
-            [b.tekst for b in self.v.berichten.all()], ["Opgepakt", "Aangepast, dank voor de melding."]
-        )
+        self.assertEqual([b.tekst for b in self.v.berichten.all()], ["Opgepakt", "Aangepast, dank voor de melding."])
         self.v.refresh_from_db()
         self.assertEqual(self.v.terugkoppeling, "Aangepast, dank voor de melding.")
 
@@ -2526,9 +2594,7 @@ class AnonimiseringVoorstellenTests(Basis):
         VoorstelBericht.objects.create(
             voorstel=self.v, auteur=self.lezer, van_redactie=False, tekst="Aanvulling van mij"
         )
-        VoorstelBericht.objects.create(
-            voorstel=self.v, auteur=self.redacteur, van_redactie=True, tekst="Opgepakt"
-        )
+        VoorstelBericht.objects.create(voorstel=self.v, auteur=self.redacteur, van_redactie=True, tekst="Opgepakt")
 
     def test_de_naam_van_de_indiener_verdwijnt_ook_uit_zijn_berichten(self):
         call_command("kennisbank_opschonen")
@@ -2688,12 +2754,13 @@ class DubbelklikVoorstellenTests(Basis):
         self.lezer.save(update_fields=["email"])
         mail.outbox = []
         c = self.als(self.redacteur)
-        for _ in range(2):
-            c.post(
-                f"/api/v1/voorstellen/{v.pk}/berichten",
-                {"tekst": "Opgepakt"},
-                content_type="application/json",
-            )
+        with self.captureOnCommitCallbacks(execute=True):
+            for _ in range(2):
+                c.post(
+                    f"/api/v1/voorstellen/{v.pk}/berichten",
+                    {"tekst": "Opgepakt"},
+                    content_type="application/json",
+                )
         self.assertEqual(len(mail.outbox), 1)
 
     def test_de_api_laat_zien_wie_het_voorstel_heeft_opgepakt(self):
@@ -2765,8 +2832,11 @@ class Ronde5Tests(Basis):
         from django.apps import apps
 
         verwacht = {
-            "Profiel": "profielen", "Zaaktype": "zaaktypen", "Favoriet": "favorieten",
-            "ZoekTelling": "zoektellingen", "WeergaveTelling": "weergavetellingen",
+            "Profiel": "profielen",
+            "Zaaktype": "zaaktypen",
+            "Favoriet": "favorieten",
+            "ZoekTelling": "zoektellingen",
+            "WeergaveTelling": "weergavetellingen",
         }
         for naam, meervoud in verwacht.items():
             with self.subTest(model=naam):
@@ -2847,7 +2917,7 @@ class BegroetingTests(Basis):
         self.assertFalse(c.get("/api/v1/ik").json()["begroeten"])
 
     def test_wie_nee_zegt_krijgt_de_vraag_ook_niet_opnieuw(self):
-        """"Nee, ik ken de weg" en "ik heb de vraag nog niet gehad" zijn niet hetzelfde."""
+        """ "Nee, ik ken de weg" en "ik heb de vraag nog niet gehad" zijn niet hetzelfde."""
         c = self.als(self.lezer)
         c.patch("/api/v1/ik", {"begroet": True, "onboarding": False}, content_type="application/json")
         uit = c.get("/api/v1/ik").json()
@@ -2966,3 +3036,152 @@ class BeheerschermenOpenenTests(Basis):
         verzoek = RequestFactory().get("/beheer/")
         verzoek.user = self.beheer
         return verzoek
+
+
+class VoorstellenlijstQueriesTests(Basis):
+    """R5: de lijst deed één extra query per voorstel, en groeide dus mee met het gebruik."""
+
+    def _vul(self, aantal):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        for i in range(aantal):
+            v = Verbetervoorstel.objects.create(
+                artikel=a, artikel_versie=a.versie, tekst=f"Voorstel {i}", ingediend_door=self.lezer
+            )
+            diensten.voorstelbericht_toevoegen(v, self.redacteur, f"Bericht {i}", van_redactie=True, melden=False)
+
+    def _queries(self, client):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        with CaptureQueriesContext(connection) as q:
+            r = client.get("/api/v1/voorstellen")
+        self.assertEqual(r.status_code, 200)
+        return len(q), r.json()
+
+    def test_het_aantal_queries_groeit_niet_mee_met_het_aantal_voorstellen(self):
+        c = self.als(self.lezer)
+        self._vul(1)
+        weinig, _ = self._queries(c)
+        self._vul(20)
+        veel, uit = self._queries(c)
+        self.assertEqual(len(uit), 21)
+        self.assertEqual(weinig, veel, f"{weinig} queries bij 1 voorstel, {veel} bij 21")
+
+    def test_de_ongelezen_teller_klopt_nog(self):
+        """De telling gaat nu in Python; dan moet hij wel hetzelfde antwoord geven."""
+        a = Artikel.objects.get(slug="rappel-versturen")
+        v = Verbetervoorstel.objects.create(artikel=a, artikel_versie=a.versie, tekst="x", ingediend_door=self.lezer)
+        diensten.voorstelbericht_toevoegen(v, self.redacteur, "een", van_redactie=True, melden=False)
+        diensten.voorstelbericht_toevoegen(v, self.redacteur, "twee", van_redactie=True, melden=False)
+        self.assertEqual(diensten.voorstel_ongelezen(v, self.lezer), 2)
+        diensten.voorstel_gelezen(v, self.lezer)
+        v.refresh_from_db()
+        self.assertEqual(diensten.voorstel_ongelezen(v, self.lezer), 0)
+        diensten.voorstelbericht_toevoegen(v, self.redacteur, "drie", van_redactie=True, melden=False)
+        v.refresh_from_db()
+        self.assertEqual(diensten.voorstel_ongelezen(v, self.lezer), 1)
+
+
+class VeegrondeTests(Basis):
+    """De lage punten uit de review van 8 november (R9 t/m R18)."""
+
+    def test_slug_kijkt_niet_over_omgevingen_heen(self):
+        """R13: uit de "-2" kon een redacteur afleiden dat elders dezelfde titel bestond."""
+        a = Artikel.objects.create(omgeving=self.hh, titel="Melding registreren bij een zaak", samenvatting="x")
+        b = Artikel.objects.create(omgeving=self.anders, titel="Melding registreren bij een zaak", samenvatting="x")
+        self.assertEqual(a.slug, b.slug)
+
+    def test_binnen_een_omgeving_blijft_de_slug_wel_uniek(self):
+        a = Artikel.objects.create(omgeving=self.hh, titel="Zelfde titel hier", samenvatting="x")
+        b = Artikel.objects.create(omgeving=self.hh, titel="Zelfde titel hier", samenvatting="x")
+        self.assertNotEqual(a.slug, b.slug)
+        self.assertTrue(b.slug.endswith("-2"), b.slug)
+
+    def test_een_slug_zoeken_kost_een_vaste_hoeveelheid_queries(self):
+        """R13: de lus deed één query per poging, dus het dertiende artikel kostte er veertien."""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        for _ in range(12):
+            Artikel.objects.create(omgeving=self.hh, titel="Veel dezelfde titel", samenvatting="x")
+        with CaptureQueriesContext(connection) as q:
+            Artikel.objects.create(omgeving=self.hh, titel="Veel dezelfde titel", samenvatting="x")
+        self.assertLessEqual(len(q), 4, f"{len(q)} queries voor één nieuw artikel")
+
+    def test_dubbele_titel_met_extra_spaties_telt_als_dubbel(self):
+        """R16: het slot normaliseerde de witruimte, de controle eronder niet."""
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        Artikel.objects.create(omgeving=self.hh, titel="Melding registreren", samenvatting="x")
+        data = {
+            "titel": "Melding    registreren",
+            "samenvatting": "Een samenvatting die lang genoeg is om door de controle te komen.",
+            "inhoud": "<p>Tekst</p>",
+            "soort": "werkinstructie",
+            "omgeving": self.hh.pk,
+            "eigenaar": "Procesmanagement",
+            "status": "concept",
+            "tags_tekst": "",
+            "versies-TOTAL_FORMS": "0",
+            "versies-INITIAL_FORMS": "0",
+        }
+        r = self.als(self.redacteur).post("/beheer/kennisbank/artikel/add/", data)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("bestaat in deze omgeving al een artikel", str(r.context["adminform"].form.errors))
+
+    def test_de_mail_gaat_pas_weg_als_de_transactie_is_doorgevoerd(self):
+        """R10: bij een rollback was de mail al verstuurd over iets dat niet is gebeurd."""
+
+        mail.outbox = []
+        with override_settings(KB_EMAIL_AAN=True):
+            with self.captureOnCommitCallbacks(execute=True):
+                diensten.mail_na_commit("Onderwerp", "Tekst", ["iemand@example.org"])
+                self.assertEqual(mail.outbox, [], "mail ging de deur uit vóór de commit")
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_een_mislukte_mail_zet_geen_adres_in_het_logboek(self):
+        """R11: log.exception schreef de traceback weg, en die bevat bij SMTP-fouten het adres."""
+        from unittest.mock import patch
+
+        with override_settings(KB_EMAIL_AAN=True), self.assertLogs("kennisbank", level="WARNING") as vangst:
+            with patch("kennisbank.diensten.send_mail", side_effect=RuntimeError("geheim@example.org geweigerd")):
+                diensten._mail("Onderwerp", "Tekst", ["geheim@example.org"])
+        regels = " ".join(vangst.output)
+        self.assertNotIn("geheim@example.org", regels)
+        self.assertNotIn("Traceback", regels)
+        (rij,) = vangst.records
+        self.assertEqual(rij.fout, "RuntimeError")
+        self.assertEqual(rij.ontvangers, 1)
+        self.assertIsNone(rij.exc_info)
+
+    def test_de_csrf_pagina_heeft_geen_knop_die_de_browser_blokkeert(self):
+        """R12: de enige knop gebruikte onclick, en dat wordt buiten /beheer/ door de CSP geblokkeerd."""
+        c = Client(enforce_csrf_checks=True)
+        r = c.post("/inloggen/", {"username": "lezer", "password": "x"})
+        self.assertEqual(r.status_code, 403)
+        self.assertNotIn(b"onclick", r.content)
+        self.assertIn(b'href="/"', r.content)
+
+    def test_het_aantal_gemiste_wijzigingen_klopt_boven_de_vier(self):
+        """R15: wie er zeven miste, las "Er zijn 5 wijzigingen"."""
+        a = Artikel.objects.get(slug="rappel-versturen")
+        a.versies.all().delete()
+        for n in range(1, 9):
+            ArtikelVersie.objects.create(
+                artikel=a, versie=n, inhoud=diensten.momentopname(a), toelichting=f"Wijziging {n}"
+            )
+        a.versie = 8
+        a.save(update_fields=["versie", "gewijzigd_op"])
+        uit = diensten.wijzigingen_voor(self.lezer, [a])[a.pk]
+        self.assertEqual(uit["aantal"], 7)  # versies 2 t/m 8
+        self.assertEqual(len(uit["eerdere"]), diensten.MAX_EERDERE_WIJZIGINGEN)
+
+    def test_de_statuspagina_toont_de_uitkomst_van_de_laatste_opschoonronde(self):
+        """R17: Systeemstand.melding werd gevuld en nooit uitgelezen."""
+        from kennisbank import status as status_mod
+
+        call_command("kennisbank_opschonen")
+        rijen = status_mod._onderhoud()
+        self.assertEqual(rijen[0]["stand"], status_mod.GOED)
+        self.assertIn("mail(s) verstuurd", rijen[0]["waarde"])

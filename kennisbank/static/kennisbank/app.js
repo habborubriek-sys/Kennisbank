@@ -100,8 +100,10 @@
   }
   function wijzigingBlok(w) {
     const eerdere = w.eerdere || [];
+    // `aantal` is het werkelijke aantal gemiste wijzigingen; `eerdere` toont er hooguit vier.
+    const totaal = w.aantal || eerdere.length + 1;
     const kop = eerdere.length
-      ? `<p class="wijzkop">Er zijn ${eerdere.length + 1} wijzigingen die je nog niet had gezien:</p>`
+      ? `<p class="wijzkop">Er zijn ${totaal} wijzigingen die je nog niet had gezien${totaal > eerdere.length + 1 ? `; de ${eerdere.length + 1} nieuwste staan hieronder` : ""}:</p>`
       : "";
     return `<div class="wijziging" id="wijzBlok" role="status"><div>${kop}${wijzigingRegel(w, "Gewijzigd op")}${eerdere.map((e) => wijzigingRegel(e, "Eerder, op")).join("")}</div><button class="tb primary" type="button" id="wijzGezien">Ik snap het</button></div>`;
   }

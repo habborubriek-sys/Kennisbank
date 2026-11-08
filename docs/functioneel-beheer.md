@@ -248,6 +248,13 @@ In het beheerscherm zie je in de lijst hoeveel berichten er al zijn gestuurd. He
 *Indiener heeft als laatste geschreven* is er voor voorstellen uit een oudere installatie, waarin
 terugschrijven nog kon.
 
+**"Gelezen" geldt voor de hele redactie, niet per redacteur.** Opent een collega een voorstel, dan is
+het daarmee ook voor jou gelezen en verdwijnt het stipje bij jullie allebei. Dat is bedoeld zo: dit is
+een teampostvak, net als een gedeeld postvak in Outlook. Deed de kennisbank het per persoon, dan zou
+een nieuwe collega bij binnenkomst elk voorstel van de afgelopen jaren als ongelezen zien. Wie een
+voorstel heeft opgepakt lees je af aan *Behandeld door*; dat is de informatie waar je als team iets
+aan hebt. Aan de kant van de medewerker is het wél per persoon — een voorstel heeft één indiener.
+
 **Namen en bewaartermijnen.** Een jaar na afhandeling verdwijnt de naam van de indiener — van het
 voorstel en van zijn eventuele berichten. Jouw naam blijft bij je berichten staan zolang het voorstel
 bestaat: dat is verantwoording voor wat er aan een collega is toegezegd. Zie

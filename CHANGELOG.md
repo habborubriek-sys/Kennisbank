@@ -1,5 +1,32 @@
 # Wijzigingen
 
+## 1.13.0 – 2026-11-08
+
+Veegronde: alle resterende punten uit de review van 8 november. Daarmee is de reviewlijst leeg — er staat niets meer open uit een review of hardingstest sinds 1.7.0.
+
+**Merkbaar voor medewerkers**
+
+- **De assistent geeft niet meer op bij een lege eerste bron.** Vond hij het beste artikel maar lukte het niet er een citaat uit te halen (een sectie zonder lopende tekst, bijvoorbeeld alleen een tabel), dan antwoordde hij "Ik vond hier geen antwoord op" terwijl het antwoord in het tweede artikel stond. Hij loopt de bronnen nu af tot er een citaat uitkomt.
+- **De melding bij gemiste wijzigingen noemt het juiste aantal.** Wie er zeven had gemist, las "Er zijn 5 wijzigingen" — dat was het aantal dat eronder paste, niet het aantal dat er was. Er staat nu het echte aantal, met "de 5 nieuwste staan hieronder" als de lijst is ingekort.
+- **De pagina na een verlopen formulier werkt zonder JavaScript.** De enige knop gebruikte `onclick`, en dat blokkeert het beveiligingsbeleid buiten het beheer. Je kreeg dus een pagina met een knop die niets deed. Nu staan er twee gewone links, en de tekst wijst op de terugknop van de browser.
+
+**Techniek en beheer**
+
+- **De voorstellenlijst doet een vast aantal queries.** Per voorstel werd geteld hoeveel berichten ongelezen waren — bij driehonderd voorstellen dus driehonderd extra queries. Dat telt nu mee in wat al was opgehaald: gemeten 7 queries bij 1, 5, 20 en 50 voorstellen (was 12 bij één en 31 bij twintig).
+- **Index op "opnieuw nakijken"** (`Artikel(status, herzien_voor)`, migratie 0021). De lijst en het aantal in de banner lazen de hele artikeltabel.
+- **E-mail gaat pas weg als de wijziging is opgeslagen.** Liep een opslag halverwege vast, dan was de mail er al: een collega kreeg bericht over een terugkoppeling die niet in de database stond. Het verzenden hangt nu aan het doorvoeren van de transactie.
+- **Geen e-mailadres meer in het logboek.** Bij een mislukte verzending werd de volledige traceback weggeschreven, en bij een geweigerde ontvanger staat het adres daarin. Nu alleen het soort fout en het aantal ontvangers. Wie in het logboek op een adres zocht om een verzendprobleem te vinden, moet dat vanaf nu anders doen.
+- **De slug van een artikel kijkt niet meer over omgevingen heen.** Bestond dezelfde titel in een andere afdeling, dan kreeg het nieuwe artikel `-2` achter zijn adres; daaruit kon een redacteur afleiden dat er elders een artikel met die titel bestond, terwijl hij die omgeving niet mag zien. Binnen een omgeving blijft de slug uniek, en het zoeken ernaar kost nu één query in plaats van één per poging.
+- **Dubbele titels worden ook met rare witruimte gevonden.** Het slot normaliseerde dubbele spaties weg, de controle eronder niet — "Melding    registreren" glipte langs "Melding registreren".
+- **De statuspagina vertelt wat de laatste opschoonronde heeft gedaan** (aantal verstuurde favorietenmails, opgeruimde regels) in plaats van alleen dat hij heeft gelopen. Die uitkomst werd al vastgelegd en werd nergens uitgelezen.
+- **`KB_MAX_VERZOEK_MB`** (standaard 6) maakt de maximale grootte van een verzoek instelbaar. Bij het importeren van een zeer groot Word-document liep je anders tegen een vaste grens aan die niet in de configuratie stond. Zie [configuratie](docs/configuratie.md).
+
+**Bewust zo gelaten, nu opgeschreven**
+
+"Gelezen" bij een verbetervoorstel is één stempel voor de hele redactie: opent de ene redacteur het voorstel, dan is het stipje ook bij de ander weg. Dat blijft zo — het is een teampostvak, zoals een gedeeld postvak in Outlook. Per persoon bijhouden zou een nieuwe collega bij binnenkomst elk voorstel van de afgelopen jaren als ongelezen tonen, en sinds het gesprek eenrichting is komt er aan de redactiekant na het eerste bericht niets meer binnen. Wie het heeft opgepakt staat bij *Behandeld door*. De keuze staat nu in de code, in [functioneel beheer](docs/functioneel-beheer.md) en in een test, zodat een wijziging hierin een besluit is en geen ongeluk.
+
+- **Tests** (nu 235): tien nieuwe, waaronder de query-meting op de voorstellenlijst bij 1, 5, 20 en 50 voorstellen, de slug over omgevingen heen, de mail die wacht op de commit, het logboek zonder adres, en het teampostvak. De test voor de lege bron is eerst zonder de reparatie gelopen om te controleren dat hij er echt op valt.
+
 ## 1.12.0 – 2026-11-08
 
 Ronde 5: de laatste bevindingen uit de functionele review en de hardingstests, plus de kleine punten uit de review van vandaag. Hiermee is die lijst leeg.

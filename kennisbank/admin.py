@@ -13,7 +13,7 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.auth.admin import GroupAdmin as DjangoGroupAdmin
 from django.contrib.auth.models import Group
-from django.db import connection, transaction
+from django.db import transaction
 from django.db.models import Count, OuterRef, Subquery
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
@@ -295,13 +295,25 @@ class ArtikelForm(forms.ModelForm):
         titel, omgeving = data.get("titel"), data.get("omgeving")
         if not titel or not omgeving:
             return
-        sleutel = " ".join(titel.split()).lower()
+        # Dezelfde normalisatie voor het slot als voor de controle eronder. Stonden ze uit elkaar, dan
+        # namen "Melding  registreren" (dubbele spatie) en "Melding registreren" wel hetzelfde slot,
+        # maar gold de een niet als dubbel van de ander.
+        genormaliseerd = " ".join(titel.split())
+        sleutel = genormaliseerd.lower()
         # Een adviesslot op titel+omgeving, zodat twee gelijktijdige verzoeken (dubbelklik) niet
         # allebei "bestaat nog niet" zien. Het slot geldt tot het einde van de transactie, dus het
         # tweede verzoek wacht tot het eerste is weggeschreven en vindt het artikel dan wél.
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"artikel:{omgeving.pk}:{sleutel}"])
-        bestaand = Artikel.objects.filter(omgeving=omgeving, titel__iexact=titel.strip()).first()
+        diensten.slot(f"artikel:{omgeving.pk}:{sleutel}")
+        # Vergelijken op de genormaliseerde titel: anders is "Melding  registreren" geen dubbele van
+        # "Melding registreren", terwijl het voor een lezer hetzelfde artikel is.
+        bestaand = next(
+            (
+                a
+                for a in Artikel.objects.filter(omgeving=omgeving, titel__icontains=genormaliseerd.split()[0])
+                if " ".join(a.titel.split()).lower() == sleutel
+            ),
+            None,
+        )
         if bestaand:
             self.add_error(
                 "titel",
@@ -506,6 +518,9 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 "anderen": [
                     {"naam": c.naam, "sinds": date_format(timezone.localtime(c.begonnen_op), "H:i")} for c in anderen
                 ],
+                # Het stempel van dít moment. De editor leest het niet; het staat erin zodat een
+                # toekomstige hartslag het verborgen veld kan bijwerken als niemand anders iets heeft
+                # opgeslagen. Haal het weg als die functie er niet komt.
                 "stempel": stempel_van(artikel),
             }
         )

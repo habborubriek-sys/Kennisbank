@@ -101,7 +101,7 @@ def beantwoord(vraag: str, artikelen_qs, zaaktype: str | None = None, omgevingen
     if settings.KB_AI_PROVIDER != "uit":
         if not _binnen_daglimiet():
             log.warning("assistent: daglimiet van %s modelaanroepen bereikt", settings.KB_ASSISTENT_DAGLIMIET)
-            antwoord = _citeer(secties[0], bronnen)
+            antwoord = _citeer(secties, bronnen)
             antwoord.melding = "De AI heeft vandaag zijn limiet bereikt. Dit is het best passende fragment."
             return antwoord
         try:
@@ -109,25 +109,36 @@ def beantwoord(vraag: str, artikelen_qs, zaaktype: str | None = None, omgevingen
             return Antwoord(html=_koppel_bronnen(markdown_naar_html(tekst), bronnen), bronnen=bronnen, modus="ai")
         except Exception:  # noqa: BLE001 - bij storing terugvallen op zoeken
             log.exception("taalmodel niet bereikbaar, terugval op zoeken")
-            antwoord = _citeer(secties[0], bronnen)
+            antwoord = _citeer(secties, bronnen)
             antwoord.melding = "De AI is op dit moment niet beschikbaar. Dit is het best passende fragment."
             return antwoord
-    return _citeer(secties[0], bronnen)
+    return _citeer(secties, bronnen)
 
 
-def _citeer(sectie, bronnen) -> Antwoord:
-    """Zonder taalmodel: toon de best passende sectie (kort) of een ingekort fragment."""
-    hoofdtekst = zonder_onboarding(sectie.inhoud)
-    fragment = naar_platte_tekst(hoofdtekst)
-    if not fragment.strip():
-        # Niets te citeren: dan is "Dit staat in …" een bewering die we niet waar kunnen maken.
-        return Antwoord(
-            html=(
-                "<p>Ik vond hier geen antwoord op in de kennisbank. Dit lijkt er het meest op; "
-                "kijk zelf even of het klopt:</p>"
-            ),
-            bronnen=bronnen,
-        )
+def _citeer(secties, bronnen) -> Antwoord:
+    """Zonder taalmodel: citeer de best passende sectie waar ook echt iets in staat.
+
+    Loopt bewust door de kandidaten heen. Een sectie die alleen onboarding-uitleg bevat, is in de
+    database niet leeg en komt dus door alle filters, maar levert bij het citeren niets op — en dan
+    stond er "ik vond hier geen antwoord op" terwijl het antwoord gewoon in de volgende bron stond.
+    """
+    for sectie in secties:
+        hoofdtekst = zonder_onboarding(sectie.inhoud)
+        fragment = naar_platte_tekst(hoofdtekst)
+        if fragment.strip():
+            return _citaat_van(sectie, hoofdtekst, fragment, bronnen)
+    # In geen van de bronnen staat iets te citeren: dan is "Dit staat in …" een bewering die we niet
+    # waar kunnen maken.
+    return Antwoord(
+        html=(
+            "<p>Ik vond hier geen antwoord op in de kennisbank. Dit lijkt er het meest op; "
+            "kijk zelf even of het klopt:</p>"
+        ),
+        bronnen=bronnen,
+    )
+
+
+def _citaat_van(sectie, hoofdtekst, fragment, bronnen) -> Antwoord:
     if len(fragment) <= 450:
         citaat = f"<blockquote>{schoon(hoofdtekst)}</blockquote>"
     else:

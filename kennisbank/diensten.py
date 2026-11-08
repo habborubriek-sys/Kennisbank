@@ -300,10 +300,13 @@ def wijzigingen_voor(gebruiker, artikelen) -> dict[int, dict]:
             continue
         regel = {"versie": v["versie"], "toelichting": v["toelichting"], "datum": v["gepubliceerd_op"]}
         if aid in uit:
+            uit[aid]["aantal"] += 1
             if len(uit[aid]["eerdere"]) < MAX_EERDERE_WIJZIGINGEN:
                 uit[aid]["eerdere"].append(regel)  # de volgorde is -versie, dus al nieuwste eerst
             continue
-        uit[aid] = dict(regel, eerdere=[])
+        # `aantal` is het werkelijke aantal gemiste wijzigingen; `eerdere` is er hooguit vier lang.
+        # Zonder dat telde de app "eerdere + 1" en las iemand die er zeven miste "Er zijn 5 wijzigingen".
+        uit[aid] = dict(regel, eerdere=[], aantal=1)
     return uit
 
 
@@ -399,6 +402,16 @@ def zet_favoriet(gebruiker, artikel: Artikel, aan: bool):
 # --- Meldingen per e-mail (alleen als KB_EMAIL_HOST is ingesteld) ----------------------
 
 
+def mail_na_commit(onderwerp, tekst, ontvangers) -> None:
+    """Verstuur de e-mail pas als de transactie is doorgevoerd.
+
+    Zonder dit gaat de mail de deur uit terwijl de transactie nog open is. Rolt die daarna terug — een
+    validatiefout verderop, een conflict — dan heeft de ontvanger een bericht gekregen over iets dat
+    niet is gebeurd. Buiten een transactie verstuurt `on_commit` meteen.
+    """
+    transaction.on_commit(lambda: _mail(onderwerp, tekst, ontvangers))
+
+
 def _mail(onderwerp, tekst, ontvangers) -> bool:
     """Verstuurt een e-mail als e-mail aan staat. Geeft terug of dat lukte; een fout blokkeert nooit de gebruiker."""
     ontvangers = sorted({o for o in ontvangers if o})
@@ -407,8 +420,13 @@ def _mail(onderwerp, tekst, ontvangers) -> bool:
     try:
         send_mail(onderwerp, tekst, None, ontvangers, fail_silently=False)
         return True
-    except Exception:  # noqa: BLE001 - een mislukte mail mag de gebruiker niet blokkeren
-        log.exception("versturen e-mail mislukt", extra={"onderwerp": onderwerp})
+    except Exception as e:  # noqa: BLE001 - een mislukte mail mag de gebruiker niet blokkeren
+        # Bewust zonder traceback en zonder adressen: uitzonderingen als SMTPRecipientsRefused bevatten
+        # het e-mailadres, en dat hoort niet in een applicatielogboek terecht te komen.
+        log.warning(
+            "versturen e-mail mislukt",
+            extra={"onderwerp": onderwerp, "fout": type(e).__name__, "ontvangers": len(ontvangers)},
+        )
         return False
 
 
@@ -424,7 +442,7 @@ def meld_nieuw_voorstel(voorstel):
         )
         .values_list("email", flat=True)
     )
-    _mail(
+    mail_na_commit(
         f"Nieuw verbetervoorstel: {voorstel.artikel.titel}",
         f"Er is een verbetervoorstel ingediend bij '{voorstel.artikel.titel}'.\n\n"
         f"{voorstel.tekst}\n\nBehandelen: {settings.KB_BASIS_URL}/voorstellen",
@@ -435,7 +453,7 @@ def meld_nieuw_voorstel(voorstel):
 def meld_terugkoppeling(voorstel):
     if not voorstel.ingediend_door:
         return
-    _mail(
+    mail_na_commit(
         f"Terugkoppeling op je verbetervoorstel: {voorstel.artikel.titel}",
         f"Status: {voorstel.get_status_display()}\n\n{voorstel.terugkoppeling}\n\n"
         f"Bekijk: {settings.KB_BASIS_URL}/voorstellen",
@@ -449,7 +467,7 @@ def meld_terugkoppeling(voorstel):
 DUBBEL_VENSTER = 120
 
 
-def _slot(sleutel: str) -> None:
+def slot(sleutel: str) -> None:
     """Een adviesslot tot het einde van de transactie, zodat twee gelijktijdige verzoeken op elkaar wachten.
 
     Zonder dit slot zien twee verzoeken die binnen enkele milliseconden aankomen allebei "bestaat nog
@@ -469,7 +487,7 @@ def bestaand_voorstel(artikel, gebruiker, tekst: str):
     kern = " ".join((tekst or "").split()).lower()
     if not kern or not gebruiker or not gebruiker.is_authenticated:
         return None
-    _slot(f"voorstel:{artikel.pk}:{gebruiker.pk}:{kern[:200]}")
+    slot(f"voorstel:{artikel.pk}:{gebruiker.pk}:{kern[:200]}")
     return (
         Verbetervoorstel.objects.filter(
             artikel=artikel,
@@ -495,7 +513,7 @@ def voorstelbericht_toevoegen(voorstel, auteur, tekst: str, *, van_redactie: boo
     # keer dezelfde e-mail bezorgen. Het slot zorgt dat ook twee exact gelijktijdige verzoeken op
     # elkaar wachten, en dan vindt de tweede het bericht van de eerste wél.
     kern = " ".join(tekst.split()).lower()
-    _slot(f"voorstelbericht:{voorstel.pk}:{getattr(auteur, 'pk', 0)}:{kern[:200]}")
+    slot(f"voorstelbericht:{voorstel.pk}:{getattr(auteur, 'pk', 0)}:{kern[:200]}")
     al_gestuurd = voorstel.berichten.filter(
         auteur=auteur if auteur and auteur.is_authenticated else None,
         tekst__iexact=tekst,
@@ -541,7 +559,7 @@ def meld_voorstelbericht(bericht):
     ontvanger = voorstel.ingediend_door
     if not ontvanger or not ontvanger.email or not ontvanger.is_active:
         return
-    _mail(
+    mail_na_commit(
         f"Bericht over je verbetervoorstel: {voorstel.artikel.titel}",
         f"{bericht.naam} (procesmanagement) schreef:\n\n{bericht.tekst}\n\n"
         f"Status: {voorstel.get_status_display()}\n\n"
@@ -558,11 +576,15 @@ def voorstel_ongelezen(voorstel, gebruiker) -> int:
     """
     van_mij_is_indiener = voorstel.ingediend_door_id == getattr(gebruiker, "pk", None)
     sinds = voorstel.gelezen_indiener_op if van_mij_is_indiener else voorstel.gelezen_redactie_op
+    # In Python tellen op de berichten die de lijst al heeft opgehaald (prefetch_related). Met een
+    # .filter().count() ging de prefetch verloren en deed de voorstellenpagina één extra query per
+    # voorstel — bij driehonderd voorstellen dus driehonderd queries.
     # Ben ik de indiener, dan zijn de berichten van procesmanagement nieuw voor mij, en omgekeerd.
-    rijen = voorstel.berichten.filter(van_redactie=van_mij_is_indiener)
-    if sinds:
-        rijen = rijen.filter(moment__gt=sinds)
-    return rijen.count()
+    return sum(
+        1
+        for b in voorstel.berichten.all()
+        if b.van_redactie == van_mij_is_indiener and (sinds is None or b.moment > sinds)
+    )
 
 
 def voorstel_gelezen(voorstel, gebruiker) -> None:

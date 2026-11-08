@@ -74,8 +74,9 @@ class ArtikelKortSerializer(serializers.ModelSerializer):
     def get_wijziging(self, obj) -> dict | None:
         """De nog niet afgevinkte inhoudelijke wijzigingen voor de huidige gebruiker.
 
-        {versie, datum, toelichting, eerdere: [{versie, datum, toelichting}, ...]} — `eerdere` bevat de
-        wijzigingen die daarvoor zijn gemist, nieuwste eerst, of is leeg.
+        {versie, datum, toelichting, aantal, eerdere: [{versie, datum, toelichting}, ...]} — `eerdere`
+        bevat de wijzigingen die daarvoor zijn gemist, nieuwste eerst, of is leeg; `aantal` is het
+        werkelijke aantal gemiste wijzigingen, ook als `eerdere` er maar vier toont.
         """
         wijzigingen = self.context.get("wijzigingen")
         if wijzigingen is None:
