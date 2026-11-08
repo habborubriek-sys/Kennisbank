@@ -31,12 +31,16 @@ Dit document geeft de informatie die nodig is voor een beveiligingstoets (BIO), 
 | Verbetervoorstellen met naam indiener | Terugkoppeling aan de indiener | Gebruiker | Naam wordt `KB_ANONIMISEER_VOORSTEL_DAGEN` (standaard 365 dagen) na afhandeling verwijderd, op het voorstel **en** op zijn eventuele berichten; de inhoud blijft voor de kwaliteitshistorie |
 | Naam bij een terugkoppeling of update van procesmanagement | Verantwoording (wie heeft wat toegezegd) | Redacteur | Zolang het voorstel bestaat |
 | Naam bij publicatie van een artikelversie | Verantwoording (wie heeft wat vastgesteld) | Redacteur | Zolang de versie bestaat (archiefwaardig) |
+| Kladversie: naam van de redacteur, het artikel, het tijdstip en de nog niet opgeslagen tekst | Geen werk kwijt bij een verlopen sessie, crash of verbroken verbinding; collega's kunnen werk overnemen | Redacteur | Tot de redacteur opslaat of weggooit; daarna blijft alleen een lege markering ("afgesloten op") over. Beide worden na `KB_KLADVERSIE_DAGEN` (standaard 30 dagen) verwijderd door `opschonen` |
+| Kopie van de kladversie in de browser (`localStorage`) | Werkt ook zonder verbinding | Redacteur | Op dat ene apparaat, tot opslaan of weggooien, uiterlijk `KB_KLADVERSIE_DAGEN` |
 
 **Niet verwerkt.** Er worden geen gegevens per persoon bijgehouden over welke artikelen iemand leest, hoe lang, of wat iemand zoekt of vraagt. Statistieken zijn tellingen per dag zonder gebruiker. Wie wat leest is dus niet te herleiden. Dat is een bewuste ontwerpkeuze: de statistieken dienen om artikelen te verbeteren, niet om medewerkers te beoordelen.
 
 **Twee namen bij een verbetervoorstel, twee termijnen.** De naam van de **indiener** is die van een medewerker die een signaal afgeeft; die verdwijnt een jaar na afhandeling, op het voorstel en op zijn berichten. De naam van de **redacteur** die heeft teruggekoppeld blijft staan zolang het voorstel bestaat: dat is verantwoording voor wat er aan een medewerker is toegezegd, vergelijkbaar met de naam bij een artikelversie. Wie die keuze anders wil, zet `KB_ANONIMISEER_VOORSTEL_DAGEN` korter of verwijdert het voorstel; verwijderen haalt de berichten mee.
 
 De termijn wordt gerekend vanaf `behandeld_op`, en dat veld wordt alleen bij een **statuswijziging** gezet. Een tussentijdse update ("opgepakt, we kijken ernaar") schuift de termijn dus niet op.
+
+**Kladversies.** Een kladversie is werk dat een redacteur nog niet heeft opgeslagen. Hij is nooit zichtbaar voor medewerkers en telt niet als versie. Redacteuren van **dezelfde omgeving** zien dát een collega een kladversie heeft en kunnen hem lezen, bijvoorbeeld om het werk over te nemen als iemand ziek is; redacteuren van een andere omgeving zien niets, ook niet dat hij bestaat. De tekst gaat bij het lezen door dezelfde schoonmaak als een gepubliceerd artikel. Naast de serverkopie houdt de browser een kopie bij in `localStorage`, zodat werk ook zonder verbinding bewaard blijft. Die kopie staat op het apparaat van de redacteur en wordt gewist bij opslaan of weggooien; op een **gedeelde computer** blijft hij tot dat moment staan. Bij persoonlijke werklaptops is dat geen punt; wie de kennisbank op gedeelde werkplekken wil gebruiken, moet dit meewegen.
 
 **Bewaartermijnen uitvoeren.** Het commando `opschonen` (in Kubernetes een CronJob) voert de termijnen dagelijks uit.
 

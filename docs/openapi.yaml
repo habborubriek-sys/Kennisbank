@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.13.1
+  version: 1.14.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -860,6 +860,10 @@ components:
       properties:
         naam:
           type: string
+        kladversies:
+          type: array
+          items:
+            $ref: '#/components/schemas/MijnKladversie'
         is_redacteur:
           type: boolean
         onboarding:
@@ -905,6 +909,7 @@ components:
       - favorieten
       - favorieten_mail
       - is_redacteur
+      - kladversies
       - mail_bij_favorieten
       - naam
       - nieuws_gezien_op
@@ -937,6 +942,25 @@ components:
       - soorten
       - tags
       - zaaktypen
+    MijnKladversie:
+      type: object
+      properties:
+        titel:
+          type: string
+        nieuw:
+          type: boolean
+          description: Een nieuw artikel dat nog nooit is opgeslagen
+        bijgewerkt_op:
+          type: string
+          format: date-time
+        url:
+          type: string
+          description: Het bewerkscherm in het beheer
+      required:
+      - bijgewerkt_op
+      - nieuw
+      - titel
+      - url
     PatchedIkWijzigenRequest:
       type: object
       properties:

@@ -76,6 +76,7 @@ Uitgevoerd door het commando `opschonen` (dagelijks inplannen); dat verwijdert o
 | `KB_ANONIMISEER_VOORSTEL_DAGEN` | `365` | Na afhandeling wordt de naam van de indiener van een voorstel verwijderd. |
 | `KB_MAX_VERZOEK_MB` | `6` | Hoeveel megabyte één verzoek maximaal mag zijn (Django's `DATA_UPLOAD_MAX_MEMORY_SIZE`). Geldt voor élk verzoek, niet alleen voor het artikelformulier. Moet net boven de grens voor de artikeltekst liggen (4 MB), anders krijgt een redacteur een kale 400 in plaats van een nette melding. |
 | `KB_HERZIENINGSTERMIJN_MAANDEN` | `12` | Na hoeveel maanden een gepubliceerd artikel opnieuw moet worden nagekeken. Bij publiceren vult de kennisbank de datum "opnieuw nakijken voor" zo in als de redacteur hem leeg laat; een datum die al verstreken was, schuift mee. `0` = niet automatisch vullen (de redacteur kan de datum dan nog altijd zelf zetten). |
+| `KB_KLADVERSIE_DAGEN` | `30` | Hoe lang een kladversie (werk in het bewerkscherm dat nog niet is opgeslagen) blijft staan als de redacteur hem niet opslaat of weggooit. Geldt ook voor de kopie in de browser. Minimaal 1. |
 
 ## E-mail (optioneel)
 

@@ -55,11 +55,14 @@ class Command(BaseCommand):
         mails = diensten.verstuur_favorietenmail()
         wachtrij = FavorietenMail.objects.filter(verzonden_op__lt=nu - timezone.timedelta(days=30)).delete()[0]
         claims = diensten.verlopen_claims_opruimen()
-        diensten.stand_vastleggen("opschonen", f"{mails} mail(s) verstuurd, {claims} claim(s) opgeruimd")
+        klad = diensten.kladversies_opruimen()
+        diensten.stand_vastleggen(
+            "opschonen", f"{mails} mail(s) verstuurd, {claims} claim(s) opgeruimd, {klad} kladversie(s) opgeruimd"
+        )
         self.stdout.write(
             f"Opgeschoond: {recent} recent-bezocht-regels, {stats} statistiekregels, "
             f"{anoniem} voorstellen geanonimiseerd ({berichten_anoniem} bericht(en) meegenomen), "
             f"verlopen sessies verwijderd, "
             f"{mails} favorietenmail(s) verstuurd, {wachtrij} verzonden mailregels opgeruimd, "
-            f"{claims} verlopen bewerkclaim(s) opgeruimd."
+            f"{claims} verlopen bewerkclaim(s) opgeruimd, {klad} oude kladversie(s) opgeruimd."
         )

@@ -1,5 +1,32 @@
 # Wijzigingen
 
+## 1.14.0 – 2026-11-09
+
+Ronde 6, deel 1: **kladversies** (punt 36). Een verlopen sessie, een vastgelopen browser, een dichtgeklapte laptop of een verbroken verbinding kost een redacteur geen werk meer.
+
+**Hoe het werkt**
+
+- **Twee lagen.** De browser bewaart elke paar seconden een kopie (`localStorage`), ook zonder verbinding. De server krijgt de kladversie elke twee minuten als er iets is veranderd, meteen als de verbinding terugkomt, en bij het sluiten of wegklikken van het tabblad (`sendBeacon`). Rechtsonder verschijnt kort *"Kladversie opgeslagen om 14:32"*; valt de verbinding weg, dan zegt de melding dat het werk in de browser wordt bewaard.
+- **Terugkomen.** Staat er een kladversie die afwijkt van het formulier, dan vraagt het scherm *"Verder gaan waar je gebleven was?"*, met de titel en het begin van de tekst. De nieuwste van browser- en serverkopie wint. Ook voor een nieuw artikel dat nog nooit is opgeslagen.
+- **Na het inloggen** toont de kennisbank één keer per sessie de kladversies die nog openstaan, ná het welkomstvenster als dat er ook is. In het beheer staat het aantal boven de artikelenlijst, en onder **Kladversies** staan ze allemaal.
+- **Collega's** in dezelfde omgeving zien dát iemand een kladversie heeft en kunnen hem lezen, zodat werk over te nemen is als iemand ziek is. Redacteuren van een andere omgeving zien niets (404, ook niet dat hij bestaat). De tekst gaat bij het lezen door dezelfde schoonmaak als een gepubliceerd artikel.
+- **De melding "dit scherm is verlopen"** zei "kopieer je tekst en plak hem terug". Nu: je werk staat veilig in deze browser, ververs de pagina en kies Verder gaan.
+
+**Wat ervoor zorgt dat het niet misgaat**
+
+- **Terugzetten zet ook het oude stempel terug.** Heeft een collega het artikel intussen opgeslagen, dan waarschuwt de vraag daar al voor, en geeft opslaan de bekende conflictmelding in plaats van dat diens werk ongemerkt wordt overschreven. Zonder dit zou de conflictcontrole blind zijn geweest voor een teruggezette kladversie.
+- **Na opslaan of weggooien blijft er een lege, afgesloten rij staan.** Zonder die markering zou een oude browserkopie op een andere laptop de kladversie later laten herrijzen, en kreeg je "verder gaan?" voor werk dat allang is opgeslagen. De markering wordt ook gemaakt als er nooit een serverkopie was, want de browser kan er al wel een hebben.
+- **Alleen openen is geen kladversie.** De editor maakt HTML na het laden soms net anders op; pas als iemand typt, plakt, de werkbalk gebruikt of een keuzelijst verandert, begint het bewaren.
+- **Publicatiekeuzes worden niet bewaard** (status, toelichting, kleine correctie): die horen bij het moment van opslaan, niet bij het schrijfwerk.
+- `opschonen` ruimt kladversies ouder dan `KB_KLADVERSIE_DAGEN` (standaard 30) op.
+
+**Gevonden tijdens het testen in de browser**
+
+- Het seintje na het inloggen bleef weg bij een redacteur die de app nog nooit had geopend: het welkomstvenster had voorrang en het seintje werd overgeslagen. De aanname "wie voor het eerst inlogt, heeft nog geen kladversies" klopte niet: een redacteur kan rechtstreeks in het beheer beginnen. Het seintje komt nu ná het welkomstvenster.
+- De lijst *Kladversies* onthield in de eerste opzet op het gedeelde beheerobject wie er keek. Bij twee redacteuren tegelijk kon de een dan de knoppen van de ander zien. Nu per rij in de database berekend.
+
+- **Tests** (nu 273): twintig voor de kladversie aan de serverkant (opslaan, één rij bij twee keer opslaan, onbekende velden, rechten voor collega, vreemde redacteur en lezer, de schoonmaak bij het lezen, nieuw artikel met en zonder eigen omgeving, afsluiten na opslaan en na weggooien, de markering zonder serverkopie, opruimen, het seintje). De schoonmaaktest is eerst zonder de reparatie gelopen om te zien dat hij er echt op valt. Daarnaast tien scenario's in de browser: alleen openen, typen, verbinding weg en terug, tabblad dicht zonder opslaan, terugkomen, een collega die meeleest, een collega die tussendoor opslaat (met echte conflictmelding), opslaan, nieuw artikel, en het seintje in de app.
+
 ## 1.13.1 – 2026-11-08
 
 Drie aanpassingen aan de nieuwspagina, op verzoek.

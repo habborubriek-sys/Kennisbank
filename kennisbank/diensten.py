@@ -20,6 +20,7 @@ from .models import (
     BewerkClaim,
     Favoriet,
     FavorietenMail,
+    Kladversie,
     Profiel,
     RecentBezocht,
     Rol,
@@ -740,3 +741,119 @@ def claim_opheffen(artikel: Artikel, gebruiker) -> None:
 def verlopen_claims_opruimen() -> int:
     aantal, _ = BewerkClaim.objects.filter(laatst_gezien__lt=_claimgrens()).delete()
     return aantal
+
+
+# --- Kladversies ---------------------------------------------------------------------
+#
+# Onopgeslagen werk in het bewerkscherm. De browser houdt continu een kopie bij (ook zonder
+# verbinding); de server krijgt de kladversie elke twee minuten en bij het sluiten van het tabblad.
+# Na opslaan of weggooien blijft er een afgesloten rij staan (zie Kladversie): die vertelt een oude
+# browserkopie op een andere laptop dat zijn werk al is afgehandeld.
+
+#: De formuliervelden die in een kladversie worden bewaard. Publicatiekeuzes (status, toelichting,
+#: kleine correctie) bewust niet: die horen bij het moment van opslaan, niet bij het schrijfwerk.
+KLAD_TEKSTVELDEN = ("titel", "samenvatting", "inhoud", "soort", "omgeving", "eigenaar", "tags_tekst")
+KLAD_LIJSTVELDEN = ("clusters", "zaaktypen")
+
+
+def _klad_rijen(gebruiker, artikel):
+    if artikel is None:
+        return Kladversie.objects.filter(gebruiker=gebruiker, artikel__isnull=True)
+    return Kladversie.objects.filter(gebruiker=gebruiker, artikel=artikel)
+
+
+def klad_van(gebruiker, artikel):
+    """De kladversie-rij van deze gebruiker voor dit artikel (of voor een nieuw artikel), open of afgesloten."""
+    return _klad_rijen(gebruiker, artikel).first()
+
+
+def _schone_kladvelden(velden) -> dict:
+    """Alleen de bekende velden, alleen tekst of een lijst tekst. De rest valt weg."""
+    if not isinstance(velden, dict):
+        return {}
+    uit = {}
+    for naam in KLAD_TEKSTVELDEN:
+        waarde = velden.get(naam)
+        if isinstance(waarde, str | int):
+            uit[naam] = str(waarde)
+    for naam in KLAD_LIJSTVELDEN:
+        waarde = velden.get(naam)
+        if isinstance(waarde, list):
+            uit[naam] = [str(w) for w in waarde if isinstance(w, str | int)][:500]
+    return uit
+
+
+def klad_opslaan(gebruiker, artikel, velden, basis_stempel="", *, redactie_omgevingen=()):
+    """Bewaar (of heropen) de kladversie. Geeft de rij terug.
+
+    ``redactie_omgevingen``: waar deze gebruiker redacteur is. Bij een nieuw artikel wordt de gekozen
+    omgeving alleen vastgelegd als hij daar redacteur is; anders zou een collega van een andere
+    omgeving de kladversie te zien krijgen.
+    """
+    velden = _schone_kladvelden(velden)
+    omgeving_id = None
+    if artikel is None:
+        try:
+            gekozen = int(velden.get("omgeving") or 0)
+        except ValueError:
+            gekozen = 0
+        if gekozen and (gebruiker.is_superuser or gekozen in set(redactie_omgevingen)):
+            omgeving_id = gekozen
+    nu = timezone.now()
+    sleutel = f"klad:{gebruiker.pk}:{artikel.pk if artikel else 'nieuw'}"
+    with transaction.atomic():
+        slot(sleutel)  # twee tabbladen tegelijk mogen geen dubbele rij maken
+        rij = klad_van(gebruiker, artikel)
+        if rij is None:
+            rij = Kladversie(gebruiker=gebruiker, artikel=artikel, aangemaakt_op=nu)
+        elif rij.afgesloten_op is not None:
+            rij.aangemaakt_op = nu  # een nieuwe kladversie na een afgesloten exemplaar
+        rij.velden = velden
+        rij.basis_stempel = (basis_stempel or "")[:64]
+        rij.omgeving_id = omgeving_id
+        rij.bijgewerkt_op = nu
+        rij.afgesloten_op = None
+        rij.save()
+    return rij
+
+
+def klad_afsluiten(gebruiker, artikel) -> None:
+    """Na opslaan of weggooien. Laat altijd een afgesloten rij achter, ook als er nooit een
+    kladversie op de server stond: de browser kan wel al een kopie hebben, en die moet weten dat het
+    werk is afgehandeld."""
+    nu = timezone.now()
+    sleutel = f"klad:{gebruiker.pk}:{artikel.pk if artikel else 'nieuw'}"
+    with transaction.atomic():
+        slot(sleutel)
+        rij = klad_van(gebruiker, artikel) or Kladversie(gebruiker=gebruiker, artikel=artikel, aangemaakt_op=nu)
+        rij.velden = {}
+        rij.omgeving_id = None
+        rij.bijgewerkt_op = nu
+        rij.afgesloten_op = nu
+        rij.save()
+
+
+def zichtbare_kladversies(gebruiker, r):
+    """Open kladversies die deze gebruiker mag zien: zijn eigen, en die van collega's in een omgeving
+    waar hij redacteur is (ook van nieuwe artikelen waarvoor al een omgeving is gekozen)."""
+    from django.db.models import Q
+
+    qs = Kladversie.objects.filter(afgesloten_op__isnull=True).select_related("gebruiker", "artikel", "omgeving")
+    if gebruiker.is_superuser:
+        return qs
+    redactie = r.redactie_omgevingen
+    return qs.filter(
+        Q(gebruiker=gebruiker)
+        | Q(artikel__omgeving_id__in=redactie)
+        | Q(artikel__isnull=True, omgeving_id__in=redactie)
+    )
+
+
+def mag_klad_zien(gebruiker, r, klad) -> bool:
+    return zichtbare_kladversies(gebruiker, r).filter(pk=klad.pk).exists()
+
+
+def kladversies_opruimen() -> int:
+    """Open en afgesloten kladversies ouder dan KB_KLADVERSIE_DAGEN."""
+    grens = timezone.now() - datetime.timedelta(days=settings.KB_KLADVERSIE_DAGEN)
+    return Kladversie.objects.filter(bijgewerkt_op__lt=grens).delete()[0]

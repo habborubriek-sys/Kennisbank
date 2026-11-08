@@ -919,11 +919,31 @@
     suggesties.forEach((s) => { const b = document.createElement("button"); b.type = "button"; b.textContent = s; b.addEventListener("click", () => botAnswer(s)); $("#sugg").appendChild(b); });
     addMsg("<p>Hallo! Stel je vraag over een werkinstructie of werkafspraak. Ik zoek het antwoord in de kennisbank en verwijs je naar het juiste artikel.</p>", "bot");
     render();
-    if (ik.begroeten && !EMBED) toonWelkom();
+    if (ik.begroeten && !EMBED) toonWelkom(toonKladversies);
+    else if (!EMBED) toonKladversies();
+  }
+
+  /* ---------- Na inloggen: onopgeslagen werk in het beheer ---------- */
+  function toonKladversies() {
+    // Eén keer per browsersessie, niet bij elke pagina. Ná het welkomstvenster, niet erdoorheen: een
+    // redacteur kan in het beheer aan het werk zijn gegaan voordat hij ooit de app opende.
+    const lijst = (ik && ik.kladversies) || [];
+    if (!lijst.length) return;
+    try { if (sessionStorage.getItem("kb.klad.gemeld") === "1") return; sessionStorage.setItem("kb.klad.gemeld", "1"); } catch (e) { /* dan elke keer */ }
+    $("#kladLijst").innerHTML = lijst.map((k) =>
+      `<li><a href="${esc(k.url)}"><b>${esc(k.titel)}</b></a>${k.nieuw ? " <span class=\"hint\">(nieuw artikel)</span>" : ""}<br><span class="hint">laatst bijgewerkt ${esc(datum(k.bijgewerkt_op))}</span> · <a href="${esc(k.url)}">Verder gaan</a></li>`
+    ).join("");
+    const bd = $("#kladBackdrop");
+    bd.classList.add("open");
+    const sluit = () => bd.classList.remove("open");
+    $("#kladSluit").addEventListener("click", sluit, { once: true });
+    bd.addEventListener("click", (e) => { if (e.target === bd) sluit(); });
+    document.addEventListener("keydown", function esc_(e) { if (e.key === "Escape") { sluit(); document.removeEventListener("keydown", esc_); } });
+    $("#kladLijst a").focus();
   }
 
   /* ---------- Eerste keer: is iemand nieuw bij RWS? ---------- */
-  function toonWelkom() {
+  function toonWelkom(daarna) {
     // Alleen de eerste keer, en niet in het zaaksysteem: daar zit de kennisbank in een smal paneel
     // naast een zaak, en is een venster met uitleg misplaatst.
     const bd = $("#welkomBackdrop");
@@ -934,6 +954,7 @@
       try { await api("ik", { method: "PATCH", body: { begroet: true } }); } catch (e) { /* vraag komt dan nog eens */ }
       if (ik) ik.begroeten = false;
       if (nieuw) toast("De extra uitleg voor nieuwe collega's staat aan. Je kunt hem rechtsboven uitzetten.");
+      if (daarna) daarna();
     };
     $("#welkomJa").addEventListener("click", () => sluit(true));
     $("#welkomNee").addEventListener("click", () => sluit(false));

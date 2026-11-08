@@ -231,7 +231,9 @@
           titel: "Opslaan lukt nu niet",
           alineas: [
             "Dit scherm is verlopen, waarschijnlijk doordat je in een ander tabblad opnieuw bent ingelogd.",
-            "Je tekst staat er nog: kopieer hem, ververs de pagina met Ctrl+F5 en plak hem terug.",
+            window.kbKladNu && window.kbKladNu()
+              ? "Je werk staat veilig in deze browser: ververs de pagina met Ctrl+F5 en kies daarna 'Verder gaan'."
+              : "Je tekst staat er nog: kopieer hem, ververs de pagina met Ctrl+F5 en plak hem terug.",
           ],
         });
         return;
@@ -321,6 +323,7 @@
     if (textarea.dataset.kbEditor) return;
     textarea.dataset.kbEditor = "1";
     var editor = Jodit.make(textarea, textarea.name === "inhoud" ? config : configEenvoudig);
+    if (textarea.name === "inhoud") inhoudEditor = editor;  // voor de kladversie
     ruimteRondSecties(editor);
     editor.events.on("change", function () { if (ruimteRondSecties(editor)) editor.synchronizeValues(); });
     // Na "Opslaan en doorgaan" vanuit het volledige scherm: dat scherm weer openen.
@@ -416,10 +419,14 @@
     function codeVerlopenMelden() {
       if (codeVerlopen) return;
       codeVerlopen = true;
+      var veilig = window.kbKladNu ? window.kbKladNu() : false;
       balkTonen(
         "kb-melding-fout",
         "Let op: dit scherm is verlopen, waarschijnlijk doordat je in een ander tabblad opnieuw bent " +
-          "ingelogd. Opslaan lukt nu niet. Kopieer je tekst, ververs deze pagina met Ctrl+F5 en plak hem terug."
+          "ingelogd. Opslaan lukt nu niet. " +
+          (veilig
+            ? "Je werk staat veilig in deze browser: ververs de pagina met Ctrl+F5 en kies daarna 'Verder gaan'."
+            : "Kopieer je tekst, ververs deze pagina met Ctrl+F5 en plak hem terug.")
       );
     }
 
@@ -463,6 +470,334 @@
     });
     form.addEventListener("submit", function () { codeVerlopen = false; });
     window.kbCodeVerlopen = function () { return codeVerlopen; };
+  }
+
+  /* ----------------------------------------------------------------------------------------
+   * Kladversie: onopgeslagen werk bewaren.
+   *
+   * - De browser houdt elke paar seconden een kopie bij (localStorage). Dat werkt ook zonder
+   *   verbinding, en overleeft een verlopen sessie, een crash en een dichtgeklapte laptop.
+   * - De server krijgt de kladversie elke twee minuten als er iets is veranderd, direct als de
+   *   verbinding terugkomt, en bij het sluiten of wegklikken van het tabblad.
+   * - Bij openen: staat er een kladversie die afwijkt van wat er nu in het formulier staat, dan vraagt
+   *   het scherm of je verder wilt gaan. Terugzetten zet ook het oude stempel terug, zodat de
+   *   conflictcontrole aanslaat als iemand anders intussen heeft opgeslagen.
+   *
+   * Pas een kladversie als iemand echt iets heeft gedaan. De editor maakt de HTML na het laden soms
+   * net anders op; zonder die drempel zou alleen al het openen van een artikel een kladversie geven.
+   * -------------------------------------------------------------------------------------- */
+  var KLAD_LOKAAL_MS = 3000;     // zo vaak kijken of er iets is veranderd, en dan de browserkopie bijwerken
+  var KLAD_SERVER_MS = 120000;   // zo vaak naar de server, als er sinds de vorige keer iets is veranderd
+  var KLAD_TEKST = ["titel", "samenvatting", "inhoud", "soort", "omgeving", "eigenaar", "tags_tekst"];
+  var KLAD_LIJST = ["clusters", "zaaktypen"];
+  var inhoudEditor = null;
+
+  function kladversie() {
+    var m = location.pathname.match(/^(.*)\/kennisbank\/artikel\/(?:(\d+)\/change|add)\/$/);
+    var form = document.querySelector("#artikel_form, form#content-main form, #content form");
+    if (!m || !form) return;
+    var url = m[1] + "/kennisbank/artikel/" + (m[2] ? m[2] + "/" : "") + "kladversie/";
+    var sleutel = null, bewaardagen = 30, verschil = 0, heeftGewerkt = false, klaar = false;
+    var basisTekst = null, laatsteLokaal = null, laatsteServer = null, geenVerbindingGemeld = false;
+
+    var nu = function () { return Date.now() + verschil; };  // servertijd, zodat een scheve klok niet uitmaakt
+    function el(naam) { return form.elements.namedItem(naam); }  // ook velden die naar het volledige scherm zijn verhuisd
+    function token() { var t = form.querySelector('[name="csrfmiddlewaretoken"]'); return t ? t.value : ""; }
+
+    function lees() {
+      var v = {};
+      KLAD_TEKST.forEach(function (n) {
+        if (n === "inhoud" && inhoudEditor) { v.inhoud = inhoudEditor.value; return; }
+        var e = el(n);
+        if (e && typeof e.value === "string") v[n] = e.value;
+      });
+      KLAD_LIJST.forEach(function (n) {
+        var naar = document.getElementById("id_" + n + "_to");  // Django's twee-vakken-widget
+        var e = naar || el(n);
+        if (!e || !e.options) return;
+        v[n] = Array.prototype.slice.call(e.options).filter(function (o) { return naar ? true : o.selected; }).map(function (o) { return o.value; });
+      });
+      return v;
+    }
+    function tekst(v) { return JSON.stringify(v); }
+    function stempel() { var s = el("geladen_stempel"); return s ? s.value : ""; }
+
+    function zetLijst(n, waarden) {
+      var gewenst = {};
+      (waarden || []).forEach(function (w) { gewenst[w] = true; });
+      try {
+        var van = "id_" + n + "_from", naar = "id_" + n + "_to";
+        if (window.SelectBox && document.getElementById(van) && document.getElementById(naar)) {
+          window.SelectBox.move_all(naar, van);
+          Array.prototype.slice.call(document.getElementById(van).options).forEach(function (o) { o.selected = !!gewenst[o.value]; });
+          window.SelectBox.move(van, naar);
+          if (window.SelectFilter && window.SelectFilter.refresh_icons) window.SelectFilter.refresh_icons("id_" + n);
+          return;
+        }
+        var e = el(n);
+        if (e && e.options) Array.prototype.slice.call(e.options).forEach(function (o) { o.selected = !!gewenst[o.value]; });
+      } catch (fout) { /* clusters en zaaktypen zijn een extraatje; de tekst is wat telt */ }
+    }
+
+    function zet(v, basis) {
+      KLAD_TEKST.forEach(function (n) {
+        if (!(n in v)) return;
+        if (n === "inhoud" && inhoudEditor) { inhoudEditor.value = v.inhoud; inhoudEditor.synchronizeValues(); return; }
+        var e = el(n);
+        if (e && typeof e.value === "string") e.value = v[n];
+      });
+      KLAD_LIJST.forEach(function (n) { if (n in v) zetLijst(n, v[n]); });
+      if (basis && el("geladen_stempel")) el("geladen_stempel").value = basis;
+    }
+
+    /* --- browserkopie ------------------------------------------------------------------ */
+    function lokaal() {
+      if (!sleutel) return null;
+      try { var x = JSON.parse(localStorage.getItem(sleutel) || "null"); return x && x.velden ? x : null; } catch (e) { return null; }
+    }
+    function lokaalWeg() { try { if (sleutel) localStorage.removeItem(sleutel); } catch (e) {} }
+    function lokaalBewaren(velden, opServer) {
+      if (!sleutel) return false;
+      try {
+        localStorage.setItem(sleutel, JSON.stringify({ velden: velden, basis_stempel: stempel(), bewaard_op: nu(), op_server: !!opServer }));
+        return true;
+      } catch (e) { return false; }  // vol of uitgeschakeld: de serverkopie blijft
+    }
+
+    /* --- melding rechtsonder ----------------------------------------------------------- */
+    var meldTimer = null;
+    function meld(tekstje, blijvend) {
+      var t = document.getElementById("kb-klad-melding");
+      if (!t) {
+        t = document.createElement("div");
+        t.id = "kb-klad-melding";
+        t.setAttribute("role", "status");
+        t.setAttribute("aria-live", "polite");
+        document.body.appendChild(t);
+      }
+      t.textContent = tekstje;
+      t.classList.add("zichtbaar");
+      t.classList.toggle("offline", !!blijvend);
+      clearTimeout(meldTimer);
+      if (!blijvend) meldTimer = setTimeout(function () { t.classList.remove("zichtbaar"); }, 3500);
+    }
+    function tijd() { var d = new Date(); return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); }
+
+    /* --- server ------------------------------------------------------------------------- */
+    function body(velden, weggooien) {
+      var b = new URLSearchParams();
+      b.set("csrfmiddlewaretoken", token());
+      if (weggooien) b.set("weggooien", "1");
+      else { b.set("velden", JSON.stringify(velden)); b.set("basis_stempel", stempel()); }
+      return b;
+    }
+    function naarServer(dringend) {
+      if (!klaar || !heeftGewerkt) return;
+      var velden = lees(), s = tekst(velden);
+      if (s === basisTekst || s === laatsteServer) return;
+      if (!dringend && !navigator.onLine) { geenVerbinding(); return; }
+      fetch(url, { method: "POST", body: body(velden), credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
+        .then(function (r) {
+          if (!r.ok) return;  // 403: het zachte slot meldt de verlopen code al; de browserkopie is het vangnet
+          laatsteServer = s;
+          if (tekst(lees()) === s) lokaalBewaren(velden, true);
+          geenVerbindingGemeld = false;
+          meld("Kladversie opgeslagen om " + tijd());
+        })
+        .catch(geenVerbinding);
+    }
+    function geenVerbinding() {
+      if (geenVerbindingGemeld) return;
+      geenVerbindingGemeld = true;
+      kladNu();
+      meld("Geen verbinding. Je werk wordt in deze browser bewaard en gaat naar de server zodra de verbinding terug is.", true);
+    }
+    function bakenBijVertrek() {
+      if (!klaar || !heeftGewerkt) return;
+      var velden = lees(), s = tekst(velden);
+      if (s === basisTekst) return;
+      lokaalBewaren(velden, false);
+      if (s !== laatsteServer && navigator.sendBeacon && navigator.sendBeacon(url, body(velden))) laatsteServer = s;
+    }
+
+    /* Nu meteen in de browser vastleggen. Voor de melding "dit scherm is verlopen". */
+    function kladNu() {
+      if (!klaar || !heeftGewerkt) return false;
+      var velden = lees();
+      if (tekst(velden) === basisTekst) return false;
+      return lokaalBewaren(velden, false);
+    }
+    window.kbKladNu = kladNu;
+
+    /* --- elke paar seconden ------------------------------------------------------------ */
+    function controle() {
+      if (!klaar) return;
+      var velden = lees(), s = tekst(velden);
+      if (!heeftGewerkt) { basisTekst = s; return; }  // zolang niemand iets deed, verschuift het vertrekpunt mee
+      if (s === basisTekst || s === laatsteLokaal) return;
+      laatsteLokaal = s;
+      lokaalBewaren(velden, s === laatsteServer);
+    }
+
+    ["input", "keydown", "paste", "drop", "cut", "change"].forEach(function (soort) {
+      document.addEventListener(soort, function (e) {
+        var toets = e.key || "";
+        // Rondkijken is geen werk: tab, pijltjes, shift en kopiëren veranderen niets.
+        if (soort === "keydown" && (toets === "Tab" || toets === "Shift" || toets.indexOf("Arrow") === 0 || (e.ctrlKey && toets === "c"))) return;
+        if (e.target && e.target.closest && e.target.closest(".kb-venster")) return;  // typen in een vraagvenster telt niet
+        heeftGewerkt = true;
+      }, true);
+    });
+    document.addEventListener("click", function (e) {
+      // Werkbalkknoppen (vet, lijst, sectie) en de pijltjes van clusters en zaaktypen veranderen
+      // de inhoud zonder dat er getypt wordt.
+      if (e.target.closest && e.target.closest(".jodit-toolbar__box, .jodit-toolbar, .selector-chooser, .selector-chooseall, .selector-clearall")) heeftGewerkt = true;
+    }, true);
+
+    /* --- bij openen: is er een kladversie? -------------------------------------------- */
+    function voorproefje(v) {
+      // Een inerte parser: in een DOMParser-document laadt en draait niets.
+      var t = "";
+      try {
+        var doc = new DOMParser().parseFromString(v.inhoud || "", "text/html");
+        // Een spatie achter elk blok, anders plakken kop en alinea aan elkaar ("Brief opstellenSjablonen").
+        doc.body.querySelectorAll("p,li,h1,h2,h3,h4,h5,h6,div,section,td,th,br").forEach(function (n) { n.appendChild(doc.createTextNode(" ")); });
+        t = doc.body.textContent || "";
+      } catch (e) {}
+      t = t.replace(/\s+/g, " ").trim();
+      return t.length > 220 ? t.slice(0, 220) + "…" : t;
+    }
+
+    function vraag(kandidaat, huidigStempel) {
+      var inhoud = document.createElement("div");
+      var regel = document.createElement("p");
+      regel.className = "kb-klad-voorproef";
+      var titel = document.createElement("strong");
+      titel.textContent = kandidaat.velden.titel || "(zonder titel)";
+      regel.appendChild(titel);
+      var stukje = voorproefje(kandidaat.velden);
+      if (stukje) { regel.appendChild(document.createElement("br")); regel.appendChild(document.createTextNode(stukje)); }
+      inhoud.appendChild(regel);
+      var alineas = ["Er staat een kladversie klaar van " + kandidaat.tijd + ". Verder gaan waar je gebleven was?"];
+      if (kandidaat.basis_stempel && huidigStempel && kandidaat.basis_stempel !== huidigStempel) {
+        alineas.push(
+          "Let op: het artikel is opgeslagen nadat je aan deze kladversie begon. Ga je verder en sla je op, " +
+            "dan meldt het scherm dat er intussen iets is veranderd, zodat je niemands werk overschrijft."
+        );
+      }
+      var voorAanpassing = tekst(lees());
+      wachtOpVrijScherm(function () {
+        vensterTonen({
+          titel: "Verder gaan waar je gebleven was?",
+          alineas: alineas,
+          inhoud: inhoud,
+          knoppen: [
+            {
+              tekst: "Weggooien",
+              doen: function () {
+                lokaalWeg();
+                fetch(url, { method: "POST", body: body(null, true), credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } }).catch(function () {});
+                basisTekst = tekst(lees());
+                laatsteServer = null;
+                heeftGewerkt = false;
+              },
+            },
+            {
+              tekst: "Verder gaan",
+              primair: true,
+              doen: function () {
+                zet(kandidaat.velden, kandidaat.basis_stempel);
+                // Het vertrekpunt blijft het artikel zoals het was: de teruggezette tekst is
+                // onopgeslagen werk en moet dus ook bewaard blijven.
+                basisTekst = voorAanpassing;
+                heeftGewerkt = true;
+                laatsteLokaal = null;
+                controle();
+                meld("Kladversie teruggezet. Vergeet niet op te slaan.");
+              },
+            },
+          ],
+        });
+      });
+    }
+
+    function wachtOpVrijScherm(daarna) {
+      // Het zachte slot kan net een eigen vraag tonen ("iemand anders bewerkt dit artikel").
+      var pogingen = 0;
+      (function kijk() {
+        if (!document.querySelector(".kb-venster-laag") || pogingen++ > 200) daarna();
+        else setTimeout(kijk, 300);
+      })();
+    }
+
+    function anderenTonen(anderen) {
+      if (!anderen || !anderen.length) return;
+      var balk = document.createElement("div");
+      balk.className = "kb-melding kb-melding-klad";
+      balk.setAttribute("role", "status");
+      anderen.forEach(function (a, i) {
+        if (i) balk.appendChild(document.createElement("br"));
+        balk.appendChild(document.createTextNode(a.naam + " heeft een kladversie van dit artikel (laatst " + a.tijd + "). "));
+        var link = document.createElement("a");
+        link.href = a.url;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = "Bekijken";
+        balk.appendChild(link);
+      });
+      var doel = document.querySelector("#content h1") || document.querySelector("#content");
+      if (doel && doel.parentNode) doel.parentNode.insertBefore(balk, doel.nextSibling);
+    }
+
+    function verwerk(g) {
+      sleutel = g.sleutel;
+      bewaardagen = g.bewaardagen || 30;
+      verschil = Date.parse(g.server_nu) - Date.now() || 0;
+      anderenTonen(g.anderen);
+      var plaatselijk = lokaal();
+      if (plaatselijk && nu() - plaatselijk.bewaard_op > bewaardagen * 864e5) { lokaalWeg(); plaatselijk = null; }
+      var afgesloten = g.afgesloten_op ? Date.parse(g.afgesloten_op) : null;
+      var server = g.mijn ? { velden: g.mijn.velden, basis_stempel: g.mijn.basis_stempel, bewaard_op: Date.parse(g.mijn.bijgewerkt_op), tijd: g.mijn.tijd } : null;
+      if (plaatselijk) {
+        // Wist de server de kladversie (opgeslagen, weggegooid of opgeruimd), dan ook de kopie die hij al kende.
+        if (plaatselijk.op_server && !server) { lokaalWeg(); plaatselijk = null; }
+        // Werk dat nooit de server bereikte, maar daarna toch is opgeslagen of weggegooid.
+        else if (!plaatselijk.op_server && afgesloten && plaatselijk.bewaard_op <= afgesloten) { lokaalWeg(); plaatselijk = null; }
+      }
+      if (plaatselijk) {
+        var d = new Date(plaatselijk.bewaard_op - verschil);
+        plaatselijk.tijd = (d.toDateString() === new Date().toDateString() ? "" : d.getDate() + "-" + (d.getMonth() + 1) + " ") +
+          ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+      }
+      var kandidaat = server;
+      if (plaatselijk && (!server || plaatselijk.bewaard_op > server.bewaard_op)) kandidaat = plaatselijk;
+      klaar = true;
+      basisTekst = tekst(lees());
+      if (server) laatsteServer = tekst(server.velden);
+      if (!kandidaat) return;
+      // Staat de kladversie er al (bijvoorbeeld na een mislukte opslag), dan valt er niets te vragen.
+      var huidig = lees(), anders = Object.keys(kandidaat.velden).some(function (n) { return tekst(huidig[n]) !== tekst(kandidaat.velden[n]); });
+      if (!anders) { heeftGewerkt = true; return; }
+      vraag(kandidaat, g.huidig_stempel);
+    }
+
+    var wachttijden = [0, 5000, 15000, 30000];
+    function ophalen(poging) {
+      fetch(url, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(verwerk)
+        .catch(function () { setTimeout(function () { ophalen(poging + 1); }, wachttijden[Math.min(poging + 1, wachttijden.length - 1)] || 60000); });
+    }
+    // Even wachten tot de editor de tekst heeft opgemaakt, anders telt dat als een verschil.
+    setTimeout(function () { ophalen(0); }, 600);
+    setInterval(controle, KLAD_LOKAAL_MS);
+    setInterval(function () { naarServer(false); }, KLAD_SERVER_MS);
+    window.addEventListener("online", function () { geenVerbindingGemeld = false; meld("Verbinding terug."); naarServer(true); });
+    window.addEventListener("offline", geenVerbinding);
+    window.addEventListener("pagehide", bakenBijVertrek);
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") bakenBijVertrek(); });
+    // Bij opslaan: de laatste stand nog even in de browser, voor het geval het verzenden mislukt.
+    form.addEventListener("submit", kladNu);
   }
 
   /* De toelichting bij publiceren staat buiten het volledige scherm. Zonder deze controle zou
@@ -607,6 +942,7 @@
     initAll();
     zachtSlot();
     tagSuggesties();
+    kladversie();
     // Beginwaarden onthouden, zodat we weten of er iets inhoudelijks is veranderd.
     window.kbBeginwaarden = {};
     ["titel", "samenvatting", "inhoud", "soort", "eigenaar", "omgeving", "tags_tekst"].forEach(function (naam) {

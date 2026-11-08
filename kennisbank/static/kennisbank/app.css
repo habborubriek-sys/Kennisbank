@@ -443,3 +443,7 @@ body.embed .embed-terug[hidden]{display:none}
 .noscript p{margin:0 0 8px;max-width:70ch}
 .noscript p:last-child{margin-bottom:0}
 noscript+.loading{display:none}
+/* Seintje na inloggen: kladversies die nog niet zijn opgeslagen. */
+.kladlijst{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.kladlijst li{background:var(--surface-2);border-radius:8px;padding:8px 12px;line-height:1.45}
+.kladlijst .hint{color:var(--fg-muted);font-size:.85rem}

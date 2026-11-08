@@ -31,6 +31,7 @@ from .models import (
     Bericht,
     Cluster,
     GroepLabel,
+    Kladversie,
     Omgeving,
     Sjabloon,
     Soort,
@@ -472,6 +473,17 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 self.admin_site.admin_view(self.bewerkclaim),
                 name="kennisbank_artikel_bewerkclaim",
             ),
+            path("kladversie/", self.admin_site.admin_view(self.kladversie), name="kennisbank_artikel_klad_nieuw"),
+            path(
+                "<int:pk>/kladversie/",
+                self.admin_site.admin_view(self.kladversie),
+                name="kennisbank_artikel_klad",
+            ),
+            path(
+                "kladversie/<int:klad>/bekijken/",
+                self.admin_site.admin_view(self.kladversie_bekijken),
+                name="kennisbank_artikel_klad_bekijken",
+            ),
         ]
         return eigen + super().get_urls()
 
@@ -482,6 +494,9 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         """
         eigen = self.get_queryset(request)
         extra = extra_context or {}
+        extra["mijn_kladversies"] = Kladversie.objects.filter(
+            gebruiker=request.user, afgesloten_op__isnull=True
+        ).count()
         if not request.GET.get("herziening"):
             vandaag = timezone.localdate()
             extra["te_herzien"] = diensten.te_herzien(eigen).count()
@@ -523,6 +538,121 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 # opgeslagen. Haal het weg als die functie er niet komt.
                 "stempel": stempel_van(artikel),
             }
+        )
+
+    def kladversie(self, request, pk=None):
+        """Kladversie van dit artikel (of van een nieuw artikel als pk leeg is) ophalen, opslaan of weggooien.
+
+        GET  -> mijn kladversie, of wanneer hij is afgesloten, plus de kladversies van collega's.
+        POST -> velden (JSON) en basis_stempel opslaan; met weggooien=1 afsluiten zonder op te slaan.
+        """
+        from django.core.exceptions import PermissionDenied
+
+        from .rechten import rechten
+
+        if pk is None:
+            if not self.has_add_permission(request):
+                raise PermissionDenied
+            artikel = None
+        else:
+            # Via get_queryset, net als bij de bewerkclaim: zo geldt de beperking per omgeving.
+            artikel = self.get_queryset(request).filter(pk=pk).first()
+            if artikel is None or not self.has_change_permission(request, artikel):
+                raise PermissionDenied
+        r = rechten(request)
+        if request.method == "POST":
+            if request.POST.get("weggooien"):
+                diensten.klad_afsluiten(request.user, artikel)
+                return JsonResponse({"ok": True})
+            try:
+                velden = json.loads(request.POST.get("velden") or "{}")
+            except ValueError:
+                return JsonResponse({"fout": "De kladversie kon niet worden gelezen."}, status=400)
+            rij = diensten.klad_opslaan(
+                request.user,
+                artikel,
+                velden,
+                request.POST.get("basis_stempel", ""),
+                redactie_omgevingen=r.redactie_omgevingen,
+            )
+            return JsonResponse(
+                {"ok": True, "bijgewerkt_op": rij.bijgewerkt_op.isoformat(), "tijd": self._klad_tijd(rij.bijgewerkt_op)}
+            )
+        if request.method != "GET":
+            raise PermissionDenied
+        rij = diensten.klad_van(request.user, artikel)
+        anderen = []
+        if artikel is not None:
+            anderen = [
+                {
+                    "naam": k.naam,
+                    "tijd": self._klad_tijd(k.bijgewerkt_op),
+                    "url": reverse("admin:kennisbank_artikel_klad_bekijken", args=[k.pk]),
+                }
+                for k in diensten.zichtbare_kladversies(request.user, r).filter(artikel=artikel).exclude(
+                    gebruiker=request.user
+                )
+            ]
+        return JsonResponse(
+            {
+                "server_nu": timezone.now().isoformat(),
+                "sleutel": f"kb.klad.{request.user.pk}.{artikel.pk if artikel else 'nieuw'}",
+                "bewaardagen": settings.KB_KLADVERSIE_DAGEN,
+                "mijn": (
+                    {
+                        "velden": rij.velden,
+                        "basis_stempel": rij.basis_stempel,
+                        "bijgewerkt_op": rij.bijgewerkt_op.isoformat(),
+                        "tijd": self._klad_tijd(rij.bijgewerkt_op),
+                    }
+                    if rij and rij.open
+                    else None
+                ),
+                "afgesloten_op": rij.afgesloten_op.isoformat() if rij and not rij.open else None,
+                "huidig_stempel": stempel_van(artikel) if artikel else "",
+                "anderen": anderen,
+            }
+        )
+
+    @staticmethod
+    def _klad_tijd(moment) -> str:
+        """'14:32' voor vandaag, anders '8 nov 14:32'."""
+        lokaal = timezone.localtime(moment)
+        if lokaal.date() == timezone.localdate():
+            return date_format(lokaal, "H:i")
+        return date_format(lokaal, "j M H:i")
+
+    def kladversie_bekijken(self, request, klad):
+        """De kladversie van een collega lezen (of je eigen), zonder hem over te nemen."""
+        from django.http import Http404
+
+        from .inhoud import schoon
+        from .models import Kladversie
+        from .rechten import rechten
+
+        rij = Kladversie.objects.filter(pk=klad, afgesloten_op__isnull=True).select_related("gebruiker").first()
+        # 404 in plaats van 403: verraad niet dat er in een andere omgeving een kladversie bestaat.
+        if rij is None or not diensten.mag_klad_zien(request.user, rechten(request), rij):
+            raise Http404("Deze kladversie bestaat niet (meer).")
+        velden = rij.velden or {}
+        return render(
+            request,
+            "kennisbank/voorbeeld.html",
+            {
+                "app_naam": settings.KB_APP_NAAM,
+                "vaste_inhoud": {
+                    "titel": velden.get("titel", ""),
+                    "samenvatting": velden.get("samenvatting", ""),
+                    "soort": velden.get("soort", ""),
+                    # De inhoud komt rauw uit de browser van de schrijver: eerst door dezelfde
+                    # schoonmaak als een gepubliceerd artikel, voordat een collega hem te zien krijgt.
+                    "inhoud": schoon(velden.get("inhoud", "")),
+                },
+                "vaste_regel": (
+                    f"kladversie van {rij.naam} · laatst bijgewerkt {self._klad_tijd(rij.bijgewerkt_op)} · "
+                    "niet opgeslagen en niet zichtbaar voor medewerkers"
+                ),
+            },
         )
 
     def voorbeeld(self, request):
@@ -673,6 +803,9 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
         diensten.claim_opheffen(form.instance, request.user)  # opgeslagen = niet meer aan het bewerken
+        # Opgeslagen = de kladversie is afgehandeld. Bij een nieuw artikel was dat de kladversie
+        # "nieuw"; die hoort nu niet meer op het toevoegscherm terug te komen.
+        diensten.klad_afsluiten(request.user, form.instance if change else None)
         form.instance.tags.set(
             [Tag.objects.get_or_create(naam=n)[0] for n in tags_uit_tekst(form.cleaned_data.get("tags_tekst", ""))]
         )
@@ -1394,3 +1527,78 @@ class ZaaktypeAdmin(OpruimbareKeuzelijstAdmin):
     gebruiksrelatie = "artikel"
     list_display = ["naam", "code", "aantal_artikelen"]
     search_fields = ["naam", "code"]
+
+
+@admin.register(Kladversie)
+class KladversieAdmin(admin.ModelAdmin):
+    """Openstaande kladversies: je eigen, en die van collega's in jouw omgeving(en).
+
+    Alleen lezen. Verdergaan doe je in het bewerkscherm (daar staat de vraag of je verder wilt), en
+    een kladversie van een collega open je via Bekijken zonder hem over te nemen. Een kladversie van
+    een nieuw artikel heeft nog geen bewerkscherm; deze lijst is de enige plek waar een collega hem ziet.
+    """
+
+    list_display = ["titel_kolom", "schrijver", "omgeving_kolom", "bijgewerkt", "acties"]
+    list_display_links = None
+    ordering = ["-bijgewerkt_op"]
+
+    def _r(self, request):
+        return Rechten(request.user)
+
+    def get_queryset(self, request):
+        from django.db.models import BooleanField, Case, Value, When
+
+        # Per rij: is dit de kladversie van wie er kijkt? Niet op de ModelAdmin onthouden: die wordt
+        # gedeeld tussen verzoeken, en dan kan de ene redacteur de knoppen van de ander zien.
+        return diensten.zichtbare_kladversies(request.user, self._r(request)).annotate(
+            is_mijn=Case(
+                When(gebruiker=request.user, then=Value(True)), default=Value(False), output_field=BooleanField()
+            )
+        )
+
+    def has_module_permission(self, request):
+        return request.user.is_active and (request.user.is_superuser or self._r(request).is_redacteur)
+
+    def has_view_permission(self, request, obj=None):
+        return self.has_module_permission(request)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Artikel")
+    def titel_kolom(self, obj):
+        if obj.artikel_id:
+            return obj.titel
+        return format_html("{} <span style=\"color:#888\">(nieuw, nog nooit opgeslagen)</span>", obj.titel)
+
+    @admin.display(description="Van")
+    def schrijver(self, obj):
+        return obj.naam
+
+    @admin.display(description="Omgeving")
+    def omgeving_kolom(self, obj):
+        omg = obj.artikel.omgeving if obj.artikel_id else obj.omgeving
+        return omg.naam if omg else "—"
+
+    @admin.display(description="Laatst bijgewerkt", ordering="bijgewerkt_op")
+    def bijgewerkt(self, obj):
+        return ArtikelAdmin._klad_tijd(obj.bijgewerkt_op)
+
+    @admin.display(description="")
+    def acties(self, obj):
+        bekijk = reverse("admin:kennisbank_artikel_klad_bekijken", args=[obj.pk])
+        links = [format_html('<a href="{}" target="_blank">Bekijken</a>', bekijk)]
+        if getattr(obj, "is_mijn", False):
+            verder = (
+                reverse("admin:kennisbank_artikel_change", args=[obj.artikel_id])
+                if obj.artikel_id
+                else reverse("admin:kennisbank_artikel_add")
+            )
+            links.append(format_html('<a href="{}"><b>Verder gaan</b></a>', verder))
+        return format_html(" · ".join(["{}"] * len(links)), *links)

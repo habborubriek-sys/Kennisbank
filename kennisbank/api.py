@@ -271,6 +271,36 @@ class IkWijzigenSerializer(serializers.Serializer):
     mail_bij_favorieten = serializers.BooleanField(required=False)
 
 
+def _mijn_kladversies(gebruiker, r):
+    """Mijn openstaande kladversies, met de link naar het bewerkscherm waar ik verder kan gaan.
+
+    Alleen artikelen waar ik nog redacteur ben: anders zou de link op een foutpagina uitkomen.
+    """
+    from django.db.models import Q
+    from django.urls import reverse
+
+    from .models import Kladversie
+
+    if not gebruiker.is_staff:
+        return []
+    qs = Kladversie.objects.filter(gebruiker=gebruiker, afgesloten_op__isnull=True).select_related("artikel")
+    if not gebruiker.is_superuser:
+        qs = qs.filter(Q(artikel__isnull=True) | Q(artikel__omgeving_id__in=r.redactie_omgevingen))
+    return [
+        {
+            "titel": k.titel,
+            "nieuw": k.artikel_id is None,
+            "bijgewerkt_op": k.bijgewerkt_op,
+            "url": (
+                reverse("admin:kennisbank_artikel_change", args=[k.artikel_id])
+                if k.artikel_id
+                else reverse("admin:kennisbank_artikel_add")
+            ),
+        }
+        for k in qs[:10]
+    ]
+
+
 @extend_schema(
     summary="Huidige gebruiker (GET) en voorkeuren wijzigen (PATCH)",
     request=IkWijzigenSerializer,
@@ -278,6 +308,16 @@ class IkWijzigenSerializer(serializers.Serializer):
         "Ik",
         {
             "naam": serializers.CharField(),
+            "kladversies": inline_serializer(
+                "MijnKladversie",
+                {
+                    "titel": serializers.CharField(),
+                    "nieuw": serializers.BooleanField(help_text="Een nieuw artikel dat nog nooit is opgeslagen"),
+                    "bijgewerkt_op": serializers.DateTimeField(),
+                    "url": serializers.CharField(help_text="Het bewerkscherm in het beheer"),
+                },
+                many=True,
+            ),
             "is_redacteur": serializers.BooleanField(),
             "onboarding": serializers.BooleanField(),
             "begroeten": serializers.BooleanField(),
@@ -327,6 +367,8 @@ def ik(request):
     return Response(
         {
             "naam": request.user.get_full_name() or request.user.get_username(),
+            # Onopgeslagen werk in het bewerkscherm. De app meldt dit één keer per sessie na het inloggen.
+            "kladversies": _mijn_kladversies(request.user, r),
             "is_redacteur": r.is_redacteur,
             "onboarding": p.onboarding,
             # Alleen bij de eerste keer: dan vraagt de app of iemand nieuw is bij RWS en zet de uitleg

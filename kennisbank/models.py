@@ -689,3 +689,74 @@ class BewerkClaim(models.Model):
     @property
     def naam(self) -> str:
         return self.gebruiker.get_full_name() or self.gebruiker.get_username()
+
+
+class Kladversie(models.Model):
+    """Onopgeslagen werk in het bewerkscherm, zodat een verlopen sessie of een dichtgeklapte laptop
+    geen werk kost.
+
+    Eén kladversie per persoon per artikel; voor een nieuw, nog nooit opgeslagen artikel is ``artikel``
+    leeg en heeft iedereen er hooguit één. Een kladversie is nooit zichtbaar voor lezers, telt niet als
+    versie en levert geen wijzigingsmelding op. Redacteuren van dezelfde omgeving zien dát hij er is en
+    kunnen hem lezen (bijvoorbeeld om over te nemen als iemand ziek is).
+
+    Na opslaan of weggooien blijft de rij staan met ``afgesloten_op`` gezet en lege ``velden``: een
+    grafsteen. Zonder die markering zou een oude kopie in de browser van een andere laptop de kladversie
+    later weer tot leven wekken, terwijl het werk allang is opgeslagen. Na KB_KLADVERSIE_DAGEN ruimt de
+    dagelijkse opschoonronde zowel open als afgesloten kladversies op.
+    """
+
+    gebruiker = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="kladversies")
+    artikel = models.ForeignKey(
+        Artikel, null=True, blank=True, on_delete=models.CASCADE, related_name="kladversies",
+        help_text="Leeg bij een nieuw artikel dat nog nooit is opgeslagen.",
+    )
+    #: Voor een nieuw artikel: de gekozen omgeving, zodat collega's van die omgeving hem kunnen zien.
+    #: Alleen gezet als de schrijver daar redacteur is.
+    omgeving = models.ForeignKey(Omgeving, null=True, blank=True, on_delete=models.CASCADE, related_name="+")
+    #: De formuliervelden: titel, samenvatting, inhoud, soort, omgeving, eigenaar, tags_tekst,
+    #: clusters, zaaktypen.
+    velden = models.JSONField(default=dict, blank=True)
+    #: Het stempel (gewijzigd_op) van het artikel toen deze kladversie begon. Terugzetten zet dit
+    #: stempel terug in het formulier, zodat de conflictcontrole aanslaat als iemand anders intussen
+    #: heeft opgeslagen -- in plaats van dat diens werk ongemerkt wordt overschreven.
+    basis_stempel = models.CharField(max_length=64, blank=True)
+    aangemaakt_op = models.DateTimeField(default=timezone.now)
+    bijgewerkt_op = models.DateTimeField(default=timezone.now)
+    afgesloten_op = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "kladversie"
+        verbose_name_plural = "kladversies"
+        ordering = ["-bijgewerkt_op"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["gebruiker", "artikel"],
+                condition=models.Q(artikel__isnull=False),
+                name="een_kladversie_per_artikel",
+            ),
+            models.UniqueConstraint(
+                fields=["gebruiker"],
+                condition=models.Q(artikel__isnull=True),
+                name="een_kladversie_voor_nieuw",
+            ),
+        ]
+        indexes = [models.Index(fields=["bijgewerkt_op"])]
+
+    def __str__(self):
+        return f"Kladversie van {self.naam}: {self.titel}"
+
+    @property
+    def naam(self) -> str:
+        return self.gebruiker.get_full_name() or self.gebruiker.get_username()
+
+    @property
+    def titel(self) -> str:
+        t = (self.velden or {}).get("titel") or ""
+        if t:
+            return t
+        return self.artikel.titel if self.artikel_id else "Nieuw artikel zonder titel"
+
+    @property
+    def open(self) -> bool:
+        return self.afgesloten_op is None

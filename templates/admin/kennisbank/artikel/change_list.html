@@ -5,6 +5,12 @@
 {% endblock %}
 {% block content_title %}
 {{ block.super }}
+{% if mijn_kladversies %}
+<p class="kb-klad-seintje" style="background:#e8f0fb;border-left:4px solid #1f4e8c;padding:10px 14px;margin:10px 0">
+  Je hebt <b>{{ mijn_kladversies }} kladversie{{ mijn_kladversies|pluralize:"s" }}</b> die nog niet {% if mijn_kladversies == 1 %}is{% else %}zijn{% endif %} opgeslagen.
+  <a href="{% url 'admin:kennisbank_kladversie_changelist' %}">Bekijken en verder gaan</a>
+</p>
+{% endif %}
 {% if te_herzien %}
 <p class="warning" style="background:#fdf3d8;border-left:4px solid #c89b1c;padding:10px 14px;margin:10px 0">
   <b>{{ te_herzien }} artikel{{ te_herzien|pluralize:"en" }}</b> moet{% if te_herzien == 1 %}{% else %}en{% endif %} opnieuw worden nagekeken: de datum is verstreken.

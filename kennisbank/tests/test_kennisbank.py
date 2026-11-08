@@ -24,6 +24,7 @@ from kennisbank.models import (
     BewerkClaim,
     Cluster,
     GroepLabel,
+    Kladversie,
     Omgeving,
     RecentBezocht,
     Rol,
@@ -3185,3 +3186,211 @@ class VeegrondeTests(Basis):
         rijen = status_mod._onderhoud()
         self.assertEqual(rijen[0]["stand"], status_mod.GOED)
         self.assertIn("mail(s) verstuurd", rijen[0]["waarde"])
+
+
+class KladversieTests(Basis):
+    """Kladversies: onopgeslagen werk in het bewerkscherm (ronde 6, punt 36)."""
+
+    def setUp(self):
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        self.a = Artikel.objects.get(slug="rappel-versturen")
+        self.url = f"/beheer/kennisbank/artikel/{self.a.pk}/kladversie/"
+        # Een tweede redacteur in dezelfde omgeving, en een redacteur van een andere omgeving.
+        self.collega = User.objects.create_user("collega", password="x", first_name="Cor", last_name="Collega")
+        self.collega.groups.add(Group.objects.get(name="redactie"))
+        werk_staf_status_bij(self.collega)
+        redactie_anders = Group.objects.create(name="redactie-anders")
+        Toegang.objects.create(omgeving=self.anders, groep=redactie_anders, rol=Rol.REDACTEUR)
+        self.vreemde = User.objects.create_user("vreemde_redacteur", password="x")
+        self.vreemde.groups.add(redactie_anders)
+        werk_staf_status_bij(self.vreemde)
+
+    def _bewaar(self, gebruiker, velden, url=None, **extra):
+        return self.als(gebruiker).post(url or self.url, {"velden": json.dumps(velden), **extra})
+
+    def _formulier(self, a):
+        return ReviewBevindingenTests._formulier(self, a)
+
+    # --- opslaan en ophalen ------------------------------------------------------------
+
+    def test_opslaan_en_terug_ophalen(self):
+        r = self._bewaar(self.redacteur, {"titel": "Nieuwe titel", "inhoud": "<p>Half af</p>"}, basis_stempel="S1")
+        self.assertEqual(r.status_code, 200, r.content)
+        mijn = self.als(self.redacteur).get(self.url).json()["mijn"]
+        self.assertEqual(mijn["velden"]["titel"], "Nieuwe titel")
+        self.assertEqual(mijn["basis_stempel"], "S1")
+
+    def test_twee_keer_opslaan_geeft_een_rij(self):
+        self._bewaar(self.redacteur, {"titel": "Een"})
+        self._bewaar(self.redacteur, {"titel": "Twee"})
+        self.assertEqual(Kladversie.objects.filter(gebruiker=self.redacteur, artikel=self.a).count(), 1)
+        self.assertEqual(Kladversie.objects.get(gebruiker=self.redacteur, artikel=self.a).velden["titel"], "Twee")
+
+    def test_onbekende_velden_en_publicatiekeuzes_vallen_weg(self):
+        """Status en toelichting horen bij het moment van opslaan, niet bij het schrijfwerk."""
+        self._bewaar(self.redacteur, {"titel": "T", "status": "gepubliceerd", "geheim": {"x": 1}})
+        velden = Kladversie.objects.get(gebruiker=self.redacteur, artikel=self.a).velden
+        self.assertEqual(velden, {"titel": "T"})
+
+    def test_kapotte_json_geeft_een_nette_fout(self):
+        r = self.als(self.redacteur).post(self.url, {"velden": "{niet-json"})
+        self.assertEqual(r.status_code, 400)
+
+    def test_een_kladversie_raakt_het_artikel_niet(self):
+        """Geen versie, geen wijzigingsmelding, niets voor lezers."""
+        versie, inhoud = self.a.versie, self.a.inhoud
+        self._bewaar(self.redacteur, {"inhoud": "<p>Volledig herschreven</p>"})
+        self.a.refresh_from_db()
+        self.assertEqual((self.a.versie, self.a.inhoud), (versie, inhoud))
+        lezer_ziet = self.als(self.lezer).get(f"/api/v1/artikelen/{self.a.pk}").content.decode()
+        self.assertNotIn("Volledig herschreven", lezer_ziet)
+
+    # --- collega's ---------------------------------------------------------------------
+
+    def test_een_collega_ziet_dat_er_een_kladversie_is_en_kan_hem_lezen(self):
+        self._bewaar(self.redacteur, {"titel": "Concepttitel", "inhoud": "<p>Mijn halve werk</p>"})
+        g = self.als(self.collega).get(self.url).json()
+        self.assertIsNone(g["mijn"])
+        self.assertEqual(len(g["anderen"]), 1)
+        r = self.als(self.collega).get(g["anderen"][0]["url"])
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("Mijn halve werk", r.content.decode())
+
+    def test_een_redacteur_van_een_andere_omgeving_ziet_niets(self):
+        self._bewaar(self.redacteur, {"titel": "Intern"})
+        klad = Kladversie.objects.get(gebruiker=self.redacteur, artikel=self.a)
+        self.assertEqual(self.als(self.vreemde).get(self.url).status_code, 403)
+        r = self.als(self.vreemde).get(f"/beheer/kennisbank/artikel/kladversie/{klad.pk}/bekijken/")
+        self.assertEqual(r.status_code, 404, "een redacteur van een andere omgeving kon de kladversie lezen")
+
+    def test_een_lezer_komt_er_niet_bij(self):
+        self._bewaar(self.redacteur, {"titel": "Intern"})
+        klad = Kladversie.objects.get(gebruiker=self.redacteur, artikel=self.a)
+        self.assertNotEqual(self.als(self.lezer).get(self.url).status_code, 200)
+        self.assertNotEqual(
+            self.als(self.lezer).get(f"/beheer/kennisbank/artikel/kladversie/{klad.pk}/bekijken/").status_code, 200
+        )
+        self.assertNotEqual(self._bewaar(self.lezer, {"titel": "x"}).status_code, 200)
+        self.assertFalse(Kladversie.objects.filter(gebruiker=self.lezer).exists())
+
+    def test_bekijken_schoont_de_inhoud(self):
+        """De inhoud komt rauw uit de browser van de schrijver; een collega mag er geen script van krijgen."""
+        kwaad = '<p>tekst<img src=x onerror="alert(1)"></p><script>alert(2)</script>'
+        self._bewaar(self.redacteur, {"titel": "T", "inhoud": kwaad})
+        klad = Kladversie.objects.get(gebruiker=self.redacteur, artikel=self.a)
+        html = self.als(self.collega).get(f"/beheer/kennisbank/artikel/kladversie/{klad.pk}/bekijken/").content.decode()
+        self.assertNotIn("onerror", html)
+        self.assertNotIn("alert(2)", html)
+        self.assertIn("tekst", html)
+
+    def test_de_lijst_in_het_beheer_toont_eigen_en_collegas_maar_geen_vreemden(self):
+        self._bewaar(self.redacteur, {"titel": "Van mij"})
+        self._bewaar(self.collega, {"titel": "Van Cor"})
+        lijst = self.als(self.redacteur).get("/beheer/kennisbank/kladversie/").content.decode()
+        self.assertIn("Van mij", lijst)
+        self.assertIn("Van Cor", lijst)
+        self.assertEqual(lijst.count("Verder gaan"), 1, "Verder gaan hoort alleen bij je eigen kladversie")
+        self.assertNotEqual(self.als(self.vreemde).get("/beheer/kennisbank/kladversie/").status_code, 500)
+        self.assertNotIn("Van mij", self.als(self.vreemde).get("/beheer/kennisbank/kladversie/").content.decode())
+
+    # --- nieuw artikel -----------------------------------------------------------------
+
+    def test_nieuw_artikel_krijgt_een_kladversie_met_omgeving(self):
+        url = "/beheer/kennisbank/artikel/kladversie/"
+        self._bewaar(self.redacteur, {"titel": "Nog nooit opgeslagen", "omgeving": str(self.hh.pk)}, url=url)
+        klad = Kladversie.objects.get(gebruiker=self.redacteur, artikel__isnull=True)
+        self.assertEqual(klad.omgeving_id, self.hh.pk)
+        # Een collega van die omgeving ziet hem in de lijst; een vreemde niet.
+        lijst = self.als(self.collega).get("/beheer/kennisbank/kladversie/").content.decode()
+        self.assertIn("Nog nooit opgeslagen", lijst)
+        self.assertNotIn(
+            "Nog nooit opgeslagen", self.als(self.vreemde).get("/beheer/kennisbank/kladversie/").content.decode()
+        )
+
+    def test_nieuw_artikel_in_een_omgeving_waar_je_geen_redacteur_bent_blijft_prive(self):
+        url = "/beheer/kennisbank/artikel/kladversie/"
+        self._bewaar(self.redacteur, {"titel": "Geprobeerd", "omgeving": str(self.anders.pk)}, url=url)
+        self.assertIsNone(Kladversie.objects.get(gebruiker=self.redacteur, artikel__isnull=True).omgeving_id)
+        self.assertNotIn("Geprobeerd", self.als(self.vreemde).get("/beheer/kennisbank/kladversie/").content.decode())
+
+    def test_na_toevoegen_is_de_nieuw_kladversie_afgesloten(self):
+        self._bewaar(self.redacteur, {"titel": "Wordt opgeslagen"}, url="/beheer/kennisbank/artikel/kladversie/")
+        data = {
+            "titel": "Wordt opgeslagen",
+            "samenvatting": "Een samenvatting die lang genoeg is om door de controle te komen.",
+            "inhoud": "<p>Tekst</p>",
+            "soort": "werkinstructie",
+            "omgeving": self.hh.pk,
+            "eigenaar": "Procesmanagement",
+            "status": "concept",
+            "tags_tekst": "",
+            "versies-TOTAL_FORMS": "0",
+            "versies-INITIAL_FORMS": "0",
+        }
+        r = self.als(self.redacteur).post("/beheer/kennisbank/artikel/add/", data)
+        self.assertEqual(r.status_code, 302, r.content[:500])
+        g = self.als(self.redacteur).get("/beheer/kennisbank/artikel/kladversie/").json()
+        self.assertIsNone(g["mijn"])
+        self.assertIsNotNone(g["afgesloten_op"])
+
+    # --- afsluiten ---------------------------------------------------------------------
+
+    def test_weggooien_sluit_af(self):
+        self._bewaar(self.redacteur, {"titel": "Weg ermee"})
+        self.als(self.redacteur).post(self.url, {"weggooien": "1"})
+        g = self.als(self.redacteur).get(self.url).json()
+        self.assertIsNone(g["mijn"])
+        self.assertIsNotNone(g["afgesloten_op"])
+        self.assertEqual(self.als(self.collega).get(self.url).json()["anderen"], [])
+
+    def test_opslaan_van_het_artikel_sluit_de_kladversie_af(self):
+        self._bewaar(self.redacteur, {"titel": "Klad"})
+        r = self.als(self.redacteur).post(f"/beheer/kennisbank/artikel/{self.a.pk}/change/", self._formulier(self.a))
+        self.assertEqual(r.status_code, 302, r.content[:500])
+        g = self.als(self.redacteur).get(self.url).json()
+        self.assertIsNone(g["mijn"])
+        self.assertIsNotNone(g["afgesloten_op"])
+
+    def test_opslaan_zonder_serverklad_laat_toch_een_afgesloten_markering_achter(self):
+        """De browser kan al een kopie hebben die nooit de server bereikte. Die moet na het opslaan
+        weten dat het werk is afgehandeld, anders vraagt het scherm de volgende keer 'verder gaan?'
+        over werk dat allang is opgeslagen."""
+        self.assertFalse(Kladversie.objects.filter(gebruiker=self.redacteur, artikel=self.a).exists())
+        self.als(self.redacteur).post(f"/beheer/kennisbank/artikel/{self.a.pk}/change/", self._formulier(self.a))
+        self.assertIsNotNone(self.als(self.redacteur).get(self.url).json()["afgesloten_op"])
+
+    def test_na_afsluiten_kan_een_nieuwe_kladversie_beginnen(self):
+        self._bewaar(self.redacteur, {"titel": "Eerste"})
+        self.als(self.redacteur).post(self.url, {"weggooien": "1"})
+        self._bewaar(self.redacteur, {"titel": "Tweede"})
+        g = self.als(self.redacteur).get(self.url).json()
+        self.assertEqual(g["mijn"]["velden"]["titel"], "Tweede")
+        self.assertIsNone(g["afgesloten_op"])
+
+    # --- opruimen en seintje -----------------------------------------------------------
+
+    def test_opschonen_ruimt_oude_kladversies_op(self):
+        self._bewaar(self.redacteur, {"titel": "Oud"})
+        self._bewaar(self.collega, {"titel": "Vers"})
+        Kladversie.objects.filter(gebruiker=self.redacteur).update(
+            bijgewerkt_op=timezone.now() - datetime.timedelta(days=settings.KB_KLADVERSIE_DAGEN + 1)
+        )
+        call_command("kennisbank_opschonen", stdout=io.StringIO())
+        self.assertFalse(Kladversie.objects.filter(gebruiker=self.redacteur).exists())
+        self.assertTrue(Kladversie.objects.filter(gebruiker=self.collega).exists())
+
+    def test_ik_meldt_mijn_kladversies(self):
+        self._bewaar(self.redacteur, {"titel": "Halverwege"})
+        ik = self.als(self.redacteur).get("/api/v1/ik").json()
+        self.assertEqual([k["titel"] for k in ik["kladversies"]], ["Halverwege"])
+        self.assertEqual(ik["kladversies"][0]["url"], f"/beheer/kennisbank/artikel/{self.a.pk}/change/")
+        self.assertEqual(self.als(self.collega).get("/api/v1/ik").json()["kladversies"], [])
+        self.assertEqual(self.als(self.lezer).get("/api/v1/ik").json()["kladversies"], [])
+
+    def test_de_artikelenlijst_noemt_mijn_kladversies(self):
+        self._bewaar(self.redacteur, {"titel": "Halverwege"})
+        html = self.als(self.redacteur).get("/beheer/kennisbank/artikel/").content.decode()
+        self.assertIn("kladversie", html)
+        self.assertNotIn("kb-klad-seintje", self.als(self.collega).get("/beheer/kennisbank/artikel/").content.decode())

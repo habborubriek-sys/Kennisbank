@@ -73,3 +73,11 @@ body.kb-split-open{overflow:hidden}
 .kb-tagsuggestie{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;padding:6px 11px;font:inherit;cursor:pointer;color:#17212b}
 .kb-tagsuggestie:hover,.kb-tagsuggestie.actief{background:#eef2f7}
 .kb-tagsuggestie em{font-style:normal;font-size:.82rem;color:#6b7280;white-space:nowrap}
+
+/* Kladversie: korte melding rechtsonder, ook boven het volledige scherm en een vraagvenster. */
+#kb-klad-melding{position:fixed;right:18px;bottom:18px;z-index:1300;max-width:360px;background:#17212b;color:#fff;padding:10px 14px;border-radius:8px;font-size:.9rem;line-height:1.4;box-shadow:0 6px 18px rgba(0,0,0,.25);opacity:0;transform:translateY(10px);transition:opacity .2s,transform .2s;pointer-events:none}
+#kb-klad-melding.zichtbaar{opacity:1;transform:none}
+#kb-klad-melding.offline{background:#7a4b00}
+.kb-melding-klad{background:#e8f0fb;border-left:4px solid #1f4e8c;color:#17212b}
+.kb-klad-voorproef{background:#f4f5f7;border-radius:6px;padding:8px 10px;font-size:.9rem;color:#333}
+@media (prefers-reduced-motion:reduce){#kb-klad-melding{transition:none}}

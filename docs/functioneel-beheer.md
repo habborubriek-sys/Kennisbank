@@ -103,7 +103,28 @@ De kennisbank zet geen slot op een artikel, maar laat je wel zien wanneer je nie
 - Ook als jullie precies tegelijk op *Opslaan* drukken, wordt er maar één opslag doorgelaten; de ander krijgt de melding hieronder.
 - Slaan jullie toch allebei op, dan **weigert** de kennisbank de tweede opslag met de melding dat het artikel intussen is gewijzigd. Je tekst staat dan nog in het scherm: open het artikel in een nieuw tabblad, kijk wat er nu staat, zet je wijzigingen over en sla opnieuw op. Zo overschrijft niemand stilletjes het werk van een ander.
 
-Staat een bewerkscherm heel lang open en log je ondertussen in een ander tabblad opnieuw in, dan verloopt de beveiligingscode van dat oude scherm. Je krijgt dat bovenin te zien zodra het gebeurt, en bij opslaan een Nederlandse uitlegpagina in plaats van een technische foutmelding. Kopieer in dat geval je tekst, ververs de pagina met Ctrl+F5 en plak hem terug.
+Staat een bewerkscherm heel lang open en log je ondertussen in een ander tabblad opnieuw in, dan verloopt de beveiligingscode van dat oude scherm. Je krijgt dat bovenin te zien zodra het gebeurt, en bij opslaan een Nederlandse uitlegpagina in plaats van een technische foutmelding. Je werk staat dan veilig in de kladversie (zie hieronder): ververs de pagina met Ctrl+F5 en kies **Verder gaan**.
+
+## Kladversies: geen werk kwijt
+
+Terwijl je een artikel bewerkt, bewaart de kennisbank je werk als **kladversie**. Een verlopen sessie, een vastgelopen browser, een dichtgeklapte laptop of een verbroken verbinding kost je zo geen werk.
+
+- **Je browser** houdt elke paar seconden een kopie bij. Dat werkt ook zonder verbinding.
+- **De server** krijgt de kladversie elke twee minuten, meteen als de verbinding terugkomt, en als je het tabblad sluit. Rechtsonder verschijnt dan kort *"Kladversie opgeslagen om 14:32"*. Valt de verbinding weg, dan zegt de melding dat je werk in de browser wordt bewaard.
+- **Kom je terug**, dan vraagt het scherm *"Verder gaan waar je gebleven was?"*, met de titel en het begin van de tekst. Kies **Verder gaan** om alles terug te zetten, of **Weggooien** om opnieuw te beginnen. Dat werkt ook voor een nieuw artikel dat je nog nooit hebt opgeslagen.
+- **Na het inloggen** zie je in de kennisbank één keer per sessie een lijstje met kladversies die nog openstaan. In het beheer staat bovenaan de artikelenlijst hoeveel het er zijn, en onder **Kladversies** staan ze allemaal.
+- **Alleen openen is geen kladversie.** Pas als je iets typt, plakt of opmaakt, begint de kennisbank te bewaren.
+
+Een kladversie is nooit zichtbaar voor medewerkers, telt niet als versie en levert geen wijzigingsmelding op. Na **opslaan** of **weggooien** is hij weg. Een kladversie waar niemand meer naar omkijkt, ruimt de kennisbank na 30 dagen op.
+
+**Collega's zien je kladversie.** Opent een collega het artikel, dan staat bovenaan *"Anna heeft een kladversie van dit artikel (laatst 14:32)"*, met een link om hem te lezen. Zo kan iemand je werk overnemen als je ziek bent. Een collega ziet wat er op de server staat; dat loopt hooguit twee minuten achter op wat jij in je eigen browser hebt. Redacteuren van een andere omgeving zien niets.
+
+**Heeft iemand anders intussen opgeslagen?** Ga je verder met een oude kladversie terwijl een collega het artikel in de tussentijd heeft opgeslagen, dan waarschuwt de vraag je daar al voor. Sla je daarna op, dan krijg je de bekende melding dat het artikel intussen is gewijzigd, in plaats van dat je zijn werk ongemerkt overschrijft. Je kladversie blijft dan gewoon bewaard.
+
+Twee dingen om te weten:
+
+- De kopie in de browser staat op **die ene computer**. Werk je op een gedeelde werkplek, sla dan op of gooi de kladversie weg voordat je wegloopt.
+- **Clusters en zaaktypen** worden meegenomen in de kladversie. **Publicatiekeuzes** (status, toelichting, kleine correctie) bewust niet: die horen bij het moment van opslaan.
 
 Een paar dingen die de kennisbank bewust tegenhoudt bij het opslaan:
 

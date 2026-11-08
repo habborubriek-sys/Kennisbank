@@ -279,6 +279,9 @@ KB_ANONIMISEER_VOORSTEL_DAGEN = env_int("KB_ANONIMISEER_VOORSTEL_DAGEN", 365)
 # datum "opnieuw nakijken voor" zo gevuld als de redacteur hem leeg laat. 0 = niet automatisch vullen;
 # de redacteur kan de datum dan nog altijd zelf zetten.
 KB_HERZIENINGSTERMIJN_MAANDEN = env_int("KB_HERZIENINGSTERMIJN_MAANDEN", 12)
+# Hoe lang een kladversie (onopgeslagen werk in het bewerkscherm) bewaard blijft als hij niet wordt
+# opgeslagen of weggegooid. Geldt ook voor de kopie in de browser. Minimaal 1.
+KB_KLADVERSIE_DAGEN = max(1, env_int("KB_KLADVERSIE_DAGEN", 30))
 KB_RECENT_MAX = env_int("KB_RECENT_MAX", 10)
 
 # --- E-mail (optioneel) -------------------------------------------------------------
