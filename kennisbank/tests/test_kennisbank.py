@@ -3394,3 +3394,151 @@ class KladversieTests(Basis):
         html = self.als(self.redacteur).get("/beheer/kennisbank/artikel/").content.decode()
         self.assertIn("kladversie", html)
         self.assertNotIn("kb-klad-seintje", self.als(self.collega).get("/beheer/kennisbank/artikel/").content.decode())
+
+
+class BeheerlijstenQueriesTests(Basis):
+    """S2/S3 uit de stresstest: een beheerlijst mag niet per rij de database raadplegen.
+
+    Gemeten op 9 november: verbetervoorstellen 106 vragen voor één pagina (de indiener per rij),
+    de artikelenlijst 44 voor een redacteur (zijn rechten per rij opnieuw opgezocht), nieuwsberichten
+    een vraag per schrijver. Deze test vult elke lijst met weinig en met veel rijen en eist hetzelfde
+    aantal vragen, zodat een nieuwe kolom die per rij iets ophaalt meteen opvalt.
+    """
+
+    def setUp(self):
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        self.beheerder = User.objects.create_superuser("lijstbeheerder", password="x")
+
+    def _aantal(self, gebruiker, url):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        c = self.als(gebruiker)
+        c.get(url)  # sessie en caches opwarmen
+        with CaptureQueriesContext(connection) as q:
+            r = c.get(url)
+        self.assertEqual(r.status_code, 200, url)
+        return len(q)
+
+    def _voorstellen(self, aantal):
+        a = Artikel.objects.get(slug="rappel-versturen")
+        indieners = [User.objects.create_user(f"indiener{Verbetervoorstel.objects.count()}_{i}") for i in range(aantal)]
+        for u in indieners:
+            Verbetervoorstel.objects.create(artikel=a, artikel_versie=a.versie, tekst="Voorstel", ingediend_door=u)
+
+    def _artikelen(self, aantal):
+        for i in range(aantal):
+            Artikel.objects.create(
+                omgeving=self.hh, titel=f"Lijsttest {Artikel.objects.count()} {i}", samenvatting="x", inhoud="<p>x</p>"
+            )
+
+    def _berichten(self, aantal):
+        from kennisbank.models import Bericht
+
+        for i in range(aantal):
+            schrijver = User.objects.create_user(f"schrijver{Bericht.objects.count()}_{i}")
+            Bericht.objects.create(omgeving=self.hh, titel=f"Bericht {i}", tekst="<p>x</p>", auteur=schrijver)
+
+    def _vergelijk(self, gebruiker, url, vul):
+        vul(2)
+        weinig = self._aantal(gebruiker, url)
+        vul(15)
+        veel = self._aantal(gebruiker, url)
+        self.assertEqual(weinig, veel, f"{url}: {weinig} vragen bij weinig rijen, {veel} bij veel")
+
+    def test_verbetervoorstellen_als_beheerder(self):
+        self._vergelijk(self.beheerder, "/beheer/kennisbank/verbetervoorstel/", self._voorstellen)
+
+    def test_verbetervoorstellen_als_redacteur(self):
+        self._vergelijk(self.redacteur, "/beheer/kennisbank/verbetervoorstel/", self._voorstellen)
+
+    def test_artikelenlijst_als_redacteur(self):
+        self._vergelijk(self.redacteur, "/beheer/kennisbank/artikel/", self._artikelen)
+
+    def test_rechten_worden_een_keer_per_verzoek_opgezocht(self):
+        """S3: niet per rij, maar bij elke controle op het scherm (filters, acties, knoppen) werden de
+        rechten van een redacteur opnieuw opgezocht: 31 keer voor één artikelenlijst. Dit groeit dus
+        niet met het aantal rijen, en de vergelijking hierboven ziet het niet."""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        c = self.als(self.redacteur)
+        for url in ["/beheer/kennisbank/artikel/", "/beheer/kennisbank/verbetervoorstel/", "/beheer/"]:
+            c.get(url)
+            with CaptureQueriesContext(connection) as q:
+                self.assertEqual(c.get(url).status_code, 200)
+            opzoeken = [x for x in q.captured_queries if '"kennisbank_toegang"' in x["sql"]]
+            self.assertLessEqual(len(opzoeken), 1, f"{url}: rechten {len(opzoeken)} keer opgezocht")
+
+    def test_nieuwsberichten(self):
+        self._vergelijk(self.beheerder, "/beheer/kennisbank/bericht/", self._berichten)
+
+
+class VerzoekgrensTests(Basis):
+    """S5 uit de stresstest: een te lage KB_MAX_VERZOEK_MB breekt het opslaan van grote artikelen."""
+
+    def _waarschuwingen(self):
+        from django.core.checks import run_checks
+
+        return [m for m in run_checks() if m.id == "kennisbank.W001"]
+
+    def test_de_standaardgrens_is_ruim_genoeg(self):
+        self.assertEqual(self._waarschuwingen(), [])
+
+    @override_settings(DATA_UPLOAD_MAX_MEMORY_SIZE=5 * 1024 * 1024)
+    def test_een_te_lage_grens_geeft_een_waarschuwing_bij_opstarten(self):
+        (melding,) = self._waarschuwingen()
+        self.assertIn("minimaal 8", melding.msg)
+
+    @override_settings(DATA_UPLOAD_MAX_MEMORY_SIZE=5 * 1024 * 1024)
+    def test_en_op_de_statuspagina(self):
+        from kennisbank import status
+
+        rij = next(r for r in status._versie_en_modus() if r["naam"] == "Maximale grootte van een verzoek")
+        self.assertEqual(rij["stand"], status.LET_OP)
+        self.assertIn("minimaal 8", rij["advies"])
+
+    def test_de_factor_dekt_wat_de_stresstest_mat(self):
+        """Een artikel op de inhoudsgrens, opgebouwd zoals Word-inhoud eruitziet (veel tags en
+        attributen), moet als formulier verzonden onder de standaardgrens blijven."""
+        import urllib.parse
+
+        from django.conf import settings
+
+        from kennisbank.models import MAX_INHOUD
+
+        blok = '<table><tbody><tr><th scope="col">Kop</th><td>Een cel met tekst &amp; meer</td></tr></tbody></table>'
+        html = blok * (MAX_INHOUD // len(blok))
+        verzonden = len(urllib.parse.urlencode({"inhoud": html}).encode())
+        self.assertLess(verzonden, settings.DATA_UPLOAD_MAX_MEMORY_SIZE, f"{verzonden / 1024 / 1024:.1f} MB")
+
+    def test_een_artikel_vol_tabellen_op_de_grens_komt_door_het_formulier_en_de_kladversie(self):
+        """Niet uitrekenen maar echt versturen: Django weigert een te groot verzoek nog vóór het
+        formulier, met een kale 400. Hier moet het formulier zelf aan het woord komen."""
+        import json
+
+        from kennisbank.models import MAX_INHOUD
+        from kennisbank.rechten import werk_staf_status_bij
+
+        werk_staf_status_bij(self.redacteur)
+        a = Artikel.objects.get(slug="rappel-versturen")
+        blok = '<table><tbody><tr><th scope="col">Kop</th><td>Een cel met tekst &amp; meer</td></tr></tbody></table>'
+        html = blok * ((MAX_INHOUD - 1000) // len(blok))
+        # Versturen zoals de browser het doet: gecodeerd. De testclient gebruikt standaard multipart,
+        # en daarin groeit de tekst niet; zo slaagde deze test eerst om de verkeerde reden.
+        from urllib.parse import urlencode
+
+        gecodeerd = "application/x-www-form-urlencoded"
+        data = ReviewBevindingenTests._formulier(self, a)
+        data.update({"inhoud": html, "wijzigingstoelichting": "Groot"})
+        c = self.als(self.redacteur)
+        r = c.post(f"/beheer/kennisbank/artikel/{a.pk}/change/", urlencode(data, doseq=True), content_type=gecodeerd)
+        self.assertIn(r.status_code, (200, 302), "het verzoek werd geweigerd voordat het formulier het zag")
+        k = c.post(
+            f"/beheer/kennisbank/artikel/{a.pk}/kladversie/",
+            urlencode({"velden": json.dumps({"inhoud": html})}),
+            content_type=gecodeerd,
+        )
+        self.assertEqual(k.status_code, 200, "de kladversie van een groot artikel werd geweigerd")

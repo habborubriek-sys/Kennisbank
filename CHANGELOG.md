@@ -1,5 +1,17 @@
 # Wijzigingen
 
+## 1.14.1 – 2026-11-10
+
+Drie verbeteringen uit de stresstest van 9 november (S2, S3, S5).
+
+- **Grote artikelen vol tabellen konden niet worden opgeslagen.** De browser codeert de tekst bij het versturen, waardoor die groeit: ×1,35 bij inhoud uit Word, maar ×1,6 bij een artikel dat vooral uit tabellen bestaat. Zo'n artikel op de maximale omvang (4 MB) werd 6,4 MB, boven de grens van 6 MB, en Django weigerde het met een kale foutpagina nog vóórdat de kennisbank de nette melding "dit artikel is te groot" kon geven. Ook de kladversie van zo'n artikel kwam niet aan. **`KB_MAX_VERZOEK_MB` staat nu standaard op 8.** Dat is nog altijd zuiniger dan de 12 van vóór 1.13.0.
+- **Waarschuwing bij een te lage grens.** `manage.py check` en `migrate` melden `kennisbank.W001` als `KB_MAX_VERZOEK_MB` te laag staat voor de grootste toegestane artikelen, met het advies in gewoon Nederlands. De statuspagina toont de grens met dezelfde controle. In de documentatie stond "net boven de 4 MB", en dat was precies de valkuil.
+- **Beheer: verbetervoorstellen** haalde de indiener per rij apart op: 106 databasevragen voor één pagina. Nu 6. Gemeten bij 3000 artikelen en 1200 voorstellen: van 172 naar 54 ms.
+- **Beheer: artikelenlijst voor een redacteur** zocht zijn rechten bij elke controle op het scherm opnieuw op (filters, acties, knoppen): 31 keer per pagina. Er bestond al een geheugen per verzoek (`rechten(request)`), maar op vier plekken in het beheer werd daar omheen gewerkt. Van 44 naar 14 vragen, van 110 naar 69 ms. In het stresstestrapport stond dit als "een vraag per rij"; dat klopte niet, het was een vast pakket per pagina.
+- **Beheer: nieuwsberichten** haalde de schrijver per rij op. Gevonden bij het nalopen van alle beheerlijsten; zelfde soort reparatie.
+
+- **Tests** (nu 283): elke beheerlijst met weinig en met veel rijen moet hetzelfde aantal vragen doen; de rechten van een redacteur mogen per verzoek hooguit één keer worden opgezocht; en een artikel van 4 MB vol tabellen moet door het formulier én de kladversie komen, verstuurd zoals de browser het doet. Alle nieuwe tests zijn ook tegen de oude code gedraaid om te zien dat ze erop vallen. Twee deden dat eerst niet, en daar zat telkens iets achter: de artikelenlijst bleek geen probleem per rij te hebben maar per pagina, en de testclient verstuurde het formulier anders dan de browser.
+
 ## 1.14.0 – 2026-11-09
 
 Ronde 6, deel 1: **kladversies** (punt 36). Een verlopen sessie, een vastgelopen browser, een dichtgeklapte laptop of een verbroken verbinding kost een redacteur geen werk meer.

@@ -45,7 +45,7 @@ from .models import (
     Zaaktype,
     normaliseer_tag,
 )
-from .rechten import Rechten
+from .rechten import rechten
 from .word_import import WordImportFout, lees_docx
 
 
@@ -55,7 +55,9 @@ class RedactieRechtenMixin:
     omgeving_pad = "omgeving"
 
     def _omgevingen(self, request):
-        return Rechten(request.user).redactie_omgevingen
+        # rechten(request) onthoudt de uitkomst voor de rest van het verzoek. Een nieuw Rechten-object
+        # zocht ze bij elke aanroep opnieuw op, en Django vraagt de rechten per rij in de lijst.
+        return rechten(request).redactie_omgevingen
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -1018,7 +1020,7 @@ class VoorstelBerichtInline(admin.TabularInline):
     # De rechten van de redacteur komen uit zijn omgevingen (RedactieRechtenMixin op het voorstel),
     # niet uit de Django-rechtentabel. Zonder deze methoden laat Django de inline helemaal weg.
     def _mag(self, request):
-        return request.user.is_superuser or Rechten(request.user).is_redacteur
+        return request.user.is_superuser or rechten(request).is_redacteur
 
     def has_view_permission(self, request, obj=None):
         return self._mag(request)
@@ -1037,6 +1039,8 @@ class VoorstelBerichtInline(admin.TabularInline):
 class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     omgeving_pad = "artikel__omgeving"
     list_display = ["artikel", "status", "ingediend_op", "ingediend_door", "gesprek", "kort"]
+    # In één keer meenemen; anders haalt de lijst voor elke rij de indiener apart op.
+    list_select_related = ["artikel", "ingediend_door"]
     list_filter = [VoorstelOpenFilter, "status", "artikel__omgeving"]
     search_fields = ["tekst", "citaat", "artikel__titel", "berichten__tekst"]
     inlines = [VoorstelBerichtInline]
@@ -1138,6 +1142,7 @@ class BerichtAdmin(RedactieRechtenMixin, admin.ModelAdmin):
 
     form = BerichtForm
     list_display = ["titel", "omgeving", "status", "vastgepind", "gepubliceerd_op", "verloopt_op", "auteur"]
+    list_select_related = ["omgeving", "auteur"]  # anders per rij een vraag naar de schrijver
     list_filter = ["status", "omgeving", "vastgepind"]
     search_fields = ["titel", "tekst"]
     filter_horizontal = ["artikelen"]
@@ -1426,7 +1431,7 @@ class RedactieKeuzelijstAdmin(admin.ModelAdmin):
     search_fields = ["naam"]
 
     def _mag(self, request):
-        return request.user.is_superuser or Rechten(request.user).is_redacteur
+        return request.user.is_superuser or rechten(request).is_redacteur
 
     def has_module_permission(self, request):
         return self._mag(request)
@@ -1543,7 +1548,7 @@ class KladversieAdmin(admin.ModelAdmin):
     ordering = ["-bijgewerkt_op"]
 
     def _r(self, request):
-        return Rechten(request.user)
+        return rechten(request)
 
     def get_queryset(self, request):
         from django.db.models import BooleanField, Case, Value, When

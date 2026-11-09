@@ -6,4 +6,7 @@ class KennisbankConfig(AppConfig):
     name = "kennisbank"
 
     def ready(self):
-        from . import signalen  # noqa: F401 - registreert de signaalontvangers
+        from . import (
+            checks,  # noqa: F401 - registreert de opstartcontroles
+            signalen,  # noqa: F401 - registreert de signaalontvangers
+        )

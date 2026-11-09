@@ -102,6 +102,19 @@ def _versie_en_modus():
         )
     else:
         rijen.append(_regel("Contactadres", GOED, settings.KB_CONTACT))
+
+    from .checks import MIB, verzoekgrens_te_laag
+
+    te_laag = verzoekgrens_te_laag()
+    grens = settings.DATA_UPLOAD_MAX_MEMORY_SIZE
+    rijen.append(
+        _regel(
+            "Maximale grootte van een verzoek",
+            LET_OP if te_laag else GOED,
+            "geen grens" if grens is None else f"{grens / MIB:g} MB (KB_MAX_VERZOEK_MB)",
+            te_laag,
+        )
+    )
     return rijen
 
 

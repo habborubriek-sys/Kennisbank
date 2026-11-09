@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.14.0 .
-docker push registry.example.nl/kennisbank:1.14.0
+docker build -t registry.example.nl/kennisbank:1.14.1 .
+docker push registry.example.nl/kennisbank:1.14.1
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -119,7 +119,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.14.0
+  registry.example.nl/kennisbank:1.14.1
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -140,6 +140,18 @@ De migraties lopen automatisch mee bij het starten (of via `migreer`). Maak voor
 zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens gebeurt; alleen de
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
+
+#### Naar 1.14.1 (vanaf 1.7.0 of later)
+
+Geen migratie. Twee dingen om te weten:
+
+- **`KB_MAX_VERZOEK_MB` staat standaard op 8 in plaats van 6.** Een artikel op de maximale omvang
+  (4 MB) dat vooral uit tabellen bestaat, werd bij het opslaan door de codering van de browser 6,4 MB
+  en dus geweigerd met een kale foutpagina. Heb je `KB_MAX_VERZOEK_MB` zelf op 6 gezet, zet hem dan op 8
+  of haal hem weg. Een te lage waarde geeft nu bij het opstarten waarschuwing `kennisbank.W001`
+  (bijvoorbeeld in de uitvoer van `migrate`) en een regel op de statuspagina.
+- Drie beheerlijsten zijn sneller: *Verbetervoorstellen*, *Artikelen* (voor een redacteur) en
+  *Nieuwsberichten*. Niets om te doen.
 
 #### Naar 1.14.0 (vanaf 1.7.0 of later)
 
@@ -169,8 +181,8 @@ Wel het vermelden waard, omdat het gedrag merkbaar verandert:
   want daar kan bij een geweigerde ontvanger een e-mailadres in staan. In plaats daarvan staat er het
   soort fout en het aantal ontvangers. Zoek je in het logboek op een adres om een verzendprobleem te
   vinden, dan werkt dat vanaf nu niet meer.
-- **`KB_MAX_VERZOEK_MB` is nieuw** (standaard 6). Importeer je zeer grote Word-documenten en loopt dat
-  stuk op "verzoek te groot", zet hem dan hoger. Zie [configuratie](configuratie.md).
+- **`KB_MAX_VERZOEK_MB` is nieuw** (standaard 6; vanaf 1.14.1 standaard 8, zie daar). Zie
+  [configuratie](configuratie.md).
 
 #### Naar 1.12.0 (vanaf 1.7.0 of later)
 
