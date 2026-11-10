@@ -85,6 +85,10 @@ a{color:var(--accent)}
 .side .note{font-size:.82rem;color:var(--fg-muted);margin-top:auto;border-top:1px solid var(--line);padding-top:12px}
 .tb.side-toggle{display:none}
 
+/* position:relative op de twee schuifvlakken: anders hangt een onzichtbaar schermlezerlabel
+   (.visually-hidden, position:absolute) aan de pagina in plaats van aan het vlak, en schuift de
+   hele pagina mee — dat gaf op de statistiekenpagina een tweede schuifbalk. */
+.side,.main{position:relative}
 .main{min-width:0;padding-block:22px 60px;padding-left:max(40px,4vw);padding-right:max(40px,4vw,env(safe-area-inset-right,0px));overflow:auto}
 .view{max-width:1120px;margin:0 auto}
 /* Een artikel is één leeskolom: de kaart volgt de regellengte, zodat de tekst de kaart ook echt vult.

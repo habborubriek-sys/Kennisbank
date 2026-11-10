@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.14.2 – 2026-11-10
+
+- **Gebruiksstatistieken: twee schuifbalken.** Naast het middenstuk schoof ook de hele pagina, inclusief de bovenbalk. De oorzaak was een onzichtbaar label voor schermlezers in de tabelkop ("Verhouding"). Dat hing aan de pagina in plaats van aan het middenstuk en maakte de pagina zo langer dan het scherm. Gemeld door Alex. De zijbalk en het middenstuk zijn nu het ankerpunt voor zulke labels, zodat dit ook op andere pagina's niet meer kan gebeuren.
+
 ## 1.14.1 – 2026-11-10
 
 Drie verbeteringen uit de stresstest van 9 november (S2, S3, S5).
