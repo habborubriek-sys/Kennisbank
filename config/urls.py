@@ -10,7 +10,6 @@ admin.site.site_header = f"{settings.KB_APP_NAAM} – beheer"
 admin.site.site_title = f"{settings.KB_APP_NAAM} – beheer"
 admin.site.index_title = "Artikelen, voorstellen en toegang"
 admin.site.site_url = "/"
-admin.site.index_template = "admin/kennisbank/startpagina.html"
 
 api_v1 = [
     path("ik", api.ik, name="api-ik"),
@@ -55,7 +54,8 @@ urlpatterns = [
     *inloggen,
     # De startpagina van het beheer is het werkoverzicht van de redacteur; vóór admin.site.urls, zodat
     # dit pad wint. admin_view zorgt voor dezelfde inlogcontrole als de rest van het beheer.
-    path("beheer/", admin.site.admin_view(werkoverzicht.startpagina), name="beheer-start"),
+    path("beheer/", admin.site.admin_view(werkoverzicht.werkplek), name="beheer-start"),
+    path("beheer/werkplek/actie/", admin.site.admin_view(werkoverzicht.werkplek_actie), name="beheer-werkplek-actie"),
     path("beheer/", admin.site.urls),
     path("uitloggen/", LogoutView.as_view(), name="uitloggen"),
     path("login-voltooid/", views.login_voltooid, name="login-voltooid"),

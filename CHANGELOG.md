@@ -1,5 +1,30 @@
 # Wijzigingen
 
+## 1.16.0 – 2026-11-10
+
+De werkplek voor redacteuren, en de reparaties uit de onafhankelijke review van 10 november over alles sinds 1.11.0 (rapport in het project: `review-sinds-1.11.0-onafhankelijk.md`).
+
+**Werkplek in het beheer** (wens van Alex)
+
+- `/beheer/` heeft links een kolom met de werkbakken: **Werkvoorraad** bovenaan (bij meer omgevingen één per omgeving), daaronder **alle procesmanagers** met het aantal open voorstellen in hun bak (ook als dat 0 is; je eigen naam bovenaan, met "nieuw"), het archief **Afgehandeld**, en de artikelkant: **Concepten**, **Mijn kladversies** en **Opnieuw nakijken**. Rechts staat de inhoud van wat je aanklikt, met knoppen *Oppakken*, *Overnemen*, *Terugleggen*, *Toewijzen aan…* en *Openen*. Na opslaan in het behandelscherm kom je terug in de bak waar je vandaan kwam.
+- De oude lijst *Verbetervoorstellen* staat niet meer onder "Alle onderdelen". Het behandelscherm met het gesprek blijft.
+
+**Reparaties uit de review**
+
+- **Kladversies kwamen na opslaan terug (ernstig, uit 1.14.0).** Het baken dat de browser bij het verlaten van de pagina stuurt, kwam bij de server aan nét nadat het opslaan de kladversie had afgesloten, en opende hem weer. Gevolg: bij een nieuw artikel de vraag "Verder gaan?" voor iets wat al was opgeslagen, en bij een bestaand artikel een spook-kladversie die ook collega's zagen. Nu stuurt de browser na *Opslaan* niets meer naar de server, en weigert de server een kladversie te heropenen die is afgesloten nadat het scherm werd geopend (409). In de browser nagespeeld: na opslaan blijft hij dicht.
+- **Een verouderd behandelscherm draaide het werk van een collega terug.** Opende Anna een voorstel, pakte Bram het intussen op en verstuurde Anna alleen een bericht, dan stond het voorstel weer in de werkvoorraad. Het scherm onthoudt nu wat er bij het openen stond en voert alleen door wat de redacteur zelf veranderde; wilde hij precies veranderen wat een collega al veranderde, dan volgt een melding. De API vergrendelt nu vóór het vergelijken en accepteert `verwachte_status`.
+- **Privacy bij "Alle voorstellen"**: het indienvenster zegt nu *"Collega's zien je voorstel, zonder je naam. Alleen procesmanagement ziet wie het indiende, voor als ze contact met je willen opnemen."*; collega's zien alleen de datum, niet het tijdstip; en de redactie kan een voorstel **verbergen voor collega's** (migratie 0024).
+- **Geen voorstellen meer in de bak van iemand die er niet meer bij kan.** Bij een rechtenwijziging, het verhuizen van een artikel naar een andere omgeving, en dagelijks in `opschonen` gaan zulke voorstellen terug naar de werkvoorraad.
+- **Wie afhandelt, is eigenaar** (keuze van Alex), ook als het voorstel bij een collega lag. Status terug naar *Nieuw* laat de eigenaar staan (besluit van Alex).
+- Steun intrekken kan alleen nog bij een open voorstel. De werkvoorraad toont alleen open voorstellen. De beheerlijst *Kladversies* deed één databasevraag per rij. Een bericht via `PATCH` met `terugkoppeling` valt nu onder het dubbelklikslot. De API-documentatie beschrijft `lijst` en `artikel`.
+- **Bekende beperking, bewust niet gebouwd**: twee *nieuwe* artikelen tegelijk in twee tabbladen delen één kladversie. Staat in de handleiding.
+
+**Kleine wensen**
+
+- De uitlegzin boven *Alle voorstellen* is weg. De link naar de API-documentatie staat alleen nog bij functioneel beheerders. Het label "Demo" naast de naam bovenin is weg.
+
+- **Tests** (nu 348): de werkplek (kolom en aantallen, inhoud per bak, acties, scheiding tussen omgevingen, vast aantal databasevragen) en elke reparatie uit de review. De reparaties zijn ook tegen een bewust kapotte versie gedraaid om te zien dat de tests erop vallen; een test die dat eerst niet deed (de rechtencontrole), is aangescherpt.
+
 ## 1.15.0 – 2026-11-10
 
 Verbetervoorstellen in bakken, steun van collega's, een startpagina voor redacteuren, en Nederlandse foutpagina's (S8). Wensen van Alex van 10 november.

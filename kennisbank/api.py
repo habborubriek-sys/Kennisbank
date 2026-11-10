@@ -8,7 +8,13 @@ from django.db import transaction
 from django.db.models import Count, Exists, OuterRef, Q, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_field, inline_serializer
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    PolymorphicProxySerializer,
+    extend_schema,
+    extend_schema_field,
+    inline_serializer,
+)
 from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.exceptions import PermissionDenied
@@ -220,6 +226,8 @@ class VoorstelOpenbaarSerializer(serializers.ModelSerializer):
     steun = serializers.IntegerField(source="_steun", read_only=True)
     ik_steun = serializers.BooleanField(source="_ik_steun", read_only=True)
     van_mij = serializers.SerializerMethodField()
+    # Alleen de datum: in een klein team verraadt het tijdstip soms wie het voorstel indiende.
+    ingediend_op = serializers.SerializerMethodField()
 
     class Meta:
         model = Verbetervoorstel
@@ -240,6 +248,9 @@ class VoorstelOpenbaarSerializer(serializers.ModelSerializer):
 
     def get_van_mij(self, obj) -> bool:
         return obj.ingediend_door_id == self.context["request"].user.pk
+
+    def get_ingediend_op(self, obj) -> str:
+        return timezone.localtime(obj.ingediend_op).date().isoformat()
 
 
 class AssistentThrottle(UserRateThrottle):
@@ -425,6 +436,8 @@ def ik(request):
             "recent": [{"id": x.artikel_id, "bezocht_op": x.bezocht_op} for x in recent],
             "recent_max": settings.KB_RECENT_MAX,
             "beheer_url": "/beheer/" if request.user.is_staff else None,
+            # De API-documentatie is voor functioneel beheer en IT, niet voor medewerkers en redacteuren.
+            "is_beheerder": request.user.is_superuser,
             "uitlog_url": "/oidc/logout/" if settings.KB_AUTH_MODUS == "oidc" else "/uitloggen/",
             "ai_aan": settings.KB_AI_PROVIDER != "uit",
             "app_naam": settings.KB_APP_NAAM,
@@ -576,15 +589,40 @@ class VoorstelBehandelSerializer(serializers.Serializer):
     """
 
     status = serializers.ChoiceField(choices=VoorstelStatus.choices, required=False)
+    verwachte_status = serializers.ChoiceField(
+        choices=VoorstelStatus.choices,
+        required=False,
+        help_text="Optioneel: de status die je zag. Is die intussen gewijzigd, dan volgt 409 en verandert er niets.",
+    )
     terugkoppeling = serializers.CharField(
         allow_blank=True, max_length=MAX_VOORSTELBERICHT, required=False, trim_whitespace=True
     )
 
 
 @extend_schema(
-    summary="Verbetervoorstellen: lijst (GET) of indienen (POST)",
+    methods=["POST"],
+    summary="Verbetervoorstel indienen",
     request=VoorstelSerializer,
-    responses=VoorstelSerializer(many=True),
+    responses=VoorstelSerializer,
+)
+@extend_schema(
+    methods=["GET"],
+    summary="Verbetervoorstellen: lijst",
+    description="Zonder `lijst`: lezers zien hun eigen voorstellen, redacteuren ook alle voorstellen in hun "
+    "omgeving(en). `lijst=mijn`: alleen je eigen voorstellen. `lijst=alle`: de open voorstellen van collega's "
+    "bij artikelen die je mag lezen, **zonder naam van de indiener en zonder gesprek**, met alleen de datum "
+    "van indienen (schema `VoorstelOpenbaar`); voorstellen die de redactie heeft verborgen, staan er niet in.",
+    parameters=[
+        OpenApiParameter("lijst", str, enum=["mijn", "alle"], description="Welke lijst; zie de beschrijving."),
+        OpenApiParameter("artikel", int, description="Alleen bij lijst=alle: de open voorstellen bij dit artikel."),
+        OpenApiParameter("status", str, description="Zonder lijst=alle: 'open' of een status."),
+    ],
+    responses={200: PolymorphicProxySerializer(
+        component_name="VoorstelLijst",
+        serializers=[VoorstelSerializer, VoorstelOpenbaarSerializer],
+        resource_type_field_name=None,
+        many=True,
+    )},
 )
 @api_view(["GET", "POST"])
 @throttle_classes([VoorstelThrottle])
@@ -638,6 +676,7 @@ def _voorstellen_van_collegas(request):
         Verbetervoorstel.objects.filter(
             status__in=[VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING],
             artikel__in=rechten(request).artikelen(),
+            verborgen=False,
         )
         .select_related("artikel")
         .annotate(
@@ -667,12 +706,13 @@ def voorstel_steun(request, pk):
         Verbetervoorstel.objects.select_related("artikel"),
         pk=pk,
         artikel__in=rechten(request).artikelen(),  # 404, verraad niet dat het bestaat
+        verborgen=False,  # verborgen door de redactie: voor collega's bestaat het niet
     )
-    if request.method == "DELETE":
-        diensten.steun_intrekken(v, request.user)
-        return Response(status=status.HTTP_204_NO_CONTENT)
     try:
-        diensten.steun_geven(v, request.user)
+        if request.method == "DELETE":
+            diensten.steun_intrekken(v, request.user)
+        else:
+            diensten.steun_geven(v, request.user)
     except diensten.VoorstelFout as e:
         return Response({"detail": str(e)}, status=status.HTTP_409_CONFLICT)
     return Response(status=status.HTTP_204_NO_CONTENT)
@@ -692,24 +732,31 @@ def voorstel(request, pk):
     )
     s = VoorstelBehandelSerializer(data=request.data)
     s.is_valid(raise_exception=True)
-    nieuwe_status = s.validated_data.get("status", v.status)
-    if nieuwe_status != v.status:
-        # Vergrendelen vóór het lezen én schrijven, zodat twee redacteuren die tegelijk een status
-        # zetten niet allebei van de oude stand uitgaan. Wie als tweede is, ziet in het antwoord wie
-        # het voorstel nu heeft behandeld.
-        with transaction.atomic():
-            v = Verbetervoorstel.objects.select_for_update().get(pk=v.pk)
+    # Alles onder één slot: eerst vergrendelen, dán vergelijken en schrijven. Zo gaat een tweede
+    # redacteur uit van wat de eerste net opsloeg, en weigert een meegestuurde verwachte_status als
+    # iemand anders de status intussen heeft veranderd. Het slot dekt ook het bericht hieronder, zodat
+    # het dubbelklikslot in voorstelbericht_toevoegen werkt.
+    with transaction.atomic():
+        v = Verbetervoorstel.objects.select_for_update().select_related("artikel").get(pk=v.pk)
+        verwacht = s.validated_data.get("verwachte_status")
+        if verwacht and verwacht != v.status:
+            return Response(
+                {"detail": f"De status is intussen '{v.get_status_display()}'. Er is niets gewijzigd."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        nieuwe_status = s.validated_data.get("status", v.status)
+        if nieuwe_status != v.status:
             v.status = nieuwe_status
             v.behandeld_door = request.user
             v.behandeld_op = timezone.now()
             diensten.eigenaar_bij_statuswijziging(v, request.user)
             v.save(update_fields=["status", "behandeld_door", "behandeld_op", *diensten.BAK_VELDEN])
-    # Een meegestuurde terugkoppeling wordt een bericht aan de indiener; daar zit de melding en de
-    # e-mail al aan vast. Dubbel versturen voorkomen we door hem over te slaan als hij niet verandert.
-    tekst = (s.validated_data.get("terugkoppeling") or "").strip()
-    if tekst and tekst != v.terugkoppeling:
-        diensten.voorstelbericht_toevoegen(v, request.user, tekst, van_redactie=True)
-        v.refresh_from_db()
+        # Een meegestuurde terugkoppeling wordt een bericht aan de indiener; daar zit de melding en de
+        # e-mail al aan vast. Dubbel versturen voorkomen we door hem over te slaan als hij niet verandert.
+        tekst = (s.validated_data.get("terugkoppeling") or "").strip()
+        if tekst and tekst != v.terugkoppeling:
+            diensten.voorstelbericht_toevoegen(v, request.user, tekst, van_redactie=True)
+    v.refresh_from_db()
     return Response(VoorstelSerializer(v, context=_ctx(request)).data)
 
 

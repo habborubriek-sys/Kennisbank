@@ -161,6 +161,8 @@ class BakkenDienstTests(Basis):
 class BakkenBeheerTests(Basis):
     def post_formulier(self, v, **velden):
         data = {
+            "geladen_status": velden.pop("geladen_status", v.status),
+            "geladen_eigenaar": velden.pop("geladen_eigenaar", str(v.eigenaar_id or "")),
             "status": velden.pop("status", v.status),
             "naar_bak": velden.pop("naar_bak", str(v.eigenaar_id or "")),
             "berichten-TOTAL_FORMS": "1",
@@ -260,49 +262,129 @@ class BakkenBeheerTests(Basis):
         self.assertNotIn("Termijn klopt niet", self.als(self.zoe).get(LIJST).content.decode())
 
 
-class StartpaginaTests(Basis):
-    def test_redacteur_ziet_zijn_werkoverzicht_en_alle_onderdelen(self):
+class WerkplekTests(Basis):
+    """De startpagina van het beheer: links de bakken, rechts de inhoud."""
+
+    def werkplek(self, wie, bak=""):
+        r = self.als(wie).get("/beheer/" + (f"?bak={bak}" if bak else ""))
+        self.assertEqual(r.status_code, 200)
+        return r
+
+    def test_kolom_toont_werkvoorraad_en_alle_procesmanagers_met_aantallen(self):
         self.voorstel()
         diensten.voorstel_naar_bak(self.voorstel(), self.anna, self.anna)
         diensten.voorstel_naar_bak(self.voorstel(), self.bram, self.bram)
-        r = self.als(self.anna).get("/beheer/")
-        self.assertEqual(r.status_code, 200)
-        w = r.context["werkoverzicht"]
-        self.assertEqual(w["mijn"]["aantal"], 1)
-        self.assertEqual([b["aantal"] for b in w["gezamenlijk"]], [1])
-        self.assertEqual([(c["naam"], c["aantal"]) for c in w["collegas"]], [("Bram", 1)])
-        self.assertEqual([c["titel"] for c in w["concepten"]], ["Concept"])
+        diensten.voorstel_naar_bak(self.voorstel(), self.bram, self.bram)
+        m = self.werkplek(self.anna).context["werkplek"]["menu"]
+        self.assertEqual([(b["naam"], b["aantal"]) for b in m["bakken"]], [("Werkvoorraad", 1)])
+        personen = [(p["naam"], p["aantal"], p["ik"]) for p in m["personen"]]
+        self.assertEqual(personen, [("Anna", 1, True), ("Bram", 2, False)])
+        artikelkant = {b["sleutel"]: b["aantal"] for b in m["artikelkant"]}
+        self.assertEqual(artikelkant, {"concepten": 1, "kladversies": 0, "nakijken": 0})
+
+    def test_procesmanager_met_lege_bak_staat_er_ook(self):
+        m = self.werkplek(self.anna).context["werkplek"]["menu"]
+        self.assertEqual([p["naam"] for p in m["personen"]], ["Anna", "Bram"])
+
+    def test_bak_aanklikken_toont_de_inhoud(self):
+        v = diensten.voorstel_naar_bak(self.voorstel(tekst="Bij Bram"), self.bram, self.bram)
+        self.voorstel(tekst="In de werkvoorraad")
+        r = self.werkplek(self.anna, f"u{self.bram.pk}")
+        self.assertEqual([x["v"].pk for x in r.context["werkplek"]["inhoud"]["rijen"]], [v.pk])
         html = r.content.decode()
-        self.assertIn("Alle onderdelen", html)
-        self.assertIn("Nieuw artikel", html)
+        self.assertIn("Bak van Bram", html)
+        self.assertIn("Overnemen", html)
+        r = self.werkplek(self.anna)  # standaard: de werkvoorraad
+        self.assertEqual([x["v"].tekst for x in r.context["werkplek"]["inhoud"]["rijen"]], ["In de werkvoorraad"])
+        self.assertIn("Oppakken", r.content.decode())
 
-    def test_redacteur_van_zuid_telt_niets_van_noord(self):
-        self.voorstel()
-        w = self.als(self.zoe).get("/beheer/").context["werkoverzicht"]
-        self.assertEqual([b["naam"] for b in w["gezamenlijk"]], ["Zuid"])
-        self.assertEqual(w["gezamenlijk"][0]["aantal"], 0)
-        self.assertEqual(w["concepten"], [])
+    def test_afgehandeld_is_het_archief(self):
+        self.voorstel(tekst="klaar", status=VoorstelStatus.VERWERKT, eigenaar=self.anna)
+        self.voorstel(tekst="open")
+        r = self.werkplek(self.anna, "afgehandeld")
+        self.assertEqual([x["v"].tekst for x in r.context["werkplek"]["inhoud"]["rijen"]], ["klaar"])
+        self.assertNotIn("Toewijzen", r.content.decode(), "een afgehandeld voorstel verplaats je niet meer")
 
-    def test_medewerker_komt_niet_op_de_startpagina(self):
+    def test_artikelkant(self):
+        r = self.werkplek(self.anna, "concepten")
+        self.assertEqual([a["titel"] for a in r.context["werkplek"]["inhoud"]["artikelen"]], ["Concept"])
+        verleden = timezone.localdate() - timezone.timedelta(days=3)
+        Artikel.objects.filter(pk=self.artikel.pk).update(herzien_voor=verleden)
+        r = self.werkplek(self.anna, "nakijken")
+        self.assertEqual([a["titel"] for a in r.context["werkplek"]["inhoud"]["artikelen"]], ["Rappel"])
+        self.werkplek(self.anna, "kladversies")
+        r = self.werkplek(self.anna, "alles")
+        self.assertIn("Artikelen", r.content.decode())
+
+    def test_oude_voorstellenlijst_staat_niet_meer_bij_alle_onderdelen(self):
+        html = self.werkplek(self.anna, "alles").content.decode()
+        self.assertNotIn('href="/beheer/kennisbank/verbetervoorstel/"', html)
+
+    def test_acties_vanuit_de_werkplek(self):
+        v = self.voorstel()
+        c = self.als(self.anna)
+        r = c.post("/beheer/werkplek/actie/", {"voorstel": v.pk, "actie": "oppakken", "terug": "werkvoorraad"})
+        self.assertRedirects(r, "/beheer/?bak=werkvoorraad", fetch_redirect_response=False)
+        v.refresh_from_db()
+        self.assertEqual(v.eigenaar, self.anna)
+        c.post("/beheer/werkplek/actie/", {"voorstel": v.pk, "actie": "toewijzen", "naar": self.bram.pk})
+        v.refresh_from_db()
+        self.assertEqual(v.eigenaar, self.bram)
+        c.post("/beheer/werkplek/actie/", {"voorstel": v.pk, "actie": "oppakken"})  # overnemen
+        v.refresh_from_db()
+        self.assertEqual(v.eigenaar, self.anna)
+        log = LogEntry.objects.filter(object_id=str(v.pk)).latest("action_time")
+        self.assertIn("Overgenomen uit de bak van Bram", log.get_change_message())
+        c.post("/beheer/werkplek/actie/", {"voorstel": v.pk, "actie": "terugleggen"})
+        v.refresh_from_db()
+        self.assertIsNone(v.eigenaar)
+
+    def test_toewijzen_aan_iemand_van_buiten_kan_niet(self):
+        v = self.voorstel()
+        data = {"voorstel": v.pk, "actie": "toewijzen", "naar": self.zoe.pk}
+        self.als(self.anna).post("/beheer/werkplek/actie/", data)
+        v.refresh_from_db()
+        self.assertIsNone(v.eigenaar)
+
+    def test_redacteur_van_zuid_ziet_en_raakt_niets_van_noord(self):
+        v = self.voorstel()
+        m = self.werkplek(self.zoe).context["werkplek"]["menu"]
+        self.assertEqual([(b["naam"], b["aantal"]) for b in m["bakken"]], [("Werkvoorraad", 0)])
+        self.assertEqual([p["naam"] for p in m["personen"]], ["Zoe"])
+        self.assertEqual(self.als(self.zoe).get(f"/beheer/?bak=u{self.anna.pk}").status_code, 404)
+        r = self.als(self.zoe).post("/beheer/werkplek/actie/", {"voorstel": v.pk, "actie": "oppakken"})
+        self.assertEqual(r.status_code, 404)
+        v.refresh_from_db()
+        self.assertIsNone(v.eigenaar)
+
+    def test_medewerker_komt_niet_op_de_werkplek(self):
         r = self.als(self.lies).get("/beheer/")
         self.assertEqual(r.status_code, 302)
         self.assertIn("login", r["Location"])
 
     def test_aantal_databasevragen_groeit_niet_mee(self):
         c = self.als(self.anna)
-        c.get("/beheer/")  # opwarmen (sessie, contenttypes)
 
-        def tel():
+        def tel(bak):
+            c.get("/beheer/?bak=" + bak)
             with CaptureQueriesContext(connection) as q:
-                self.assertEqual(c.get("/beheer/").status_code, 200)
+                self.assertEqual(c.get("/beheer/?bak=" + bak).status_code, 200)
             return len(q)
 
-        weinig = tel()
-        for i in range(15):
+        bakken = ["werkvoorraad", f"u{self.anna.pk}", "afgehandeld", "concepten"]
+        # Elke bak begint met één regel: een lege lijst kost geen databasevraag, en dat is niet wat we meten.
+        self.voorstel(tekst="eerste")
+        diensten.voorstel_naar_bak(self.voorstel(tekst="mijn eerste"), self.anna, self.anna)
+        self.voorstel(tekst="eerste klaar", status=VoorstelStatus.VERWERKT, eigenaar=self.anna)
+        weinig = {b: tel(b) for b in bakken}
+        for i in range(12):
             v = self.voorstel(tekst=f"v{i}")
-            diensten.voorstel_naar_bak(v, self.anna, self.bram if i % 2 else self.anna)
+            if i % 3:
+                diensten.voorstel_naar_bak(v, self.anna, self.bram if i % 2 else self.anna)
+            diensten.steun_geven(v, self.piet)
             Artikel.objects.create(omgeving=self.noord, titel=f"Concept {i}", samenvatting="x", inhoud="<p>x</p>")
-        self.assertEqual(tel(), weinig)
+        self.voorstel(tekst="klaar", status=VoorstelStatus.AFGEWEZEN, eigenaar=self.anna)
+        self.assertEqual({b: tel(b) for b in bakken}, weinig)
 
 
 class SteunTests(Basis):

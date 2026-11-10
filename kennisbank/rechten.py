@@ -80,3 +80,7 @@ def werk_staf_status_bij(gebruiker):
     if gebruiker.is_staff != staf:
         gebruiker.is_staff = staf
         gebruiker.save(update_fields=["is_staff"])
+    # Wie (ergens) geen redacteur meer is, kan daar ook geen voorstellen meer in zijn bak hebben.
+    from .diensten import bakken_rechtzetten
+
+    bakken_rechtzetten(gebruiker=gebruiker)

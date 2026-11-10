@@ -498,6 +498,12 @@
     if (!m || !form) return;
     var url = m[1] + "/kennisbank/artikel/" + (m[2] ? m[2] + "/" : "") + "kladversie/";
     var sleutel = null, bewaardagen = 30, verschil = 0, heeftGewerkt = false, klaar = false;
+    // Servertijd waarop dit scherm zijn kladversie ophaalde. De server weigert een kladversie te
+    // heropenen die ná dit moment is afgesloten: dan is het werk uit dit scherm al opgeslagen.
+    var geopendOp = "";
+    // Gezet zodra het formulier wordt verstuurd. Daarna geen kladversie meer naar de server: het
+    // opslaan sluit hem af, en een baken bij het verlaten van de pagina zou hem weer openen.
+    var bezigMetOpslaan = false;
     var basisTekst = null, laatsteLokaal = null, laatsteServer = null, geenVerbindingGemeld = false;
 
     var nu = function () { return Date.now() + verschil; };  // servertijd, zodat een scheve klok niet uitmaakt
@@ -588,11 +594,11 @@
       var b = new URLSearchParams();
       b.set("csrfmiddlewaretoken", token());
       if (weggooien) b.set("weggooien", "1");
-      else { b.set("velden", JSON.stringify(velden)); b.set("basis_stempel", stempel()); }
+      else { b.set("velden", JSON.stringify(velden)); b.set("basis_stempel", stempel()); b.set("geopend_op", geopendOp); }
       return b;
     }
     function naarServer(dringend) {
-      if (!klaar || !heeftGewerkt) return;
+      if (!klaar || !heeftGewerkt || bezigMetOpslaan) return;
       var velden = lees(), s = tekst(velden);
       if (s === basisTekst || s === laatsteServer) return;
       if (!dringend && !navigator.onLine) { geenVerbinding(); return; }
@@ -613,7 +619,7 @@
       meld("Geen verbinding. Je werk wordt in deze browser bewaard en gaat naar de server zodra de verbinding terug is.", true);
     }
     function bakenBijVertrek() {
-      if (!klaar || !heeftGewerkt) return;
+      if (!klaar || !heeftGewerkt || bezigMetOpslaan) return;
       var velden = lees(), s = tekst(velden);
       if (s === basisTekst) return;
       lokaalBewaren(velden, false);
@@ -696,7 +702,10 @@
               tekst: "Weggooien",
               doen: function () {
                 lokaalWeg();
-                fetch(url, { method: "POST", body: body(null, true), credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } }).catch(function () {});
+                fetch(url, { method: "POST", body: body(null, true), credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
+                  .then(function (r) { return r.ok ? r.json() : null; })
+                  .then(function (j) { if (j && j.server_nu) geopendOp = j.server_nu; })  // nieuw werk in dit scherm mag weer
+                  .catch(function () {});
                 basisTekst = tekst(lees());
                 laatsteServer = null;
                 heeftGewerkt = false;
@@ -753,6 +762,7 @@
       sleutel = g.sleutel;
       bewaardagen = g.bewaardagen || 30;
       verschil = Date.parse(g.server_nu) - Date.now() || 0;
+      geopendOp = g.server_nu || "";
       anderenTonen(g.anderen);
       var plaatselijk = lokaal();
       if (plaatselijk && nu() - plaatselijk.bewaard_op > bewaardagen * 864e5) { lokaalWeg(); plaatselijk = null; }
@@ -796,8 +806,15 @@
     window.addEventListener("offline", geenVerbinding);
     window.addEventListener("pagehide", bakenBijVertrek);
     document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") bakenBijVertrek(); });
-    // Bij opslaan: de laatste stand nog even in de browser, voor het geval het verzenden mislukt.
-    form.addEventListener("submit", kladNu);
+    // Bij opslaan: de laatste stand nog even in de browser, voor het geval het verzenden mislukt, en
+    // daarna niets meer naar de server. Houdt een andere controle het versturen tegen (preventDefault),
+    // dan gaat het gewoon door zoals daarvoor. Komt het scherm terug met een foutmelding, dan is de
+    // pagina opnieuw geladen en staat de vlag vanzelf weer uit.
+    form.addEventListener("submit", function (e) {
+      kladNu();
+      bezigMetOpslaan = true;
+      setTimeout(function () { if (e.defaultPrevented) bezigMetOpslaan = false; }, 0);
+    });
   }
 
   /* De toelichting bij publiceren staat buiten het volledige scherm. Zonder deze controle zou

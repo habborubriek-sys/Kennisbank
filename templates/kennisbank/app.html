@@ -12,7 +12,7 @@
 <body class="{% if embed %}embed{% endif %}" data-embed="{{ embed|yesno:'1,0' }}" data-demo="{{ demo|yesno:'1,0' }}" data-zaaktype="{{ zaaktype }}" data-app-naam="{{ app_naam }}">
 <a class="skip" href="#main">Naar de inhoud</a>
 <header class="top">
-  <div class="brand"><a href="/"><span class="mark" aria-hidden="true">K</span><span>{{ app_naam }}</span></a>{% if demo %} <span class="proto">Demo</span>{% endif %}</div>
+  <div class="brand"><a href="/"><span class="mark" aria-hidden="true">K</span><span>{{ app_naam }}</span></a></div>
   <form class="search" role="search" id="zoekform">
     <span aria-hidden="true">⌕</span>
     <label for="q" class="visually-hidden">Zoeken</label>
@@ -86,6 +86,7 @@
     <div id="propArt" class="art-line"></div>
     <blockquote id="propQuote"></blockquote>
     <label for="propText">Wat kan beter?</label>
+    <p class="hint prop-zichtbaar">Collega's zien je voorstel, zonder je naam. Alleen procesmanagement ziet wie het indiende, voor als ze contact met je willen opnemen.</p>
     <textarea id="propText" required maxlength="4000" rows="10" placeholder="Beschrijf wat onduidelijk, verouderd of onjuist is en wat je zou voorstellen. Je mag er rustig de tijd voor nemen — procesmanagement kan hier daarna met je op doorpraten."></textarea>
     <div class="row"><button type="button" class="tb" id="propCancel">Annuleren</button><button type="submit" class="tb primary">Indienen</button></div>
   </form>

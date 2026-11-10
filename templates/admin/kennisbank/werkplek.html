@@ -1,0 +1,141 @@
+{% extends "admin/base_site.html" %}
+{% comment %}
+  De werkplek van een redacteur (kennisbank/werkoverzicht.py): links de werkbakken, rechts de inhoud.
+{% endcomment %}
+{% block bodyclass %}{{ block.super }} kb-werkplek-pagina{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block content %}
+{% with w=werkplek %}
+<div class="kb-werkplek">
+  <nav class="kb-bakkenkolom" aria-label="Werkbakken">
+    <h2 class="kb-kolomkop">Verbetervoorstellen</h2>
+    <ul class="kb-bakkenlijst">
+      {% for b in w.menu.bakken %}
+      <li><a class="kb-bakregel kb-werkvoorraad{% if w.gekozen == b.sleutel %} gekozen{% endif %}" href="?bak={{ b.sleutel }}"{% if w.gekozen == b.sleutel %} aria-current="page"{% endif %}>
+        <span>{{ b.naam }}</span><span class="kb-aantal{% if b.aantal %} vol{% endif %}">{{ b.aantal }}</span></a></li>
+      {% endfor %}
+    </ul>
+    <h3 class="kb-kolomsub">Procesmanagers</h3>
+    <ul class="kb-bakkenlijst">
+      {% for p in w.menu.personen %}
+      <li><a class="kb-bakregel{% if p.ik %} kb-ik{% endif %}{% if w.gekozen == p.sleutel %} gekozen{% endif %}" href="?bak={{ p.sleutel }}"{% if w.gekozen == p.sleutel %} aria-current="page"{% endif %}>
+        <span>{{ p.naam }}{% if p.ik %} <span class="kb-jij">(jij)</span>{% endif %}{% if p.nieuw %} <b class="kb-nieuw">· {{ p.nieuw }} nieuw</b>{% endif %}</span><span class="kb-aantal">{{ p.aantal }}</span></a></li>
+      {% endfor %}
+    </ul>
+    <ul class="kb-bakkenlijst kb-gescheiden">
+      {% for b in w.menu.overig %}
+      <li><a class="kb-bakregel{% if w.gekozen == b.sleutel %} gekozen{% endif %}" href="?bak={{ b.sleutel }}"{% if w.gekozen == b.sleutel %} aria-current="page"{% endif %}>
+        <span>{{ b.naam }}</span><span class="kb-aantal">{{ b.aantal }}</span></a></li>
+      {% endfor %}
+    </ul>
+    <h2 class="kb-kolomkop">Artikelen</h2>
+    <ul class="kb-bakkenlijst">
+      {% for b in w.menu.artikelkant %}
+      <li><a class="kb-bakregel{% if w.gekozen == b.sleutel %} gekozen{% endif %}" href="?bak={{ b.sleutel }}"{% if w.gekozen == b.sleutel %} aria-current="page"{% endif %}>
+        <span>{{ b.naam }}</span><span class="kb-aantal">{{ b.aantal }}</span></a></li>
+      {% endfor %}
+    </ul>
+    <div class="kb-kolomknoppen">
+      <a class="button kb-knop" href="{{ w.nieuw_artikel_url }}">Nieuw artikel</a>
+      <a class="button kb-knop" href="{{ w.nieuw_bericht_url }}">Nieuw bericht</a>
+    </div>
+    <ul class="kb-bakkenlijst kb-gescheiden">
+      <li><a class="kb-bakregel{% if w.is_alles %} gekozen{% endif %}" href="?bak=alles">Alle onderdelen</a></li>
+    </ul>
+  </nav>
+
+  <section class="kb-inhoud" aria-labelledby="kb-inhoud-titel">
+    <h1 id="kb-inhoud-titel">{{ w.titel }}</h1>
+    {% if w.uitleg %}<p class="kb-uitleg">{{ w.uitleg }}</p>{% endif %}
+
+    {% if w.is_alles %}
+      {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+
+    {% elif w.inhoud.rijen is not None %}
+      {% if w.inhoud.rijen %}
+      <ul class="kb-voorstellen">
+        {% for r in w.inhoud.rijen %}{% with v=r.v %}
+        <li class="kb-voorstel">
+          <div class="kb-vkop">
+            <a class="kb-vtitel" href="{{ r.url }}">{{ v.artikel.titel }}</a>
+            <span class="kb-vstatus kb-status-{{ v.status }}">{{ v.get_status_display }}</span>
+            {% if r.nog_niet_geopend %}<span class="kb-label">nog niet geopend</span>{% endif %}
+            {% if v.verborgen %}<span class="kb-label">verborgen voor collega's</span>{% endif %}
+          </div>
+          {% if v.citaat %}<blockquote class="kb-vcitaat">“{{ v.citaat|truncatechars:200 }}”</blockquote>{% endif %}
+          <p class="kb-vtekst">{{ v.tekst|truncatechars:300 }}</p>
+          <p class="kb-vmeta">
+            Ingediend {{ v.ingediend_op|date:"j F Y" }}
+            {% if r.eigenaar %} · bij {% if r.van_mij %}jou{% else %}{{ r.eigenaar }}{% endif %}{% if r.dagen is not None and v.is_open %} {% if r.dagen == 0 %}sinds vandaag{% else %}sinds {{ r.dagen }} dag{{ r.dagen|pluralize:"en" }}{% endif %}{% endif %}{% elif v.is_open and r.dagen is not None %} · {% if r.dagen == 0 %}sinds vandaag{% else %}ligt {{ r.dagen }} dag{{ r.dagen|pluralize:"en" }}{% endif %}{% endif %}
+            · {% if r.steun %}<b>{{ r.steun }} collega{{ r.steun|pluralize:"'s" }} steun{{ r.steun|pluralize:"t,en" }} dit</b>{% else %}nog geen steun{% endif %}
+            {% if w.menu.bakken|length > 1 %} · {{ v.artikel.omgeving.naam }}{% endif %}
+          </p>
+          {% if v.is_open %}
+          <div class="kb-vacties">
+            {% if not r.van_mij %}
+            <form method="post" action="{{ w.actie_url }}">{% csrf_token %}
+              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
+              <button type="submit" name="actie" value="oppakken" class="button default">{% if r.eigenaar %}Overnemen{% else %}Oppakken{% endif %}</button>
+            </form>
+            {% endif %}
+            {% if r.eigenaar %}
+            <form method="post" action="{{ w.actie_url }}">{% csrf_token %}
+              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
+              <button type="submit" name="actie" value="terugleggen" class="button">Terugleggen</button>
+            </form>
+            {% endif %}
+            {% if r.collegas %}
+            <form method="post" action="{{ w.actie_url }}" class="kb-toewijzen">{% csrf_token %}
+              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
+              <label class="visually-hidden" for="naar-{{ v.pk }}">Toewijzen aan</label>
+              <select name="naar" id="naar-{{ v.pk }}"><option value="">Toewijzen aan…</option>
+                {% for pk, naam in r.collegas %}<option value="{{ pk }}">{{ naam }}</option>{% endfor %}
+              </select>
+              <button type="submit" name="actie" value="toewijzen" class="button">Toewijzen</button>
+            </form>
+            {% endif %}
+            <a class="button kb-openen" href="{{ r.url }}">Openen</a>
+          </div>
+          {% endif %}
+        </li>
+        {% endwith %}{% endfor %}
+      </ul>
+      {% include "admin/kennisbank/werkplek_paginas.html" with pagina=w.inhoud.pagina gekozen=w.gekozen %}
+      {% else %}
+      <p class="kb-leeg">Deze bak is leeg.</p>
+      {% endif %}
+
+    {% elif w.inhoud.artikelen is not None %}
+      {% if w.inhoud.artikelen %}
+      <table class="kb-tabel">
+        <thead><tr><th scope="col">Artikel</th><th scope="col">{% if w.gekozen == "nakijken" %}Nakijken vóór{% else %}Gewijzigd{% endif %}</th>{% if w.menu.bakken|length > 1 %}<th scope="col">Omgeving</th>{% endif %}</tr></thead>
+        <tbody>
+        {% for a in w.inhoud.artikelen %}
+          <tr><td><a href="{{ a.url }}">{{ a.titel }}</a></td>
+            <td>{% if w.gekozen == "nakijken" %}{{ a.herzien_voor|date:"j F Y" }}{% else %}{{ a.gewijzigd_op|date:"j F Y H:i" }}{% endif %}</td>
+            {% if w.menu.bakken|length > 1 %}<td>{{ a.omgeving }}</td>{% endif %}</tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% include "admin/kennisbank/werkplek_paginas.html" with pagina=w.inhoud.pagina gekozen=w.gekozen %}
+      {% else %}<p class="kb-leeg">Niets te doen.</p>{% endif %}
+
+    {% elif w.inhoud.kladversies is not None %}
+      {% if w.inhoud.kladversies %}
+      <table class="kb-tabel">
+        <thead><tr><th scope="col">Artikel</th><th scope="col">Bijgewerkt</th></tr></thead>
+        <tbody>
+        {% for k in w.inhoud.kladversies %}
+          <tr><td><a href="{{ k.url }}">{{ k.titel }}</a></td><td>{{ k.bijgewerkt_op|date:"j F Y H:i" }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<p class="kb-leeg">Geen openstaand werk.</p>{% endif %}
+    {% endif %}
+  </section>
+</div>
+{% endwith %}
+{% endblock %}
+{% block sidebar %}{% endblock %}

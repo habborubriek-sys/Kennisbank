@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.15.0
+  version: 1.16.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -334,7 +334,32 @@ paths:
   /api/v1/voorstellen:
     get:
       operationId: v1_voorstellen_list
-      summary: 'Verbetervoorstellen: lijst (GET) of indienen (POST)'
+      description: 'Zonder `lijst`: lezers zien hun eigen voorstellen, redacteuren
+        ook alle voorstellen in hun omgeving(en). `lijst=mijn`: alleen je eigen voorstellen.
+        `lijst=alle`: de open voorstellen van collega''s bij artikelen die je mag
+        lezen, **zonder naam van de indiener en zonder gesprek**, met alleen de datum
+        van indienen (schema `VoorstelOpenbaar`); voorstellen die de redactie heeft
+        verborgen, staan er niet in.'
+      summary: 'Verbetervoorstellen: lijst'
+      parameters:
+      - in: query
+        name: artikel
+        schema:
+          type: integer
+        description: 'Alleen bij lijst=alle: de open voorstellen bij dit artikel.'
+      - in: query
+        name: lijst
+        schema:
+          type: string
+          enum:
+          - alle
+          - mijn
+        description: Welke lijst; zie de beschrijving.
+      - in: query
+        name: status
+        schema:
+          type: string
+        description: 'Zonder lijst=alle: ''open'' of een status.'
       tags:
       - v1
       security:
@@ -347,11 +372,11 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Voorstel'
+                  $ref: '#/components/schemas/VoorstelLijst'
           description: ''
     post:
       operationId: v1_voorstellen_create
-      summary: 'Verbetervoorstellen: lijst (GET) of indienen (POST)'
+      summary: Verbetervoorstel indienen
       tags:
       - v1
       requestBody:
@@ -374,9 +399,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Voorstel'
+                $ref: '#/components/schemas/Voorstel'
           description: ''
   /api/v1/voorstellen/{id}:
     patch:
@@ -1023,6 +1046,16 @@ components:
       properties:
         status:
           $ref: '#/components/schemas/VoorstelStatusEnum'
+        verwachte_status:
+          allOf:
+          - $ref: '#/components/schemas/VoorstelStatusEnum'
+          description: |-
+            Optioneel: de status die je zag. Is die intussen gewijzigd, dan volgt 409 en verandert er niets.
+
+            * `nieuw` - Nieuw
+            * `in_behandeling` - In behandeling
+            * `verwerkt` - Verwerkt
+            * `afgewezen` - Afgewezen
         terugkoppeling:
           type: string
           maxLength: 5000
@@ -1224,6 +1257,62 @@ components:
           maxLength: 5000
       required:
       - tekst
+    VoorstelLijst:
+      oneOf:
+      - $ref: '#/components/schemas/Voorstel'
+      - $ref: '#/components/schemas/VoorstelOpenbaar'
+    VoorstelOpenbaar:
+      type: object
+      description: 'Een open voorstel zoals collega''s het zien: zonder naam van de
+        indiener en zonder het gesprek.'
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        artikel:
+          type: integer
+          readOnly: true
+        artikel_titel:
+          type: string
+          readOnly: true
+        artikel_url:
+          type: string
+          readOnly: true
+        citaat:
+          type: string
+          readOnly: true
+          description: De tekst die de indiener had geselecteerd.
+        tekst:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/VoorstelStatusEnum'
+          readOnly: true
+        ingediend_op:
+          type: string
+          readOnly: true
+        steun:
+          type: integer
+          readOnly: true
+        ik_steun:
+          type: boolean
+          readOnly: true
+        van_mij:
+          type: boolean
+          readOnly: true
+      required:
+      - artikel
+      - artikel_titel
+      - artikel_url
+      - citaat
+      - id
+      - ik_steun
+      - ingediend_op
+      - status
+      - steun
+      - tekst
+      - van_mij
     VoorstelRequest:
       type: object
       properties:

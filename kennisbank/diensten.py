@@ -448,8 +448,7 @@ def meld_nieuw_voorstel(voorstel):
     mail_na_commit(
         f"Nieuw verbetervoorstel: {voorstel.artikel.titel}",
         f"Er is een verbetervoorstel ingediend bij '{voorstel.artikel.titel}'.\n\n"
-        f"{voorstel.tekst}\n\nHet ligt in de gezamenlijke bak: "
-        f"{settings.KB_BASIS_URL}/beheer/kennisbank/verbetervoorstel/?bak=gezamenlijk",
+        f"{voorstel.tekst}\n\nHet ligt in de werkvoorraad: {settings.KB_BASIS_URL}/beheer/",
         redacteuren,
     )
 
@@ -698,16 +697,53 @@ def voorstel_naar_bak(voorstel, door, naar=None):
 
 
 def eigenaar_bij_statuswijziging(voorstel, door) -> None:
-    """Wie de status van een voorstel uit de gezamenlijke bak wijzigt, neemt het daarmee in zijn bak.
+    """Wie de status van een voorstel wijzigt, wordt in twee gevallen eigenaar:
 
-    Aangeroepen door het beheerscherm en de API vóór het opslaan. Zo belandt een afgehandeld voorstel
-    nooit eigenaarloos in de gezamenlijke bak.
+    - het voorstel lag in de gezamenlijke bak (en gaat naar In behandeling, Verwerkt of Afgewezen);
+    - het voorstel wordt afgehandeld (Verwerkt of Afgewezen): wie afhandelt, is eigenaar, ook als het in
+      de bak van een collega lag. Zo staat in elke bak alleen wat die persoon zelf afhandelde.
+
+    Aangeroepen door het beheerscherm en de API vóór het opslaan, nadat de nieuwe status is gezet. Een
+    statuswijziging terug naar Nieuw laat de eigenaar staan (besluit van 10 november).
     """
-    if voorstel.eigenaar_id is None and voorstel.status != VoorstelStatus.NIEUW:
+    if voorstel.status == VoorstelStatus.NIEUW or voorstel.eigenaar_id == getattr(door, "pk", None):
+        return
+    if voorstel.eigenaar_id is None or not voorstel.is_open:
         nu = timezone.now()
         voorstel.eigenaar = door
         voorstel.eigenaar_sinds = nu
         voorstel.eigenaar_gezien_op = nu
+
+
+def bakken_rechtzetten(gebruiker=None, artikel=None) -> int:
+    """Leg open voorstellen terug in de gezamenlijke bak als de eigenaar er geen redacteur meer van is.
+
+    Dat gebeurt als iemand zijn redacteursrol kwijtraakt, of als een artikel naar een andere omgeving
+    verhuist. Zonder dit ziet de eigenaar het voorstel nergens meer, en zien redacteuren van de nieuwe
+    omgeving een naam van buiten hun omgeving. Aangeroepen bij elke rechtenwijziging van een gebruiker,
+    bij het verplaatsen van een artikel, en als vangnet door de dagelijkse opschoonronde.
+    Geeft het aantal teruggelegde voorstellen terug.
+    """
+    qs = Verbetervoorstel.objects.filter(
+        eigenaar__isnull=False, status__in=[VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING]
+    ).select_related("artikel")
+    if gebruiker is not None:
+        qs = qs.filter(eigenaar=gebruiker)
+    if artikel is not None:
+        qs = qs.filter(artikel=artikel)
+    bevoegd = {}
+    teruggelegd = 0
+    for v in qs:
+        oid = v.artikel.omgeving_id
+        if oid not in bevoegd:
+            bevoegd[oid] = set(redacteuren_van(oid).values_list("pk", flat=True))
+        if v.eigenaar_id not in bevoegd[oid]:
+            try:
+                voorstel_naar_bak(v, None, None)
+            except VoorstelFout:
+                continue
+            teruggelegd += 1
+    return teruggelegd
 
 
 def voorstel_gezien_door_eigenaar(voorstel, gebruiker) -> None:
@@ -731,6 +767,9 @@ def steun_geven(voorstel, gebruiker) -> bool:
 
 
 def steun_intrekken(voorstel, gebruiker) -> None:
+    """Steun intrekken kan alleen zolang het voorstel open is; daarna is het aantal geschiedenis."""
+    if not voorstel.is_open:
+        raise VoorstelFout("Dit voorstel is al afgehandeld; de steun blijft staan.")
     Steun.objects.filter(voorstel=voorstel, gebruiker=gebruiker).delete()
 
 
@@ -918,8 +957,18 @@ def _schone_kladvelden(velden) -> dict:
     return uit
 
 
-def klad_opslaan(gebruiker, artikel, velden, basis_stempel="", *, redactie_omgevingen=()):
+class KladAfgesloten(Exception):
+    """Het scherm dat deze kladversie stuurt, is al opgeslagen of weggegooid."""
+
+
+def klad_opslaan(gebruiker, artikel, velden, basis_stempel="", *, redactie_omgevingen=(), geopend_op=None):
     """Bewaar (of heropen) de kladversie. Geeft de rij terug.
+
+    ``geopend_op``: het moment (servertijd) waarop het bewerkscherm zijn kladversie ophaalde. Is de
+    kladversie ná dat moment afgesloten, dan is het werk uit dat scherm al opgeslagen of weggegooid,
+    en mag hij niet heropend worden: dan gooit deze functie KladAfgesloten. Zonder die controle zette
+    het baken dat de browser bij het verlaten van de pagina stuurt, de kladversie direct na het opslaan
+    weer open (review 10 november, bevinding 1).
 
     ``redactie_omgevingen``: waar deze gebruiker redacteur is. Bij een nieuw artikel wordt de gekozen
     omgeving alleen vastgelegd als hij daar redacteur is; anders zou een collega van een andere
@@ -942,6 +991,8 @@ def klad_opslaan(gebruiker, artikel, velden, basis_stempel="", *, redactie_omgev
         if rij is None:
             rij = Kladversie(gebruiker=gebruiker, artikel=artikel, aangemaakt_op=nu)
         elif rij.afgesloten_op is not None:
+            if geopend_op is not None and rij.afgesloten_op >= geopend_op:
+                raise KladAfgesloten
             rij.aangemaakt_op = nu  # een nieuwe kladversie na een afgesloten exemplaar
         rij.velden = velden
         rij.basis_stempel = (basis_stempel or "")[:64]
@@ -973,7 +1024,9 @@ def zichtbare_kladversies(gebruiker, r):
     waar hij redacteur is (ook van nieuwe artikelen waarvoor al een omgeving is gekozen)."""
     from django.db.models import Q
 
-    qs = Kladversie.objects.filter(afgesloten_op__isnull=True).select_related("gebruiker", "artikel", "omgeving")
+    qs = Kladversie.objects.filter(afgesloten_op__isnull=True).select_related(
+        "gebruiker", "artikel__omgeving", "omgeving"
+    )  # artikel__omgeving: de beheerlijst toont de omgeving; anders één vraag per rij (review, bevinding 9)
     if gebruiker.is_superuser:
         return qs
     redactie = r.redactie_omgevingen

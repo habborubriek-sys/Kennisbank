@@ -19,6 +19,7 @@ from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.utils.formats import date_format
 from django.utils.html import format_html
 
@@ -565,18 +566,23 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         if request.method == "POST":
             if request.POST.get("weggooien"):
                 diensten.klad_afsluiten(request.user, artikel)
-                return JsonResponse({"ok": True})
+                return JsonResponse({"ok": True, "server_nu": timezone.now().isoformat()})
             try:
                 velden = json.loads(request.POST.get("velden") or "{}")
             except ValueError:
                 return JsonResponse({"fout": "De kladversie kon niet worden gelezen."}, status=400)
-            rij = diensten.klad_opslaan(
-                request.user,
-                artikel,
-                velden,
-                request.POST.get("basis_stempel", ""),
-                redactie_omgevingen=r.redactie_omgevingen,
-            )
+            geopend_op = parse_datetime(request.POST.get("geopend_op") or "")
+            try:
+                rij = diensten.klad_opslaan(
+                    request.user,
+                    artikel,
+                    velden,
+                    request.POST.get("basis_stempel", ""),
+                    redactie_omgevingen=r.redactie_omgevingen,
+                    geopend_op=geopend_op,
+                )
+            except diensten.KladAfgesloten:
+                return JsonResponse({"afgesloten": True}, status=409)
             return JsonResponse(
                 {"ok": True, "bijgewerkt_op": rij.bijgewerkt_op.isoformat(), "tijd": self._klad_tijd(rij.bijgewerkt_op)}
             )
@@ -1016,7 +1022,10 @@ class BakFilter(admin.SimpleListFilter):
     def queryset(self, request, queryset):
         keuze = self.value()
         if keuze == "gezamenlijk":
-            return queryset.filter(eigenaar__isnull=True)
+            # Alleen wat nog opgepakt moet worden; dat telt de startpagina ook (review, bevinding 5).
+            return queryset.filter(
+                eigenaar__isnull=True, status__in=[VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING]
+            )
         if keuze == "mijn":
             return queryset.filter(eigenaar=request.user)
         if keuze and keuze.startswith("u") and keuze[1:].isdigit():
@@ -1031,6 +1040,11 @@ class VoorstelForm(forms.ModelForm):
     en de e-mail aan een collega meelopen. Daarom een los formulierveld, verwerkt in save_model.
     """
 
+    # Hoe het voorstel eruitzag toen het scherm werd geopend. Zo weten we wat de redacteur zélf heeft
+    # veranderd, los van wat een collega intussen deed (zie clean).
+    geladen_eigenaar = forms.CharField(required=False, widget=forms.HiddenInput)
+    geladen_status = forms.CharField(required=False, widget=forms.HiddenInput)
+
     naar_bak = forms.ChoiceField(
         label="Bak",
         required=False,
@@ -1040,7 +1054,7 @@ class VoorstelForm(forms.ModelForm):
 
     class Meta:
         model = Verbetervoorstel
-        fields = ["status"]
+        fields = ["status", "verborgen"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1054,9 +1068,48 @@ class VoorstelForm(forms.ModelForm):
                 keuzes.append((str(v.eigenaar_id), f"{diensten.naam_van(v.eigenaar)} (geen redacteur meer)"))
         self.fields["naar_bak"].choices = keuzes
         self.fields["naar_bak"].initial = str(v.eigenaar_id or "")
+        self.fields["geladen_eigenaar"].initial = str(v.eigenaar_id or "")
+        self.fields["geladen_status"].initial = v.status
         if v.pk and not v.is_open:
             self.fields["naar_bak"].disabled = True
             self.fields["naar_bak"].help_text = "Een afgehandeld voorstel blijft bij wie het afhandelde."
+        self.wil_bak = self.wil_status = False
+
+    def clean(self):
+        """Alleen doorvoeren wat deze redacteur zelf heeft veranderd, en weigeren als een collega
+        precies dat intussen ook heeft veranderd.
+
+        Zonder dit draaide een scherm dat al even openstond stil het werk van een collega terug: Anna
+        opent een voorstel en typt een bericht, Bram pakt het intussen op, Anna verstuurt alleen haar
+        bericht, en het voorstel stond weer in de gezamenlijke bak (review 10 november, bevinding 2).
+        """
+        data = super().clean()
+        v = self.instance
+        if not v.pk or "geladen_status" not in self.data:
+            # Zonder de verborgen velden (een oude pagina in de browser): vergelijken met de database.
+            self.wil_bak = "naar_bak" in self.changed_data
+            self.wil_status = "status" in self.changed_data
+            return data
+        geladen_eigenaar = data.get("geladen_eigenaar") or ""
+        geladen_status = data.get("geladen_status") or ""
+        # Vergrendelen tot het einde van het opslaan (het beheer slaat op in één transactie).
+        nu = Verbetervoorstel.objects.select_for_update(of=("self",)).select_related("eigenaar").get(pk=v.pk)
+        self.wil_bak = (data.get("naar_bak") or "") != geladen_eigenaar and not self.fields["naar_bak"].disabled
+        self.wil_status = data.get("status") != geladen_status
+        collega = []
+        if self.wil_bak and str(nu.eigenaar_id or "") != geladen_eigenaar:
+            bak = f"de bak van {diensten.naam_van(nu.eigenaar)}" if nu.eigenaar else "de gezamenlijke bak"
+            collega.append(f"het ligt intussen in {bak}")
+        if self.wil_status and nu.status != geladen_status:
+            collega.append(f"de status is intussen '{nu.get_status_display()}'")
+        if collega:
+            raise forms.ValidationError(
+                "Een collega heeft dit voorstel gewijzigd terwijl jij het openhad: "
+                + " en ".join(collega)
+                + ". Je wijziging is niet opgeslagen. Open het voorstel opnieuw en kijk of het nog nodig is."
+            )
+        self.db_stand = nu  # save_model neemt hieruit over wat deze redacteur niet heeft aangeraakt
+        return data
 
 
 class VoorstelBerichtInline(admin.TabularInline):
@@ -1128,7 +1181,18 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     fieldsets = [
         (
             "Het voorstel",
-            {"fields": ["artikel", "artikel_versie", "citaat", "tekst", "ingediend_door", "ingediend_op"]},
+            {
+                "fields": [
+                    "artikel",
+                    "artikel_versie",
+                    "citaat",
+                    "tekst",
+                    "ingediend_door",
+                    "ingediend_op",
+                    "geladen_eigenaar",
+                    "geladen_status",
+                ]
+            },
         ),
         (
             "Behandeling",
@@ -1136,6 +1200,7 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 "fields": [
                     "naar_bak",
                     "status",
+                    "verborgen",
                     "steun_overzicht",
                     "laatste_terugkoppeling",
                     "behandeld_door",
@@ -1201,6 +1266,8 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             gelukt += 1
             if naar is None:
                 bericht = f"Teruggelegd in de gezamenlijke bak (lag bij {diensten.naam_van(vorige)})."
+            elif naar.pk != request.user.pk:
+                bericht = f"Toegewezen aan {diensten.naam_van(naar)}."
             elif vorige and vorige.pk != request.user.pk:
                 bericht = f"Overgenomen uit de bak van {diensten.naam_van(vorige)}."
             else:
@@ -1218,6 +1285,20 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 diensten.voorstel_gezien_door_eigenaar(v, request.user)
         return super().change_view(request, object_id, form_url, extra_context)
 
+    def get_model_perms(self, request):
+        # Niet meer in de lijst met onderdelen: voorstellen behandel je vanuit de werkbakken op de
+        # startpagina (kennisbank/werkoverzicht.py). Het behandelscherm zelf blijft gewoon bereikbaar.
+        return {"add": False, "change": False, "delete": False, "view": False}
+
+    def response_change(self, request, obj):
+        # Na opslaan terug naar de werkbak waar je vandaan kwam, niet naar de oude lijst.
+        if "_continue" not in request.POST and "_addanother" not in request.POST:
+            from .werkoverzicht import werkplek_url
+
+            self.message_user(request, f"Voorstel bij '{obj.artikel.titel}' opgeslagen.", messages.SUCCESS)
+            return redirect(werkplek_url(request.GET.get("terug")))
+        return super().response_change(request, obj)
+
     @admin.display(description="Gesprek", ordering="_berichten")
     def gesprek(self, obj):
         return f"{obj._berichten} bericht(en)" if obj._berichten else "—"
@@ -1230,9 +1311,18 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         return False
 
     def save_model(self, request, obj, form, change):
+        # Wat deze redacteur niet heeft aangeraakt, blijft zoals het nu (vergrendeld) in de database
+        # staat. Het formulier zette de status uit de oude pagina; die geldt alleen als hij hem zelf koos.
+        stand = getattr(form, "db_stand", None)
+        if stand is not None:
+            velden = ["behandeld_door_id", "behandeld_op", "eigenaar_id", "eigenaar_sinds", "eigenaar_gezien_op"]
+            if not form.wil_status:
+                velden.append("status")
+            for veld in velden:
+                setattr(obj, veld, getattr(stand, veld))
         # Eerst de bak: dat loopt via de dienstlaag (slot, status, e-mail). Daarna de velden die die
         # dienst schreef overnemen in obj, anders zet het opslaan hieronder de oude waarden terug.
-        if "naar_bak" in form.changed_data:
+        if form.wil_bak:
             keuze = form.cleaned_data.get("naar_bak")
             naar = diensten.redacteuren_van(obj.artikel.omgeving_id).filter(pk=keuze).first() if keuze else None
             vorige = obj.eigenaar
@@ -1242,7 +1332,7 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 self.message_user(request, str(e), messages.WARNING)
             else:
                 velden = list(diensten.BAK_VELDEN)
-                if "status" not in form.changed_data:
+                if not form.wil_status:
                     velden += ["status", "behandeld_door", "behandeld_op"]
                 for veld in velden:
                     setattr(obj, veld, getattr(v, veld))
@@ -1251,11 +1341,13 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         # behandeld_door/op horen bij de status: wie heeft dit voorstel afgehandeld, en wanneer. Een
         # tussentijds bericht raakt ze niet aan (zie diensten.voorstelbericht_toevoegen), want de
         # bewaartermijn van de naam van de indiener hangt eraan.
-        if "status" in form.changed_data:
+        if form.wil_status:
             obj.behandeld_door = request.user
             obj.behandeld_op = timezone.now()
             diensten.eigenaar_bij_statuswijziging(obj, request.user)
-        super().save_model(request, obj, form, change)
+        # Alleen deze velden: de rest (terugkoppeling, gelezen-stempels) schrijft de dienstlaag, en die
+        # mag een verouderd object hier niet overschrijven.
+        obj.save(update_fields=["status", "verborgen", "behandeld_door", "behandeld_op", *diensten.BAK_VELDEN])
 
     def save_related(self, request, form, formsets, change):
         """Elk nieuw bericht gaat via de dienstlaag, zodat de melding en de e-mail er één keer uitgaan.
@@ -1283,7 +1375,7 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             VoorstelBericht.objects.filter(pk__in=pks).delete()
         for tekst in teksten:
             diensten.voorstelbericht_toevoegen(obj, request.user, tekst, van_redactie=True)
-        if not teksten and "status" in form.changed_data:
+        if not teksten and form.wil_status:
             diensten.meld_terugkoppeling(obj)
 
 

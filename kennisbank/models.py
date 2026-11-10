@@ -618,6 +618,14 @@ class Verbetervoorstel(models.Model):
     #: Wanneer de eigenaar het voorstel voor het laatst opende. Zo ziet hij wat nieuw in zijn bak is:
     #: "gelezen" is per bak. Voor de gezamenlijke bak blijft gelezen_redactie_op het teamstempel.
     eigenaar_gezien_op = models.DateTimeField(null=True, blank=True, editable=False)
+    #: Door de redactie verborgen voor collega's (onder "Alle voorstellen"), bijvoorbeeld omdat er de
+    #: naam van een collega in staat. De indiener en de redactie zien het gewoon.
+    verborgen = models.BooleanField(
+        "verbergen voor collega's",
+        default=False,
+        help_text="Het voorstel staat dan niet meer onder 'Alle voorstellen' en kan niet meer worden gesteund, "
+        "bijvoorbeeld omdat er een naam van een collega in staat. De indiener ziet het gewoon.",
+    )
 
     class Meta:
         verbose_name = "verbetervoorstel"

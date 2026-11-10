@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.15.0 .
-docker push registry.example.nl/kennisbank:1.15.0
+docker build -t registry.example.nl/kennisbank:1.16.0 .
+docker push registry.example.nl/kennisbank:1.16.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -119,7 +119,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.15.0
+  registry.example.nl/kennisbank:1.16.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -140,6 +140,24 @@ De migraties lopen automatisch mee bij het starten (of via `migreer`). Maak voor
 zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens gebeurt; alleen de
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
+
+#### Naar 1.16.0 (vanaf 1.7.0 of later)
+
+**Eén migratie** (`0024_voorstel_verbergen`): één kolom erbij op de verbetervoorstellen. Komt u van vóór
+1.15.0, dan draait `migrate` ook 0023 mee.
+
+- **`/beheer/` is een werkplek** met links de werkbakken (werkvoorraad, alle procesmanagers, afgehandeld,
+  concepten, kladversies, opnieuw nakijken) en rechts de inhoud. De oude lijst *Verbetervoorstellen* staat
+  niet meer onder "Alle onderdelen"; het behandelscherm per voorstel bestaat nog.
+- **Kladversies komen na opslaan niet meer terug** (fout uit 1.14.0). Een kladversie die op de server weer
+  open was gezet, wordt niet automatisch opgeruimd; die verdwijnt bij het volgende opslaan of na
+  `KB_KLADVERSIE_DAGEN`.
+- **Voorstellen in de bak van iemand die geen redacteur meer is**, gaan terug naar de werkvoorraad: bij
+  een rechtenwijziging, bij het verhuizen van een artikel, en dagelijks in `opschonen`.
+- **Nederlandse foutpagina's** en de andere wijzigingen uit 1.15.0 blijven ongewijzigd.
+- **API**: `GET /api/v1/voorstellen?lijst=alle` geeft bij `ingediend_op` alleen nog de datum.
+  `PATCH /api/v1/voorstellen/<id>` accepteert een optionele `verwachte_status` (409 als die niet meer klopt),
+  en `DELETE …/steun` geeft 409 bij een afgehandeld voorstel.
 
 #### Naar 1.15.0 (vanaf 1.7.0 of later)
 

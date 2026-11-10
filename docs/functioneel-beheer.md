@@ -125,6 +125,7 @@ Twee dingen om te weten:
 
 - De kopie in de browser staat op **die ene computer**. Werk je op een gedeelde werkplek, sla dan op of gooi de kladversie weg voordat je wegloopt.
 - **Clusters en zaaktypen** worden meegenomen in de kladversie. **Publicatiekeuzes** (status, toelichting, kleine correctie) bewust niet: die horen bij het moment van opslaan.
+- **Eén kladversie voor een nieuw artikel.** Begin je in twee tabbladen tegelijk aan twee *nieuwe* artikelen, dan delen die één kladversie: de laatste wint, en opslaan van het ene sluit de kladversie van het andere af. Begin een tweede nieuw artikel dus pas als het eerste is opgeslagen (als concept mag). Voor bestaande artikelen speelt dit niet: daar heeft elk artikel zijn eigen kladversie.
 
 Een paar dingen die de kennisbank bewust tegenhoudt bij het opslaan:
 
@@ -244,48 +245,62 @@ Berichten maak je in het beheer onder **Nieuwsberichten** (of via *Nieuw bericht
 
 Een bericht kun je, anders dan een artikel, gewoon verwijderen. Nieuwsberichten gaan niet per e-mail; daarvoor is de nieuwspagina.
 
-## Je startpagina in het beheer
+## Je werkplek in het beheer
 
-Als je het beheer opent, zie je eerst je **werkoverzicht**:
+Als je het beheer opent, zie je je **werkplek**. Links staat een kolom met je werkbakken, rechts de inhoud
+van wat je aanklikt. Achter elke bak staat hoeveel er in ligt.
 
-- **Verbetervoorstellen**: je eigen bak (met hoeveel er nog niet zijn geopend), de gezamenlijke bak van
-  je omgeving, en een tabel met de bakken van je collega's — hoeveel er bij wie open liggen en wat het
-  langst ligt.
-- **Concepten** in jouw omgeving(en), de nieuwste bovenaan.
-- **Mijn kladversies**: werk dat je nog niet hebt opgeslagen.
-- **Opnieuw nakijken**: artikelen waarvan de herzieningsdatum is verstreken.
-- Knoppen voor **Nieuw artikel** en **Nieuw bericht**.
-
-Daaronder staat **Alle onderdelen**: de gewone lijst van het beheer (artikelen, tags, zaaktypen, enz.).
-Voor een functioneel beheerder staat die standaard open.
+- **Werkvoorraad**: de verbetervoorstellen die nog niemand heeft opgepakt (bij meer omgevingen één per
+  omgeving). Oudste bovenaan.
+- **Procesmanagers**: iedereen uit de redactie, met het aantal open voorstellen in zijn of haar bak — ook
+  als dat 0 is. Je eigen naam staat bovenaan, met "nieuw" als er voorstellen in liggen die je nog niet hebt
+  geopend.
+- **Afgehandeld**: het archief met verwerkte en afgewezen voorstellen. Medewerkers zien die niet meer
+  (behalve hun eigen voorstellen, met het antwoord dat ze kregen).
+- **Artikelen**: *Concepten*, *Mijn kladversies* en *Opnieuw nakijken* (artikelen waarvan de
+  herzieningsdatum is verstreken).
+- Knoppen voor **Nieuw artikel** en **Nieuw bericht**, en onderaan **Alle onderdelen**: de gewone lijst
+  van het beheer (artikelen, tags, zaaktypen, enz.).
 
 ## Verbetervoorstellen behandelen
 
-Voorstellen behandel je in het **beheer**, onder *Verbetervoorstellen*. In de kennisbank zelf zie je als
-redacteur alleen nog je eigen voorstellen en die van collega's (zie hieronder); daar staat een knop naar
-je werkoverzicht.
+Voorstellen behandel je op je **werkplek** in het beheer. In de kennisbank zelf zie je als redacteur alleen
+nog je eigen voorstellen en die van collega's (zie hieronder); daar staat een knop naar je werkplek.
 
 **Bakken.** Elk nieuw voorstel komt in de **gezamenlijke bak** van de omgeving. Van daaruit:
 
 | Wat je doet | Hoe | Wat er gebeurt |
 |---|---|---|
-| **Oppakken** | Lijstactie *Oppakken*, of in het voorstel bij *Bak* jezelf kiezen | Het voorstel gaat naar jouw bak. Een nieuw voorstel krijgt de status *In behandeling* |
-| **Toewijzen** | In het voorstel bij *Bak* een collega kiezen | Het gaat naar de bak van je collega; die krijgt een e-mail. Een nieuw voorstel krijgt *In behandeling* |
-| **Overnemen** | Lijstactie *Oppakken* op een voorstel uit de bak van een collega | Het gaat naar jouw bak; in de geschiedenis van het voorstel staat "Overgenomen uit de bak van …" |
-| **Terugleggen** | Lijstactie *Terugleggen*, of bij *Bak* "Gezamenlijke bak" kiezen | Terug in de gezamenlijke bak. Is er nog geen bericht naar de indiener gestuurd, dan gaat de status terug naar *Nieuw*; anders blijft het *In behandeling* |
+| **Oppakken** | Knop *Oppakken* in de werkvoorraad, of in het voorstel bij *Bak* jezelf kiezen | Het voorstel gaat naar jouw bak. Een nieuw voorstel krijgt de status *In behandeling* |
+| **Toewijzen** | *Toewijzen aan…* een collega kiezen, of in het voorstel bij *Bak* | Het gaat naar de bak van je collega; die krijgt een e-mail. Een nieuw voorstel krijgt *In behandeling* |
+| **Overnemen** | Knop *Overnemen* bij een voorstel in de bak van een collega | Het gaat naar jouw bak; in de geschiedenis van het voorstel staat "Overgenomen uit de bak van …" |
+| **Terugleggen** | Knop *Terugleggen*, of bij *Bak* "Gezamenlijke bak" kiezen | Terug in de werkvoorraad. Is er nog geen bericht naar de indiener gestuurd, dan gaat de status terug naar *Nieuw*; anders blijft het *In behandeling* |
+| **Openen** | Op de titel of *Openen* klikken | Het behandelscherm met het gesprek met de indiener. Na *Opslaan* kom je terug in de bak waar je vandaan kwam |
 
-Met het filter **bak** rechts in de lijst kies je *Gezamenlijke bak*, *Mijn bak* of de bak van een
-collega. Iedereen in de redactie kan in elkaars bak kijken en er een voorstel uit overnemen, bijvoorbeeld
-bij ziekte of vakantie. In de kolom *Bak* staat "nog niet geopend" zolang de eigenaar het voorstel nog
-niet heeft bekeken.
+Iedereen in de redactie kan in elkaars bak kijken en er een voorstel uit overnemen, bijvoorbeeld bij ziekte
+of vakantie. "Nog niet geopend" staat erbij zolang de eigenaar het voorstel nog niet heeft bekeken.
 
-Zet je de status van een voorstel uit de gezamenlijke bak (bijvoorbeeld meteen op *Afgewezen*), dan neem
-je het daarmee in je eigen bak. Een afgehandeld voorstel blijft in de bak van wie het afhandelde; dat is
-de geschiedenis van die bak, en verplaatsen kan dan niet meer.
+**Wie afhandelt, is eigenaar.** Zet je een voorstel op *Verwerkt* of *Afgewezen*, dan komt het in jouw
+bak — ook als het bij een collega lag. Zet je de status van een voorstel uit de werkvoorraad, dan neem je
+het daarmee ook in je bak. Zet je de status terug op *Nieuw*, dan blijft het in de bak waar het lag.
 
-**Steun van collega's.** Medewerkers zien de open voorstellen van collega's (zonder naam van de indiener)
-en kunnen ze steunen. In de lijst zie je in de kolom *Steun* hoeveel collega's achter een voorstel staan,
-en in het voorstel zelf ook wie. Wil een medewerker een voorstel indienen bij een artikel waar al een open
+**Iemand anders was je voor.** Heeft een collega het voorstel intussen opgepakt, verplaatst of de status
+gewijzigd terwijl jij het openhad, dan voert de kennisbank alleen door wat jij zelf hebt veranderd. Wilde jij
+precies hetzelfde veranderen (de bak of de status), dan krijg je een melding en gebeurt er niets; open het
+voorstel dan opnieuw. Een bericht aan de indiener gaat gewoon mee.
+
+**Voorstellen verbergen.** Staat er in een voorstel iets wat collega's niet hoeven te lezen, bijvoorbeeld
+de naam van een collega, zet dan in het voorstel **Verbergen voor collega's** aan. Het staat dan niet meer
+onder *Alle voorstellen* en kan niet meer worden gesteund. De indiener ziet het gewoon.
+
+**Wie geen redacteur meer is, heeft geen bak meer.** Verliest iemand zijn redacteursrol, of verhuist een
+artikel naar een andere omgeving, dan gaan de open voorstellen uit die bak vanzelf terug naar de
+werkvoorraad.
+
+**Steun van collega's.** Medewerkers zien de open voorstellen van collega's (zonder naam van de indiener,
+en alleen met de datum van indienen) en kunnen ze steunen. In het venster waarin ze een voorstel indienen,
+staat dat collega's het voorstel zien en dat alleen procesmanagement hun naam ziet. Op je werkplek zie je bij elk voorstel hoeveel collega's erachter staan, en in het
+voorstel zelf ook wie. Steun intrekken kan alleen zolang een voorstel open is. Wil een medewerker een voorstel indienen bij een artikel waar al een open
 voorstel ligt, dan krijgt hij die eerst te zien met de vraag of hij dat liever steunt. Zo komen er minder
 dubbele voorstellen binnen.
 

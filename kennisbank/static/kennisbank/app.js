@@ -459,8 +459,7 @@
     const sorteer = `<div class="propfilter" role="group" aria-label="Volgorde">
       <button type="button" data-propvolgorde="nieuw" aria-pressed="${volgorde === "nieuw"}">Nieuwste eerst</button>
       <button type="button" data-propvolgorde="steun" aria-pressed="${volgorde === "steun"}">Meeste steun</button></div>`;
-    return `<p class="lead">Open voorstellen van collega's, zonder naam. Herken je het? Steun het voorstel: procesmanagement ziet hoeveel collega's erachter staan.</p>
-     ${lijst.length ? sorteer + `<div class="props">${lijst.map((p) => collegaKaartHTML(p, true)).join("")}</div>` : '<div class="empty">Er staan geen voorstellen open.</div>'}`;
+    return `${lijst.length ? sorteer + `<div class="props">${lijst.map((p) => collegaKaartHTML(p, true)).join("")}</div>` : '<div class="empty">Er staan geen voorstellen open.</div>'}`;
   }
 
   function renderNieuws() {
@@ -944,7 +943,7 @@
     $("#user").innerHTML = `<span class="visually-hidden">Ingelogd als</span><span>${esc(ik.naam)}</span> · <a href="${esc(ik.uitlog_url)}" id="uitlog">Uitloggen</a>`;
     const meer = [];
     if (ik.beheer_url) meer.push(`<a href="${esc(ik.beheer_url)}">Beheer: artikelen bewerken</a>`);
-    meer.push('<a href="/api/docs/">API-documentatie</a>');
+    if (ik.is_beheerder) meer.push('<a href="/api/docs/">API-documentatie</a>');
     $("#meer").innerHTML = meer.join("");
     $("#aiNote").textContent = ik.ai_aan
       ? "Antwoorden komen uit de kennisbank. Controleer belangrijke zaken altijd in het artikel."

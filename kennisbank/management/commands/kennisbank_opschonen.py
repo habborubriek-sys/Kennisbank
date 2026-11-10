@@ -59,13 +59,17 @@ class Command(BaseCommand):
         wachtrij = FavorietenMail.objects.filter(verzonden_op__lt=nu - timezone.timedelta(days=30)).delete()[0]
         claims = diensten.verlopen_claims_opruimen()
         klad = diensten.kladversies_opruimen()
+        bakken = diensten.bakken_rechtzetten()  # vangnet; normaal gebeurt dit al bij de rechtenwijziging
         diensten.stand_vastleggen(
-            "opschonen", f"{mails} mail(s) verstuurd, {claims} claim(s) opgeruimd, {klad} kladversie(s) opgeruimd"
+            "opschonen",
+            f"{mails} mail(s) verstuurd, {claims} claim(s) opgeruimd, {klad} kladversie(s) opgeruimd, "
+            f"{bakken} voorstel(len) teruggelegd",
         )
         self.stdout.write(
             f"Opgeschoond: {recent} recent-bezocht-regels, {stats} statistiekregels, "
             f"{anoniem} voorstellen geanonimiseerd ({berichten_anoniem} bericht(en) meegenomen), "
             f"verlopen sessies verwijderd, "
             f"{mails} favorietenmail(s) verstuurd, {wachtrij} verzonden mailregels opgeruimd, "
-            f"{claims} verlopen bewerkclaim(s) opgeruimd, {klad} oude kladversie(s) opgeruimd."
+            f"{claims} verlopen bewerkclaim(s) opgeruimd, {klad} oude kladversie(s) opgeruimd, "
+            f"{bakken} voorstel(len) teruggelegd in de gezamenlijke bak (eigenaar geen redacteur meer)."
         )

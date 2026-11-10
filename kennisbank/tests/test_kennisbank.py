@@ -3469,7 +3469,10 @@ class BeheerlijstenQueriesTests(Basis):
             c.get(url)
             with CaptureQueriesContext(connection) as q:
                 self.assertEqual(c.get(url).status_code, 200)
-            opzoeken = [x for x in q.captured_queries if '"kennisbank_toegang"' in x["sql"]]
+            # De rechtenvraag zelf (Rechten.rollen). De werkplek op /beheer/ vraagt daarnaast bewust
+            # wie de procesmanagers zijn; die vraag raakt dezelfde tabel maar is geen rechtencontrole.
+            rechtenvraag = 'SELECT "kennisbank_toegang"."omgeving_id" AS "omgeving_id", "kennisbank_toegang"."rol"'
+            opzoeken = [x for x in q.captured_queries if x["sql"].startswith(rechtenvraag)]
             self.assertLessEqual(len(opzoeken), 1, f"{url}: rechten {len(opzoeken)} keer opgezocht")
 
     def test_nieuwsberichten(self):

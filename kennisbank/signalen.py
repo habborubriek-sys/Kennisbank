@@ -12,7 +12,7 @@ from django.contrib.auth.models import Group
 from django.db.models.signals import m2m_changed, post_delete, post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
-from .models import Tag, Toegang
+from .models import Artikel, Tag, Toegang
 from .rechten import werk_staf_status_bij
 
 User = get_user_model()
@@ -98,3 +98,20 @@ def groep_verwijderd(sender, instance, **kwargs):
     # De koppelingen zijn al weg; wie nergens meer redacteur is, verliest het beheer.
     for gebruiker in User.objects.filter(is_staff=True, is_superuser=False):
         werk_staf_status_bij(gebruiker)
+
+
+@receiver(pre_save, sender=Artikel)
+def artikel_wordt_opgeslagen(sender, instance, **kwargs):
+    # Verhuist een artikel naar een andere omgeving, dan horen zijn open voorstellen niet meer in de bak
+    # van een redacteur van de oude omgeving.
+    if instance.pk:
+        oud = Artikel.objects.filter(pk=instance.pk).values_list("omgeving_id", flat=True).first()
+        instance._kb_andere_omgeving = oud is not None and oud != instance.omgeving_id
+
+
+@receiver(post_save, sender=Artikel)
+def artikel_opgeslagen(sender, instance, **kwargs):
+    if getattr(instance, "_kb_andere_omgeving", False):
+        from .diensten import bakken_rechtzetten
+
+        bakken_rechtzetten(artikel=instance)
