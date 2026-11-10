@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.14.2 .
-docker push registry.example.nl/kennisbank:1.14.2
+docker build -t registry.example.nl/kennisbank:1.15.0 .
+docker push registry.example.nl/kennisbank:1.15.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -119,7 +119,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.14.2
+  registry.example.nl/kennisbank:1.15.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -140,6 +140,25 @@ De migraties lopen automatisch mee bij het starten (of via `migreer`). Maak voor
 zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens gebeurt; alleen de
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
+
+#### Naar 1.15.0 (vanaf 1.7.0 of later)
+
+**Eén migratie** (`0023_voorstel_bakken_en_steun`): twee kolommen erbij op de verbetervoorstellen en een
+nieuwe tabel voor steun. Draai `migrate` zoals altijd; de migratie is klein en snel.
+
+- **Verbetervoorstellen worden in het beheer behandeld, in bakken.** Een nieuw voorstel komt in de
+  gezamenlijke bak van de omgeving; redacteuren pakken het op, wijzen het toe of leggen het terug. Bij de
+  update komt een voorstel dat al was opgepakt in de bak van wie het oppakte (`behandeld_door`); nieuwe
+  voorstellen blijven in de gezamenlijke bak.
+- **Toewijzen aan een collega stuurt die collega een e-mail** (als `KB_EMAIL_AAN` aan staat). De e-mail bij
+  een nieuw voorstel verwijst nu naar de gezamenlijke bak in het beheer in plaats van naar de kennisbank.
+- **`/beheer/` is een werkoverzicht** voor redacteuren. De gewone lijst staat eronder onder "Alle onderdelen".
+- **Medewerkers kunnen voorstellen van collega's steunen.** Namen van wie steunt worden bij de bestaande
+  anonimisering (`KB_ANONIMISEER_VOORSTEL_DAGEN`) gewist. Zie `docs/beveiliging-en-privacy.md`.
+- **Eigen Nederlandse foutpagina's** voor 400, 403, 404 en 500. Die zie je alleen met `KB_DEBUG` uit.
+- **API**: `GET /api/v1/voorstellen` werkt zonder parameter zoals voorheen. Nieuw zijn `?lijst=mijn`,
+  `?lijst=alle` (open voorstellen van collega's, zonder namen, optioneel `&artikel=<id>`) en
+  `PUT`/`DELETE /api/v1/voorstellen/<id>/steun`.
 
 #### Naar 1.14.2 (vanaf 1.7.0 of later)
 

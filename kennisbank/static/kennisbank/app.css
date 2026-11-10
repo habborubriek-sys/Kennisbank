@@ -451,3 +451,17 @@ noscript+.loading{display:none}
 .kladlijst{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .kladlijst li{background:var(--surface-2);border-radius:8px;padding:8px 12px;line-height:1.45}
 .kladlijst .hint{color:var(--fg-muted);font-size:.85rem}
+
+/* Verbetervoorstellen: Mijn / Alle, steunen, en het venster bij een al bestaand voorstel (1.15.0) */
+.proptabs{display:flex;gap:0;margin:4px 0 14px;border:1px solid var(--line);border-radius:8px;width:max-content;max-width:100%;overflow:hidden}
+.proptabs button{border:0;background:var(--surface);padding:8px 16px;font-weight:600;color:var(--fg-muted)}
+.proptabs button+button{border-left:1px solid var(--line)}
+.proptabs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.pm-beheer{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.steunregel{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px}
+.steun-aantal{font-size:.9rem;color:var(--fg-muted)}
+.steun-eigen{font-size:.86rem;color:var(--fg-muted);font-style:italic}
+.steunknop[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.backdrop.vol{padding:16px}
+.backdrop.vol .modal{width:min(1000px,100%);height:100%;max-height:calc(100dvh - 32px);grid-template-rows:auto auto auto 1fr auto;overflow:hidden}
+.backdrop.vol .dubbellijst{overflow:auto;min-height:0;padding-right:4px}

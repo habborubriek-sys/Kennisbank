@@ -114,3 +114,82 @@ def csrf_verlopen(request, reason=""):
     return HttpResponseForbidden(
         render_to_string("kennisbank/csrf_verlopen.html", {"app_naam": settings.KB_APP_NAAM}, request=request)
     )
+
+
+# --- Foutpagina's (400, 403, 404, 500) -------------------------------------------------
+#
+# Zonder deze functies toont Django buiten de app zijn eigen kale, Engelse pagina ("Not Found",
+# "Server Error (500)") zonder weg terug. Onder /api/ blijft het antwoord JSON, zoals de rest van de API.
+
+FOUTEN = {
+    400: (
+        "Dit verzoek kon niet worden verwerkt",
+        [
+            "De kennisbank kreeg iets binnen wat hij niet kon verwerken. Dat gebeurt bijvoorbeeld bij een "
+            "heel groot artikel dat in één keer wordt opgeslagen, of bij een adres dat niet klopt.",
+        ],
+        "Ga terug met de terugknop van je browser. Gebeurde dit bij het opslaan van een artikel, kopieer "
+        "je tekst dan voor de zekerheid en meld het bij de beheerder van de kennisbank.",
+    ),
+    403: (
+        "Hier heb je geen toegang toe",
+        ["Je bent ingelogd, maar deze pagina hoort niet bij jouw rechten in de kennisbank."],
+        "Denk je dat je hier wel bij zou moeten kunnen? Vraag het na bij de beheerder van de kennisbank.",
+    ),
+    404: (
+        "Deze pagina bestaat niet",
+        [
+            "Het adres klopt niet, of wat hier stond is verplaatst of verwijderd.",
+            "Kwam je hier via een link in een document of e-mail? Zoek het artikel dan op in de kennisbank.",
+        ],
+        "",
+    ),
+    500: (
+        "Er ging iets mis",
+        [
+            "Dit ligt niet aan jou: er ging op de server iets fout. Wat je net deed, is mogelijk niet opgeslagen.",
+        ],
+        "Probeer het over een paar minuten opnieuw. Blijft het gebeuren, meld het dan bij de beheerder van de "
+        "kennisbank, met het tijdstip en wat je aan het doen was.",
+    ),
+}
+
+
+def _foutpagina(request, code):
+    from django.http import HttpResponse, JsonResponse
+
+    titel, uitleg, hint = FOUTEN[code]
+    if request is not None and request.path.startswith("/api/"):
+        return JsonResponse({"detail": titel + "."}, status=code)
+    try:
+        beheer = bool(request is not None and getattr(request, "user", None) and request.user.is_staff)
+    except Exception:  # noqa: BLE001 - bij een 500 kan zelfs de sessie het probleem zijn
+        beheer = False
+    try:
+        html = render_to_string(
+            "kennisbank/fout.html",
+            {"app_naam": settings.KB_APP_NAAM, "titel": titel, "uitleg": uitleg, "hint": hint, "code": code,
+             "beheer": beheer},
+        )
+    except Exception:  # noqa: BLE001 - een foutpagina mag zelf nooit omvallen
+        html = (
+            f"<!doctype html><html lang='nl'><meta charset='utf-8'><title>{titel}</title>"
+            f"<h1>{titel}</h1><p><a href='/'>Naar de kennisbank</a></p></html>"
+        )
+    return HttpResponse(html, status=code)
+
+
+def fout_400(request, exception=None):
+    return _foutpagina(request, 400)
+
+
+def fout_403(request, exception=None):
+    return _foutpagina(request, 403)
+
+
+def fout_404(request, exception=None):
+    return _foutpagina(request, 404)
+
+
+def fout_500(request):
+    return _foutpagina(request, 500)

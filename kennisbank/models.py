@@ -604,11 +604,26 @@ class Verbetervoorstel(models.Model):
     #: ongelezen tonen, en omdat het gesprek eenrichting is krijgt de redactie na het eerste
     #: bericht niets meer binnen. Wie het heeft opgepakt staat in behandeld_door.
     gelezen_redactie_op = models.DateTimeField(null=True, blank=True, editable=False)
+    #: In wiens bak het voorstel ligt. Leeg = de gezamenlijke bak van de omgeving. Alleen de functies
+    #: in diensten (voorstel_naar_bak) zetten dit veld, zodat de status en de e-mail meelopen.
+    eigenaar = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="voorstellen_in_bak",
+        editable=False,
+    )
+    eigenaar_sinds = models.DateTimeField(null=True, blank=True, editable=False)
+    #: Wanneer de eigenaar het voorstel voor het laatst opende. Zo ziet hij wat nieuw in zijn bak is:
+    #: "gelezen" is per bak. Voor de gezamenlijke bak blijft gelezen_redactie_op het teamstempel.
+    eigenaar_gezien_op = models.DateTimeField(null=True, blank=True, editable=False)
 
     class Meta:
         verbose_name = "verbetervoorstel"
         verbose_name_plural = "verbetervoorstellen"
         ordering = ["-ingediend_op"]
+        indexes = [models.Index(fields=["eigenaar", "status"], name="voorstel_bak_idx")]
 
     def __str__(self):
         return f"Voorstel bij {self.artikel} ({self.get_status_display()})"
@@ -616,6 +631,43 @@ class Verbetervoorstel(models.Model):
     @property
     def is_open(self):
         return self.status in {VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING}
+
+
+class Steun(models.Model):
+    """Een collega steunt een verbetervoorstel (de like-knop).
+
+    Eén keer per persoon, alleen bij een open voorstel en niet bij je eigen voorstel; dat bewaken de
+    diensten en de unieke index. Collega's zien alleen het aantal, de redactie ziet ook wie. Bij de
+    anonimisering van een afgehandeld voorstel wordt `gebruiker` leeggemaakt: het aantal blijft, de
+    namen gaan weg.
+    """
+
+    voorstel = models.ForeignKey(Verbetervoorstel, on_delete=models.CASCADE, related_name="steun")
+    gebruiker = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    moment = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "steun"
+        verbose_name_plural = "steun"
+        ordering = ["moment", "pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["voorstel", "gebruiker"],
+                condition=models.Q(gebruiker__isnull=False),
+                name="een_steun_per_persoon",
+            )
+        ]
+
+    def __str__(self):
+        return f"Steun voor voorstel {self.voorstel_id}"
+
+    @property
+    def naam(self) -> str:
+        if not self.gebruiker:
+            return "Collega (geanonimiseerd)"
+        return self.gebruiker.get_full_name() or self.gebruiker.get_username()
 
 
 #: Een bericht mag lang zijn (een onderbouwde terugkoppeling), maar niet eindeloos. Eén bron van

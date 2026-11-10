@@ -992,6 +992,73 @@ class VoorstelOpenFilter(admin.SimpleListFilter):
         return queryset
 
 
+class BakFilter(admin.SimpleListFilter):
+    """In wiens bak ligt het voorstel: de gezamenlijke bak, de mijne, of die van een collega."""
+
+    title = "bak"
+    parameter_name = "bak"
+
+    def lookups(self, request, model_admin):
+        keuzes = [("gezamenlijk", "Gezamenlijke bak"), ("mijn", "Mijn bak")]
+        eigenaren = (
+            model_admin.get_queryset(request)
+            .exclude(eigenaar__isnull=True)
+            .exclude(eigenaar=request.user)
+            .values_list("eigenaar_id", "eigenaar__first_name", "eigenaar__last_name", "eigenaar__username")
+            .distinct()
+        )
+        collegas = sorted(
+            (f"{v} {a}".strip() or g, pk) for pk, v, a, g in eigenaren
+        )
+        keuzes += [(f"u{pk}", f"Bak van {naam}") for naam, pk in collegas]
+        return keuzes
+
+    def queryset(self, request, queryset):
+        keuze = self.value()
+        if keuze == "gezamenlijk":
+            return queryset.filter(eigenaar__isnull=True)
+        if keuze == "mijn":
+            return queryset.filter(eigenaar=request.user)
+        if keuze and keuze.startswith("u") and keuze[1:].isdigit():
+            return queryset.filter(eigenaar_id=int(keuze[1:]))
+        return queryset
+
+
+class VoorstelForm(forms.ModelForm):
+    """Het behandelformulier, met een keuzelijst 'bak' bovenaan.
+
+    De bak is geen gewoon modelveld: verplaatsen loopt via diensten.voorstel_naar_bak, zodat de status
+    en de e-mail aan een collega meelopen. Daarom een los formulierveld, verwerkt in save_model.
+    """
+
+    naar_bak = forms.ChoiceField(
+        label="Bak",
+        required=False,
+        help_text="Kies jezelf om het op te pakken, een collega om het toe te wijzen (die krijgt een "
+        "e-mail), of de gezamenlijke bak om het terug te leggen.",
+    )
+
+    class Meta:
+        model = Verbetervoorstel
+        fields = ["status"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        v = self.instance
+        keuzes = [("", "— Gezamenlijke bak")]
+        if v.pk:
+            keuzes += [(str(u.pk), diensten.naam_van(u)) for u in diensten.redacteuren_van(v.artikel.omgeving_id)]
+            if v.eigenaar_id and str(v.eigenaar_id) not in {k for k, _ in keuzes}:
+                # Eigenaar die intussen geen redacteur meer is: wel tonen, anders lijkt het voorstel
+                # stil te verhuizen naar de gezamenlijke bak.
+                keuzes.append((str(v.eigenaar_id), f"{diensten.naam_van(v.eigenaar)} (geen redacteur meer)"))
+        self.fields["naar_bak"].choices = keuzes
+        self.fields["naar_bak"].initial = str(v.eigenaar_id or "")
+        if v.pk and not v.is_open:
+            self.fields["naar_bak"].disabled = True
+            self.fields["naar_bak"].help_text = "Een afgehandeld voorstel blijft bij wie het afhandelde."
+
+
 class VoorstelBerichtInline(admin.TabularInline):
     """Het gesprek tot nu toe, en één lege regel om een bericht toe te voegen."""
 
@@ -1038,10 +1105,12 @@ class VoorstelBerichtInline(admin.TabularInline):
 @admin.register(Verbetervoorstel)
 class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     omgeving_pad = "artikel__omgeving"
-    list_display = ["artikel", "status", "ingediend_op", "ingediend_door", "gesprek", "kort"]
+    form = VoorstelForm
+    list_display = ["artikel", "status", "bak", "steun_kolom", "ingediend_op", "ingediend_door", "gesprek", "kort"]
     # In één keer meenemen; anders haalt de lijst voor elke rij de indiener apart op.
-    list_select_related = ["artikel", "ingediend_door"]
-    list_filter = [VoorstelOpenFilter, "status", "artikel__omgeving"]
+    list_select_related = ["artikel", "ingediend_door", "eigenaar"]
+    list_filter = [BakFilter, VoorstelOpenFilter, "status", "artikel__omgeving"]
+    actions = ["oppakken", "terugleggen"]
     search_fields = ["tekst", "citaat", "artikel__titel", "berichten__tekst"]
     inlines = [VoorstelBerichtInline]
     readonly_fields = [
@@ -1054,6 +1123,7 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         "behandeld_door",
         "behandeld_op",
         "laatste_terugkoppeling",
+        "steun_overzicht",
     ]
     fieldsets = [
         (
@@ -1063,7 +1133,14 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         (
             "Behandeling",
             {
-                "fields": ["status", "laatste_terugkoppeling", "behandeld_door", "behandeld_op"],
+                "fields": [
+                    "naar_bak",
+                    "status",
+                    "steun_overzicht",
+                    "laatste_terugkoppeling",
+                    "behandeld_door",
+                    "behandeld_op",
+                ],
                 "description": "Terugkoppelen gaat via de berichten onderaan: elk bericht komt bij de "
                 "indiener binnen als melding en als e-mail. Het laatste bericht is wat hij als antwoord "
                 "ziet staan.",
@@ -1077,7 +1154,69 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         return obj.terugkoppeling or "— nog geen terugkoppeling gestuurd"
 
     def get_queryset(self, request):
-        return super().get_queryset(request).annotate(_berichten=Count("berichten"))
+        return (
+            super()
+            .get_queryset(request)
+            .annotate(_berichten=Count("berichten", distinct=True), _steun=Count("steun", distinct=True))
+        )
+
+    @admin.display(description="Bak", ordering="eigenaar__first_name")
+    def bak(self, obj):
+        if not obj.eigenaar_id:
+            return "Gezamenlijk"
+        naam = diensten.naam_van(obj.eigenaar)
+        if obj.is_open and obj.eigenaar_gezien_op is None:
+            return format_html("{} <b>· nog niet geopend</b>", naam)
+        return naam
+
+    @admin.display(description="Steun", ordering="_steun")
+    def steun_kolom(self, obj):
+        return obj._steun or "—"
+
+    @admin.display(description="Steun van collega's")
+    def steun_overzicht(self, obj):
+        rijen = list(obj.steun.select_related("gebruiker"))
+        if not rijen:
+            return "Nog niemand"
+        namen = ", ".join(r.naam for r in rijen)
+        return f"{len(rijen)} collega('s): {namen}"
+
+    @admin.action(description="Oppakken: naar mijn bak (ook om over te nemen van een collega)")
+    def oppakken(self, request, queryset):
+        self._verplaats(request, queryset, request.user, "opgepakt")
+
+    @admin.action(description="Terugleggen in de gezamenlijke bak")
+    def terugleggen(self, request, queryset):
+        self._verplaats(request, queryset, None, "teruggelegd")
+
+    def _verplaats(self, request, queryset, naar, werkwoord):
+        gelukt, fouten = 0, []
+        for v in queryset.select_related("artikel", "eigenaar"):
+            vorige = v.eigenaar
+            try:
+                diensten.voorstel_naar_bak(v, request.user, naar)
+            except diensten.VoorstelFout as e:
+                fouten.append(f"{v.artikel.titel}: {e}")
+                continue
+            gelukt += 1
+            if naar is None:
+                bericht = f"Teruggelegd in de gezamenlijke bak (lag bij {diensten.naam_van(vorige)})."
+            elif vorige and vorige.pk != request.user.pk:
+                bericht = f"Overgenomen uit de bak van {diensten.naam_van(vorige)}."
+            else:
+                bericht = "Opgepakt."
+            self.log_change(request, v, bericht)
+        if gelukt:
+            self.message_user(request, f"{gelukt} voorstel(len) {werkwoord}.", messages.SUCCESS)
+        for f in fouten:
+            self.message_user(request, f, messages.WARNING)
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        if request.method == "GET":
+            v = self.get_object(request, object_id)
+            if v is not None:
+                diensten.voorstel_gezien_door_eigenaar(v, request.user)
+        return super().change_view(request, object_id, form_url, extra_context)
 
     @admin.display(description="Gesprek", ordering="_berichten")
     def gesprek(self, obj):
@@ -1091,12 +1230,31 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         return False
 
     def save_model(self, request, obj, form, change):
+        # Eerst de bak: dat loopt via de dienstlaag (slot, status, e-mail). Daarna de velden die die
+        # dienst schreef overnemen in obj, anders zet het opslaan hieronder de oude waarden terug.
+        if "naar_bak" in form.changed_data:
+            keuze = form.cleaned_data.get("naar_bak")
+            naar = diensten.redacteuren_van(obj.artikel.omgeving_id).filter(pk=keuze).first() if keuze else None
+            vorige = obj.eigenaar
+            try:
+                v = diensten.voorstel_naar_bak(obj, request.user, naar)
+            except diensten.VoorstelFout as e:
+                self.message_user(request, str(e), messages.WARNING)
+            else:
+                velden = list(diensten.BAK_VELDEN)
+                if "status" not in form.changed_data:
+                    velden += ["status", "behandeld_door", "behandeld_op"]
+                for veld in velden:
+                    setattr(obj, veld, getattr(v, veld))
+                if naar and vorige and vorige.pk not in (naar.pk, request.user.pk) and naar.pk == request.user.pk:
+                    self.message_user(request, f"Overgenomen uit de bak van {diensten.naam_van(vorige)}.")
         # behandeld_door/op horen bij de status: wie heeft dit voorstel afgehandeld, en wanneer. Een
         # tussentijds bericht raakt ze niet aan (zie diensten.voorstelbericht_toevoegen), want de
         # bewaartermijn van de naam van de indiener hangt eraan.
         if "status" in form.changed_data:
             obj.behandeld_door = request.user
             obj.behandeld_op = timezone.now()
+            diensten.eigenaar_bij_statuswijziging(obj, request.user)
         super().save_model(request, obj, form, change)
 
     def save_related(self, request, form, formsets, change):

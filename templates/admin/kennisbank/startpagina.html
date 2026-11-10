@@ -1,0 +1,83 @@
+{% extends "admin/index.html" %}
+{% comment %}
+  Startpagina van het beheer (kennisbank/werkoverzicht.py). Voor een redacteur eerst zijn werk; de
+  gewone lijst met onderdelen van Django staat daaronder onder "Alle onderdelen".
+{% endcomment %}
+{% block content %}
+<div id="content-main">
+{% if werkoverzicht %}{% with w=werkoverzicht %}
+  <div class="kb-start">
+    <div class="kb-start-knoppen">
+      <a class="button kb-knop" href="{{ w.nieuw_artikel_url }}">Nieuw artikel</a>
+      <a class="button kb-knop" href="{{ w.nieuw_bericht_url }}">Nieuw bericht</a>
+    </div>
+
+    <section class="module kb-blok" aria-labelledby="kb-bakken">
+      <h2 id="kb-bakken">Verbetervoorstellen</h2>
+      <div class="kb-bakken">
+        <a class="kb-bak kb-bak-mijn" href="{{ w.mijn.url }}">
+          <span class="kb-bak-titel">Mijn bak</span>
+          <span class="kb-bak-getal">{{ w.mijn.aantal }}</span>
+          <span class="kb-bak-sub">{% if w.mijn.nieuw %}<b>{{ w.mijn.nieuw }} nog niet geopend</b>{% elif w.mijn.aantal %}open{% else %}niets open{% endif %}{% if w.mijn.oudste_dagen %} · oudste {{ w.mijn.oudste_dagen }} dag{{ w.mijn.oudste_dagen|pluralize:"en" }}{% endif %}</span>
+        </a>
+        {% for b in w.gezamenlijk %}
+        <a class="kb-bak{% if b.aantal %} kb-bak-vol{% endif %}" href="{{ b.url }}">
+          <span class="kb-bak-titel">Gezamenlijke bak{% if w.gezamenlijk|length > 1 %} · {{ b.naam }}{% endif %}</span>
+          <span class="kb-bak-getal">{{ b.aantal }}</span>
+          <span class="kb-bak-sub">{% if b.aantal %}nog op te pakken{% if b.oudste_dagen %} · oudste {{ b.oudste_dagen }} dag{{ b.oudste_dagen|pluralize:"en" }}{% endif %}{% else %}leeg{% endif %}</span>
+        </a>
+        {% endfor %}
+      </div>
+      {% if w.collegas %}
+      <h3 class="kb-sub">Bakken van collega's</h3>
+      <table class="kb-tabel">
+        <thead><tr><th scope="col">Collega</th><th scope="col">Open</th><th scope="col">Langst in de bak</th></tr></thead>
+        <tbody>
+        {% for c in w.collegas %}
+          <tr><td><a href="{{ c.url }}">{{ c.naam }}</a></td><td>{{ c.aantal }}</td><td>{% if c.oudste_dagen is not None %}{{ c.oudste_dagen }} dag{{ c.oudste_dagen|pluralize:"en" }}{% else %}—{% endif %}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="kb-leeg">Er ligt bij collega's niets open.</p>
+      {% endif %}
+    </section>
+
+    <div class="kb-kolommen">
+      <section class="module kb-blok" aria-labelledby="kb-concepten">
+        <h2 id="kb-concepten">Concepten</h2>
+        {% if w.concepten %}
+        <ul class="kb-lijst">
+          {% for c in w.concepten %}<li><a href="{{ c.url }}">{{ c.titel }}</a> <span class="mini quiet">gewijzigd {{ c.gewijzigd_op|date:"j F" }}</span></li>{% endfor %}
+        </ul>
+        {% if w.concepten_aantal > w.concepten|length %}<p><a href="{{ w.concepten_url }}">Alle {{ w.concepten_aantal }} concepten</a></p>{% endif %}
+        {% else %}<p class="kb-leeg">Geen concepten.</p>{% endif %}
+      </section>
+
+      <section class="module kb-blok" aria-labelledby="kb-klad">
+        <h2 id="kb-klad">Mijn kladversies</h2>
+        {% if w.kladversies %}
+        <ul class="kb-lijst">
+          {% for k in w.kladversies %}<li><a href="{{ k.url }}">{{ k.titel }}</a> <span class="mini quiet">bijgewerkt {{ k.bijgewerkt_op|date:"j F H:i" }}</span></li>{% endfor %}
+        </ul>
+        {% else %}<p class="kb-leeg">Geen openstaand werk.</p>{% endif %}
+      </section>
+
+      <section class="module kb-blok" aria-labelledby="kb-herzien">
+        <h2 id="kb-herzien">Opnieuw nakijken</h2>
+        {% if w.herzien %}
+        <p><a href="{{ w.herzien_url }}"><b>{{ w.herzien }}</b> artikel{{ w.herzien|pluralize:"en" }} met een verstreken herzieningsdatum</a></p>
+        {% else %}<p class="kb-leeg">Niets over datum.</p>{% endif %}
+      </section>
+    </div>
+  </div>
+
+  <details class="kb-alles"{% if request.user.is_superuser %} open{% endif %}>
+    <summary>Alle onderdelen</summary>
+    {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+  </details>
+{% endwith %}{% else %}
+  {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+{% endif %}
+</div>
+{% endblock %}

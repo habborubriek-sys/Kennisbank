@@ -5,7 +5,7 @@ Documentatie: /api/schema/ (OpenAPI) en /api/docs/ (interactief).
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Exists, OuterRef, Q, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_field, inline_serializer
@@ -29,6 +29,7 @@ from .models import (
     Omgeving,
     RecentBezocht,
     Soort,
+    Steun,
     Tag,
     Verbetervoorstel,
     VoorstelBericht,
@@ -146,10 +147,12 @@ class VoorstelSerializer(serializers.ModelSerializer):
     berichten = serializers.SerializerMethodField()
     ongelezen = serializers.SerializerMethodField()
     behandeld_door = serializers.SerializerMethodField()
+    steun = serializers.SerializerMethodField()
 
     class Meta:
         model = Verbetervoorstel
         fields = [
+            "steun",
             "id",
             "artikel",
             "artikel_titel",
@@ -173,6 +176,12 @@ class VoorstelSerializer(serializers.ModelSerializer):
     def get_berichten(self, obj):
         """Het hele gesprek, oudste eerst."""
         return VoorstelBerichtSerializer(obj.berichten.all(), many=True).data
+
+    def get_steun(self, obj) -> int:
+        """Hoeveel collega's dit voorstel steunen. Alleen het aantal; namen ziet alleen de redactie."""
+        if hasattr(obj, "_steun"):  # de lijst telt dit in één vraag mee
+            return obj._steun
+        return obj.steun.count()
 
     def get_behandeld_door(self, obj) -> str | None:
         """Wie het voorstel heeft opgepakt. Zo ziet een tweede redacteur dat een collega hem al heeft."""
@@ -201,6 +210,36 @@ class VoorstelSerializer(serializers.ModelSerializer):
 
     def validate_citaat(self, value):
         return (value or "").strip()[:2000]
+
+
+class VoorstelOpenbaarSerializer(serializers.ModelSerializer):
+    """Een open voorstel zoals collega's het zien: zonder naam van de indiener en zonder het gesprek."""
+
+    artikel_url = serializers.CharField(source="artikel.get_absolute_url", read_only=True)
+    artikel_titel = serializers.CharField(source="artikel.titel", read_only=True)
+    steun = serializers.IntegerField(source="_steun", read_only=True)
+    ik_steun = serializers.BooleanField(source="_ik_steun", read_only=True)
+    van_mij = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Verbetervoorstel
+        fields = [
+            "id",
+            "artikel",
+            "artikel_titel",
+            "artikel_url",
+            "citaat",
+            "tekst",
+            "status",
+            "ingediend_op",
+            "steun",
+            "ik_steun",
+            "van_mij",
+        ]
+        read_only_fields = fields
+
+    def get_van_mij(self, obj) -> bool:
+        return obj.ingediend_door_id == self.context["request"].user.pk
 
 
 class AssistentThrottle(UserRateThrottle):
@@ -570,15 +609,73 @@ def voorstellen(request):
         diensten.meld_nieuw_voorstel(v)
         return Response(VoorstelSerializer(v, context=_ctx(request)).data, status=status.HTTP_201_CREATED)
 
-    # Lezers zien hun eigen voorstellen; redacteuren alle voorstellen in hun omgeving(en).
-    qs = Verbetervoorstel.objects.select_related("artikel", "ingediend_door").prefetch_related("berichten__auteur")
-    qs = qs.filter(Q(ingediend_door=request.user) | Q(artikel__omgeving_id__in=r.redactie_omgevingen))
+    lijst = request.GET.get("lijst")
+    if lijst == "alle":
+        return _voorstellen_van_collegas(request)
+    # Zonder 'lijst': lezers zien hun eigen voorstellen, redacteuren alle voorstellen in hun
+    # omgeving(en) (zo werkte de API altijd; koppelingen kunnen daarop rekenen). Met lijst=mijn
+    # alleen de eigen voorstellen, ook voor een redacteur: dat is de pagina "Mijn voorstellen".
+    qs = (
+        Verbetervoorstel.objects.select_related("artikel", "ingediend_door", "behandeld_door")
+        .prefetch_related("berichten__auteur")
+        .annotate(_steun=Count("steun", distinct=True))
+    )
+    if lijst == "mijn":
+        qs = qs.filter(ingediend_door=request.user)
+    else:
+        qs = qs.filter(Q(ingediend_door=request.user) | Q(artikel__omgeving_id__in=r.redactie_omgevingen))
     gevraagd = request.GET.get("status")
     if gevraagd == "open":
         qs = qs.filter(status__in=[VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING])
     elif gevraagd in dict(VoorstelStatus.choices):
         qs = qs.filter(status=gevraagd)
     return Response(VoorstelSerializer(qs, many=True, context=_ctx(request)).data)
+
+
+def _voorstellen_van_collegas(request):
+    """Open voorstellen bij artikelen die deze gebruiker mag lezen, zonder namen; om te steunen."""
+    qs = (
+        Verbetervoorstel.objects.filter(
+            status__in=[VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING],
+            artikel__in=rechten(request).artikelen(),
+        )
+        .select_related("artikel")
+        .annotate(
+            _steun=Count("steun", distinct=True),
+            _ik_steun=Exists(Steun.objects.filter(voorstel=OuterRef("pk"), gebruiker=request.user)),
+        )
+        .order_by("-ingediend_op")
+    )
+    artikel = request.GET.get("artikel")
+    if artikel:
+        if not artikel.isdigit():
+            return Response({"detail": "Ongeldig artikelnummer."}, status=status.HTTP_400_BAD_REQUEST)
+        qs = qs.filter(artikel_id=int(artikel))
+    return Response(VoorstelOpenbaarSerializer(qs, many=True, context=_ctx(request)).data)
+
+
+@extend_schema(
+    summary="Een voorstel van een collega steunen (PUT) of de steun intrekken (DELETE)",
+    description="Alleen bij een open voorstel bij een artikel dat je mag lezen, en niet bij je eigen "
+    "voorstel. Collega's zien alleen het aantal; de redactie ziet ook wie.",
+    request=None,
+    responses={204: None},
+)
+@api_view(["PUT", "DELETE"])
+def voorstel_steun(request, pk):
+    v = get_object_or_404(
+        Verbetervoorstel.objects.select_related("artikel"),
+        pk=pk,
+        artikel__in=rechten(request).artikelen(),  # 404, verraad niet dat het bestaat
+    )
+    if request.method == "DELETE":
+        diensten.steun_intrekken(v, request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    try:
+        diensten.steun_geven(v, request.user)
+    except diensten.VoorstelFout as e:
+        return Response({"detail": str(e)}, status=status.HTTP_409_CONFLICT)
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @extend_schema(
@@ -605,7 +702,8 @@ def voorstel(request, pk):
             v.status = nieuwe_status
             v.behandeld_door = request.user
             v.behandeld_op = timezone.now()
-            v.save(update_fields=["status", "behandeld_door", "behandeld_op"])
+            diensten.eigenaar_bij_statuswijziging(v, request.user)
+            v.save(update_fields=["status", "behandeld_door", "behandeld_op", *diensten.BAK_VELDEN])
     # Een meegestuurde terugkoppeling wordt een bericht aan de indiener; daar zit de melding en de
     # e-mail al aan vast. Dubbel versturen voorkomen we door hem over te slaan als hij niet verandert.
     tekst = (s.validated_data.get("terugkoppeling") or "").strip()

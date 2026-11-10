@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.14.2
+  version: 1.15.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -452,6 +452,47 @@ paths:
     post:
       operationId: v1_voorstellen_gelezen_create
       summary: Gesprek over een verbetervoorstel als gelezen markeren
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/voorstellen/{id}/steun:
+    put:
+      operationId: v1_voorstellen_steun_update
+      description: Alleen bij een open voorstel bij een artikel dat je mag lezen,
+        en niet bij je eigen voorstel. Collega's zien alleen het aantal; de redactie
+        ziet ook wie.
+      summary: Een voorstel van een collega steunen (PUT) of de steun intrekken (DELETE)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+    delete:
+      operationId: v1_voorstellen_steun_destroy
+      description: Alleen bij een open voorstel bij een artikel dat je mag lezen,
+        en niet bij je eigen voorstel. Collega's zien alleen het aantal; de redactie
+        ziet ook wie.
+      summary: Een voorstel van een collega steunen (PUT) of de steun intrekken (DELETE)
       parameters:
       - in: path
         name: id
@@ -1062,6 +1103,11 @@ components:
     Voorstel:
       type: object
       properties:
+        steun:
+          type: integer
+          description: Hoeveel collega's dit voorstel steunen. Alleen het aantal;
+            namen ziet alleen de redactie.
+          readOnly: true
         id:
           type: integer
           readOnly: true
@@ -1131,6 +1177,7 @@ components:
       - ingediend_op
       - ongelezen
       - status
+      - steun
       - tekst
       - terugkoppeling
       - van_mij

@@ -10,3 +10,25 @@ html[data-theme="auto"] {
   }
 }
 .inline-group textarea{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
+
+/* Startpagina (werkoverzicht) — kennisbank/werkoverzicht.py en admin/kennisbank/startpagina.html */
+.kb-start{margin-bottom:24px}
+.kb-start-knoppen{display:flex;gap:10px;margin:0 0 16px}
+a.button.kb-knop{display:inline-block;padding:8px 14px;border-radius:6px}
+.kb-blok{margin-bottom:18px}
+.kb-blok > p,.kb-blok > ul,.kb-blok > table,.kb-blok > .kb-bakken,.kb-blok > h3{margin-left:12px;margin-right:12px}
+.kb-bakken{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;margin-bottom:12px}
+.kb-bak{display:flex;flex-direction:column;gap:2px;min-width:180px;padding:12px 14px;border:1px solid var(--hairline-color);border-radius:8px;text-decoration:none;color:var(--body-fg)}
+.kb-bak:hover{border-color:var(--primary);background:var(--selected-row)}
+.kb-bak-mijn{border-width:2px;border-color:var(--primary)}
+.kb-bak-vol .kb-bak-getal{color:#a6192e}
+.kb-bak-titel{font-weight:600}
+.kb-bak-getal{font-size:1.8rem;font-weight:700;line-height:1.2}
+.kb-bak-sub{font-size:.85rem;color:var(--body-quiet-color)}
+.kb-sub{font-size:.9rem;margin:14px 12px 6px}
+.kb-tabel{margin-bottom:12px}
+.kb-kolommen{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.kb-lijst{padding-left:18px}
+.kb-lijst li{list-style:disc;margin:4px 0}
+.kb-leeg{color:var(--body-quiet-color)}
+.kb-alles > summary{cursor:pointer;font-weight:600;padding:8px 0;margin-bottom:8px}

@@ -69,6 +69,13 @@ class Command(BaseCommand):
             if groep:
                 u.groups.add(groep)
             werk_staf_status_bij(u)
+        # Bakken (1.15.0): een voorbeeldvoorstel dat al "in behandeling" is, hoort in de bak van iemand,
+        # niet in de gezamenlijke bak. Werkt ook op een bestaande demodatabase, en doet niets als er al
+        # een eigenaar is.
+        nu = timezone.now()
+        Verbetervoorstel.objects.filter(status="in_behandeling", eigenaar__isnull=True).update(
+            eigenaar=User.objects.get(username="redacteur"), eigenaar_sinds=nu, eigenaar_gezien_op=nu
+        )
         self.stdout.write(
             self.style.SUCCESS(
                 "Demo klaar. Inloggen met medewerker / redacteur / beheerder (wachtwoord: "

@@ -74,7 +74,8 @@
   let lijsten = { clusters: [], soorten: [], tags: [], zaaktypen: [] };
   let artikelen = [];           // alle zichtbare artikelen (kort)
   let favs = new Set();
-  let voorstellen = [];
+  let voorstellen = [];          // je eigen voorstellen (Mijn voorstellen)
+  let collegaVoorstellen = null; // open voorstellen van collega's (Alle voorstellen), geladen bij eerste gebruik
   let berichten = null;         // nieuwsberichten, geladen bij de eerste keer dat ze nodig zijn
   let nieuwsGezienOp = null;    // berichten met een latere publicatiedatum zijn "nieuw" voor deze gebruiker
   let nieuwsGezienStraks = null; // nieuwe grens, gaat in zodra de gebruiker de nieuwspagina verlaat (labels blijven zolang staan)
@@ -391,30 +392,46 @@
 
   function gesprekHTML(p) {
     // De terugkoppeling en de updates van procesmanagement, oudste bovenaan. Bewust eenrichting: de
-    // medewerker dient in, procesmanagement koppelt terug en houdt hem op de hoogte. Alleen
-    // procesmanagement krijgt daarom een invoervak te zien.
+    // medewerker dient in, procesmanagement koppelt terug en houdt hem op de hoogte. Behandelen en
+    // terugkoppelen doet procesmanagement sinds 1.15.0 in het beheer (de bakken), niet hier.
     const regels = (p.berichten || []).map((b) => `<div class="bericht ${b.van_redactie ? "pm" : "ind"}"><span class="wie">${esc(b.naam)}${b.van_redactie ? " · procesmanagement" : ""} · ${datum(b.moment)}</span><p>${esc(b.tekst)}</p></div>`).join("");
-    if (!isPM()) {
-      if (!regels) return `<div class="gesprek"><p class="wacht">Je voorstel is ontvangen. Procesmanagement laat hier weten wat ermee gebeurt; je krijgt daar ook een e-mail van.</p></div>`;
-      return `<div class="gesprek">${regels}</div>`;
-    }
-    // Wie het voorstel heeft opgepakt. Zonder dit zag een tweede redacteur niet dat een collega er al
-    // mee bezig was, en kreeg de indiener twee antwoorden die elkaar tegenspraken.
-    const opgepakt = p.behandeld_door
-      ? `<p class="opgepakt">Opgepakt door ${esc(p.behandeld_door)}${p.behandeld_op ? ` op ${datum(p.behandeld_op)}` : ""}.</p>`
-      : "";
-    const invoer = `<div class="antwoord"><label class="visually-hidden" for="re-${p.id}">Bericht aan de indiener</label><textarea id="re-${p.id}" data-reactie="${p.id}" maxlength="5000" placeholder="Terugkoppeling of tussentijdse update aan de indiener…"></textarea><button class="tb" type="button" data-stuur="${p.id}">Versturen</button></div>`;
-    return `<div class="gesprek">${regels}${opgepakt}${invoer}</div>`;
+    if (!regels) return `<div class="gesprek"><p class="wacht">Je voorstel is ontvangen. Procesmanagement laat hier weten wat ermee gebeurt; je krijgt daar ook een e-mail van.</p></div>`;
+    return `<div class="gesprek">${regels}</div>`;
+  }
+
+  const steunTekst = (n) => (n === 1 ? "1 collega steunt dit" : `${n} collega's steunen dit`);
+
+  // Eén voorstel van een collega: zonder naam, met de knop om het te steunen. Ook gebruikt in het
+  // venster dat verschijnt als je een voorstel wilt indienen bij een artikel waar er al een ligt.
+  function collegaKaartHTML(p, metArtikel) {
+    const knop = p.van_mij
+      ? `<span class="steun-eigen">Jouw voorstel</span>`
+      : `<button class="tb steunknop" type="button" data-steun="${p.id}" aria-pressed="${p.ik_steun}">${p.ik_steun ? "✓ Je steunt dit" : "Steunen"}</button>`;
+    return `<div class="prop" data-prop="${p.id}">
+      <div class="ph"><span>${metArtikel ? `<a class="tb" href="${esc(p.artikel_url)}" data-open="${p.artikel}">${esc(p.artikel_titel)}</a> &nbsp;` : ""}Ingediend ${datum(p.ingediend_op)}</span><span class="status ${esc(p.status)}">${esc(VOORSTEL_LABEL[p.status] || p.status)}</span></div>
+      ${p.citaat ? `<blockquote>“${esc(p.citaat)}”</blockquote>` : ""}
+      <div>${esc(p.tekst)}</div>
+      <div class="steunregel"><span class="steun-aantal">${p.steun ? steunTekst(p.steun) : "Nog niemand steunt dit"}</span>${knop}</div>
+    </div>`;
   }
 
   function renderProps() {
+    const welke = state.proplijst || "mijn";
+    const tabs = `<div class="proptabs" role="group" aria-label="Welke voorstellen">
+      <button type="button" data-proplijst="mijn" aria-pressed="${welke === "mijn"}">Mijn voorstellen</button>
+      <button type="button" data-proplijst="alle" aria-pressed="${welke === "alle"}">Alle voorstellen</button></div>`;
+    const beheer = isPM()
+      ? `<p class="hint pm-beheer">Voorstellen behandelen doe je in het beheer, in de bakken. <a class="tb" href="/beheer/">Naar mijn werkoverzicht</a></p>`
+      : "";
+    const kop = `<div class="view"><h1>Verbetervoorstellen</h1>${beheer}${tabs}`;
+    return kop + (welke === "alle" ? renderAlleVoorstellen() : renderMijnVoorstellen()) + "</div>";
+  }
+
+  function renderMijnVoorstellen() {
     const filter = state.propfilter || "open";
     const lijst = voorstellen.filter((p) =>
       filter === "alles" ? true : filter === "open" ? p.status === "nieuw" || p.status === "in_behandeling" : p.status === filter,
     );
-    const lead = isPM()
-      ? "Voorstellen van collega's bij artikelen in jouw omgeving. Zet de status, geef een terugkoppeling en praat er zo nodig met de indiener over door."
-      : "Jouw voorstellen, met de terugkoppeling van procesmanagement.";
     const knoppen = PROPFILTERS.map(([k, label]) => {
       const n = voorstellen.filter((p) => (k === "alles" ? true : k === "open" ? p.status === "nieuw" || p.status === "in_behandeling" : p.status === k)).length;
       return `<button type="button" data-propfilter="${k}" aria-pressed="${k === filter}">${label}${n ? ` (${n})` : ""}</button>`;
@@ -423,15 +440,27 @@
       filter === "open"
         ? '<div class="empty">Niets staat meer open. Kies hierboven een ander filter om afgehandelde voorstellen te zien.</div>'
         : '<div class="empty">Geen voorstellen in dit filter.</div>';
-    return `<div class="view"><h1>Verbetervoorstellen</h1><p class="lead">${lead}</p>
+    return `<p class="lead">Jouw voorstellen, met de terugkoppeling van procesmanagement.</p>
      ${voorstellen.length ? `<div class="propfilter" role="group" aria-label="Filter op status">${knoppen}</div>` : ""}
      ${lijst.length ? `<div class="props">${lijst.map((p) => `<div class="prop" data-prop="${p.id}">
-      <div class="ph"><span><a class="tb" href="${esc(p.artikel_url)}" data-open="${p.artikel}">${esc(p.artikel_titel)}</a> &nbsp;${esc(p.van_mij ? "Jij" : p.ingediend_door)} · ${datum(p.ingediend_op)} · bij versie ${p.artikel_versie}</span><span>${p.ongelezen ? `<span class="nieuwstip">${p.ongelezen} nieuw</span> ` : ""}<span class="status ${esc(p.status)}">${esc(VOORSTEL_LABEL[p.status] || p.status)}</span></span></div>
+      <div class="ph"><span><a class="tb" href="${esc(p.artikel_url)}" data-open="${p.artikel}">${esc(p.artikel_titel)}</a> &nbsp;${datum(p.ingediend_op)} · bij versie ${p.artikel_versie}</span><span>${p.ongelezen ? `<span class="nieuwstip">${p.ongelezen} nieuw</span> ` : ""}<span class="status ${esc(p.status)}">${esc(VOORSTEL_LABEL[p.status] || p.status)}</span></span></div>
       ${p.citaat ? `<blockquote>“${esc(p.citaat)}”</blockquote>` : ""}
       <div>${esc(p.tekst)}</div>
+      ${p.steun ? `<div class="steunregel"><span class="steun-aantal">${steunTekst(p.steun)}</span></div>` : ""}
       ${gesprekHTML(p)}
-      ${isPM() ? `<div class="manage"><label class="visually-hidden" for="st-${p.id}">Status</label><select id="st-${p.id}" data-status="${p.id}">${Object.entries(VOORSTEL_LABEL).map(([k, v]) => `<option value="${k}" ${p.status === k ? "selected" : ""}>${v}</option>`).join("")}</select><button class="tb" type="button" data-save="${p.id}">Status opslaan</button></div>` : ""}
-     </div>`).join("")}</div>` : (voorstellen.length ? leeg : '<div class="empty">Nog geen verbetervoorstellen. Open een artikel en selecteer tekst om er een in te dienen.</div>')}</div>`;
+     </div>`).join("")}</div>` : (voorstellen.length ? leeg : '<div class="empty">Je hebt nog geen verbetervoorstellen ingediend. Open een artikel en selecteer tekst om er een in te dienen.</div>')}`;
+  }
+
+  function renderAlleVoorstellen() {
+    if (collegaVoorstellen === null) return '<p class="loading">Laden…</p>';
+    const volgorde = state.propvolgorde || "nieuw";
+    const lijst = [...collegaVoorstellen];
+    if (volgorde === "steun") lijst.sort((a, b) => b.steun - a.steun || (a.ingediend_op < b.ingediend_op ? 1 : -1));
+    const sorteer = `<div class="propfilter" role="group" aria-label="Volgorde">
+      <button type="button" data-propvolgorde="nieuw" aria-pressed="${volgorde === "nieuw"}">Nieuwste eerst</button>
+      <button type="button" data-propvolgorde="steun" aria-pressed="${volgorde === "steun"}">Meeste steun</button></div>`;
+    return `<p class="lead">Open voorstellen van collega's, zonder naam. Herken je het? Steun het voorstel: procesmanagement ziet hoeveel collega's erachter staan.</p>
+     ${lijst.length ? sorteer + `<div class="props">${lijst.map((p) => collegaKaartHTML(p, true)).join("")}</div>` : '<div class="empty">Er staan geen voorstellen open.</div>'}`;
   }
 
   function renderNieuws() {
@@ -570,32 +599,16 @@
   // voor je ziet. Dit hoort NIET in wireList(): die loopt bij elke weergave, waardoor berichten als
   // gelezen werden gemarkeerd terwijl de gebruiker naar de artikelenlijst keek.
   function wireProps() {
-    $$("[data-save]").forEach((b) => b.addEventListener("click", async () => {
-      const id = b.dataset.save;
-      try {
-        const nieuw = await api("voorstellen/" + id, { method: "PATCH", body: { status: $(`[data-status="${id}"]`).value } });
-        voorstellen = voorstellen.map((p) => (String(p.id) === id ? nieuw : p));
-        render(false);
-        toast("Status opgeslagen");
-      } catch (e) { toast("Opslaan is mislukt"); }
+    $$("[data-proplijst]").forEach((b) => b.addEventListener("click", async () => {
+      state.proplijst = b.dataset.proplijst;
+      if (state.proplijst === "alle") { collegaVoorstellen = null; render(false); await laadCollegaVoorstellen(); }
+      render(false);
     }));
+    $$("[data-propvolgorde]").forEach((b) => b.addEventListener("click", () => { state.propvolgorde = b.dataset.propvolgorde; render(false); }));
+    wireSteun($("#main"), () => render(false));
     $$("[data-propfilter]").forEach((b) => b.addEventListener("click", () => {
       state.propfilter = b.dataset.propfilter;
       render(false);
-    }));
-    $$("[data-stuur]").forEach((b) => b.addEventListener("click", async () => {
-      const id = b.dataset.stuur, vak = $(`[data-reactie="${id}"]`), tekst = vak.value.trim();
-      if (!tekst) { vak.focus(); return; }
-      b.disabled = true;
-      try {
-        const nieuw = await api("voorstellen/" + id + "/berichten", { method: "POST", body: { tekst } });
-        voorstellen = voorstellen.map((p) => (String(p.id) === id ? nieuw : p));
-        render(false);
-        toast("Bericht verstuurd; de indiener krijgt een melding en een e-mail.");
-      } catch (e) {
-        b.disabled = false;
-        toast(e.status === 429 ? "Je hebt veel berichten verstuurd; probeer het later opnieuw." : "Versturen is mislukt.");
-      }
     }));
     // Wat je nu voor je ziet, heb je gelezen: de teller gaat naar nul zonder dat je iets hoeft te doen.
     const ongelezen = voorstellen.filter((p) => p.ongelezen);
@@ -722,11 +735,65 @@
   selBtn.addEventListener("mousedown", (e) => e.preventDefault());
   selBtn.addEventListener("click", () => { openProp(selText); selBtn.classList.remove("show"); });
 
-  /* ---------- Verbetervoorstel-venster ---------- */
-  let terugFocus = null;
-  function openProp(quote) {
+  /* ---------- Steunen ---------- */
+  async function laadCollegaVoorstellen() {
+    try { collegaVoorstellen = await api("voorstellen?lijst=alle"); } catch (e) { collegaVoorstellen = []; }
+  }
+
+  // Steunknoppen binnen `binnen` aansluiten. Werkt de lijst(en) in het geheugen bij en tekent opnieuw.
+  function wireSteun(binnen, opnieuw) {
+    binnen.querySelectorAll("[data-steun]").forEach((b) => b.addEventListener("click", async () => {
+      const id = Number(b.dataset.steun), aan = b.getAttribute("aria-pressed") !== "true";
+      b.disabled = true;
+      try {
+        await api(`voorstellen/${id}/steun`, { method: aan ? "PUT" : "DELETE" });
+        const bij = (p) => { if (p.id === id && p.ik_steun !== aan) { p.ik_steun = aan; p.steun += aan ? 1 : -1; } };
+        (collegaVoorstellen || []).forEach(bij);
+        dubbele.forEach(bij);
+        opnieuw();
+        toast(aan ? "Je steunt dit voorstel." : "Je steun is ingetrokken.");
+      } catch (e) {
+        b.disabled = false;
+        toast(e.status === 409 && e.message ? e.message : "Dat is niet gelukt.");
+      }
+    }));
+  }
+
+  /* ---------- Bestaande voorstellen bij dit artikel ---------- */
+  // Wie een voorstel wil indienen bij een artikel waar al een open voorstel ligt, ziet die eerst in een
+  // schermvullend venster: steun het liever, of dien toch een eigen voorstel in. Scheelt de redactie
+  // dubbel werk, en een voorstel met veel steun valt meer op.
+  let dubbele = [];
+  let dubbelCitaat = "";
+  function tekenDubbele() {
+    $("#dubbelLijst").innerHTML = dubbele.map((p) => collegaKaartHTML(p, false)).join("");
+    wireSteun($("#dubbelLijst"), tekenDubbele);
+  }
+  async function openProp(quote) {
     const a = huidigArtikel;
     terugFocus = document.activeElement;
+    try { dubbele = await api(`voorstellen?lijst=alle&artikel=${a.id}`); } catch (e) { dubbele = []; }
+    if (!dubbele.length) { openPropVenster(quote); return; }
+    dubbelCitaat = quote;
+    $("#dubbelArt").textContent = a.titel;
+    $("#dubbelTitel").textContent = dubbele.length === 1 ? "Er ligt al een voorstel bij dit artikel" : `Er liggen al ${dubbele.length} voorstellen bij dit artikel`;
+    tekenDubbele();
+    $("#dubbelBackdrop").classList.add("open");
+    $("#dubbelEigen").focus();
+  }
+  function closeDubbel(terug) {
+    if (!$("#dubbelBackdrop").classList.contains("open")) return false;
+    $("#dubbelBackdrop").classList.remove("open");
+    if (terug && terugFocus) terugFocus.focus();
+    return true;
+  }
+  $("#dubbelEigen").addEventListener("click", () => { closeDubbel(false); openPropVenster(dubbelCitaat); });
+  $("#dubbelSluit").addEventListener("click", () => closeDubbel(true));
+
+  /* ---------- Verbetervoorstel-venster ---------- */
+  let terugFocus = null;
+  function openPropVenster(quote) {
+    const a = huidigArtikel;
     $("#propArt").textContent = "Artikel: " + a.titel + " (versie " + a.versie + ")";
     $("#propQuote").textContent = quote;
     $("#propQuote").hidden = !quote;
@@ -748,6 +815,7 @@
     try {
       const v = await api("voorstellen", { method: "POST", body: { artikel: huidigArtikel.id, citaat: $("#propQuote").hidden ? "" : $("#propQuote").textContent, tekst: $("#propText").value.trim() } });
       voorstellen = [v, ...voorstellen];
+      collegaVoorstellen = null;
       closeProp();
       renderFilters();
       toast("Verbetervoorstel ingediend. Je krijgt een terugkoppeling van procesmanagement.");
@@ -810,7 +878,7 @@
   /* ---------- Kop en zijbalk ---------- */
   document.addEventListener("keydown", (e) => {
     if (e.key === "/" && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); $("#q").focus(); }
-    if (e.key === "Escape") { closeProp(); closeChat(); }
+    if (e.key === "Escape") { if (!closeDubbel(true)) closeProp(); closeChat(); }
   });
   $("#onbToggle").addEventListener("click", () => setOnb(!onboarding));
   $("#sideToggle").addEventListener("click", () => {
@@ -838,7 +906,8 @@
   }));
 
   async function laadVoorstellen() {
-    try { voorstellen = await api("voorstellen"); } catch (e) { voorstellen = []; }
+    try { voorstellen = await api("voorstellen?lijst=mijn"); } catch (e) { voorstellen = []; }
+    if (state.proplijst === "alle") await laadCollegaVoorstellen();
   }
   async function laadBerichten() {
     try { berichten = await api("berichten"); } catch (e) { berichten = []; }

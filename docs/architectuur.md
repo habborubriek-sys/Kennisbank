@@ -80,8 +80,9 @@ erDiagram
 | Gepubliceerde artikelen lezen, zoeken, assistent | ✓ | ✓ | ✓ |
 | Favorieten, onboarding, verbetervoorstel indienen | ✓ | ✓ | ✓ |
 | Eigen voorstellen en terugkoppeling zien | ✓ | ✓ | ✓ |
+| Open voorstellen van collega's zien (zonder naam) en steunen | ✓ | ✓ | ✓ |
 | Concepten zien, artikelen schrijven en publiceren | | ✓ eigen omgeving | ✓ |
-| Voorstellen behandelen, statistieken | | ✓ eigen omgeving | ✓ |
+| Voorstellen behandelen (bakken), statistieken | | ✓ eigen omgeving | ✓ |
 | Omgevingen, toegang, verwijderen | | | ✓ |
 
 Alle controles zitten op één plek ([kennisbank/rechten.py](../kennisbank/rechten.py)) en gelden zowel voor de API als het beheerscherm. Een artikel waar iemand geen toegang toe heeft geeft 404, niet 403, zodat het bestaan ervan niet uitlekt.
@@ -92,7 +93,11 @@ Alle controles zitten op één plek ([kennisbank/rechten.py](../kennisbank/recht
 
 **Publiceren.** Een redacteur bewerkt in `/beheer/`. Bij opslaan met status *gepubliceerd* vergelijkt de applicatie de inhoud met de laatste versie. Bij verschil ontstaat versie *n+1* met de opgegeven toelichting (verplicht, tenzij *kleine correctie*). Ongewijzigd opslaan maakt geen versie. Een inhoudelijke versie > 1 zet de wijzigingsmelding klaar voor alle lezers (berekend bij het ophalen, niets wordt vooraf per gebruiker opgeslagen) en een regel in de mailwachtrij voor elke favoriet-houder met e-mail die de mail niet heeft uitgezet. Optioneel ontstaat een concept-nieuwsbericht.
 
-**Verbetervoorstel.** Een medewerker selecteert tekst, en het voorstel wordt opgeslagen met het citaat en het versienummer van het artikel op dat moment. Redacteuren van die omgeving krijgen (als e-mail is ingesteld) een melding. Hun status en terugkoppeling zijn zichtbaar voor de indiener.
+**Verbetervoorstel.** Een medewerker selecteert tekst, en het voorstel wordt opgeslagen met het citaat en het versienummer van het artikel op dat moment. Liggen er bij dat artikel al open voorstellen, dan toont de frontend die eerst (`GET /api/v1/voorstellen?lijst=alle&artikel=<id>`), zodat hij het bestaande voorstel kan steunen (`PUT …/voorstellen/<id>/steun`). Een nieuw voorstel komt in de **gezamenlijke bak** van de omgeving (`eigenaar` leeg); redacteuren van die omgeving krijgen (als e-mail is ingesteld) een melding. In het beheer pakken redacteuren het op, wijzen het toe of leggen het terug; dat loopt altijd via `diensten.voorstel_naar_bak`, die de status, het slot en de e-mail aan een collega regelt. Status en terugkoppeling zijn zichtbaar voor de indiener.
+
+**Startpagina van het beheer.** `/beheer/` toont het werkoverzicht uit `kennisbank/werkoverzicht.py` (bakken, concepten, kladversies, herziening), met Django's lijst met onderdelen eronder. Het aantal databasevragen is vast, ongeacht het aantal voorstellen of artikelen.
+
+**Foutpagina's.** 400, 403, 404 en 500 hebben eigen Nederlandse pagina's (`kennisbank/views.py`, `templates/kennisbank/fout.html`) met een weg terug; onder `/api/` blijft het antwoord JSON. Met `DEBUG` aan toont Django zijn eigen foutinformatie.
 
 **Assistent.** Zie [ai-assistent](ai-assistent.md).
 

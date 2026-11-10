@@ -25,9 +25,11 @@ from .models import (
     RecentBezocht,
     Rol,
     Status,
+    Steun,
     Systeemstand,
     Verbetervoorstel,
     VoorstelBericht,
+    VoorstelStatus,
     WeergaveTelling,
     WijzigingGezien,
     ZoekTelling,
@@ -446,7 +448,8 @@ def meld_nieuw_voorstel(voorstel):
     mail_na_commit(
         f"Nieuw verbetervoorstel: {voorstel.artikel.titel}",
         f"Er is een verbetervoorstel ingediend bij '{voorstel.artikel.titel}'.\n\n"
-        f"{voorstel.tekst}\n\nBehandelen: {settings.KB_BASIS_URL}/voorstellen",
+        f"{voorstel.tekst}\n\nHet ligt in de gezamenlijke bak: "
+        f"{settings.KB_BASIS_URL}/beheer/kennisbank/verbetervoorstel/?bak=gezamenlijk",
         redacteuren,
     )
 
@@ -597,6 +600,138 @@ def voorstel_gelezen(voorstel, gebruiker) -> None:
     else:
         voorstel.gelezen_redactie_op = nu
         voorstel.save(update_fields=["gelezen_redactie_op"])
+
+
+# --- Bakken: wie heeft een verbetervoorstel ---------------------------------------------
+#
+# Een nieuw voorstel ligt in de gezamenlijke bak van zijn omgeving (eigenaar leeg). Een redacteur
+# pakt het op (naar zijn eigen bak), wijst het toe aan een collega, of legt het terug. Alles loopt
+# via voorstel_naar_bak, zodat de status, de e-mail en het slot op één plek geregeld zijn.
+
+
+class VoorstelFout(Exception):
+    """Iets wat met een voorstel niet kan, met een uitleg in gewoon Nederlands."""
+
+
+def voorstel_beheer_url(voorstel) -> str:
+    return f"{settings.KB_BASIS_URL}/beheer/kennisbank/verbetervoorstel/{voorstel.pk}/change/"
+
+
+def naam_van(gebruiker) -> str:
+    if not gebruiker:
+        return "Onbekend"
+    return gebruiker.get_full_name() or gebruiker.get_username()
+
+
+def redacteuren_van(omgeving_id):
+    """Iedereen die een voorstel uit deze omgeving in zijn bak mag hebben: redacteuren en beheerders."""
+    from django.contrib.auth import get_user_model
+    from django.db.models import Q
+
+    return (
+        get_user_model()
+        .objects.filter(is_active=True)
+        .filter(
+            Q(is_superuser=True)
+            | Q(groups__kennisbank_toegang__omgeving_id=omgeving_id, groups__kennisbank_toegang__rol=Rol.REDACTEUR)
+        )
+        .distinct()
+        .order_by("first_name", "last_name", "username")
+    )
+
+
+def _nog_geen_bericht(voorstel) -> bool:
+    """'Er is nog niet aan gewerkt': de indiener heeft nog geen bericht van de redactie gekregen."""
+    return not voorstel.berichten.filter(van_redactie=True).exists()
+
+
+BAK_VELDEN = ["eigenaar", "eigenaar_sinds", "eigenaar_gezien_op"]
+
+
+def voorstel_naar_bak(voorstel, door, naar=None):
+    """Leg een voorstel in de bak van `naar`, of met naar=None terug in de gezamenlijke bak.
+
+    - Oppakken (naar == door) en toewijzen (naar is een collega) zetten een nieuw voorstel op
+      'In behandeling'. Bij toewijzen krijgt de collega een e-mail.
+    - Terugleggen zet het voorstel terug op 'Nieuw' zolang er nog geen bericht naar de indiener is
+      gegaan; is dat wel gebeurd, dan blijft het 'In behandeling' (er ís al aan gewerkt).
+    - Een afgehandeld voorstel blijft bij wie het afhandelde; dat is de geschiedenis van die bak.
+
+    Geeft het bijgewerkte voorstel terug. Gooit VoorstelFout als het niet kan.
+    """
+    nu = timezone.now()
+    with transaction.atomic():
+        v = Verbetervoorstel.objects.select_for_update().select_related("artikel").get(pk=voorstel.pk)
+        if not v.is_open:
+            raise VoorstelFout("Dit voorstel is al afgehandeld en blijft bij wie het afhandelde.")
+        if naar is None:
+            if v.eigenaar_id is None:
+                return v
+            v.eigenaar = None
+            v.eigenaar_sinds = None
+            v.eigenaar_gezien_op = None
+            if v.status == VoorstelStatus.IN_BEHANDELING and _nog_geen_bericht(v):
+                v.status = VoorstelStatus.NIEUW
+                v.behandeld_door = None
+                v.behandeld_op = None
+        else:
+            if not redacteuren_van(v.artikel.omgeving_id).filter(pk=naar.pk).exists():
+                raise VoorstelFout(f"{naam_van(naar)} is geen redacteur van de omgeving van dit artikel.")
+            if v.eigenaar_id == naar.pk:
+                return v
+            v.eigenaar = naar
+            v.eigenaar_sinds = nu
+            v.eigenaar_gezien_op = nu if naar.pk == getattr(door, "pk", None) else None
+            if v.status == VoorstelStatus.NIEUW:
+                v.status = VoorstelStatus.IN_BEHANDELING
+                v.behandeld_door = door
+                v.behandeld_op = nu
+        v.save(update_fields=[*BAK_VELDEN, "status", "behandeld_door", "behandeld_op"])
+        if naar is not None and naar.pk != getattr(door, "pk", None):
+            mail_na_commit(
+                f"Verbetervoorstel in je bak: {v.artikel.titel}",
+                f"{naam_van(door)} heeft een verbetervoorstel bij '{v.artikel.titel}' aan je toegewezen.\n\n"
+                f"{v.tekst}\n\nBekijken: {voorstel_beheer_url(v)}",
+                [naar.email],
+            )
+    return v
+
+
+def eigenaar_bij_statuswijziging(voorstel, door) -> None:
+    """Wie de status van een voorstel uit de gezamenlijke bak wijzigt, neemt het daarmee in zijn bak.
+
+    Aangeroepen door het beheerscherm en de API vóór het opslaan. Zo belandt een afgehandeld voorstel
+    nooit eigenaarloos in de gezamenlijke bak.
+    """
+    if voorstel.eigenaar_id is None and voorstel.status != VoorstelStatus.NIEUW:
+        nu = timezone.now()
+        voorstel.eigenaar = door
+        voorstel.eigenaar_sinds = nu
+        voorstel.eigenaar_gezien_op = nu
+
+
+def voorstel_gezien_door_eigenaar(voorstel, gebruiker) -> None:
+    if voorstel.eigenaar_id and voorstel.eigenaar_id == getattr(gebruiker, "pk", None):
+        Verbetervoorstel.objects.filter(pk=voorstel.pk).update(eigenaar_gezien_op=timezone.now())
+
+
+# --- Steun (de like-knop) -------------------------------------------------------------
+
+
+def steun_geven(voorstel, gebruiker) -> bool:
+    """Steun een voorstel. Geeft True als er steun bij kwam, False als die er al was."""
+    if not voorstel.is_open:
+        raise VoorstelFout("Dit voorstel is al afgehandeld; steunen kan alleen bij een open voorstel.")
+    if voorstel.ingediend_door_id == gebruiker.pk:
+        raise VoorstelFout("Je eigen voorstel kun je niet steunen.")
+    with transaction.atomic():
+        slot(f"steun:{voorstel.pk}:{gebruiker.pk}")  # dubbelklik: één steun, geen fout
+        _, nieuw = Steun.objects.get_or_create(voorstel=voorstel, gebruiker=gebruiker)
+    return nieuw
+
+
+def steun_intrekken(voorstel, gebruiker) -> None:
+    Steun.objects.filter(voorstel=voorstel, gebruiker=gebruiker).delete()
 
 
 # --- E-mail bij wijziging van een favoriet artikel -------------------------------------

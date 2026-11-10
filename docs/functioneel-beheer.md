@@ -244,15 +244,57 @@ Berichten maak je in het beheer onder **Nieuwsberichten** (of via *Nieuw bericht
 
 Een bericht kun je, anders dan een artikel, gewoon verwijderen. Nieuwsberichten gaan niet per e-mail; daarvoor is de nieuwspagina.
 
+## Je startpagina in het beheer
+
+Als je het beheer opent, zie je eerst je **werkoverzicht**:
+
+- **Verbetervoorstellen**: je eigen bak (met hoeveel er nog niet zijn geopend), de gezamenlijke bak van
+  je omgeving, en een tabel met de bakken van je collega's — hoeveel er bij wie open liggen en wat het
+  langst ligt.
+- **Concepten** in jouw omgeving(en), de nieuwste bovenaan.
+- **Mijn kladversies**: werk dat je nog niet hebt opgeslagen.
+- **Opnieuw nakijken**: artikelen waarvan de herzieningsdatum is verstreken.
+- Knoppen voor **Nieuw artikel** en **Nieuw bericht**.
+
+Daaronder staat **Alle onderdelen**: de gewone lijst van het beheer (artikelen, tags, zaaktypen, enz.).
+Voor een functioneel beheerder staat die standaard open.
+
 ## Verbetervoorstellen behandelen
 
-In de kennisbank onder **Verbetervoorstellen** zie je alle voorstellen bij artikelen in jouw omgeving, met de tekst die de collega had geselecteerd en de artikelversie op dat moment. Bovenaan staan filters: *Nog open* (de standaard), *Verwerkt*, *Afgewezen* en *Alles*.
+Voorstellen behandel je in het **beheer**, onder *Verbetervoorstellen*. In de kennisbank zelf zie je als
+redacteur alleen nog je eigen voorstellen en die van collega's (zie hieronder); daar staat een knop naar
+je werkoverzicht.
 
-**Je kunt de indiener tussentijds op de hoogte houden.** Onder elk voorstel staat de lijst berichten die
-je hem hebt gestuurd. Elk bericht komt bij hem binnen als melding in de kennisbank én als e-mail.
-Gebruik dat ook voor een tussenstand — "opgepakt, we kijken ernaar met Toezicht" — zodat een voorstel
-niet maanden stil lijkt te liggen. Het laatste bericht is wat hij als antwoord bij zijn voorstel ziet
-staan.
+**Bakken.** Elk nieuw voorstel komt in de **gezamenlijke bak** van de omgeving. Van daaruit:
+
+| Wat je doet | Hoe | Wat er gebeurt |
+|---|---|---|
+| **Oppakken** | Lijstactie *Oppakken*, of in het voorstel bij *Bak* jezelf kiezen | Het voorstel gaat naar jouw bak. Een nieuw voorstel krijgt de status *In behandeling* |
+| **Toewijzen** | In het voorstel bij *Bak* een collega kiezen | Het gaat naar de bak van je collega; die krijgt een e-mail. Een nieuw voorstel krijgt *In behandeling* |
+| **Overnemen** | Lijstactie *Oppakken* op een voorstel uit de bak van een collega | Het gaat naar jouw bak; in de geschiedenis van het voorstel staat "Overgenomen uit de bak van …" |
+| **Terugleggen** | Lijstactie *Terugleggen*, of bij *Bak* "Gezamenlijke bak" kiezen | Terug in de gezamenlijke bak. Is er nog geen bericht naar de indiener gestuurd, dan gaat de status terug naar *Nieuw*; anders blijft het *In behandeling* |
+
+Met het filter **bak** rechts in de lijst kies je *Gezamenlijke bak*, *Mijn bak* of de bak van een
+collega. Iedereen in de redactie kan in elkaars bak kijken en er een voorstel uit overnemen, bijvoorbeeld
+bij ziekte of vakantie. In de kolom *Bak* staat "nog niet geopend" zolang de eigenaar het voorstel nog
+niet heeft bekeken.
+
+Zet je de status van een voorstel uit de gezamenlijke bak (bijvoorbeeld meteen op *Afgewezen*), dan neem
+je het daarmee in je eigen bak. Een afgehandeld voorstel blijft in de bak van wie het afhandelde; dat is
+de geschiedenis van die bak, en verplaatsen kan dan niet meer.
+
+**Steun van collega's.** Medewerkers zien de open voorstellen van collega's (zonder naam van de indiener)
+en kunnen ze steunen. In de lijst zie je in de kolom *Steun* hoeveel collega's achter een voorstel staan,
+en in het voorstel zelf ook wie. Wil een medewerker een voorstel indienen bij een artikel waar al een open
+voorstel ligt, dan krijgt hij die eerst te zien met de vraag of hij dat liever steunt. Zo komen er minder
+dubbele voorstellen binnen.
+
+**Je kunt de indiener tussentijds op de hoogte houden.** Onderaan elk voorstel staat het gesprek: de
+berichten die de redactie hem heeft gestuurd, met een leeg vak eronder. Elk bericht komt bij hem binnen
+als melding in de kennisbank én als e-mail. Gebruik dat ook voor een tussenstand — "opgepakt, we kijken
+ernaar met Toezicht" — zodat een voorstel niet maanden stil lijkt te liggen. Het laatste bericht is wat
+hij als antwoord bij zijn voorstel ziet staan. Een verstuurd bericht is niet meer aan te passen — schrijf
+er dan een nieuw bij.
 
 **Het is eenrichtingsverkeer.** De medewerker dient een voorstel in; daarna koppel jij terug en houd je
 hem op de hoogte. Hij kan niet terugschrijven in de kennisbank. Dat is een bewuste keuze: een gesprek
@@ -260,29 +302,25 @@ heen en weer zou een tweede kanaal naast Teams en e-mail opleveren, en de verwac
 altijd iemand meeleest. Moet je echt overleggen, doe dat dan via Teams of e-mail en zet de uitkomst
 hier als bericht.
 
-Werken met voorstellen gaat zo:
+Werken met een voorstel gaat zo:
 
-1. **Zet de status** in de kennisbank: *Nieuw*, *In behandeling*, *Verwerkt* of *Afgewezen*. Dat legt
-   ook vast wie het voorstel heeft behandeld en wanneer.
-2. **Stuur een bericht** met je terugkoppeling. In de kennisbank staat daarvoor een vak onder het
-   voorstel; in het beheerscherm staat dezelfde lijst onderaan, met een leeg vak eronder. Een verstuurd
-   bericht is niet meer aan te passen — schrijf er dan een nieuw bij.
-3. **Verwerk je het voorstel**, pas dan het artikel aan en noem het voorstel in de wijzigingstoelichting.
+1. **Pak het op** uit de gezamenlijke bak (of wijs het toe).
+2. **Stuur een bericht** met je terugkoppeling of een tussenstand.
+3. **Zet de status** op *Verwerkt* of *Afgewezen* als je klaar bent. Dat legt ook vast wie het heeft
+   afgehandeld en wanneer. Verwerk je het voorstel, pas dan het artikel aan en noem het voorstel in de
+   wijzigingstoelichting.
 
-In het beheerscherm zie je in de lijst hoeveel berichten er al zijn gestuurd. Het filter
-*Indiener heeft als laatste geschreven* is er voor voorstellen uit een oudere installatie, waarin
-terugschrijven nog kon.
+Het filter *Indiener heeft als laatste geschreven* is er voor voorstellen uit een oudere installatie,
+waarin terugschrijven nog kon.
 
-**"Gelezen" geldt voor de hele redactie, niet per redacteur.** Opent een collega een voorstel, dan is
-het daarmee ook voor jou gelezen en verdwijnt het stipje bij jullie allebei. Dat is bedoeld zo: dit is
-een teampostvak, net als een gedeeld postvak in Outlook. Deed de kennisbank het per persoon, dan zou
-een nieuwe collega bij binnenkomst elk voorstel van de afgelopen jaren als ongelezen zien. Wie een
-voorstel heeft opgepakt lees je af aan *Behandeld door*; dat is de informatie waar je als team iets
-aan hebt. Aan de kant van de medewerker is het wél per persoon — een voorstel heeft één indiener.
+**"Gelezen" is per bak.** Wat in jouw bak ligt, is jouw post: "nog niet geopend" verdwijnt pas als jíj het
+voorstel opent. Voor de gezamenlijke bak geldt één stempel voor het hele team, net als een gedeeld
+postvak in Outlook. Aan de kant van de medewerker is het per persoon — een voorstel heeft één indiener.
 
 **Namen en bewaartermijnen.** Een jaar na afhandeling verdwijnt de naam van de indiener — van het
-voorstel en van zijn eventuele berichten. Jouw naam blijft bij je berichten staan zolang het voorstel
-bestaat: dat is verantwoording voor wat er aan een collega is toegezegd. Zie
+voorstel en van zijn eventuele berichten — en verdwijnen ook de namen van wie het voorstel steunde (het
+aantal blijft staan). Jouw naam blijft bij je berichten staan zolang het voorstel bestaat: dat is
+verantwoording voor wat er aan een collega is toegezegd. Zie
 [beveiliging en privacy](beveiliging-en-privacy.md). Een tussentijds bericht schuift die termijn niet
 op; die loopt vanaf het moment dat je de status voor het laatst hebt gezet.
 

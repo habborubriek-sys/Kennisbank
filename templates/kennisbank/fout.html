@@ -1,0 +1,20 @@
+{% load static %}<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ titel }} – {{ app_naam }}</title>
+<link rel="icon" href="{% static 'kennisbank/favicon.svg' %}" type="image/svg+xml">
+<link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}"><link rel="stylesheet" href="{% static 'kennisbank/app.css' %}"></head>
+<body>
+<header class="top"><div class="brand"><span class="mark" aria-hidden="true">K</span>{{ app_naam }}</div></header>
+<main class="main" id="main">
+  <div class="modal login">
+    <h1>{{ titel }}</h1>
+    {% for alinea in uitleg %}<p>{{ alinea }}</p>{% endfor %}
+    {% if hint %}<p class="hint">{{ hint }}</p>{% endif %}
+    <div class="row">
+      <a class="tb primary" href="/">Naar de kennisbank</a>
+      {% if beheer %}<a class="tb" href="/beheer/">Naar het beheer</a>{% endif %}
+    </div>
+    <p class="hint">Foutcode {{ code }}</p>
+  </div>
+</main>
+</body></html>

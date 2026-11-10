@@ -1,5 +1,33 @@
 # Wijzigingen
 
+## 1.15.0 – 2026-11-10
+
+Verbetervoorstellen in bakken, steun van collega's, een startpagina voor redacteuren, en Nederlandse foutpagina's (S8). Wensen van Alex van 10 november.
+
+**Bakken voor verbetervoorstellen (in het beheer)**
+
+- Een nieuw voorstel komt in de **gezamenlijke bak** van zijn omgeving. Een redacteur **pakt het op** (naar zijn eigen bak), **wijst het toe** aan een collega of **legt het terug**. Iedere redacteur kan in elkaars bak kijken en er een voorstel uit **overnemen**, bijvoorbeeld bij ziekte; dat staat in de geschiedenis van het voorstel.
+- Oppakken en toewijzen zetten een nieuw voorstel op *In behandeling*. Terugleggen zet het terug op *Nieuw* zolang er nog geen bericht naar de indiener is gegaan; daarna blijft het *In behandeling*. Een afgehandeld voorstel blijft bij wie het afhandelde.
+- Wie een voorstel toegewezen krijgt, krijgt een e-mail met een link naar het voorstel. In de lijst staat "nog niet geopend" tot de eigenaar het opent: "gelezen" is nu per bak.
+- Alles loopt via één functie (`diensten.voorstel_naar_bak`), met een rijslot, zodat twee redacteuren die tegelijk hetzelfde voorstel verplaatsen elkaar niet in de weg zitten. Wie de status zet van een voorstel uit de gezamenlijke bak, neemt het daarmee in zijn bak — ook via de API.
+- Behandelen gebeurt niet meer in de kennisbank zelf: het statusmenu en het berichtenvak voor redacteuren zijn daar weg, met een knop naar het werkoverzicht. De API-eindpunten om te behandelen blijven bestaan.
+
+**Startpagina voor redacteuren**
+
+- `/beheer/` toont een **werkoverzicht**: mijn bak, de gezamenlijke bak, de bakken van collega's (hoeveel en hoe lang), concepten, eigen kladversies, artikelen over hun herzieningsdatum, en knoppen voor *Nieuw artikel* en *Nieuw bericht*. Django's lijst met onderdelen staat eronder onder "Alle onderdelen". Het aantal databasevragen is vast (bewaakt door een test).
+
+**Steun van collega's (de like-knop)**
+
+- In de kennisbank heeft *Verbetervoorstellen* twee knoppen: **Mijn voorstellen** (zoals voorheen, nu met het aantal steunbetuigingen) en **Alle voorstellen**: de open voorstellen bij artikelen die je mag lezen, zonder naam van de indiener, met een knop **Steunen**. Sorteren op nieuwste of meeste steun.
+- Eén keer per persoon, alleen bij een open voorstel, niet bij je eigen voorstel. Collega's zien alleen het aantal; de redactie ziet ook wie (keuze van Alex). Bij de anonimisering na afhandeling worden de namen gewist en blijft het aantal staan.
+- **Wie een voorstel wil indienen bij een artikel waar al open voorstellen liggen, ziet die eerst in een schermvullend venster**, met de vraag of hij er een wil steunen. "Toch een eigen voorstel indienen" gaat door naar het gewone venster, met de geselecteerde tekst.
+
+**Nederlandse foutpagina's (S8)**
+
+- 400 (bijvoorbeeld een te groot verzoek), 403, 404 en 500 tonen een eigen pagina in de stijl van de kennisbank, met uitleg in gewoon Nederlands en een knop terug, in plaats van Django's Engelse standaardpagina. Onder `/api/` blijft het antwoord JSON. De pagina valt bij een probleem met de stijlbestanden terug op kale HTML, zodat een foutpagina zelf nooit een fout geeft.
+
+- **Tests** (nu 321): bakken (oppakken, toewijzen met e-mail, terugleggen met en zonder bericht, afgehandeld blijft staan, alleen redacteuren van de omgeving, overnemen in de geschiedenis, filter per bak, "nog niet geopend"), de startpagina (inhoud, scheiding tussen omgevingen, vast aantal vragen), steun (dubbelklik, eigen, afgehandeld, onzichtbare artikelen, geen namen in de lijst van collega's, anonimisering), de foutpagina's, en de datamigratie. Vijf tests zijn ook tegen een bewust kapotte versie gedraaid om te zien dat ze erop vallen.
+
 ## 1.14.2 – 2026-11-10
 
 - **Gebruiksstatistieken: twee schuifbalken.** Naast het middenstuk schoof ook de hele pagina, inclusief de bovenbalk. De oorzaak was een onzichtbaar label voor schermlezers in de tabelkop ("Verhouding"). Dat hing aan de pagina in plaats van aan het middenstuk en maakte de pagina zo langer dan het scherm. Gemeld door Alex. De zijbalk en het middenstuk zijn nu het ankerpunt voor zulke labels, zodat dit ook op andere pagina's niet meer kan gebeuren.

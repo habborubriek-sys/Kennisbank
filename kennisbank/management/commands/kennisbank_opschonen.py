@@ -11,6 +11,7 @@ from kennisbank.models import (
     AssistentTelling,
     FavorietenMail,
     RecentBezocht,
+    Steun,
     Verbetervoorstel,
     VoorstelBericht,
     VoorstelStatus,
@@ -50,6 +51,8 @@ class Command(BaseCommand):
             voorstel__in=verjaard, van_redactie=False, auteur__isnull=False
         ).update(auteur=None)
         anoniem = verjaard.filter(ingediend_door__isnull=False).update(ingediend_door=None)
+        # Wie een voorstel steunde, is ook een naam: het aantal blijft staan, de namen gaan weg.
+        Steun.objects.filter(voorstel__in=verjaard, gebruiker__isnull=False).update(gebruiker=None)
         call_command("clearsessions")  # verlopen sessies uit django_session
         # Eerst de openstaande favorietenmail versturen, dan de verzonden regels na 30 dagen opruimen.
         mails = diensten.verstuur_favorietenmail()
