@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## 1.20.1 – 2026-11-11
+
+Terugroepen terwijl een reviewer al bezig is (vraag van Alex):
+
+- **Eerst een vraag**: "Team Water (2 opmerkingen) is hier al mee bezig. Toch terugroepen?"
+- **E-mail aan de reviewer** die het stuk had opgepakt, met hoeveel opmerkingen er bewaard zijn.
+- De opmerkingen die er al waren, blijven bewaard en heten voor de redacteur **voorlopig**: in de gele balk "mogelijk niet compleet", in het voorbeeld van het volledig scherm "voorlopig: teruggeroepen terwijl het team nog bezig was".
+- Tests (nu 468), elk tegen een bewust kapotte versie gedraaid; in de browser nagelopen.
+
 ## 1.20.0 – 2026-11-11
 
 Het reviewproces, stap C2 en D (bouwlijst `ronde3-reviewproces-bouwlijst.md`, keuzes van Alex van 11 november).

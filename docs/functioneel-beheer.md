@@ -77,7 +77,9 @@ nooit de publicatie: jij bent eindverantwoordelijk.
 1. **Sla je wijziging op als conceptversie.** In de gele balk staat onder *Review* welke teams er zijn; het team
    van het cluster van het artikel staat al aangevinkt. Pas dat aan als dat nodig is (meer teams mag).
 2. **Ter inzage geven.** De conceptversie staat daarna **op slot**: je kunt hem niet wijzigen tot het team
-   reageert. Wil je toch verder, kies dan **Terugroepen**.
+   reageert. Wil je toch verder, kies dan **Terugroepen**. Is het team er al mee bezig, dan vraagt de
+   kennisbank eerst of je het zeker weet. Een reviewer die het had opgepakt, krijgt een e-mail. Wat hij al had
+   opgemerkt, blijft bewaard en zie je als *voorlopig*: "mogelijk niet compleet".
 3. **Het team leest** in een eigen, eenvoudige leesweergave (`/review/`). Een reviewer ziet de nieuwe tekst met
    de wijzigingen gemarkeerd (zoals *wijzigingen bijhouden* in Word) en pakt het stuk op ("ligt bij Piet").
    Hij **selecteert een stuk tekst** en zet er een opmerking bij, of schrijft een algemene opmerking. De

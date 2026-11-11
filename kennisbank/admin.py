@@ -983,6 +983,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     stand = review.stand(obj)
                     voor = set(review.voorgevulde_teams(obj).values_list("pk", flat=True))
                     extra["kb_review"] = stand
+                    extra["kb_terugroep_vraag"] = review.terugroep_vraag(stand)
                     # Stap D: de opmerkingen voor het live voorbeeld in het volledig scherm.
                     extra["kb_opmerkingen"] = [
                         {
@@ -993,6 +994,8 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                             "wanneer": date_format(timezone.localtime(o.moment), "j F H:i"),
                             "tekst": o.tekst,
                             "citaat": o.citaat,
+                            # Teruggeroepen terwijl het team nog bezig was: misschien niet compleet.
+                            "voorlopig": o.inzage.status == InzageStatus.TERUGGEROEPEN,
                         }
                         for nr, o in enumerate(
                             # Van de laatste ronde, en pas als het team heeft gereageerd: zolang een stuk ter

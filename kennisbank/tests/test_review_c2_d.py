@@ -227,3 +227,42 @@ class OpmerkingenPasNaReactieTests(ReviewBasis):
         start = html.index('id="kb-opmerkingen"')
         data = json.loads(html[html.index(">", start) + 1 : html.index("</script>", start)])
         self.assertEqual([d["tekst"] for d in data], ["Nieuwe opmerking"])
+
+
+class TerugroepenTijdensReviewTests(ReviewBasis):
+    def setUp(self):
+        super().setUp()
+        self.maak_concept()
+        self.ter_inzage()
+        self.i = Inzage.objects.get()
+
+    def test_vraag_bij_terugroepen_als_het_team_bezig_is(self):
+        self.assertNotIn("al mee bezig", self.als(self.anna).get(self.url).content.decode())
+        review.oppakken(self.i, self.wim)
+        review.opmerking_toevoegen(self.i, self.wim, "Half af", "drie weken")
+        html = self.client.get(self.url).content.decode()
+        self.assertIn("Team Water (1 opmerking) is hier al mee bezig. Toch terugroepen?", html)
+
+    @override_settings(KB_EMAIL_AAN=True)
+    def test_reviewer_krijgt_een_mail_en_opmerkingen_zijn_voorlopig(self):
+        review.oppakken(self.i, self.wim)
+        review.opmerking_toevoegen(self.i, self.wim, "Half af", "drie weken")
+        mail.outbox.clear()
+        self.client.force_login(self.anna)
+        with self.captureOnCommitCallbacks(execute=True):
+            self.post(f"/beheer/kennisbank/artikel/{self.a.pk}/terugroepen/", {})
+        self.assertEqual([m.to for m in mail.outbox], [["wim@example.org"]])
+        self.assertIn("1 opmerking tot nu toe is bewaard", mail.outbox[0].body)
+        html = self.client.get(self.url).content.decode()
+        self.assertIn("mogelijk niet compleet", html)
+        start = html.index('id="kb-opmerkingen"')
+        data = json.loads(html[html.index(">", start) + 1 : html.index("</script>", start)])
+        self.assertEqual([(d["tekst"], d["voorlopig"]) for d in data], [("Half af", True)])
+
+    @override_settings(KB_EMAIL_AAN=True)
+    def test_geen_mail_als_niemand_het_had_opgepakt(self):
+        mail.outbox.clear()
+        self.client.force_login(self.anna)
+        with self.captureOnCommitCallbacks(execute=True):
+            self.post(f"/beheer/kennisbank/artikel/{self.a.pk}/terugroepen/", {})
+        self.assertEqual(mail.outbox, [])

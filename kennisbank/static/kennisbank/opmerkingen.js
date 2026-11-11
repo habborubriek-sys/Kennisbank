@@ -95,6 +95,7 @@
       } else {
         li.appendChild(regel("algemene opmerking", "kb-opm-status"));
       }
+      if (o.voorlopig) li.appendChild(regel("voorlopig: teruggeroepen terwijl het team nog bezig was", "kb-opm-status kb-opm-voorlopig"));
       li.appendChild(regel(o.tekst, "kb-opm-tekst"));
       if (mark) {
         li.tabIndex = 0; li.classList.add("kb-opm-klikbaar");

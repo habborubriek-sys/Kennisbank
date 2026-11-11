@@ -132,15 +132,53 @@ def ter_inzage_geven(artikel, door, teams, geladen_stempel: str):
 
 
 def terugroepen(artikel, door) -> int:
-    """Haal de conceptversie terug bij alle teams die er nog mee bezig zijn."""
+    """Haal de conceptversie terug bij alle teams die er nog mee bezig zijn.
+
+    Wat een reviewer al opmerkte, blijft bewaard; de redacteur ziet het als voorlopig. Een reviewer die
+    het stuk had opgepakt, krijgt een e-mail, zodat hij niet doorwerkt aan iets wat weg is.
+    """
     with transaction.atomic():
-        rijen = list(huidige(artikel.pk).select_for_update().filter(status=InzageStatus.TER_INZAGE))
+        rijen = list(
+            huidige(artikel.pk)
+            .select_for_update(of=("self",))
+            .select_related("reviewer", "team")
+            .filter(status=InzageStatus.TER_INZAGE)
+        )
         nu = timezone.now()
         for r in rijen:
             r.status = InzageStatus.TERUGGEROEPEN
             r.afgerond_op = nu
             r.save(update_fields=["status", "afgerond_op"])
+            if r.reviewer and r.reviewer.email and r.reviewer.is_active:
+                n = r.opmerkingen.count()
+                mail_na_commit(
+                    f"Teruggeroepen: {artikel.titel}",
+                    f"{naam_van(door)} heeft de conceptversie van '{artikel.titel}' teruggeroepen uit de review van "
+                    f"{r.team.naam}. Je hoeft er nu niets meer mee te doen."
+                    + (
+                        f" Je {n} opmerking{'' if n == 1 else 'en'} tot nu toe {'is' if n == 1 else 'zijn'} bewaard en "
+                        "zichtbaar voor de redacteur, als voorlopig."
+                        if n
+                        else ""
+                    )
+                    + f"\n\n{settings.KB_BASIS_URL}/review/",
+                    [r.reviewer.email],
+                )
     return len(rijen)
+
+
+def terugroep_vraag(stand_) -> str:
+    """De bevestigingsvraag bij Terugroepen als een team er al mee bezig is ('' = niet nodig)."""
+    bezig = []
+    for r in stand_["rijen"]:
+        if r.status != InzageStatus.TER_INZAGE:
+            continue
+        n = len(r.opmerkingen.all())
+        if r.reviewer_id or n:
+            bezig.append(f"{r.team.naam} ({n} opmerking{'' if n == 1 else 'en'})")
+    if not bezig:
+        return ""
+    return f"{' en '.join(bezig)} {'is' if len(bezig) == 1 else 'zijn'} hier al mee bezig. Toch terugroepen?"
 
 
 def samenvatting_bij_publiceren(artikel) -> str:

@@ -56,7 +56,7 @@
         {% if r.status == "ter_inzage" %}ter inzage sinds {{ r.gestart_op|date:"j F" }}{% if r.reviewer %}, ligt bij {{ r.reviewer.get_full_name|default:r.reviewer.username }}{% else %}, nog niet opgepakt{% endif %}
         {% elif r.status == "akkoord" %}{% if r.vervallen %}akkoord vervallen: de tekst is daarna gewijzigd{% else %}akkoord op {{ r.afgerond_op|date:"j F" }}{% endif %}
         {% elif r.status == "teruggegeven" %}teruggegeven op {{ r.afgerond_op|date:"j F" }} met opmerkingen
-        {% else %}teruggeroepen op {{ r.afgerond_op|date:"j F" }}{% endif %}
+        {% else %}teruggeroepen op {{ r.afgerond_op|date:"j F" }}{% if r.opmerkingen.all %} <span class="kb-review-voorlopig">terwijl het team nog bezig was: deze opmerkingen zijn mogelijk niet compleet</span>{% endif %}{% endif %}
         {% if r.opmerkingen.all and r.status != "ter_inzage" %}
         <ul class="kb-review-opmerkingen">
           {% for o in r.opmerkingen.all %}<li><span class="wie">{{ o.auteur.get_full_name|default:o.auteur.username|default:"Reviewer" }} · {{ o.moment|date:"j F H:i" }}</span>{% if o.citaat %}<q class="kb-review-citaat">{{ o.citaat }}</q>{% endif %}{{ o.tekst|linebreaksbr }}</li>{% endfor %}
@@ -69,7 +69,8 @@
     {% if kb_opmerkingen %}<p class="kb-concepthint">Open <strong>Volledig scherm</strong> in de editor: in het voorbeeld rechts staan de opmerkingen bij de tekst waar ze over gaan.</p>{{ kb_opmerkingen|json_script:"kb-opmerkingen" }}{% endif %}
     {% if kb_review.op_slot %}
     <button type="submit" class="button" name="_terugroepen" formaction="{{ kb_terugroepen_url }}" formnovalidate
-      onclick="return confirm('De conceptversie terugroepen? Teams die er nog mee bezig zijn, zien dat het stuk is teruggeroepen.');">Terugroepen</button>
+      data-vraag="{% if kb_terugroep_vraag %}{{ kb_terugroep_vraag }}{% else %}De conceptversie terugroepen? Het team ziet dat het stuk is teruggeroepen.{% endif %}"
+      onclick="return confirm(this.dataset.vraag);">Terugroepen</button>
     {% else %}
     <fieldset class="kb-review-keuze">
       <legend>Ter inzage geven aan:</legend>
