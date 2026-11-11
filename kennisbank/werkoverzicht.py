@@ -367,7 +367,7 @@ def werkplek(request):
         titel = "Ter inzage"
         uitleg = (
             "Conceptversies die bij een reviewteam liggen of terugkwamen. Teruggegeven met opmerkingen staat "
-            "bovenaan. Publiceren kan altijd."
+            "bovenaan. Publiceren kan pas als je het stuk hebt teruggeroepen of het team heeft gereageerd."
         )
         rijen = {}
         for i in (
@@ -470,6 +470,25 @@ def werkplek_actie(request):
     if v is None:
         raise Http404
     actie = request.POST.get("actie")
+    # Review 1.20.1, bevinding 9: is de eigenaar veranderd sinds dit scherm werd geladen, dan niets doen
+    # en zeggen bij wie het intussen ligt. Een bewuste "Overnemen" (met de eigenaar in beeld) kan daarna.
+    if "geladen_eigenaar" in request.POST and actie in ("oppakken", "terugleggen", "toewijzen"):
+        if (request.POST.get("geladen_eigenaar") or "") != str(v.eigenaar_id or ""):
+            if v.eigenaar_id == request.user.pk:
+                messages.info(request, f"Het voorstel bij '{v.artikel.titel}' lag al bij jou.")
+            elif v.eigenaar_id:
+                messages.warning(
+                    request,
+                    f"{diensten.naam_van(v.eigenaar)} heeft het voorstel bij '{v.artikel.titel}' intussen "
+                    "opgepakt. Er is niets veranderd. Wil je het toch overnemen? Klik dan nog eens.",
+                )
+            else:
+                messages.warning(
+                    request,
+                    f"Het voorstel bij '{v.artikel.titel}' ligt intussen weer in de werkvoorraad. "
+                    "Er is niets veranderd.",
+                )
+            return _terug_naar(request, v, terug)
     if actie == "oppakken":
         naar = request.user
     elif actie == "terugleggen":

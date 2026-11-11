@@ -35,6 +35,14 @@ from .werkoverzicht import _menu, clusters_van, redacteuren_per_omgeving, werkpl
 CONTEXT_TEKENS = 350
 
 
+def _gewenste_stand(request, standaard):
+    """De stand die de knop wil zetten ("1" of "0"). Zonder waarde (oud scherm): omdraaien zoals vroeger."""
+    w = request.POST.get("waarde")
+    if w in ("1", "0"):
+        return w == "1"
+    return standaard
+
+
 def scherm_url(voorstel, terug=None) -> str:
     url = reverse("beheer-voorstel", args=[voorstel.pk])
     return f"{url}?{urlencode({'terug': terug})}" if terug else url
@@ -184,7 +192,13 @@ def _verwerk(request, pk, terug):
             # Reviewpunt 11: dit voorstel wordt verwerkt in de nieuwe versie van het artikel.
             if not v.is_open:
                 raise Http404
-            v.in_conceptversie = not v.in_conceptversie
+            # Review 1.20.1, bevinding 5: de knop stuurt de gewenste stand mee. Zo draait een dubbelklik of
+            # een verouderd scherm niet terug wat een collega net deed.
+            gewenst = _gewenste_stand(request, not v.in_conceptversie)
+            if gewenst == v.in_conceptversie:
+                messages.info(request, "Dat had een collega al gedaan.")
+                return redirect(scherm_url(v, terug))
+            v.in_conceptversie = gewenst
             v.save(update_fields=["in_conceptversie"])
             admin.site._registry[Verbetervoorstel].log_change(
                 request,
@@ -202,7 +216,11 @@ def _verwerk(request, pk, terug):
             )
             return redirect(scherm_url(v, terug))
         if actie == "verbergen":
-            v.verborgen = not v.verborgen
+            gewenst = _gewenste_stand(request, not v.verborgen)
+            if gewenst == v.verborgen:
+                messages.info(request, "Dat had een collega al gedaan.")
+                return redirect(scherm_url(v, terug))
+            v.verborgen = gewenst
             v.save(update_fields=["verborgen"])
             admin.site._registry[Verbetervoorstel].log_change(
                 request, v, "Verborgen voor collega's." if v.verborgen else "Weer zichtbaar voor collega's."

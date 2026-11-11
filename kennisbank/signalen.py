@@ -12,7 +12,7 @@ from django.contrib.auth.models import Group
 from django.db.models.signals import m2m_changed, post_delete, post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
-from .models import Artikel, Status, Tag, Toegang
+from .models import Artikel, Omgeving, Status, Tag, Toegang
 from .rechten import werk_staf_status_bij
 
 User = get_user_model()
@@ -119,7 +119,32 @@ def artikel_opgeslagen(sender, instance, **kwargs):
         from .diensten import bakken_rechtzetten
 
         bakken_rechtzetten(artikel=instance)
+        # Review 1.20.1, bevinding 2: een reviewteam van de oude omgeving leest niet verder mee.
+        from .review import stoppen
+
+        stoppen(instance, "het artikel is naar een andere omgeving verplaatst.")
     if getattr(instance, "_kb_gearchiveerd", False):
         from .diensten import voorstellen_vervallen
+        from .review import stoppen
 
         voorstellen_vervallen(instance)
+        # Bevinding 6: via de lijstactie én via het scherm. De conceptversie blijft bewaard.
+        stoppen(instance, "het artikel is gearchiveerd.")
+
+
+@receiver(pre_save, sender=Omgeving)
+def omgeving_wordt_opgeslagen(sender, instance, **kwargs):
+    # Review 1.20.1, bevinding 3: gaat het reviewproces uit, dan gaat alles wat ter inzage ligt terug.
+    instance._kb_review_uit = bool(
+        instance.pk
+        and not instance.reviewproces
+        and Omgeving.objects.filter(pk=instance.pk, reviewproces=True).exists()
+    )
+
+
+@receiver(post_save, sender=Omgeving)
+def omgeving_opgeslagen(sender, instance, **kwargs):
+    if getattr(instance, "_kb_review_uit", False):
+        from .review import reviewproces_uitgezet
+
+        reviewproces_uitgezet(instance, None)

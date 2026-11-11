@@ -26,7 +26,7 @@
 
   <aside class="rv-zij" aria-label="Opmerkingen en reageren">
     {% if open and not van_mij %}
-    <form method="post">{% csrf_token %}<button class="tb primary" type="submit" name="actie" value="oppakken">{% if bij %}Overnemen{% else %}Oppakken{% endif %}</button></form>
+    <form method="post">{% csrf_token %}<input type="hidden" name="geladen_reviewer" value="{{ i.reviewer_id|default:'' }}"><button class="tb primary" type="submit" name="actie" value="oppakken">{% if bij %}Overnemen{% else %}Oppakken{% endif %}</button></form>
     {% endif %}
     <h2>Opmerkingen</h2>
     <ol class="kb-opm-lijst" id="rv-opmerkingen-lijst" hidden></ol>

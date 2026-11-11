@@ -763,6 +763,15 @@ def voorstel(request, pk):
                 {"detail": "Geef bij afhandelen een afsluitend bericht mee (terugkoppeling); dat krijgt de indiener."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if nieuwe_status != v.status and nieuwe_status in AFGEHANDELD:
+            # Review 1.20.1, bevinding 12: afhandelen loopt via dezelfde dienst als het behandelscherm, zodat
+            # ook de collega uit wiens bak het kwam een e-mail krijgt. Die dienst plaatst het bericht zelf.
+            try:
+                diensten.voorstel_afhandelen(v, request.user, nieuwe_status, tekst)
+            except diensten.VoorstelFout as e:
+                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            v.refresh_from_db()
+            return Response(VoorstelSerializer(v, context=_ctx(request)).data)
         if nieuwe_status != v.status:
             v.status = nieuwe_status
             v.behandeld_door = request.user

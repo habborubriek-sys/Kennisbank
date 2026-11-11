@@ -98,19 +98,19 @@
         <div class="kb-vacties kb-vacties-kolom">
           {% if not van_mij %}
           <form method="post" action="{{ actie_url }}">{% csrf_token %}
-            <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ terug }}"><input type="hidden" name="na" value="scherm">
+            <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="geladen_eigenaar" value="{{ v.eigenaar_id|default:'' }}"><input type="hidden" name="terug" value="{{ terug }}"><input type="hidden" name="na" value="scherm">
             <button type="submit" name="actie" value="oppakken" class="button default">{% if eigenaar %}Overnemen{% else %}Oppakken{% endif %}</button>
           </form>
           {% endif %}
           {% if eigenaar %}
           <form method="post" action="{{ actie_url }}">{% csrf_token %}
-            <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ terug }}"><input type="hidden" name="na" value="scherm">
+            <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="geladen_eigenaar" value="{{ v.eigenaar_id|default:'' }}"><input type="hidden" name="terug" value="{{ terug }}"><input type="hidden" name="na" value="scherm">
             <button type="submit" name="actie" value="terugleggen" class="button">Terugleggen</button>
           </form>
           {% endif %}
           {% if collegas %}
           <form method="post" action="{{ actie_url }}" class="kb-toewijzen">{% csrf_token %}
-            <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ terug }}"><input type="hidden" name="na" value="scherm">
+            <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="geladen_eigenaar" value="{{ v.eigenaar_id|default:'' }}"><input type="hidden" name="terug" value="{{ terug }}"><input type="hidden" name="na" value="scherm">
             <label class="kb-actielabel" for="kb-naar">Toewijzen aan een collega</label>
             <select name="naar" id="kb-naar"><option value="">Kies een collega…</option>
               {% for pk, naam in collegas %}<option value="{{ pk }}">{{ naam }}</option>{% endfor %}
@@ -120,7 +120,7 @@
           {% endif %}
           {% if bakken %}
           <form method="post" action="{{ actie_url }}" class="kb-toewijzen">{% csrf_token %}
-            <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ terug }}"><input type="hidden" name="na" value="scherm">
+            <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="geladen_eigenaar" value="{{ v.eigenaar_id|default:'' }}"><input type="hidden" name="terug" value="{{ terug }}"><input type="hidden" name="na" value="scherm">
             <label class="kb-actielabel" for="kb-bak">Naar een andere bak</label>
             <select name="cluster" id="kb-bak"><option value="" disabled selected>Kies een bak…</option>
               {% for pk, naam in bakken %}<option value="{{ pk }}">{{ naam }}</option>{% endfor %}
@@ -133,13 +133,13 @@
         {% if v.is_open %}
         <form method="post" class="kb-verbergen">{% csrf_token %}
           <input type="hidden" name="terug" value="{{ terug }}">
-          <button type="submit" name="actie" value="meenemen" class="button{% if v.in_conceptversie %} kb-knop-rustig{% endif %}">{% if v.in_conceptversie %}Niet meer meenemen{% else %}Meenemen in de nieuwe versie{% endif %}</button>
+          <input type="hidden" name="waarde" value="{% if v.in_conceptversie %}0{% else %}1{% endif %}"><button type="submit" name="actie" value="meenemen" class="button{% if v.in_conceptversie %} kb-knop-rustig{% endif %}">{% if v.in_conceptversie %}Niet meer meenemen{% else %}Meenemen in de nieuwe versie{% endif %}</button>
           <span class="kb-hint">Je verwerkt dit voorstel in {% if heeft_conceptversie %}de conceptversie{% else %}de volgende versie{% endif %} van het artikel. Na publiceren krijg je een voorgevuld bericht aan de indiener.</span>
         </form>
         {% endif %}
         <form method="post" class="kb-verbergen">{% csrf_token %}
           <input type="hidden" name="terug" value="{{ terug }}">
-          <button type="submit" name="actie" value="verbergen" class="button kb-knop-rustig">{% if v.verborgen %}Weer tonen aan collega's{% else %}Verbergen voor collega's{% endif %}</button>
+          <input type="hidden" name="waarde" value="{% if v.verborgen %}0{% else %}1{% endif %}"><button type="submit" name="actie" value="verbergen" class="button kb-knop-rustig">{% if v.verborgen %}Weer tonen aan collega's{% else %}Verbergen voor collega's{% endif %}</button>
           <span class="kb-hint">Bijvoorbeeld als er de naam van een collega in staat. De indiener ziet het gewoon.</span>
         </form>
 

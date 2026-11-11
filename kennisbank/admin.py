@@ -241,6 +241,9 @@ class ArtikelForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if self.spoed and "omgeving" in self.fields:
+            self.fields["omgeving"].disabled = True  # bevinding 2: spoed verhuist niets
+            self.fields["omgeving"].help_text = "Bij een spoedcorrectie blijft de omgeving zoals hij is."
         if self.instance.pk and not self.is_bound:
             self.fields["tags_tekst"].initial = ", ".join(self.instance.tags.values_list("naam", flat=True))
             self.fields["geladen_stempel"].initial = stempel_van(self.instance)
@@ -259,9 +262,15 @@ class ArtikelForm(forms.ModelForm):
             self._controleer_omvang(data)
             return data
         self._controleer_conflict(data)
+        if self.spoed and self.instance.pk:
+            # Review 1.20.1, bevinding 2: een spoedcorrectie is voor een tekstfout, niet voor een verhuizing.
+            data["omgeving"] = self.instance.omgeving
         if not self.spoed:  # een spoedcorrectie raakt de conceptversie niet
             self._controleer_concept(data)
-            self._inhoud_op_slot(data)
+            if data.get("status") != Status.GEPUBLICEERD:
+                self._gepubliceerde_tekst_houden(data)
+            else:
+                self._niet_tijdens_review()
         self._controleer_omvang(data)
         self._controleer_dubbele_titel(data)
         self._controleer_eerste_publicatie(data)
@@ -314,31 +323,34 @@ class ArtikelForm(forms.ModelForm):
                 "Open het artikel in een nieuw tabblad om te zien wat er nu staat."
             )
 
-    def _inhoud_op_slot(self, data):
-        """Ligt de conceptversie ter inzage, dan publiceer je precies die tekst (reviewproces, stap C).
+    def _niet_tijdens_review(self):
+        """Publiceren terwijl de conceptversie ter inzage ligt kan niet (besluit Alex, 12 november).
 
-        De conceptversie staat op slot: wat er in het scherm is veranderd, telt niet. Het scherm maakt de
-        velden alleen-lezen, maar de regel staat hier, zodat hij ook geldt als de browser iets anders stuurt.
+        Eerst terugroepen; voor een dringende fout is er de spoedcorrectie. Zo gaat er nooit een tekst live
+        waar een reviewer nog mee bezig is, en ziet de reviewer zijn werk niet zomaar verdwijnen.
         """
         from . import review
 
-        if not self.instance.pk or not review.op_slot(self.instance.pk):
+        if self.instance.pk and review.op_slot(self.instance.pk):
+            raise forms.ValidationError(
+                "De conceptversie ligt ter inzage bij een reviewteam. Roep hem eerst terug voordat je publiceert. "
+                "Is er een dringende fout in de gepubliceerde versie? Gebruik dan 'Corrigeer de gepubliceerde versie'."
+            )
+
+    def _gepubliceerde_tekst_houden(self, data):
+        """Archiveren met een conceptversie: de gepubliceerde tekst blijft staan (bevinding 15).
+
+        Het scherm toont de conceptversie. Zonder deze regel kwam bij *Gearchiveerd* de concepttekst in het
+        artikel terecht, zonder versie. De conceptversie zelf blijft bewaard.
+        """
+        a = self.instance
+        if not a.pk or a.status != Status.GEPUBLICEERD or self.conceptversie is None:
             return
-        concept = Conceptversie.objects.filter(artikel=self.instance).first()
-        if concept is None:
-            return
-        v = concept.velden or {}
-        for veld in ("titel", "samenvatting", "inhoud", "soort", "eigenaar", "tags_tekst"):
-            if veld in v:
-                data[veld] = v[veld]
-        if v.get("omgeving"):
-            data["omgeving"] = Omgeving.objects.filter(pk=v["omgeving"]).first() or data.get("omgeving")
-        if "herzien_voor" in v:
-            data["herzien_voor"] = datetime.date.fromisoformat(v["herzien_voor"]) if v["herzien_voor"] else None
-        if "clusters" in v:
-            data["clusters"] = Cluster.objects.filter(pk__in=v["clusters"])
-        if "zaaktypen" in v:
-            data["zaaktypen"] = Zaaktype.objects.filter(pk__in=v["zaaktypen"])
+        for veld in ("titel", "samenvatting", "inhoud", "soort", "eigenaar", "herzien_voor", "omgeving"):
+            data[veld] = getattr(a, veld)
+        data["clusters"] = a.clusters.all()
+        data["zaaktypen"] = a.zaaktypen.all()
+        data["tags_tekst"] = ", ".join(a.tags.values_list("naam", flat=True))
 
     def _controleer_eerste_publicatie(self, data):
         """Laatste controle voordat een artikel voor het eerst zichtbaar wordt voor medewerkers.
@@ -1015,6 +1027,28 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     extra["kb_ter_inzage_url"] = reverse("admin:kennisbank_artikel_ter_inzage", args=[obj.pk])
                     extra["kb_terugroepen_url"] = reverse("admin:kennisbank_artikel_terugroepen", args=[obj.pk])
                 extra["kb_concept_weggooien"] = reverse("admin:kennisbank_artikel_concept_weggooien", args=[obj.pk])
+            if extra["kb_kan_concept"]:
+                # De knop Afronden (bouwlijst 1.21.0): wat het keuzevenster mag aanbieden.
+                from . import review
+                from .werkoverzicht import werkplek_url
+
+                spoed = bool(extra.get("kb_spoed"))
+                op_slot = bool(extra.get("kb_review", {}).get("op_slot")) if not spoed else False
+                teams = []
+                if not spoed and not op_slot and review.gebruikt_review(obj):
+                    voor = set(review.voorgevulde_teams(obj).values_list("pk", flat=True))
+                    teams = [
+                        {"pk": t.pk, "naam": t.naam, "gekozen": t.pk in voor}
+                        for t in obj.omgeving.reviewteams.order_by("naam")
+                    ]
+                extra["kb_afronden"] = {
+                    "spoed": spoed,
+                    "op_slot": op_slot,
+                    "concept": concept is not None,
+                    "teams": teams,
+                    "werkplek": werkplek_url(),
+                    "akkoord": bool(extra.get("kb_review", {}).get("label")),
+                }
         return super().change_view(request, object_id, form_url, extra)
 
     def save_model(self, request, obj, form, change):
@@ -1060,6 +1094,10 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     "browser. Kijk wat er nu staat en kies dan of je verder wilt gaan met je kladversie.",
                     messages.ERROR,
                 )
+            elif request.POST.get("kb_daarna_ter_inzage") == "1":
+                # Afronden → Ter inzage aanbieden: eerst opgeslagen (hierboven), dan ter inzage. Zo gaat
+                # altijd de tekst van het scherm naar het team (review 1.20.1, bevinding 4).
+                self._ter_inzage_na_opslaan(request, obj)
             else:
                 self.message_user(
                     request,
@@ -1089,6 +1127,30 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             return redirect(werkplek_url())
         return super().response_change(request, obj)
 
+    def _ter_inzage_na_opslaan(self, request, obj):
+        from . import review
+
+        concept = Conceptversie.objects.filter(artikel=obj).first()
+        keuze = [int(t) for t in request.POST.getlist("reviewteams") if t.isdigit()]
+        teams = list(obj.omgeving.reviewteams.filter(pk__in=keuze))
+        try:
+            rijen = review.ter_inzage_geven(obj, request.user, teams, concept.stempel if concept else "")
+        except review.ReviewFout as e:
+            self.message_user(
+                request, f"De conceptversie is opgeslagen, maar ligt nog niet ter inzage: {e}", messages.WARNING
+            )
+            return
+        namen = ", ".join(r.team.naam for r in rijen)
+        LogEntry.objects.log_actions(
+            request.user.pk, [obj], CHANGE, change_message=f"Conceptversie ter inzage bij {namen}.", single_object=True
+        )
+        self.message_user(
+            request,
+            f"Opgeslagen en ter inzage gegeven aan {namen}. De conceptversie staat op slot tot het team reageert of "
+            "je hem terugroept.",
+            messages.SUCCESS,
+        )
+
     def ter_inzage(self, request, pk):
         """Knop *Ter inzage* in de gele balk: de conceptversie naar één of meer reviewteams."""
         from . import review
@@ -1114,7 +1176,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             self.message_user(
                 request,
                 f"De conceptversie ligt ter inzage bij {namen}. Hij staat op slot tot het team reageert of je hem "
-                "terugroept. Publiceren kan altijd.",
+                "terugroept. Publiceren of weggooien kan pas na terugroepen.",
             )
         return redirect(reverse("admin:kennisbank_artikel_change", args=[obj.pk]))
 
@@ -1196,17 +1258,42 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 single_object=True,
             )
             self.message_user(request, "De conceptversie is teruggeroepen. Je kunt er weer aan werken.")
+        else:
+            # Review 1.20.1, bevinding 14: vanaf een verouderd scherm. Zeg wat er intussen gebeurde.
+            stand = review.stand(obj)
+            wat = {
+                InzageStatus.AKKOORD: "heeft intussen akkoord gegeven",
+                InzageStatus.TERUGGEGEVEN: "heeft het intussen teruggegeven",
+                InzageStatus.TERUGGEROEPEN: "was al teruggeroepen",
+            }
+            reacties = [f"{r.team.naam} {wat[r.status]}" for r in stand["rijen"] if r.status in wat]
+            self.message_user(
+                request,
+                "Er lag niets meer ter inzage"
+                + (": " + " en ".join(reacties) + "." if reacties else ".")
+                + " Er is niets veranderd.",
+                messages.WARNING,
+            )
         return redirect(reverse("admin:kennisbank_artikel_change", args=[obj.pk]))
 
     def concept_weggooien(self, request, pk):
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
         obj = get_object_or_404(self.get_queryset(request), pk=pk)
-        if diensten.concept_weggooien(obj):
+        try:
+            weg = diensten.concept_weggooien(obj)
+        except diensten.ConceptTerInzage as e:
+            self.message_user(request, str(e), messages.WARNING)
+            return redirect(reverse("admin:kennisbank_artikel_change", args=[obj.pk]))
+        if weg:
             diensten.klad_afsluiten(request.user, obj)
             LogEntry.objects.log_actions(
                 request.user.pk, [obj], CHANGE, change_message="Conceptversie weggegooid.", single_object=True
             )
+            for v in getattr(obj, "_kb_niet_meer_meegenomen", []):
+                admin.site._registry[Verbetervoorstel].log_change(
+                    request, v, "Niet meer meegenomen: de conceptversie is weggegooid."
+                )
             self.message_user(request, "De conceptversie is weggegooid. Je ziet weer de gepubliceerde tekst.")
         return redirect(reverse("admin:kennisbank_artikel_change", args=[obj.pk]))
 
@@ -1253,11 +1340,16 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         elif change:
             from . import review
 
-            # Hoe stond de review? Dat komt in de versiegeschiedenis (stap C: publiceren kan altijd).
-            if Conceptversie.objects.filter(artikel=form.instance).exists():
-                review_regel = review.samenvatting_bij_publiceren(form.instance)
-            # Gepubliceerd (of anders opgeslagen) vanuit dit scherm: de conceptversie is daarmee afgehandeld.
-            diensten.concept_gepubliceerd(form.instance, request.user)
+            # Hoe stond de review? Dat komt in de versiegeschiedenis (stap C).
+            if form.instance.status == Status.GEPUBLICEERD:
+                concept = Conceptversie.objects.filter(artikel=form.instance).first()
+                if concept is not None:
+                    review_regel = review.samenvatting_bij_publiceren(
+                        form.instance, gewijzigd_na_concept=diensten.wijkt_af_van_concept(concept, form.cleaned_data)
+                    )
+                # Gepubliceerd vanuit dit scherm: de conceptversie is daarmee afgehandeld. Bij archiveren
+                # blijft hij bewaard (bevinding 6 en 15); de review stopt dan via het signaal.
+                diensten.concept_gepubliceerd(form.instance, request.user)
         diensten.claim_opheffen(form.instance, request.user)  # opgeslagen = niet meer aan het bewerken
         # Opgeslagen = de kladversie is afgehandeld. Bij een nieuw artikel was dat de kladversie
         # "nieuw"; die hoort nu niet meer op het toevoegscherm terug te komen.
@@ -1274,7 +1366,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             kleine_correctie=bool(form.cleaned_data.get("kleine_correctie")),
             review=review_regel,
         )
-        if versie and not spoed:
+        if versie and not spoed and not versie.kleine_correctie:
             # Reviewpunt 11: voorstellen die in deze versie zijn meegenomen, krijgen het versienummer; na
             # het opslaan vraagt de kennisbank of je ze wilt afhandelen (response_change).
             meegenomen = Verbetervoorstel.objects.filter(
@@ -1861,9 +1953,13 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         # tussentijds bericht raakt ze niet aan (zie diensten.voorstelbericht_toevoegen), want de
         # bewaartermijn van de naam van de indiener hangt eraan.
         if form.wil_status:
+            vorige = obj.eigenaar
             obj.behandeld_door = request.user
             obj.behandeld_op = timezone.now()
             diensten.eigenaar_bij_statuswijziging(obj, request.user)
+            if obj.status in AFGEHANDELD:
+                # Review 1.20.1, bevinding 12: ook via dit oude formulier hoort de vorige eigenaar het.
+                diensten.meld_vorige_eigenaar_afgehandeld(obj, vorige, request.user)
         # Alleen deze velden: de rest (terugkoppeling, gelezen-stempels) schrijft de dienstlaag, en die
         # mag een verouderd object hier niet overschrijven.
         obj.save(

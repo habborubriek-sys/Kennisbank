@@ -7,6 +7,7 @@ niets en publiceert niets. Wie in geen reviewteam zit, ziet hier alleen een uitl
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import F
 from django.http import Http404
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -31,7 +32,12 @@ def _basis(request):
 def lijst(request):
     teams = list(review.teams_van(request.user).select_related("omgeving"))
     open_ = list(
-        Inzage.objects.filter(team__in=teams, afgesloten=False, status=InzageStatus.TER_INZAGE)
+        Inzage.objects.filter(
+            team__in=teams,
+            afgesloten=False,
+            status=InzageStatus.TER_INZAGE,
+            team__omgeving_id=F("artikel__omgeving_id"),  # bevinding 2
+        )
         .select_related("artikel", "team", "reviewer", "gestart_door")
         .order_by("gestart_op")
     )
@@ -67,15 +73,9 @@ def lijst(request):
             "teams": teams,
             "rijen": rijen,
             "balk": balk,
-            "afgerond": [
-                {
-                    "i": i,
-                    "url": reverse("review-stuk", args=[i.pk]),
-                    "bij": naam_van(i.reviewer) if i.reviewer_id else "",
-                }
-                for i in afgerond
-                if not i.afgesloten
-            ],
+            # Review 1.20.1, bevinding 11: alleen welke stukken en met welke uitkomst; geen link meer naar de
+            # tekst, want die is na de ronde weer van de redactie (en vaak al verder bewerkt).
+            "afgerond": [{"i": i, "bij": naam_van(i.reviewer) if i.reviewer_id else ""} for i in afgerond],
         },
     )
 
@@ -86,7 +86,16 @@ def stuk(request, pk):
         return _actie(request, pk)
     inzage = review._inzage_voor(request.user, pk)
     if inzage is None:
+        if _ooit_van_mijn_team(request.user, pk):
+            messages.info(request, "Dit stuk ligt niet meer ter inzage bij je team.")
+            return redirect("review-lijst")
         raise Http404
+    if inzage.status != InzageStatus.TER_INZAGE:
+        # Bevinding 11: na de ronde is de tekst weer van de redactie.
+        messages.info(
+            request, f"Dit stuk is afgerond ({inzage.get_status_display().lower()}). De tekst is weer bij de redactie."
+        )
+        return redirect("review-lijst")
     concept = Conceptversie.objects.filter(artikel=inzage.artikel).first()
     if concept is None:
         raise Http404
@@ -160,9 +169,25 @@ def _actie(request, pk):
     with transaction.atomic():
         inzage = review._inzage_voor(request.user, pk, slot=True)
         if inzage is None:
-            raise Http404
+            if not _ooit_van_mijn_team(request.user, pk):
+                raise Http404
+            # Review 1.20.1, bevinding 7: een nette melding in plaats van "pagina niet gevonden", met de tekst.
+            messages.warning(request, "Dit stuk ligt niet meer ter inzage bij je team." + _niet_bewaard(tekst))
+            return redirect("review-lijst")
         try:
             if actie == "oppakken":
+                geladen = request.POST.get("geladen_reviewer")
+                if geladen is not None and geladen != str(inzage.reviewer_id or ""):
+                    # Bevinding 16: een collega pakte het intussen op. Niet stilletjes overnemen.
+                    if inzage.reviewer_id == request.user.pk:
+                        messages.info(request, "Dit stuk lag al bij jou.")
+                    else:
+                        messages.warning(
+                            request,
+                            f"{naam_van(inzage.reviewer)} heeft dit intussen opgepakt. Er is niets veranderd. "
+                            "Wil je het toch overnemen? Klik dan op Overnemen.",
+                        )
+                    return redirect("review-stuk", pk=pk)
                 review.oppakken(inzage, request.user)
                 messages.success(request, f"Je hebt dit opgepakt. Het staat nu bij jou in {inzage.team.naam}.")
             elif actie == "opmerking":
@@ -181,5 +206,19 @@ def _actie(request, pk):
             else:
                 raise Http404
         except review.ReviewFout as e:
+            if inzage.status != InzageStatus.TER_INZAGE:
+                messages.warning(request, str(e) + _niet_bewaard(tekst))
+                return redirect("review-lijst")
             messages.warning(request, str(e))
     return redirect("review-stuk", pk=pk)
+
+
+def _ooit_van_mijn_team(gebruiker, pk) -> bool:
+    return Inzage.objects.filter(pk=pk, team__in=review.teams_van(gebruiker)).exists()
+
+
+def _niet_bewaard(tekst: str) -> str:
+    tekst = (tekst or "").strip()
+    if not tekst:
+        return ""
+    return f" Je opmerking is niet bewaard. Dit had je getypt: “{tekst[:2000]}”"

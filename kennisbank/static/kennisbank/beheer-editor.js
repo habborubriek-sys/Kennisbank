@@ -829,6 +829,158 @@
     form.addEventListener("submit", function (e) {
       if (e.submitter && e.submitter.name === "_weggooien") lokaalWeg();
     });
+    // Afronden → Afbreken: de kladversie van dit scherm weggooien, in de browser en op de server, en
+    // daarna niets meer bewaren (ook niet bij het verlaten van de pagina).
+    window.kbKladAfbreken = function () {
+      bezigMetOpslaan = true;
+      lokaalWeg();
+      var data = new FormData();
+      data.append("weggooien", "1");
+      return fetch(url, {
+        method: "POST", credentials: "same-origin", body: data,
+        headers: { "X-CSRFToken": token(), "X-Requested-With": "XMLHttpRequest" },
+      });
+    };
+  }
+
+  /* Eén knop Afronden met een keuzevenster (bouwlijst 1.21.0). Het venster drukt op de bestaande
+   * knoppen, zodat alles wat daaraan vastzit blijft werken: de vraag om een toelichting, de bevestiging
+   * bij werk van een collega, het opruimen van de kladversie. Zonder JavaScript blijven die knoppen gewoon
+   * in beeld. */
+  function afronden() {
+    var data = document.getElementById("kb-afronden");
+    var form = document.querySelector("#artikel_form");
+    if (!data || !form) return;
+    var cfg;
+    try { cfg = JSON.parse(data.textContent); } catch (e) { return; }
+    var rij = form.querySelector(".kb-afrondenrij");
+    var knop = rij && rij.querySelector(".kb-afronden-knop");
+    if (!knop) return;
+    form.classList.add("kb-met-afronden");
+
+    function klik(selector) {
+      var b = form.querySelector(selector);
+      if (b) b.click();
+      return !!b;
+    }
+    function gewijzigd() {
+      var begin = window.kbBeginwaarden || {};
+      return Object.keys(begin).some(function (naam) { var el = veld(naam); return el && el.value !== begin[naam]; });
+    }
+    function afbreken() {
+      vensterTonen({
+        titel: "Afbreken zonder opslaan?",
+        alineas: [
+          "Wat je sinds het laatste opslaan hebt veranderd, gaat verloren.",
+          cfg.concept ? "De conceptversie zoals die is opgeslagen, blijft gewoon staan." : "Medewerkers blijven de gepubliceerde versie zien.",
+        ],
+        knoppen: [
+          { tekst: "Nee, verder werken" },
+          {
+            tekst: "Ja, afbreken", primair: true, doen: function () {
+              var weg = function () { location.href = cfg.werkplek; };
+              if (window.kbKladAfbreken) window.kbKladAfbreken().then(weg, weg); else weg();
+            },
+          },
+        ],
+      });
+    }
+    function terInzage() {
+      var vak = document.createElement("div");
+      vak.className = "kb-venster-veld kb-afronden-teamkeuze";
+      var vinkjes = cfg.teams.map(function (t) {
+        var l = document.createElement("label");
+        l.className = "kb-venster-keuze";
+        var hok = document.createElement("input");
+        hok.type = "checkbox";
+        hok.value = t.pk;
+        hok.checked = !!t.gekozen;
+        l.appendChild(hok);
+        l.appendChild(document.createTextNode(" " + t.naam));
+        vak.appendChild(l);
+        return hok;
+      });
+      var fout = document.createElement("p");
+      fout.className = "kb-venster-fout";
+      fout.hidden = true;
+      vak.appendChild(fout);
+      vensterTonen({
+        titel: "Ter inzage aanbieden",
+        alineas: [
+          "Je wijzigingen worden eerst opgeslagen als conceptversie. Daarna gaat precies die tekst naar het team, en staat hij op slot tot het team reageert of je hem terugroept.",
+          "Aan welk team?",
+        ],
+        inhoud: vak,
+        knoppen: [
+          { tekst: "Annuleren" },
+          {
+            tekst: "Opslaan en ter inzage geven", primair: true, doen: function () {
+              var gekozen = vinkjes.filter(function (h) { return h.checked; });
+              if (!gekozen.length) {
+                fout.textContent = "Kies minstens één reviewteam.";
+                fout.hidden = false;
+                return false;
+              }
+              var doel = document.getElementById("kb-afronden-teams");
+              doel.textContent = "";
+              gekozen.forEach(function (h) {
+                var i = document.createElement("input");
+                i.type = "hidden";
+                i.name = "reviewteams";
+                i.value = h.value;
+                doel.appendChild(i);
+              });
+              document.getElementById("kb-daarna-ter-inzage").value = "1";
+              setTimeout(function () { klik('button[name="_conceptversie"]'); }, 0);
+            },
+          },
+        ],
+      });
+    }
+
+    knop.addEventListener("click", function () {
+      var keuzes = [];
+      if (cfg.op_slot) {
+        keuzes.push({ tekst: "Terugroepen", uitleg: "Haal de conceptversie terug bij het reviewteam. Daarna kun je weer bewerken, publiceren of weggooien.", doen: function () { klik('button[name="_terugroepen"]'); } });
+      } else {
+        if (!cfg.spoed) {
+          keuzes.push({ tekst: "Opslaan als concept", uitleg: "Medewerkers merken niets. Je kunt later verder.", doen: function () { klik('button[name="_conceptversie"]'); } });
+          if (cfg.teams.length) keuzes.push({ tekst: "Ter inzage aanbieden", uitleg: "Eerst opslaan, dan naar een reviewteam.", doen: terInzage });
+        }
+        keuzes.push({ tekst: "Publiceren", uitleg: cfg.spoed ? "De correctie gaat meteen live voor alle medewerkers." : "Alle medewerkers zien deze tekst meteen.", doen: function () { klik('input[name="_save"].kb-publiceren'); } });
+      }
+      keuzes.push({ tekst: "Afbreken", uitleg: "Sluiten zonder op te slaan.", doen: afbreken, rustig: true });
+
+      var lijst = document.createElement("div");
+      lijst.className = "kb-afronden-keuzes";
+      var venster;
+      keuzes.forEach(function (k) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "kb-afronden-keuze" + (k.rustig ? " kb-afronden-rustig" : "");
+        var t = document.createElement("strong");
+        t.textContent = k.tekst;
+        var u = document.createElement("span");
+        u.textContent = k.uitleg;
+        b.appendChild(t);
+        b.appendChild(u);
+        b.addEventListener("click", function () { venster.sluit(); setTimeout(k.doen, 0); });
+        lijst.appendChild(b);
+      });
+      var alineas = [];
+      if (cfg.akkoord && gewijzigd()) alineas.push("Let op: je hebt de tekst gewijzigd na het akkoord van het reviewteam. Sla je op of publiceer je, dan geldt het akkoord niet meer.");
+      venster = vensterTonen({ titel: "Afronden", alineas: alineas, inhoud: lijst, knoppen: [{ tekst: "Annuleren" }] });
+    });
+
+    // Na een akkoord: meteen zeggen dat wijzigen het akkoord laat vervallen (review 1.20.1, bevinding 1).
+    if (cfg.akkoord) {
+      var gemeld = false;
+      form.addEventListener("input", function () {
+        if (gemeld || !gewijzigd()) return;
+        gemeld = true;
+        balkTonen("kb-akkoord-let", "Let op: je wijzigt de tekst na het akkoord van het reviewteam. Sla je dit op of publiceer je het, dan vervalt het akkoord.");
+      });
+    }
   }
 
   /* De toelichting bij publiceren staat buiten het volledige scherm. Zonder deze controle zou
@@ -977,8 +1129,8 @@
     });
   }
 
-  // Ligt de conceptversie ter inzage bij een reviewteam, dan staat hij op slot: alleen-lezen, behalve
-  // de publicatievelden (publiceren kan altijd). De server publiceert dan sowieso de opgeslagen tekst.
+  // Ligt de conceptversie ter inzage bij een reviewteam, dan staat hij op slot: alleen-lezen. Publiceren
+  // kan pas na terugroepen (besluit 12 november); de server weigert het ook.
   function opSlot() {
     if (!document.getElementById("kb-op-slot")) return;
     if (inhoudEditor && inhoudEditor.setReadOnly) inhoudEditor.setReadOnly(true);
@@ -1007,6 +1159,7 @@
       var el = veld(naam);
       if (el) window.kbBeginwaarden[naam] = el.value;
     });
+    afronden();
     // Mislukte opslag door de ontbrekende toelichting: toon hem alsnog in beeld.
     var foutje = document.querySelector(".field-wijzigingstoelichting .errorlist li");
     // Na het invullen echt versturen: zonder vervolgactie sloot het venster en gebeurde er niets

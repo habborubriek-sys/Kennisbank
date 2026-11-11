@@ -32,17 +32,18 @@
   {% endif %}
   {% if kb_review.op_slot %}
   <input type="hidden" id="kb-op-slot" value="1">
-  <p><strong>Deze conceptversie ligt ter inzage en staat op slot.</strong> Je kunt hem pas weer wijzigen als het
-    team reageert of als je hem terugroept. <strong>Publiceren…</strong> kan altijd; dan gaat precies deze tekst live.</p>
+  <p><strong>Deze conceptversie ligt ter inzage en staat op slot.</strong> Je kunt hem pas weer wijzigen, publiceren
+    of weggooien als het team reageert of als je hem terugroept. Een dringende fout in wat medewerkers nu zien, verbeter
+    je met <strong>Corrigeer de gepubliceerde versie</strong>.</p>
   {% else %}
-  <p>Kies onderaan <strong>Opslaan als conceptversie</strong> om verder te werken zonder dat medewerkers iets merken,
-    of <strong>Publiceren…</strong> om de conceptversie live te zetten.</p>
+  <p>Kies onderaan <strong>Afronden</strong>: opslaan als concept (medewerkers merken niets){% if kb_review_teams %}, ter
+    inzage aanbieden aan een reviewteam{% endif %} of publiceren.</p>
   {% endif %}
   <p class="kb-conceptknoppen">
     <a class="button" href="{{ kb_concept_bekijken }}" target="_blank" rel="noopener">Conceptversie bekijken</a>
     <a class="button kb-knop-rustig" href="?spoed=1" title="Een kleine, dringende fout verbeteren in wat medewerkers nu zien, zonder de conceptversie te raken">Corrigeer de gepubliceerde versie</a>
-    <button type="submit" class="button kb-concept-weg kb-gevaar" name="_weggooien" formaction="{{ kb_concept_weggooien }}" formnovalidate
-      onclick="return confirm('De conceptversie weggooien? Het werk daarin is daarna weg; medewerkers blijven versie {{ original.versie }} zien.');">Conceptversie weggooien</button>
+    {% if not kb_review.op_slot %}<button type="submit" class="button kb-concept-weg kb-gevaar" name="_weggooien" formaction="{{ kb_concept_weggooien }}" formnovalidate
+      onclick="return confirm('De conceptversie weggooien? Het werk daarin is daarna weg; medewerkers blijven versie {{ original.versie }} zien.');">Conceptversie weggooien</button>{% endif %}
   </p>
   {% if kb_review_teams %}
   <div class="kb-review">
@@ -72,14 +73,7 @@
       data-vraag="{% if kb_terugroep_vraag %}{{ kb_terugroep_vraag }}{% else %}De conceptversie terugroepen? Het team ziet dat het stuk is teruggeroepen.{% endif %}"
       onclick="return confirm(this.dataset.vraag);">Terugroepen</button>
     {% else %}
-    <fieldset class="kb-review-keuze">
-      <legend>Ter inzage geven aan:</legend>
-      {% for t in kb_review_teams %}
-      <label><input type="checkbox" name="reviewteams" value="{{ t.pk }}"{% if t.gekozen %} checked{% endif %}> {{ t.naam }}</label>
-      {% endfor %}
-    </fieldset>
-    <button type="submit" class="button kb-ter-inzage" name="_ter_inzage" formaction="{{ kb_ter_inzage_url }}" formnovalidate>Ter inzage geven</button>
-    <span class="kb-concepthint">Sla eerst je laatste wijzigingen op als conceptversie. Daarna staat hij op slot tot het team reageert.</span>
+    <p class="kb-concepthint">Ter inzage geven aan een reviewteam doe je onderaan met <strong>Afronden</strong> → <strong>Ter inzage aanbieden</strong>. Je wijzigingen worden dan eerst opgeslagen.</p>
     {% endif %}
     {% if kb_review.eerder %}
     <details class="kb-review-eerder"><summary>Eerdere rondes ({{ kb_review.eerder|length }})</summary>
@@ -92,11 +86,21 @@
 {% elif kb_kan_concept %}
 <div class="kb-conceptuitleg">
   <p>Medewerkers zien dit artikel. Wil je in alle rust aan een nieuwe versie werken, kies dan onderaan
-    <strong>Opslaan als conceptversie</strong>: medewerkers blijven versie {{ original.versie }} zien tot je publiceert.</p>
+    <strong>Afronden</strong> → <strong>Opslaan als concept</strong>: medewerkers blijven versie {{ original.versie }} zien tot je publiceert.</p>
 </div>
 {% endif %}
 {% endblock %}
 {% block submit_buttons_bottom %}
+{% if kb_afronden %}
+{# Eén knop Afronden met een keuzevenster (bouwlijst 1.21.0, punt 1–5). De knoppen hieronder blijven bestaan: #}
+{# het venster drukt erop, zodat alles wat eraan vastzit (toelichting, bevestiging, kladversie) blijft werken. #}
+{{ kb_afronden|json_script:"kb-afronden" }}
+<input type="hidden" name="kb_daarna_ter_inzage" id="kb-daarna-ter-inzage" value="">
+<span id="kb-afronden-teams" hidden></span>
+<div class="submit-row kb-afrondenrij">
+  <button type="button" class="button default kb-afronden-knop">Afronden…</button>
+</div>
+{% endif %}
 {% if kb_kan_concept and not kb_review.op_slot and not kb_spoed %}
 <div class="submit-row kb-conceptrij">
   <button type="submit" class="button kb-concept-opslaan" name="_conceptversie" value="1">Opslaan als conceptversie</button>

@@ -51,19 +51,19 @@
           <div class="kb-vacties">
             {% if not r.van_mij %}
             <form method="post" action="{{ w.actie_url }}">{% csrf_token %}
-              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
+              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="geladen_eigenaar" value="{{ v.eigenaar_id|default:'' }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
               <button type="submit" name="actie" value="oppakken" class="button default">{% if r.eigenaar %}Overnemen{% else %}Oppakken{% endif %}</button>
             </form>
             {% endif %}
             {% if r.eigenaar %}
             <form method="post" action="{{ w.actie_url }}">{% csrf_token %}
-              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
+              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="geladen_eigenaar" value="{{ v.eigenaar_id|default:'' }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
               <button type="submit" name="actie" value="terugleggen" class="button">Terugleggen</button>
             </form>
             {% endif %}
             {% if r.collegas %}
             <form method="post" action="{{ w.actie_url }}" class="kb-toewijzen">{% csrf_token %}
-              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
+              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="geladen_eigenaar" value="{{ v.eigenaar_id|default:'' }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
               <label class="visually-hidden" for="naar-{{ v.pk }}">Toewijzen aan</label>
               <select name="naar" id="naar-{{ v.pk }}"><option value="">Toewijzen aan…</option>
                 {% for pk, naam in r.collegas %}<option value="{{ pk }}">{{ naam }}</option>{% endfor %}
@@ -73,7 +73,7 @@
             {% endif %}
             {% if r.bakken %}
             <form method="post" action="{{ w.actie_url }}" class="kb-toewijzen">{% csrf_token %}
-              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
+              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="geladen_eigenaar" value="{{ v.eigenaar_id|default:'' }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
               <label class="visually-hidden" for="bak-{{ v.pk }}">Naar een andere bak</label>
               <select name="cluster" id="bak-{{ v.pk }}">
                 <option value="" disabled selected>Naar bak…</option>

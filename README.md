@@ -2,7 +2,7 @@
 
 Eén centrale plek voor werkinstructies, werkafspraken en processen. Medewerkers zoeken en lezen artikelen, zetten extra uitleg voor nieuwe collega's aan, bewaren favorieten, zien bij een artikel wat er is gewijzigd (en krijgen daar als favoriet-houder een e-mail van), drukken een artikel af of bewaren het als PDF, lezen het nieuws van hun afdeling, dienen verbetervoorstellen in en steunen die van collega's, krijgen daar terugkoppeling op van procesmanagement, en stellen vragen aan een assistent die alleen antwoordt uit de kennisbank. Procesmanagement schrijft artikelen in een editor met Word-opmaak of importeert ze uit Word, verdeelt en behandelt voorstellen via gezamenlijke en persoonlijke bakken vanuit een eigen werkplek, houdt bij welke artikelen opnieuw moeten worden nagekeken en ziet welke kennis gebruikt en gemist wordt. Functioneel beheer heeft een statuspagina waarop in één oogopslag te zien is of alles nog loopt. Het zaaksysteem kan per zaaktype de juiste artikelen tonen.
 
-> Versie 1.20.1 · Licentie EUPL-1.2 · Python 3.12+ / Django 5.2 LTS / PostgreSQL 14+
+> Versie 1.21.0 · Licentie EUPL-1.2 · Python 3.12+ / Django 5.2 LTS / PostgreSQL 14+
 
 ## Proberen in één commando
 

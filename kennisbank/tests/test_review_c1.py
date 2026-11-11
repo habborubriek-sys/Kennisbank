@@ -95,8 +95,9 @@ class TerInzageTests(ReviewBasis):
     def test_team_van_het_cluster_staat_voorgevuld(self):
         self.maak_concept()
         html = self.client.get(self.url).content.decode()
-        self.assertIn(f'value="{self.team_water.pk}" checked', html)
-        self.assertIn(f'value="{self.team_weg.pk}">', html)
+        # Sinds 1.21.0 in het keuzevenster van Afronden (de gegevens staan als JSON in de pagina).
+        self.assertIn(f'{{"pk": {self.team_water.pk}, "naam": "Team Water", "gekozen": true}}', html)
+        self.assertIn(f'{{"pk": {self.team_weg.pk}, "naam": "Team Weg", "gekozen": false}}', html)
         self.assertNotIn("Team Zuid", html)
 
     def test_ter_inzage_zet_de_conceptversie_op_slot(self):
@@ -115,14 +116,22 @@ class TerInzageTests(ReviewBasis):
         )
         self.assertIn("staat op slot", self.client.get(self.url).content.decode())
 
-    def test_publiceren_kan_altijd_en_publiceert_precies_de_conceptversie(self):
+    def test_publiceren_kan_pas_na_terugroepen(self):
+        # Besluit Alex 12 november (was: publiceren kan altijd).
         c = self.maak_concept()
         self.ter_inzage()
         data = beheerdata(self.a, inhoud="<p>Stiekem iets anders</p>", geladen_concept=c.stempel)
         r = self.post(self.url, data, _save="1")
-        self.assertEqual(r.status_code, 302, r.content[:500])
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("Roep hem eerst terug", r.content.decode())
         self.a.refresh_from_db()
-        self.assertEqual(self.a.inhoud, "<p>Stuur na drie weken een rappel.</p>")
+        self.assertEqual(self.a.versie, 1)
+        self.assertTrue(review.op_slot(self.a.pk))
+        # Na terugroepen kan het wel; de versiegeschiedenis noemt het team.
+        self.post(f"/beheer/kennisbank/artikel/{self.a.pk}/terugroepen/", {})
+        data = beheerdata(self.a, inhoud="<p>Stuur na drie weken een rappel.</p>", geladen_concept=c.stempel)
+        r = self.post(self.url, data, _save="1")
+        self.assertEqual(r.status_code, 302, r.content[:500])
         v = ArtikelVersie.objects.get(artikel=self.a, versie=2)
         self.assertEqual(v.review, "Gepubliceerd zonder akkoord van Team Water.")
         self.assertFalse(Inzage.objects.filter(artikel=self.a, afgesloten=False).exists())
@@ -180,13 +189,21 @@ class TerInzageTests(ReviewBasis):
         i.refresh_from_db()
         self.assertEqual(i.status, InzageStatus.TERUGGEROEPEN)
 
-    def test_weggooien_sluit_de_review_af(self):
+    def test_weggooien_kan_pas_na_terugroepen_en_sluit_de_review_af(self):
         self.maak_concept()
         self.ter_inzage()
-        self.post(f"/beheer/kennisbank/artikel/{self.a.pk}/conceptversie/weggooien/", {})
+        weg = f"/beheer/kennisbank/artikel/{self.a.pk}/conceptversie/weggooien/"
+        self.post(weg, {})
+        self.assertTrue(Conceptversie.objects.filter(artikel=self.a).exists())
+        self.assertTrue(review.op_slot(self.a.pk))
+        self.post(f"/beheer/kennisbank/artikel/{self.a.pk}/terugroepen/", {})
+        self.post(weg, {})
+        self.assertFalse(Conceptversie.objects.filter(artikel=self.a).exists())
         self.assertFalse(Inzage.objects.filter(afgesloten=False).exists())
+        # De reviewer krijgt een nette melding in plaats van "pagina niet gevonden".
         self.client.force_login(self.wim)
-        self.assertEqual(self.client.get(f"/review/{Inzage.objects.get().pk}/").status_code, 404)
+        r = self.client.get(f"/review/{Inzage.objects.get().pk}/")
+        self.assertEqual(r.status_code, 302)
 
     def test_werkplek_bak_ter_inzage(self):
         self.maak_concept()

@@ -3,7 +3,8 @@
 Een redacteur geeft een conceptversie *ter inzage* aan één of meer reviewteams. Zolang er een team
 mee bezig is, staat de conceptversie op slot voor de redactie. Een reviewer pakt het stuk op, plaatst
 opmerkingen en geeft het terug of geeft akkoord. Akkoord geldt voor precies die tekst: verandert de
-conceptversie daarna, dan vervalt het. Publiceren kan altijd; de versiegeschiedenis vermeldt hoe het
+conceptversie daarna, dan vervalt het. Publiceren kan als niets meer ter inzage ligt (besluit 12 november);
+de versiegeschiedenis vermeldt hoe het
 met de review stond.
 
 Alles wat de toestand verandert, staat hier, zodat de regels op één plek staan.
@@ -11,7 +12,7 @@ Alles wat de toestand verandert, staat hier, zodat de regels op één plek staan
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Max
+from django.db.models import F, Max
 from django.utils import timezone
 
 from .diensten import _mail, laatste_stand, mail_na_commit, naam_van
@@ -131,7 +132,7 @@ def ter_inzage_geven(artikel, door, teams, geladen_stempel: str):
     return rijen
 
 
-def terugroepen(artikel, door) -> int:
+def terugroepen(artikel, door, reden: str = "") -> int:
     """Haal de conceptversie terug bij alle teams die er nog mee bezig zijn.
 
     Wat een reviewer al opmerkte, blijft bewaard; de redacteur ziet het als voorlopig. Een reviewer die
@@ -153,8 +154,12 @@ def terugroepen(artikel, door) -> int:
                 n = r.opmerkingen.count()
                 mail_na_commit(
                     f"Teruggeroepen: {artikel.titel}",
-                    f"{naam_van(door)} heeft de conceptversie van '{artikel.titel}' teruggeroepen uit de review van "
-                    f"{r.team.naam}. Je hoeft er nu niets meer mee te doen."
+                    (
+                        reden
+                        or f"{naam_van(door)} heeft de conceptversie van '{artikel.titel}' teruggeroepen uit de review "
+                        f"van {r.team.naam}."
+                    )
+                    + " Je hoeft er nu niets meer mee te doen."
                     + (
                         f" Je {n} opmerking{'' if n == 1 else 'en'} tot nu toe {'is' if n == 1 else 'zijn'} bewaard en "
                         "zichtbaar voor de redacteur, als voorlopig."
@@ -181,8 +186,12 @@ def terugroep_vraag(stand_) -> str:
     return f"{' en '.join(bezig)} {'is' if len(bezig) == 1 else 'zijn'} hier al mee bezig. Toch terugroepen?"
 
 
-def samenvatting_bij_publiceren(artikel) -> str:
-    """De regel voor de versiegeschiedenis: hoe stond de review toen er werd gepubliceerd?"""
+def samenvatting_bij_publiceren(artikel, gewijzigd_na_concept: bool = False) -> str:
+    """De regel voor de versiegeschiedenis: hoe stond de review toen er werd gepubliceerd?
+
+    `gewijzigd_na_concept`: de tekst die live gaat, wijkt af van de opgeslagen conceptversie (rechtstreeks
+    gepubliceerd vanaf het scherm). Een akkoord geldt dan niet voor deze tekst (review 1.20.1, bevinding 1).
+    """
     if not artikel.omgeving.reviewproces:
         return ""
     s = stand(artikel)
@@ -190,6 +199,8 @@ def samenvatting_bij_publiceren(artikel) -> str:
         return "Gepubliceerd zonder review."
     if s["label"]:
         teams = ", ".join(sorted(r.team.naam for r in s["rijen"]))
+        if gewijzigd_na_concept:
+            return f"Gepubliceerd met wijzigingen na het akkoord van {teams}."
         return f"Akkoord van {teams}."
     zonder = ", ".join(
         sorted(
@@ -206,11 +217,59 @@ def afsluiten(artikel) -> int:
     return huidige(artikel.pk).update(afgesloten=True)
 
 
+def stoppen(artikel, reden: str) -> int:
+    """De review van dit artikel houdt op (gearchiveerd of naar een andere omgeving verhuisd).
+
+    Review 1.20.1, bevinding 2 en 6: een reviewer die ermee bezig was, krijgt een e-mail met de reden, en
+    alle inzages tellen daarna niet meer mee. De conceptversie zelf blijft bewaard.
+    """
+    with transaction.atomic():
+        bezig = list(
+            huidige(artikel.pk)
+            .select_for_update(of=("self",))
+            .select_related("reviewer", "team")
+            .filter(status=InzageStatus.TER_INZAGE, reviewer__isnull=False)
+        )
+        for r in bezig:
+            if r.reviewer.email and r.reviewer.is_active:
+                mail_na_commit(
+                    f"Review gestopt: {artikel.titel}",
+                    f"De review van '{artikel.titel}' door {r.team.naam} is gestopt: {reden} "
+                    "Je hoeft er niets meer mee te doen.",
+                    [r.reviewer.email],
+                )
+        return afsluiten(artikel)
+
+
+def reviewproces_uitgezet(omgeving, door) -> int:
+    """Een beheerder zette het reviewproces uit: alles wat ter inzage ligt, gaat terug (bevinding 3).
+
+    Anders bleef de conceptversie op de server op slot, terwijl het scherm hem weer bewerkbaar toonde,
+    en publiceerde *Publiceren* stilletjes de oude opgeslagen tekst.
+    """
+    from .models import Artikel
+
+    n = 0
+    for artikel in Artikel.objects.filter(
+        omgeving=omgeving, inzages__afgesloten=False, inzages__status=InzageStatus.TER_INZAGE
+    ).distinct():
+        n += terugroepen(
+            artikel,
+            door,
+            reden=f"Het reviewproces voor {omgeving.naam} is uitgezet, daarom is de conceptversie van "
+            f"'{artikel.titel}' teruggeroepen.",
+        )
+    return n
+
+
 # --- Reviewers ---------------------------------------------------------------------------------
 
 
 def _inzage_voor(gebruiker, pk, slot=False):
-    qs = Inzage.objects.filter(pk=pk, team__in=teams_van(gebruiker), afgesloten=False)
+    # Alleen een team van de omgeving waar het artikel nu staat (bevinding 2: verhuisd artikel).
+    qs = Inzage.objects.filter(
+        pk=pk, team__in=teams_van(gebruiker), afgesloten=False, team__omgeving_id=F("artikel__omgeving_id")
+    )
     if slot:
         qs = qs.select_for_update(of=("self",))
     return qs.select_related("artikel", "artikel__omgeving", "team", "reviewer", "gestart_door").first()

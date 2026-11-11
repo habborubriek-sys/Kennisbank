@@ -1,5 +1,37 @@
 # Wijzigingen
 
+## 1.21.0 – 2026-11-12
+
+Reparaties na de onafhankelijke review van alles sinds 1.15.0, en één knop *Afronden* (bouwlijst `bouwlijst-1.21.0-reviewbevindingen.md`, besluiten van Alex van 11 en 12 november).
+
+**Afronden**
+
+- Onder een gepubliceerd artikel staat **één knop *Afronden…*** met een venster: **Opslaan als concept**, **Ter inzage aanbieden**, **Publiceren** en **Afbreken**. Ligt de conceptversie ter inzage, dan alleen **Terugroepen** en **Afbreken**; bij een spoedcorrectie alleen **Publiceren** en **Afbreken**.
+- **Ter inzage aanbieden slaat eerst op**: het team leest altijd de tekst van het scherm (bevinding 4).
+- **Afbreken** sluit zonder op te slaan en ruimt de kladversie van dat scherm op; een opgeslagen conceptversie blijft staan.
+- **Na een akkoord** waarschuwt een balk zodra je gaat typen. Publiceer je een andere tekst dan het team zag, dan staat in de versiegeschiedenis "Gepubliceerd met wijzigingen na het akkoord van …" in plaats van "Akkoord van …" (bevinding 1). Opslaan zonder wijziging laat het akkoord staan.
+
+**Reviewproces**
+
+- **Publiceren en weggooien kan pas na terugroepen** zolang de conceptversie ter inzage ligt (besluit Alex). Voor haast is er de spoedcorrectie (bevinding 7).
+- **Reviewproces uitzetten** roept alles terug wat ter inzage ligt, met een e-mail aan de reviewer (bevinding 3).
+- **Archiveren** (lijst en scherm) en **verhuizen naar een andere omgeving** stoppen de review, met een e-mail aan een reviewer die bezig was. De conceptversie blijft bewaard; bij archiveren blijft de gepubliceerde tekst in het artikel (bevinding 6 en 15).
+- **Spoedcorrectie**: de omgeving zit vast. Reviewers zien alleen stukken van de omgeving van hun team (bevinding 2).
+- **Reviewers**: een afgerond stuk staat in *Onlangs afgerond* zonder link en zonder tekst (bevinding 11). Is een stuk intussen gestopt of teruggeroepen, dan een nette melding met de getypte tekst in plaats van "pagina niet gevonden" (bevinding 7). *Oppakken* neemt niet meer stilletjes over van een teamgenoot (bevinding 16).
+- **Terugroepen vanaf een verouderd scherm** zegt wat er intussen gebeurde, bijvoorbeeld "Team Water heeft intussen akkoord gegeven" (bevinding 14).
+
+**Verbetervoorstellen**
+
+- **Verbergen voor collega's** en **Meenemen** zetten de stand die je ziet in plaats van om te wisselen (bevinding 5).
+- **Oppakken, terugleggen en toewijzen vanaf een oude werkplek** doen niets als het voorstel intussen bij een collega ligt; je ziet bij wie (bevinding 9).
+- **Conceptversie weggooien** zet *meenemen* uit; een kleine correctie neemt geen voorstellen mee (bevinding 8).
+- **Dubbel** alleen bij een voorstel van hetzelfde artikel, en niet in een kring (bevinding 10).
+- **Afhandelen via de API** en het oude beheerformulier mailen ook de vorige eigenaar (bevinding 12).
+- **De dagelijkse samenvatting** noemt alleen voorstellen die nog open staan (bevinding 13).
+
+- Bevinding 17 (andere velden in de verschilweergave) vervalt: geen inhoudelijke wijziging (besluit Alex).
+- Tests (nu 501), elke reparatie tegen een bewust kapotte versie gedraaid; *Afronden* in de browser nagelopen.
+
 ## 1.20.1 – 2026-11-11
 
 Terugroepen terwijl een reviewer al bezig is (vraag van Alex):

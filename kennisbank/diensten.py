@@ -473,7 +473,7 @@ def verstuur_voorstellenmail(nu=None) -> int:
     vorige = laatste_stand("voorstellenmail")
     sinds = vorige.moment if vorige else nu - datetime.timedelta(days=1)
     nieuw = list(
-        Verbetervoorstel.objects.filter(ingediend_op__gt=sinds, ingediend_op__lte=nu)
+        Verbetervoorstel.objects.filter(ingediend_op__gt=sinds, ingediend_op__lte=nu, status__in=OPEN)
         .select_related("artikel", "cluster")
         .order_by("ingediend_op")
     )
@@ -728,6 +728,21 @@ def concept_velden(cleaned_data) -> dict:
     }
 
 
+def wijkt_af_van_concept(concept, cleaned_data) -> bool:
+    """Wijkt de tekst op het scherm af van de opgeslagen conceptversie? (titel, samenvatting, inhoud)
+
+    Bevinding 1 van de review na 1.20.1: een akkoord geldt alleen voor de tekst die het team zag.
+    Witruimte telt niet mee; de editor zet die soms net anders neer.
+    """
+    nu = concept_velden(cleaned_data)
+    oud = concept.velden or {}
+
+    def gelijk(veld):
+        return " ".join(str(nu.get(veld) or "").split()) == " ".join(str(oud.get(veld) or "").split())
+
+    return not all(gelijk(v) for v in ("titel", "samenvatting", "inhoud"))
+
+
 def concept_beginwaarden(concept) -> dict:
     """Wat het bewerkscherm invult als er een conceptversie is."""
     v = concept.velden or {}
@@ -777,6 +792,9 @@ def concept_opslaan(artikel, gebruiker, velden, geladen: str) -> Conceptversie:
                 gestart_door=gebruiker,
                 gestart_op=nu,
             )
+        if concept.pk and concept.velden == velden:
+            # Niets veranderd: de stempel blijft, en daarmee een akkoord van een reviewteam (bouwlijst 1.21.0).
+            return concept
         concept.velden = velden
         concept.bijgewerkt_door = gebruiker
         concept.bijgewerkt_op = nu
@@ -784,11 +802,36 @@ def concept_opslaan(artikel, gebruiker, velden, geladen: str) -> Conceptversie:
     return concept
 
 
-def concept_weggooien(artikel) -> bool:
-    from .review import afsluiten
+class ConceptTerInzage(Exception):
+    """Weggooien kan niet zolang de conceptversie ter inzage ligt (besluit Alex, 12 november)."""
 
-    afsluiten(artikel)  # wat ter inzage lag, telt niet meer mee
-    return Conceptversie.objects.filter(artikel=artikel).delete()[0] > 0
+
+def concept_weggooien(artikel) -> bool:
+    """Gooi de conceptversie weg. Ligt hij ter inzage, dan eerst terugroepen (ConceptTerInzage).
+
+    Voorstellen die in deze versie zouden worden meegenomen, gaan terug naar 'niet meegenomen'
+    (review 1.20.1, bevinding 8); anders kwamen ze bij een latere publicatie onterecht als verwerkt langs.
+    """
+    from .review import afsluiten, op_slot
+
+    with transaction.atomic():
+        concept = Conceptversie.objects.select_for_update().filter(artikel=artikel).first()
+        if concept is None:
+            return False
+        if op_slot(artikel.pk):
+            raise ConceptTerInzage(
+                "De conceptversie ligt ter inzage bij een reviewteam. Roep hem eerst terug; daarna kun je hem "
+                "weggooien."
+            )
+        afsluiten(artikel)  # wat eerder ter inzage lag, telt niet meer mee
+        artikel._kb_niet_meer_meegenomen = list(
+            Verbetervoorstel.objects.filter(artikel=artikel, in_conceptversie=True, status__in=OPEN)
+        )
+        Verbetervoorstel.objects.filter(pk__in=[v.pk for v in artikel._kb_niet_meer_meegenomen]).update(
+            in_conceptversie=False
+        )
+        concept.delete()
+        return True
 
 
 def concept_gepubliceerd(artikel, door) -> bool:
@@ -998,8 +1041,11 @@ def voorstel_afhandelen(voorstel, door, status, tekst: str, *, dubbel_van=None):
     if dubbel_van is not None:
         if status != VoorstelStatus.AFGEWEZEN:
             raise VoorstelFout("Alleen afwijzen kan als dubbel voorstel.")
-        if dubbel_van.pk == voorstel.pk or dubbel_van.artikel.omgeving_id != voorstel.artikel.omgeving_id:
-            raise VoorstelFout("Kies een ander voorstel uit dezelfde omgeving.")
+        # Review 1.20.1, bevinding 10: dubbel kan alleen binnen hetzelfde artikel, en niet in een kring.
+        if dubbel_van.pk == voorstel.pk or dubbel_van.artikel_id != voorstel.artikel_id:
+            raise VoorstelFout("Kies een ander voorstel bij hetzelfde artikel.")
+        if dubbel_van.dubbel_van_id == voorstel.pk:
+            raise VoorstelFout("Dat voorstel is zelf al als dubbel van dit voorstel afgewezen.")
     vorige = voorstel.eigenaar
     nu = timezone.now()
     voorstel.status = status
@@ -1010,6 +1056,12 @@ def voorstel_afhandelen(voorstel, door, status, tekst: str, *, dubbel_van=None):
         eigenaar_bij_statuswijziging(voorstel, door)
     voorstel.save(update_fields=["status", "behandeld_door", "behandeld_op", "dubbel_van", *BAK_VELDEN])
     voorstelbericht_toevoegen(voorstel, door, tekst, van_redactie=True)
+    meld_vorige_eigenaar_afgehandeld(voorstel, vorige, door)
+    return voorstel
+
+
+def meld_vorige_eigenaar_afgehandeld(voorstel, vorige, door) -> None:
+    """E-mail aan de collega uit wiens bak een voorstel door een ander is afgehandeld."""
     if vorige and door is not None and vorige.pk != door.pk and vorige.email and vorige.is_active:
         mail_na_commit(
             f"Voorstel afgehandeld: {voorstel.artikel.titel}",
@@ -1018,7 +1070,6 @@ def voorstel_afhandelen(voorstel, door, status, tekst: str, *, dubbel_van=None):
             f"{voorstel_beheer_url(voorstel)}",
             [vorige.email],
         )
-    return voorstel
 
 
 #: Het afsluitende bericht als een artikel wordt gearchiveerd (besluit e van Alex).

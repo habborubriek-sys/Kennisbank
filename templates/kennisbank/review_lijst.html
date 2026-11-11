@@ -32,7 +32,7 @@
   <h2>Onlangs afgerond</h2>
   <ul class="rv-lijst rv-afgerond">
     {% for r in afgerond %}
-    <li class="rv-item"><a class="rv-titel" href="{{ r.url }}">{{ r.i.artikel.titel }}</a>
+    <li class="rv-item"><span class="rv-titel">{{ r.i.artikel.titel }}</span>
       <span class="rv-meta">{{ r.i.team.naam }} · {{ r.i.get_status_display|lower }}{% if r.bij %} door {{ r.bij }}{% endif %} op {{ r.i.afgerond_op|date:"j F" }}</span></li>
     {% endfor %}
   </ul>
