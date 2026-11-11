@@ -19,9 +19,9 @@ html[data-theme="auto"] {
 .kb-kolomkop:first-child{margin-top:0}
 .kb-kolomsub{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--body-quiet-color);margin:12px 8px 4px;font-weight:600}
 .kb-bakkenlijst{list-style:none;margin:0;padding:0}
-.kb-bakkenlijst li{list-style:none;padding:0;margin:1px 0}
+.kb-bakkenlijst li{list-style:none;padding:0;margin:0}
 .kb-gescheiden{border-top:1px solid var(--hairline-color);margin-top:10px;padding-top:10px}
-a.kb-bakregel{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;color:var(--body-fg);text-decoration:none;font-size:.92rem}
+a.kb-bakregel{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 10px;line-height:1.35;border-radius:6px;color:var(--body-fg);text-decoration:none;font-size:.92rem}
 a.kb-bakregel:hover{background:var(--selected-row)}
 a.kb-bakregel.gekozen{background:var(--primary);color:#fff}
 a.kb-bakregel.gekozen .kb-aantal,a.kb-bakregel.gekozen .kb-jij{color:#fff}
@@ -53,6 +53,11 @@ a.kb-vtitel{font-weight:600;font-size:1rem}
 .kb-vtekst{margin:8px 0 4px;white-space:pre-wrap}
 .kb-vmeta{margin:0;font-size:.85rem;color:var(--body-quiet-color)}
 .kb-vacties{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--hairline-color)}
+/* Op de werkplek: elke actie (knop + bijbehorende keuzelijst) als eigen groepje, met een streepje ertussen. */
+.kb-voorstel .kb-vacties{gap:10px 0}
+.kb-voorstel .kb-vacties form{padding:0 16px}
+.kb-voorstel .kb-vacties form:first-child{padding-left:0}
+.kb-voorstel .kb-vacties form + form{border-left:1px solid var(--hairline-color)}
 .kb-vacties form{margin:0;display:flex;gap:6px;align-items:center}
 .kb-vacties .button{padding:6px 12px}
 .kb-vacties select{padding:5px 6px}
@@ -96,8 +101,11 @@ a.button.kb-openen{margin-left:auto}
 .kb-knoppenrij{display:flex;gap:8px;flex-wrap:wrap;margin:.5rem 0}
 .kb-dubbelkeuze{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:.6rem 0 0}
 .kb-dubbelkeuze select{max-width:100%}
-.kb-vacties-kolom{display:flex;flex-direction:column;align-items:stretch;gap:8px}
-.kb-vacties-kolom form{display:flex;gap:6px}
+/* Elke bakactie een eigen blokje met een label erboven, zodat duidelijk is welke knop bij welke keuze hoort. */
+.kb-vacties-kolom{display:flex;flex-direction:column;align-items:stretch;gap:0;border-top:0;padding-top:0;margin-top:0}
+.kb-vacties-kolom form{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:12px 0;border-bottom:1px solid var(--hairline-color);margin:0}
+.kb-vacties-kolom form:first-child{padding-top:4px}
+.kb-vacties-kolom .kb-actielabel{flex-basis:100%;font-size:.8rem;font-weight:600;color:var(--body-quiet-color);margin:0}
 .kb-vacties-kolom select{flex:1;min-width:0}
 .kb-verbergen{margin:12px 0}
 .kb-verbergen .kb-hint{display:block}

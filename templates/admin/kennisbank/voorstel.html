@@ -109,8 +109,8 @@
           {% if collegas %}
           <form method="post" action="{{ actie_url }}" class="kb-toewijzen">{% csrf_token %}
             <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ terug }}"><input type="hidden" name="na" value="scherm">
-            <label class="visually-hidden" for="kb-naar">Toewijzen aan</label>
-            <select name="naar" id="kb-naar"><option value="">Toewijzen aan…</option>
+            <label class="kb-actielabel" for="kb-naar">Toewijzen aan een collega</label>
+            <select name="naar" id="kb-naar"><option value="">Kies een collega…</option>
               {% for pk, naam in collegas %}<option value="{{ pk }}">{{ naam }}</option>{% endfor %}
             </select>
             <button type="submit" name="actie" value="toewijzen" class="button">Toewijzen</button>
@@ -119,8 +119,8 @@
           {% if bakken %}
           <form method="post" action="{{ actie_url }}" class="kb-toewijzen">{% csrf_token %}
             <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ terug }}"><input type="hidden" name="na" value="scherm">
-            <label class="visually-hidden" for="kb-bak">Naar een andere bak</label>
-            <select name="cluster" id="kb-bak"><option value="" disabled selected>Naar bak…</option>
+            <label class="kb-actielabel" for="kb-bak">Naar een andere bak</label>
+            <select name="cluster" id="kb-bak"><option value="" disabled selected>Kies een bak…</option>
               {% for pk, naam in bakken %}<option value="{{ pk }}">{{ naam }}</option>{% endfor %}
             </select>
             <button type="submit" name="actie" value="naar_bak" class="button">Verplaatsen</button>
