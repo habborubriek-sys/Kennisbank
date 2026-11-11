@@ -74,7 +74,8 @@ class VerouderdFormulierTests(Basis):
         geladen = {"status": v.status, "eigenaar": ""}  # Anna opent het scherm
         diensten.voorstel_naar_bak(v, self.bram, self.bram)  # Bram pakt het intussen op
         r = self.als(self.anna).post(
-            wijzig_url(v), self.formulier(geladen, bericht="We kijken ernaar"),
+            wijzig_url(v),
+            self.formulier(geladen, bericht="We kijken ernaar"),
             content_type="application/x-www-form-urlencoded",
         )
         self.assertEqual(r.status_code, 302, r.content[:400])
@@ -87,7 +88,8 @@ class VerouderdFormulierTests(Basis):
         geladen = {"status": v.status, "eigenaar": ""}
         diensten.voorstel_naar_bak(v, self.bram, self.bram)
         r = self.als(self.anna).post(
-            wijzig_url(v), self.formulier(geladen, naar_bak=str(self.anna.pk)),
+            wijzig_url(v),
+            self.formulier(geladen, naar_bak=str(self.anna.pk)),
             content_type="application/x-www-form-urlencoded",
         )
         self.assertEqual(r.status_code, 200)
@@ -99,7 +101,8 @@ class VerouderdFormulierTests(Basis):
         v = self.voorstel()
         diensten.voorstel_naar_bak(v, self.bram, self.bram)
         r = self.als(self.anna).patch(
-            f"/api/v1/voorstellen/{v.pk}", {"status": "afgewezen", "verwachte_status": "nieuw"},
+            f"/api/v1/voorstellen/{v.pk}",
+            {"status": "afgewezen", "verwachte_status": "nieuw"},
             content_type="application/json",
         )
         self.assertEqual(r.status_code, 409)
@@ -124,12 +127,19 @@ class PrivacyTests(Basis):
 
     def test_verbergen_via_het_beheer(self):
         v = self.voorstel()
-        data = urlencode({
-            "geladen_status": v.status, "geladen_eigenaar": "", "status": v.status, "naar_bak": "",
-            "verborgen": "on",
-            "berichten-TOTAL_FORMS": "0", "berichten-INITIAL_FORMS": "0",
-            "berichten-MIN_NUM_FORMS": "0", "berichten-MAX_NUM_FORMS": "1000",
-        })
+        data = urlencode(
+            {
+                "geladen_status": v.status,
+                "geladen_eigenaar": "",
+                "status": v.status,
+                "naar_bak": "",
+                "verborgen": "on",
+                "berichten-TOTAL_FORMS": "0",
+                "berichten-INITIAL_FORMS": "0",
+                "berichten-MIN_NUM_FORMS": "0",
+                "berichten-MAX_NUM_FORMS": "1000",
+            }
+        )
         r = self.als(self.anna).post(wijzig_url(v), data, content_type="application/x-www-form-urlencoded")
         self.assertEqual(r.status_code, 302)
         v.refresh_from_db()
@@ -170,7 +180,9 @@ class EigenaarschapTests(Basis):
     def test_wie_afhandelt_wordt_eigenaar(self):  # bevinding 6, keuze van Alex
         v = diensten.voorstel_naar_bak(self.voorstel(), self.bram, self.bram)
         url = f"/api/v1/voorstellen/{v.pk}"
-        self.als(self.anna).patch(url, {"status": "verwerkt"}, content_type="application/json")
+        self.als(self.anna).patch(
+            url, {"status": "verwerkt", "terugkoppeling": "Gedaan."}, content_type="application/json"
+        )
         v.refresh_from_db()
         self.assertEqual(v.eigenaar, self.anna)
 

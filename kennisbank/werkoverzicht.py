@@ -10,6 +10,7 @@ Alles is beperkt tot de omgevingen waar de gebruiker redacteur is. Het aantal da
 af van het aantal voorstellen of artikelen (bewaakt door een test).
 """
 
+from datetime import timedelta
 from urllib.parse import urlencode
 
 from django.contrib import admin, messages
@@ -27,6 +28,8 @@ from .models import Artikel, Cluster, Conceptversie, Kladversie, Omgeving, Rol, 
 from .rechten import rechten
 
 OPEN = [VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING]
+# Na zoveel dagen kleurt het aantal in een bak rood: dan ligt er iets te lang.
+LANG_GELEDEN_DAGEN = 30
 KLAAR = [VoorstelStatus.VERWERKT, VoorstelStatus.AFGEWEZEN]
 PER_PAGINA = 25
 
@@ -64,8 +67,12 @@ def redacteuren_per_omgeving(omgevingen) -> dict:
         .distinct()
     ):
         per[oid][pk] = _naam(v, a, g)
-    beheerders = {pk: _naam(v, a, g) for pk, v, a, g in User.objects.filter(is_active=True, is_superuser=True)
-                  .values_list("pk", "first_name", "last_name", "username")}
+    beheerders = {
+        pk: _naam(v, a, g)
+        for pk, v, a, g in User.objects.filter(is_active=True, is_superuser=True).values_list(
+            "pk", "first_name", "last_name", "username"
+        )
+    }
     for oid in per:
         per[oid].update(beheerders)
     return {oid: sorted(namen.items(), key=lambda x: x[1].lower()) for oid, namen in per.items()}
@@ -88,18 +95,20 @@ def _menu(request, omgevingen, namen_omgeving):
     User = get_user_model()
     ik = request.user
     open_qs = Verbetervoorstel.objects.filter(status__in=OPEN, artikel__omgeving_id__in=omgevingen)
+    # Rood alleen als er iets lang ligt; een gewoon aantal is geen alarm (functionele review 11 november, B9).
+    lang = Q(ingediend_op__lt=timezone.now() - timedelta(days=LANG_GELEDEN_DAGEN))
 
     algemeen = {
-        rij["artikel__omgeving_id"]: rij["n"]
+        rij["artikel__omgeving_id"]: rij
         for rij in open_qs.filter(eigenaar__isnull=True, cluster__isnull=True)
         .values("artikel__omgeving_id")
-        .annotate(n=Count("pk"))
+        .annotate(n=Count("pk"), oud=Count("pk", filter=lang))
     }
     per_cluster = {
-        rij["cluster_id"]: rij["n"]
+        rij["cluster_id"]: rij
         for rij in open_qs.filter(eigenaar__isnull=True, cluster__isnull=False)
         .values("cluster_id")
-        .annotate(n=Count("pk"))
+        .annotate(n=Count("pk"), oud=Count("pk", filter=lang))
     }
     per_eigenaar = {
         rij["eigenaar_id"]: rij
@@ -107,6 +116,7 @@ def _menu(request, omgevingen, namen_omgeving):
         .values("eigenaar_id")
         .annotate(
             n=Count("pk"),
+            oud=Count("pk", filter=lang),
             nieuw=Count("pk", filter=Q(eigenaar_gezien_op__isnull=True)),
             oudste=Min("eigenaar_sinds"),
         )
@@ -129,27 +139,39 @@ def _menu(request, omgevingen, namen_omgeving):
     bakken = []
     for oid in sorted(omgevingen, key=lambda o: namen_omgeving[o].lower()):
         sleutel = "algemeen" if len(omgevingen) == 1 else f"algemeen-{oid}"
-        bakken.append({
-            "sleutel": sleutel,
-            "naam": "Algemeen" if len(omgevingen) == 1 else f"Algemeen · {namen_omgeving[oid]}",
-            "aantal": algemeen.get(oid, 0),
-            "soort": "werkvoorraad",
-        })
+        bakken.append(
+            {
+                "sleutel": sleutel,
+                "naam": "Algemeen" if len(omgevingen) == 1 else f"Algemeen · {namen_omgeving[oid]}",
+                "aantal": algemeen.get(oid, {}).get("n", 0),
+                "oud": algemeen.get(oid, {}).get("oud", 0),
+                "soort": "werkvoorraad",
+            }
+        )
     for cid, naam in clusters_van(omgevingen, open_qs):
         bakken.append(
-            {"sleutel": f"cluster-{cid}", "naam": naam, "aantal": per_cluster.get(cid, 0), "soort": "cluster"}
+            {
+                "sleutel": f"cluster-{cid}",
+                "naam": naam,
+                "aantal": per_cluster.get(cid, {}).get("n", 0),
+                "oud": per_cluster.get(cid, {}).get("oud", 0),
+                "soort": "cluster",
+            }
         )
     personen = []
     for pk, naam in mensen.items():
         rij = per_eigenaar.get(pk, {})
-        personen.append({
-            "sleutel": f"u{pk}",
-            "naam": naam,
-            "aantal": rij.get("n", 0),
-            "nieuw": rij.get("nieuw", 0) if pk == ik.pk else 0,
-            "ik": pk == ik.pk,
-            "soort": "persoon",
-        })
+        personen.append(
+            {
+                "sleutel": f"u{pk}",
+                "naam": naam,
+                "aantal": rij.get("n", 0),
+                "oud": rij.get("oud", 0),
+                "nieuw": rij.get("nieuw", 0) if pk == ik.pk else 0,
+                "ik": pk == ik.pk,
+                "soort": "persoon",
+            }
+        )
     personen.sort(key=lambda p: (not p["ik"], p["naam"].lower()))
 
     afgehandeld = Verbetervoorstel.objects.filter(status__in=KLAAR, artikel__omgeving_id__in=omgevingen).count()
@@ -178,9 +200,8 @@ def _menu(request, omgevingen, namen_omgeving):
 
 def _voorstellen(request, qs, omgevingen, bak):
     """De rechterkant voor een bak met voorstellen."""
-    qs = (
-        qs.select_related("artikel", "artikel__omgeving", "eigenaar", "cluster")
-        .annotate(_steun=Count("steun", distinct=True))
+    qs = qs.select_related("artikel", "artikel__omgeving", "eigenaar", "cluster").annotate(
+        _steun=Count("steun", distinct=True)
     )
     pagina = Paginator(qs, PER_PAGINA).get_page(request.GET.get("pagina"))
     keuzes = redacteuren_per_omgeving(omgevingen)
@@ -188,20 +209,25 @@ def _voorstellen(request, qs, omgevingen, bak):
     terug = bak
     rijen = []
     for v in pagina.object_list:
-        rijen.append({
-            "v": v,
-            "url": reverse("admin:kennisbank_verbetervoorstel_change", args=[v.pk]) + "?" + urlencode({"terug": terug}),
-            "artikel_url": reverse("admin:kennisbank_artikel_change", args=[v.artikel_id]),
-            "eigenaar": diensten.naam_van(v.eigenaar) if v.eigenaar_id else None,
-            "van_mij": v.eigenaar_id == request.user.pk,
-            "steun": v._steun,
-            "nog_niet_geopend": v.is_open and v.eigenaar_id and v.eigenaar_gezien_op is None,
-            "dagen": _dagen(v.eigenaar_sinds if v.eigenaar_id else v.ingediend_op),
-            "collegas": [(pk, naam) for pk, naam in keuzes.get(v.artikel.omgeving_id, []) if pk != v.eigenaar_id],
-            "bakken": [("", "Algemeen")] + [(str(pk), naam) for pk, naam in clusterkeuzes if pk != v.cluster_id]
-            if v.cluster_id
-            else [(str(pk), naam) for pk, naam in clusterkeuzes],
-        })
+        rijen.append(
+            {
+                "v": v,
+                "url": reverse("admin:kennisbank_verbetervoorstel_change", args=[v.pk])
+                + "?"
+                + urlencode({"terug": terug}),
+                "artikel_url": reverse("admin:kennisbank_artikel_change", args=[v.artikel_id]),
+                "eigenaar": diensten.naam_van(v.eigenaar) if v.eigenaar_id else None,
+                "van_mij": v.eigenaar_id == request.user.pk,
+                "steun": v._steun,
+                "nog_niet_geopend": v.is_open and v.eigenaar_id and v.eigenaar_gezien_op is None,
+                "dagen": _dagen(v.eigenaar_sinds if v.eigenaar_id else v.ingediend_op),
+                "collegas": [(pk, naam) for pk, naam in keuzes.get(v.artikel.omgeving_id, []) if pk != v.eigenaar_id],
+                "bakken": ([("algemeen", "Algemeen")] if v.cluster_id else [])
+                + [(str(pk), naam) for pk, naam in clusterkeuzes if pk != v.cluster_id]
+                if v.cluster_id
+                else [(str(pk), naam) for pk, naam in clusterkeuzes],
+            }
+        )
     return {"rijen": rijen, "pagina": pagina}
 
 
@@ -231,7 +257,10 @@ def werkplek(request):
     namen_omgeving = dict(Omgeving.objects.filter(pk__in=omgevingen).values_list("pk", "naam"))
     menu = _menu(request, omgevingen, namen_omgeving)
 
-    bak = request.GET.get("bak") or menu["bakken"][0]["sleutel"]
+    # Liggen er nieuwe voorstellen in je eigen bak (toegewezen door een collega), dan begin je daar.
+    eigen = next((p for p in menu["personen"] if p["ik"]), None)
+    standaard = eigen["sleutel"] if eigen and eigen["nieuw"] else menu["bakken"][0]["sleutel"]
+    bak = request.GET.get("bak") or standaard
     open_qs = Verbetervoorstel.objects.filter(status__in=OPEN, artikel__omgeving_id__in=omgevingen)
     inhoud, titel, uitleg = {}, "", ""
     if bak == "werkvoorraad":  # oude naam (links in e-mails, bladwijzers)
@@ -253,9 +282,7 @@ def werkplek(request):
         inhoud = _voorstellen(request, qs.order_by("ingediend_op"), omgevingen, bak)
     elif bak.startswith("cluster-"):
         cid = bak.split("-", 1)[1]
-        clusters = {
-            int(b["sleutel"].split("-", 1)[1]): b["naam"] for b in menu["bakken"] if b["soort"] == "cluster"
-        }
+        clusters = {int(b["sleutel"].split("-", 1)[1]): b["naam"] for b in menu["bakken"] if b["soort"] == "cluster"}
         if not cid.isdigit() or int(cid) not in clusters:
             raise Http404
         titel = clusters[int(cid)]
@@ -337,6 +364,8 @@ def werkplek(request):
         "title": titel,
         "werkplek": {
             "menu": menu,
+            "meer_omgevingen": len(omgevingen) > 1,
+            "lang_dagen": LANG_GELEDEN_DAGEN,
             "gekozen": bak,
             "titel": titel,
             "uitleg": uitleg,
@@ -370,9 +399,14 @@ def werkplek_actie(request):
     elif actie == "terugleggen":
         naar = None
     elif actie == "naar_bak":
+        # Zonder keuze stuurt de browser het veld niet mee (de eerste optie is uitgeschakeld). Vroeger
+        # verhuisde het voorstel dan stilletjes naar Algemeen (functionele review 11 november, B4).
         keuze = request.POST.get("cluster") or ""
+        if not keuze:
+            messages.warning(request, "Kies eerst een bak om het voorstel naartoe te verplaatsen.")
+            return redirect(werkplek_url(terug))
         cluster = None
-        if keuze:
+        if keuze != "algemeen":
             toegestaan = dict(clusters_van(sorted(r.redactie_omgevingen)))
             if not keuze.isdigit() or int(keuze) not in toegestaan:
                 raise Http404
@@ -385,7 +419,7 @@ def werkplek_actie(request):
         model_admin = admin.site._registry[Verbetervoorstel]
         waar = cluster.naam if cluster else "Algemeen"
         model_admin.log_change(request, v, f"Verplaatst naar de bak {waar}.")
-        messages.success(request, f"Voorstel verplaatst naar de bak {waar}.")
+        messages.success(request, f"Het voorstel bij '{v.artikel.titel}' ligt nu in de bak {waar}.")
         return redirect(werkplek_url(terug))
     elif actie == "toewijzen":
         keuze = request.POST.get("naar") or ""

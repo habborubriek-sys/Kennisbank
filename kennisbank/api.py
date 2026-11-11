@@ -474,9 +474,7 @@ def keuzelijsten(request):
             # Net als tags en zaaktypen: alleen de clusters die in zichtbare artikelen voorkomen. Anders
             # kreeg ook een account zonder enige omgevingstoegang de volledige clusterindeling te zien,
             # en kregen medewerkers filters aangeboden die in hun omgeving niets opleveren.
-            "clusters": list(
-                Cluster.objects.filter(artikel__in=zichtbaar).distinct().values_list("naam", flat=True)
-            ),
+            "clusters": list(Cluster.objects.filter(artikel__in=zichtbaar).distinct().values_list("naam", flat=True)),
             "soorten": [{"waarde": w, "label": label} for w, label in Soort.choices],
             "tags": list(Tag.objects.filter(artikel__in=zichtbaar).distinct().values_list("naam", flat=True)),
             "zaaktypen": list(Zaaktype.objects.filter(artikel__in=zichtbaar).distinct().values("code", "naam")),
@@ -617,12 +615,14 @@ class VoorstelBehandelSerializer(serializers.Serializer):
         OpenApiParameter("artikel", int, description="Alleen bij lijst=alle: de open voorstellen bij dit artikel."),
         OpenApiParameter("status", str, description="Zonder lijst=alle: 'open' of een status."),
     ],
-    responses={200: PolymorphicProxySerializer(
-        component_name="VoorstelLijst",
-        serializers=[VoorstelSerializer, VoorstelOpenbaarSerializer],
-        resource_type_field_name=None,
-        many=True,
-    )},
+    responses={
+        200: PolymorphicProxySerializer(
+            component_name="VoorstelLijst",
+            serializers=[VoorstelSerializer, VoorstelOpenbaarSerializer],
+            resource_type_field_name=None,
+            many=True,
+        )
+    },
 )
 @api_view(["GET", "POST"])
 @throttle_classes([VoorstelThrottle])
@@ -640,9 +640,7 @@ def voorstellen(request):
         with transaction.atomic():
             bestaand = diensten.bestaand_voorstel(a, request.user, s.validated_data.get("tekst", ""))
             if bestaand:
-                return Response(
-                    VoorstelSerializer(bestaand, context=_ctx(request)).data, status=status.HTTP_200_OK
-                )
+                return Response(VoorstelSerializer(bestaand, context=_ctx(request)).data, status=status.HTTP_200_OK)
             v = s.save(ingediend_door=request.user, artikel_versie=a.versie)
         diensten.meld_nieuw_voorstel(v)
         return Response(VoorstelSerializer(v, context=_ctx(request)).data, status=status.HTTP_201_CREATED)
@@ -720,6 +718,11 @@ def voorstel_steun(request, pk):
 
 @extend_schema(
     summary="Verbetervoorstel behandelen (redacteuren)",
+    description=(
+        "Naar *verwerkt* of *afgewezen* alleen met een `terugkoppeling` (anders 400): dat bericht krijgt de "
+        "indiener. Een afgehandeld voorstel is definitief; een andere status geeft 409. Een terugkoppeling "
+        "sturen kan wel."
+    ),
     request=VoorstelBehandelSerializer,
     responses=VoorstelSerializer,
 )
@@ -745,6 +748,21 @@ def voorstel(request, pk):
                 status=status.HTTP_409_CONFLICT,
             )
         nieuwe_status = s.validated_data.get("status", v.status)
+        if nieuwe_status != v.status and not v.is_open:
+            return Response(
+                {"detail": "Dit voorstel is afgehandeld; dat is definitief. Dien zo nodig een nieuw voorstel in."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        tekst = (s.validated_data.get("terugkoppeling") or "").strip()
+        if (
+            nieuwe_status != v.status
+            and nieuwe_status in (VoorstelStatus.VERWERKT, VoorstelStatus.AFGEWEZEN)
+            and (not tekst or tekst == v.terugkoppeling)
+        ):
+            return Response(
+                {"detail": "Geef bij afhandelen een afsluitend bericht mee (terugkoppeling); dat krijgt de indiener."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if nieuwe_status != v.status:
             v.status = nieuwe_status
             v.behandeld_door = request.user
@@ -753,7 +771,6 @@ def voorstel(request, pk):
             v.save(update_fields=["status", "behandeld_door", "behandeld_op", *diensten.BAK_VELDEN])
         # Een meegestuurde terugkoppeling wordt een bericht aan de indiener; daar zit de melding en de
         # e-mail al aan vast. Dubbel versturen voorkomen we door hem over te slaan als hij niet verandert.
-        tekst = (s.validated_data.get("terugkoppeling") or "").strip()
         if tekst and tekst != v.terugkoppeling:
             diensten.voorstelbericht_toevoegen(v, request.user, tekst, van_redactie=True)
     v.refresh_from_db()

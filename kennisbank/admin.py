@@ -287,7 +287,6 @@ class ArtikelForm(forms.ModelForm):
             )
         return data
 
-
     def _controleer_concept(self, data):
         """Publiceren vanuit een scherm waarvan de conceptversie intussen is veranderd, weigeren.
 
@@ -468,7 +467,9 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     ]
     list_filter = ["status", "soort", "omgeving", HerzieningFilter, "clusters", "zaaktypen"]
     search_fields = ["titel", "samenvatting", "inhoud", "=id"]
-    filter_horizontal = ["clusters", "zaaktypen"]
+    # Clusters als vinkjes: het dubbele keuzevak van Django sprak half Engels ("Choose all") en is voor
+    # een handvol clusters overbodig (functionele review 11 november, B7). Zaaktypen kunnen er veel zijn.
+    filter_horizontal = ["zaaktypen"]
     inlines = [VersieInline]
     readonly_fields = ["versie", "gepubliceerd_op", "link"]
     actions = ["publiceren", "archiveren", "nagekeken"]
@@ -555,13 +556,11 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         if not request.GET.get("herziening"):
             vandaag = timezone.localdate()
             extra["te_herzien"] = diensten.te_herzien(eigen).count()
-            extra["herzien_binnenkort"] = (
-                eigen.filter(
-                    status=Status.GEPUBLICEERD,
-                    herzien_voor__gte=vandaag,
-                    herzien_voor__lte=vandaag + datetime.timedelta(days=HERZIENING_BINNENKORT),
-                ).count()
-            )
+            extra["herzien_binnenkort"] = eigen.filter(
+                status=Status.GEPUBLICEERD,
+                herzien_voor__gte=vandaag,
+                herzien_voor__lte=vandaag + datetime.timedelta(days=HERZIENING_BINNENKORT),
+            ).count()
         return super().changelist_view(request, extra)
 
     def bewerkclaim(self, request, pk):
@@ -649,9 +648,9 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     "tijd": self._klad_tijd(k.bijgewerkt_op),
                     "url": reverse("admin:kennisbank_artikel_klad_bekijken", args=[k.pk]),
                 }
-                for k in diensten.zichtbare_kladversies(request.user, r).filter(artikel=artikel).exclude(
-                    gebruiker=request.user
-                )
+                for k in diensten.zichtbare_kladversies(request.user, r)
+                .filter(artikel=artikel)
+                .exclude(gebruiker=request.user)
             ]
         return JsonResponse(
             {
@@ -848,9 +847,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         if obj.status != Status.GEPUBLICEERD:
             return format_html('<span style="color:#888">{}</span>', datum)
         if dagen < 0:
-            return format_html(
-                '<b style="color:#a6192e">{} · {} dagen te laat</b>', datum, -dagen
-            )
+            return format_html('<b style="color:#a6192e">{} · {} dagen te laat</b>', datum, -dagen)
         if dagen <= HERZIENING_BINNENKORT:
             return format_html('<span style="color:#8a5a00">{} · over {} dagen</span>', datum, dagen)
         return datum
@@ -859,6 +856,11 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         if db_field.name == "omgeving" and not request.user.is_superuser:
             kwargs["queryset"] = Omgeving.objects.filter(pk__in=self._omgevingen(request))
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "clusters":
+            kwargs["widget"] = forms.CheckboxSelectMultiple
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
 
     # --- Conceptversie ------------------------------------------------------------------
 
@@ -890,6 +892,16 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             if concept is not None:
                 extra["kb_concept_gestart_door"] = diensten.naam_van(concept.gestart_door)
                 extra["kb_concept_bijgewerkt_door"] = diensten.naam_van(concept.bijgewerkt_door)
+                # Collega's die aan deze conceptversie werkten: wie publiceert, bevestigt eerst (punt 4.3).
+                extra["kb_concept_collegas"] = " en ".join(
+                    sorted(
+                        {
+                            diensten.naam_van(u)
+                            for u in (concept.gestart_door, concept.bijgewerkt_door)
+                            if u and u.pk != request.user.pk
+                        }
+                    )
+                )
                 extra["kb_concept_artikel_gewijzigd"] = concept.basis_stempel != stempel_van(obj)
                 extra["kb_concept_bekijken"] = reverse("admin:kennisbank_artikel_concept_bekijken", args=[obj.pk])
                 extra["kb_concept_weggooien"] = reverse("admin:kennisbank_artikel_concept_weggooien", args=[obj.pk])
@@ -935,6 +947,23 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     messages.SUCCESS,
                 )
             return redirect(reverse("admin:kennisbank_artikel_change", args=[obj.pk]))
+        # Na "Publiceren…" terug naar de werkplek: daar ligt het volgende werk, niet in de lange
+        # artikellijst (functionele review 11 november, B9). "Verder bewerken" blijft op het artikel.
+        if (
+            "_continue" not in request.POST
+            and "_addanother" not in request.POST
+            and "_saveasnew" not in request.POST
+            and rechten(request).is_redacteur
+        ):
+            from .werkoverzicht import werkplek_url
+
+            obj.refresh_from_db(fields=["versie", "status"])  # de versie is in save_related opgehoogd
+            if obj.status == Status.GEPUBLICEERD:
+                tekst = f"'{obj.titel}' staat live als versie {obj.versie}. Je bent terug op je werkplek."
+            else:
+                tekst = f"'{obj.titel}' is opgeslagen ({obj.get_status_display().lower()})."
+            self.message_user(request, tekst, messages.SUCCESS)
+            return redirect(werkplek_url())
         return super().response_change(request, obj)
 
     def concept_weggooien(self, request, pk):
@@ -985,7 +1014,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         super().save_related(request, form, formsets, change)
         if change:
             # Gepubliceerd (of anders opgeslagen) vanuit dit scherm: de conceptversie is daarmee afgehandeld.
-            diensten.concept_weggooien(form.instance)
+            diensten.concept_gepubliceerd(form.instance, request.user)
         diensten.claim_opheffen(form.instance, request.user)  # opgeslagen = niet meer aan het bewerken
         # Opgeslagen = de kladversie is afgehandeld. Bij een nieuw artikel was dat de kladversie
         # "nieuw"; die hoort nu niet meer op het toevoegscherm terug te komen.
@@ -1103,9 +1132,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 n += 1
         self.message_user(request, f"{n} artikel(en) gepubliceerd.")
         if zonder_toelichting:
-            namen = ", ".join(a.titel for a in zonder_toelichting[:5]) + (
-                "…" if len(zonder_toelichting) > 5 else ""
-            )
+            namen = ", ".join(a.titel for a in zonder_toelichting[:5]) + ("…" if len(zonder_toelichting) > 5 else "")
             self.message_user(
                 request,
                 f"{len(zonder_toelichting)} artikel(en) niet gepubliceerd omdat de inhoud is gewijzigd "
@@ -1117,7 +1144,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             self.message_user(
                 request,
                 format_html(
-                    '<b>{}</b> is nog niet gepubliceerd: {} Open het artikel via '
+                    "<b>{}</b> is nog niet gepubliceerd: {} Open het artikel via "
                     '<a href="{}">het bewerkscherm</a> om dit aan te vullen.',
                     a.titel,
                     " ".join(problemen.values()),
@@ -1189,9 +1216,7 @@ class BakFilter(admin.SimpleListFilter):
             .values_list("eigenaar_id", "eigenaar__first_name", "eigenaar__last_name", "eigenaar__username")
             .distinct()
         )
-        collegas = sorted(
-            (f"{v} {a}".strip() or g, pk) for pk, v, a, g in eigenaren
-        )
+        collegas = sorted((f"{v} {a}".strip() or g, pk) for pk, v, a, g in eigenaren)
         keuzes += [(f"u{pk}", f"Bak van {naam}") for naam, pk in collegas]
         return keuzes
 
@@ -1257,6 +1282,13 @@ class VoorstelForm(forms.ModelForm):
         if v.pk and not v.is_open:
             self.fields["naar_bak"].disabled = True
             self.fields["naar_bak"].help_text = "Een afgehandeld voorstel blijft bij wie het afhandelde."
+            # Afgehandeld is definitief: geen heropenen. Wie iets nieuws ziet, dient een nieuw voorstel
+            # in. Berichten aan de indiener kunnen nog wel (functionele review 11 november, besluit Alex).
+            self.fields["status"].disabled = True
+            self.fields["status"].help_text = (
+                "Afgehandeld is definitief. Is er toch iets nieuws, dan dient de indiener een nieuw voorstel in. "
+                "Een bericht aan de indiener kan nog wel."
+            )
         self.wil_bak = self.wil_status = False
 
     def clean(self):
@@ -1293,7 +1325,33 @@ class VoorstelForm(forms.ModelForm):
                 + ". Je wijziging is niet opgeslagen. Open het voorstel opnieuw en kijk of het nog nodig is."
             )
         self.db_stand = nu  # save_model neemt hieruit over wat deze redacteur niet heeft aangeraakt
+        self._controleer_afsluitend_bericht(data)
         return data
+
+    def _controleer_afsluitend_bericht(self, data):
+        """Wie een voorstel afhandelt, schrijft de indiener erbij waarom (ronde 1, punt 1).
+
+        Anders kreeg de indiener bij 'Afgewezen' zijn laatste tussenbericht ("we kijken ernaar") nog
+        eens als antwoord. Het nieuwe bericht staat in de inline eronder; die is hier nog niet
+        gevalideerd, dus we kijken naar wat er is ingevuld.
+        """
+        if not self.wil_status or data.get("status") not in (VoorstelStatus.VERWERKT, VoorstelStatus.AFGEWEZEN):
+            return
+        nieuw = [
+            waarde
+            for sleutel, waarde in self.data.items()
+            if sleutel.startswith("berichten-")
+            and sleutel.endswith("-tekst")
+            and (waarde or "").strip()
+            and not self.data.get(sleutel[: -len("tekst")] + "id")
+        ]
+        if not nieuw:
+            self.add_error(
+                "status",
+                "Schrijf onder 'Gesprek met de indiener' waarom het voorstel is "
+                + ("verwerkt" if data.get("status") == VoorstelStatus.VERWERKT else "afgewezen")
+                + ". De indiener krijgt dat als antwoord, per melding en per e-mail.",
+            )
 
 
 class VoorstelBerichtInline(admin.TabularInline):
@@ -1458,7 +1516,12 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             else:
                 bericht = "Opgepakt."
             self.log_change(request, v, bericht)
-        if gelukt:
+        if gelukt == 1 and queryset.count() == 1:
+            v = queryset.select_related("artikel", "eigenaar", "cluster").first()
+            self.message_user(
+                request, f"Voorstel bij '{v.artikel.titel}' {werkwoord}. {self._waar_ligt(v)}", messages.SUCCESS
+            )
+        elif gelukt:
             self.message_user(request, f"{gelukt} voorstel(len) {werkwoord}.", messages.SUCCESS)
         for f in fouten:
             self.message_user(request, f, messages.WARNING)
@@ -1480,9 +1543,23 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         if "_continue" not in request.POST and "_addanother" not in request.POST:
             from .werkoverzicht import werkplek_url
 
-            self.message_user(request, f"Voorstel bij '{obj.artikel.titel}' opgeslagen.", messages.SUCCESS)
+            self.message_user(
+                request, f"Voorstel bij '{obj.artikel.titel}' opgeslagen. {self._waar_ligt(obj)}", messages.SUCCESS
+            )
             return redirect(werkplek_url(request.GET.get("terug")))
-        return super().response_change(request, obj)
+        # Eigen melding in plaats van Djangos "De verbetervoorstel ... U kunt hieronder ..." (B7).
+        self.message_user(
+            request, f"Voorstel bij '{obj.artikel.titel}' opgeslagen. {self._waar_ligt(obj)}", messages.SUCCESS
+        )
+        return redirect(request.get_full_path())
+
+    @staticmethod
+    def _waar_ligt(v):
+        if v.eigenaar_id:
+            return f"Het ligt in de bak van {diensten.naam_van(v.eigenaar)}."
+        if v.status in (VoorstelStatus.VERWERKT, VoorstelStatus.AFGEWEZEN):
+            return "Het is afgehandeld."
+        return f"Het ligt in de bak {v.cluster.naam if v.cluster_id else 'Algemeen'}."
 
     @admin.display(description="Gesprek", ordering="_berichten")
     def gesprek(self, obj):
@@ -2017,7 +2094,7 @@ class KladversieAdmin(admin.ModelAdmin):
     def titel_kolom(self, obj):
         if obj.artikel_id:
             return obj.titel
-        return format_html("{} <span style=\"color:#888\">(nieuw, nog nooit opgeslagen)</span>", obj.titel)
+        return format_html('{} <span style="color:#888">(nieuw, nog nooit opgeslagen)</span>', obj.titel)
 
     @admin.display(description="Van")
     def schrijver(self, obj):

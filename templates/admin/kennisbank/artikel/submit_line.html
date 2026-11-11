@@ -1,0 +1,16 @@
+{% extends "admin/submit_line.html" %}
+{% load i18n admin_urls %}
+{% comment %}
+  Bij een gepubliceerd artikel heet opslaan "Publiceren": voor iemand die in Word werkt is opslaan veilig en
+  privé, hier gaat het meteen naar alle medewerkers (functionele review 11 november, B3).
+{% endcomment %}
+{% block submit-row %}
+{% if kb_kan_concept %}
+{% if show_save %}<input type="submit" value="Publiceren…" class="default kb-publiceren" name="_save">{% endif %}
+{% if show_save_and_continue %}<input type="submit" value="Publiceren en verder bewerken" class="kb-publiceren" name="_continue">{% endif %}
+{% if show_delete_link and original %}
+    {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
+    <a href="{% add_preserved_filters delete_url %}" class="deletelink">{% translate "Delete" %}</a>
+{% endif %}
+{% else %}{{ block.super }}{% endif %}
+{% endblock %}

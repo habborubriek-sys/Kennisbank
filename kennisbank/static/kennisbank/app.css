@@ -465,3 +465,5 @@ noscript+.loading{display:none}
 .backdrop.vol{padding:16px}
 .backdrop.vol .modal{width:min(1000px,100%);height:100%;max-height:calc(100dvh - 32px);grid-template-rows:auto auto auto 1fr auto;overflow:hidden}
 .backdrop.vol .dubbellijst{overflow:auto;min-height:0;padding-right:4px}
+.topbtns .werkplek-link{text-decoration:none}
+.topbtns .werkplek-link[hidden]{display:none}

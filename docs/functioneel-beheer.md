@@ -38,15 +38,20 @@ Elke keer dat je een gepubliceerd artikel inhoudelijk wijzigt, ontstaat automati
 
 Een gepubliceerd artikel wijzig je op twee manieren:
 
-- **Opslaan** publiceert je wijziging meteen: medewerkers zien de nieuwe tekst, met je toelichting als melding.
+- **Publiceren…** zet je wijziging meteen live: medewerkers zien de nieuwe tekst, met je toelichting als melding.
+  Is de toelichting nog leeg, dan vraagt een venster erom voordat er iets gebeurt. Daarna kom je terug op je
+  werkplek; *Publiceren en verder bewerken* houdt het artikel open.
 - **Opslaan als conceptversie** (de gele knop onderaan) bewaart je wijziging als **conceptversie**. Medewerkers
   blijven de gepubliceerde versie zien en merken niets: geen nieuwe versie, geen melding, geen e-mail.
 
 Is er een conceptversie, dan opent het artikel in het beheer met die conceptversie en staat er bovenaan een gele
 balk: wie hem begon, wie hem het laatst bijwerkte, en welke versie medewerkers nu zien. Daar kun je hem ook
 **bekijken** zoals medewerkers hem straks zien, of **weggooien**. Werk verder met *Opslaan als conceptversie*;
-wil je hem publiceren, vul dan de toelichting in en kies **Opslaan**. De conceptversie is daarna weg en het
+wil je hem publiceren, kies dan **Publiceren…** en vul de toelichting in. De conceptversie is daarna weg en het
 artikel heeft een nieuwe versie.
+
+- **Werk van een collega publiceren.** Begon een collega de conceptversie, of werkte hij hem als laatste bij,
+  dan vraagt de kennisbank eerst of je zijn werk wilt publiceren. Doe je dat, dan krijgt hij een e-mail.
 
 - Er is per artikel **één conceptversie, voor de hele redactie**: een collega die het artikel opent, werkt in
   dezelfde conceptversie verder. Hebben jullie hem allebei open en slaat de ander eerst op, dan krijg je een
@@ -297,7 +302,7 @@ nog je eigen voorstellen en die van collega's (zie hieronder); daar staat een kn
   die meerdere clusters bedienen op één plek terecht.
 
 Ligt een voorstel in de verkeerde bak, kies dan bij het voorstel *Naar bak…* en **Verplaatsen** (ook naar
-Algemeen). Een clusterbak is gewoon een gezamenlijke bak met een label: iedereen in de redactie ziet en pakt
+Algemeen). Kies je geen bak, dan gebeurt er niets. Een clusterbak is gewoon een gezamenlijke bak met een label: iedereen in de redactie ziet en pakt
 er voorstellen uit. Het cluster blijft als label bij het voorstel staan, ook als iemand het heeft opgepakt;
 leg je het terug, dan komt het in die bak.
 
@@ -312,11 +317,20 @@ leg je het terug, dan komt het in die bak.
 | **Openen** | Op de titel of *Openen* klikken | Het behandelscherm met het gesprek met de indiener. Na *Opslaan* kom je terug in de bak waar je vandaan kwam |
 
 Iedereen in de redactie kan in elkaars bak kijken en er een voorstel uit overnemen, bijvoorbeeld bij ziekte
-of vakantie. "Nog niet geopend" staat erbij zolang de eigenaar het voorstel nog niet heeft bekeken.
+of vakantie. Heeft een collega je iets toegewezen dat je nog niet opende, dan opent de werkplek met jouw bak.
+Een aantal kleurt **rood** als er in die bak iets langer dan 30 dagen ligt. Vanuit de kennisbank kom je met
+de knop **Werkplek** rechtsboven op je werkplek. "Nog niet geopend" staat erbij zolang de eigenaar het voorstel nog niet heeft bekeken.
 
 **Wie afhandelt, is eigenaar.** Zet je een voorstel op *Verwerkt* of *Afgewezen*, dan komt het in jouw
 bak — ook als het bij een collega lag. Zet je de status van een voorstel uit de werkvoorraad, dan neem je
 het daarmee ook in je bak. Zet je de status terug op *Nieuw*, dan blijft het in de bak waar het lag.
+
+**Afhandelen gaat met een bericht.** Bij *Verwerkt* of *Afgewezen* schrijf je onder *Gesprek met de indiener*
+waarom; zonder dat bericht wordt het niet opgeslagen. Dat bericht is het antwoord dat de indiener krijgt.
+
+**Afgehandeld is definitief.** Een verwerkt of afgewezen voorstel gaat niet meer open (besluit van Alex): zo
+heeft het proces een duidelijk einde. Ziet de indiener toch nog iets, dan dient hij een nieuw voorstel in.
+Een bericht aan de indiener kun je na afhandelen nog wel sturen.
 
 **Iemand anders was je voor.** Heeft een collega het voorstel intussen opgepakt, verplaatst of de status
 gewijzigd terwijl jij het openhad, dan voert de kennisbank alleen door wat jij zelf hebt veranderd. Wilde jij

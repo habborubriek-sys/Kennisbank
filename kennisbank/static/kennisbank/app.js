@@ -207,11 +207,18 @@
     $("#cFav").textContent = favs.size;
     $("#cRec").textContent = ik ? ik.recent.length : "";
     // Open voorstellen plus voorstellen met een bericht dat je nog niet hebt gelezen.
-    $("#cProp").textContent = voorstellen.filter((p) => p.ongelezen || p.status === "nieuw" || p.status === "in_behandeling").length || "";
+    // Een antwoord op een eigen voorstel dat je nog niet las, krijgt de blauwe stip net als nieuws;
+    // anders gewoon het aantal open voorstellen (functionele review 11 november, B6).
+    const propOngelezen = voorstellen.filter((p) => p.ongelezen).length;
+    $("#cProp").textContent = propOngelezen || voorstellen.filter((p) => p.status === "nieuw" || p.status === "in_behandeling").length || "";
+    $("#cProp").classList.toggle("badge", propOngelezen > 0);
+    $("#cProp").title = propOngelezen ? "Nieuw antwoord van procesmanagement" : "";
     $("#cWijz").textContent = gewijzigd().length || "";
     $("#cNieuws").textContent = (berichten ? (nieuwsGezienStraks ? 0 : nieuwsOngelezen()) : (ik && ik.nieuws_ongelezen)) || "";
     $("#navNieuws").hidden = EMBED;  // in het zaaksysteem alleen de artikelen; nieuws hoort in de kennisbank zelf
     $("#navStats").hidden = !isPM();
+    // Redacteuren: in één klik naar hun werkplek in het beheer (functionele review 11 november, B9).
+    $("#lnkWerkplek").hidden = !isPM() || EMBED;
     const terug = $("#embedTerug");
     if (terug) {
       // Vaste weg terug in het zaaksysteem: de zijbalk is daar verborgen, dus zonder deze knop kom je
@@ -412,6 +419,7 @@
       ${p.citaat ? `<blockquote>“${esc(p.citaat)}”</blockquote>` : ""}
       <div>${esc(p.tekst)}</div>
       <div class="steunregel"><span class="steun-aantal">${p.steun ? steunTekst(p.steun) : "Nog niemand steunt dit"}</span>${knop}</div>
+      ${p.van_mij ? "" : `<p class="hint steun-wie">Procesmanagement ziet wie een voorstel steunt.</p>`}
     </div>`;
   }
 
@@ -429,9 +437,12 @@
 
   function renderMijnVoorstellen() {
     const filter = state.propfilter || "open";
-    const lijst = voorstellen.filter((p) =>
-      filter === "alles" ? true : filter === "open" ? p.status === "nieuw" || p.status === "in_behandeling" : p.status === filter,
-    );
+    // Een voorstel met een nieuw antwoord staat altijd bovenaan, ook als het filter hem anders verbergt:
+    // juist het antwoord op een afgewezen voorstel wil je lezen (functionele review 11 november, B6).
+    const lijst = voorstellen
+      .filter((p) => p.ongelezen ||
+        (filter === "alles" ? true : filter === "open" ? p.status === "nieuw" || p.status === "in_behandeling" : p.status === filter))
+      .sort((a, b) => (b.ongelezen ? 1 : 0) - (a.ongelezen ? 1 : 0));
     const knoppen = PROPFILTERS.map(([k, label]) => {
       const n = voorstellen.filter((p) => (k === "alles" ? true : k === "open" ? p.status === "nieuw" || p.status === "in_behandeling" : p.status === k)).length;
       return `<button type="button" data-propfilter="${k}" aria-pressed="${k === filter}">${label}${n ? ` (${n})` : ""}</button>`;
@@ -610,7 +621,8 @@
       render(false);
     }));
     // Wat je nu voor je ziet, heb je gelezen: de teller gaat naar nul zonder dat je iets hoeft te doen.
-    const ongelezen = voorstellen.filter((p) => p.ongelezen);
+    // Alleen op het tabblad met je eigen voorstellen; daar staan de ongelezen voorstellen altijd.
+    const ongelezen = (state.proplijst || "mijn") === "mijn" ? voorstellen.filter((p) => p.ongelezen) : [];
     if (ongelezen.length) {
       Promise.all(ongelezen.map((p) => api("voorstellen/" + p.id + "/gelezen", { method: "POST" }).catch(() => {})))
         .then(() => { ongelezen.forEach((p) => { p.ongelezen = 0; }); });
@@ -767,6 +779,11 @@
   function tekenDubbele() {
     $("#dubbelLijst").innerHTML = dubbele.map((p) => collegaKaartHTML(p, false)).join("");
     wireSteun($("#dubbelLijst"), tekenDubbele);
+    // Na het steunen ben je klaar: de hoofdknop wordt dan "Klaar" (functionele review 11 november, B8).
+    const steunt = dubbele.some((p) => p.ik_steun);
+    $("#dubbelSluit").hidden = steunt;
+    $("#dubbelEigen").textContent = steunt ? "Klaar" : "Toch een eigen voorstel indienen";
+    $("#dubbelEigen").dataset.klaar = steunt ? "1" : "";
   }
   async function openProp(quote) {
     const a = huidigArtikel;
@@ -775,7 +792,17 @@
     if (!dubbele.length) { openPropVenster(quote); return; }
     dubbelCitaat = quote;
     $("#dubbelArt").textContent = a.titel;
-    $("#dubbelTitel").textContent = dubbele.length === 1 ? "Er ligt al een voorstel bij dit artikel" : `Er liggen al ${dubbele.length} voorstellen bij dit artikel`;
+    // Ligt er alleen een voorstel van jezelf, dan valt er niets te steunen.
+    const alleenEigen = dubbele.every((p) => p.van_mij);
+    $("#dubbelTitel").textContent = alleenEigen
+      ? (dubbele.length === 1 ? "Je hebt hier al een voorstel ingediend" : "Je hebt hier al voorstellen ingediend")
+      : dubbele.length === 1 ? "Er ligt al een voorstel bij dit artikel" : `Er liggen al ${dubbele.length} voorstellen bij dit artikel`;
+    $("#dubbelUitleg").innerHTML = alleenEigen
+      ? "Je voorstel staat nog open. Wil je iets toevoegen, schrijf dat dan in het gesprek bij je voorstel onder <b>Verbetervoorstellen</b>. Gaat het over iets anders, dien dan een nieuw voorstel in."
+      : "Gaat jouw punt over hetzelfde? <b>Steun dan het bestaande voorstel</b>: procesmanagement ziet hoeveel collega's erachter staan (en wie), en het wordt niet twee keer behandeld. Gaat het over iets anders, dien dan gewoon je eigen voorstel in.";
+    // De tekst die je had geselecteerd, zodat je kunt vergelijken met wat er al ligt.
+    $("#dubbelCitaat").hidden = !quote;
+    $("#dubbelCitaat").textContent = quote ? `Jouw selectie: “${quote}”` : "";
     tekenDubbele();
     $("#dubbelBackdrop").classList.add("open");
     $("#dubbelEigen").focus();
@@ -786,7 +813,10 @@
     if (terug && terugFocus) terugFocus.focus();
     return true;
   }
-  $("#dubbelEigen").addEventListener("click", () => { closeDubbel(false); openPropVenster(dubbelCitaat); });
+  $("#dubbelEigen").addEventListener("click", () => {
+    if ($("#dubbelEigen").dataset.klaar === "1") { closeDubbel(true); return; }
+    closeDubbel(false); openPropVenster(dubbelCitaat);
+  });
   $("#dubbelSluit").addEventListener("click", () => closeDubbel(true));
 
   /* ---------- Verbetervoorstel-venster ---------- */

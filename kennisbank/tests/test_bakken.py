@@ -65,21 +65,36 @@ class Basis(TestCase):
         cls.zoe = maak("zoe", g_zuid, staf=True)
 
         cls.artikel = Artikel.objects.create(
-            omgeving=cls.noord, titel="Rappel", samenvatting="Over rappels", inhoud="<p>x</p>",
-            status=Status.GEPUBLICEERD, versie=1,
+            omgeving=cls.noord,
+            titel="Rappel",
+            samenvatting="Over rappels",
+            inhoud="<p>x</p>",
+            status=Status.GEPUBLICEERD,
+            versie=1,
         )
         cls.concept = Artikel.objects.create(
-            omgeving=cls.noord, titel="Concept", samenvatting="Nog niet af", inhoud="<p>x</p>", status=Status.CONCEPT,
+            omgeving=cls.noord,
+            titel="Concept",
+            samenvatting="Nog niet af",
+            inhoud="<p>x</p>",
+            status=Status.CONCEPT,
         )
         cls.artikel_zuid = Artikel.objects.create(
-            omgeving=cls.zuid, titel="Zuidelijk", samenvatting="Van Zuid", inhoud="<p>x</p>",
-            status=Status.GEPUBLICEERD, versie=1,
+            omgeving=cls.zuid,
+            titel="Zuidelijk",
+            samenvatting="Van Zuid",
+            inhoud="<p>x</p>",
+            status=Status.GEPUBLICEERD,
+            versie=1,
         )
 
     def voorstel(self, door=None, artikel=None, **kw):
         return Verbetervoorstel.objects.create(
-            artikel=artikel or self.artikel, artikel_versie=1, tekst=kw.pop("tekst", "Termijn klopt niet"),
-            ingediend_door=door or self.lies, **kw,
+            artikel=artikel or self.artikel,
+            artikel_versie=1,
+            tekst=kw.pop("tekst", "Termijn klopt niet"),
+            ingediend_door=door or self.lies,
+            **kw,
         )
 
     def als(self, u):
@@ -151,7 +166,9 @@ class BakkenDienstTests(Basis):
     def test_api_statuswijziging_neemt_het_voorstel_in_de_eigen_bak(self):
         v = self.voorstel()
         r = self.als(self.anna).patch(
-            f"/api/v1/voorstellen/{v.pk}", {"status": "verwerkt"}, content_type="application/json"
+            f"/api/v1/voorstellen/{v.pk}",
+            {"status": "verwerkt", "terugkoppeling": "Aangepast."},
+            content_type="application/json",
         )
         self.assertEqual(r.status_code, 200)
         v.refresh_from_db()
@@ -172,9 +189,7 @@ class BakkenBeheerTests(Basis):
             "berichten-0-tekst": velden.pop("bericht", ""),
         }
         # Verstuurd zoals een browser het doet.
-        return self.client.post(
-            wijzig_url(v), urlencode(data), content_type="application/x-www-form-urlencoded"
-        )
+        return self.client.post(wijzig_url(v), urlencode(data), content_type="application/x-www-form-urlencoded")
 
     @override_settings(KB_EMAIL_AAN=True)
     def test_toewijzen_via_het_formulier(self):
@@ -191,7 +206,7 @@ class BakkenBeheerTests(Basis):
     def test_status_en_bak_tegelijk_wijzigen(self):
         v = self.voorstel()
         self.als(self.anna)
-        r = self.post_formulier(v, naar_bak=str(self.anna.pk), status="afgewezen")
+        r = self.post_formulier(v, naar_bak=str(self.anna.pk), status="afgewezen", bericht="Staat al zo in de wet.")
         self.assertEqual(r.status_code, 302)
         v.refresh_from_db()
         self.assertEqual((v.eigenaar, v.status), (self.anna, VoorstelStatus.AFGEWEZEN))
@@ -199,7 +214,7 @@ class BakkenBeheerTests(Basis):
     def test_statuswijziging_zonder_bak_neemt_hem_in_de_eigen_bak(self):
         v = self.voorstel()
         self.als(self.bram)
-        self.post_formulier(v, status="verwerkt")
+        self.post_formulier(v, status="verwerkt", bericht="Aangepast in versie 3.")
         v.refresh_from_db()
         self.assertEqual(v.eigenaar, self.bram)
 
@@ -435,8 +450,12 @@ class SteunTests(Basis):
     def test_lijst_per_artikel(self):
         self.voorstel(tekst="Hier")
         ander = Artikel.objects.create(
-            omgeving=self.noord, titel="Ander", samenvatting="x", inhoud="<p>x</p>",
-            status=Status.GEPUBLICEERD, versie=1,
+            omgeving=self.noord,
+            titel="Ander",
+            samenvatting="x",
+            inhoud="<p>x</p>",
+            status=Status.GEPUBLICEERD,
+            versie=1,
         )
         self.voorstel(artikel=ander, tekst="Daar")
         r = self.als(self.piet).get(f"/api/v1/voorstellen?lijst=alle&artikel={self.artikel.pk}")

@@ -21,8 +21,12 @@ class ClusterbakkenTests(Basis):
     @classmethod
     def _artikel(cls, titel, clusters, omgeving=None):
         a = Artikel.objects.create(
-            omgeving=omgeving or cls.noord, titel=titel, samenvatting="x", inhoud="<p>x</p>",
-            status=Status.GEPUBLICEERD, versie=1,
+            omgeving=omgeving or cls.noord,
+            titel=titel,
+            samenvatting="x",
+            inhoud="<p>x</p>",
+            status=Status.GEPUBLICEERD,
+            versie=1,
         )
         a.clusters.set(clusters)
         return a
@@ -57,9 +61,19 @@ class ClusterbakkenTests(Basis):
     def test_verplaatsen_tussen_bakken(self):
         v = self.voorstel(artikel=self.art_water)
         c = self.als(self.anna)
-        c.post("/beheer/werkplek/actie/", {"voorstel": v.pk, "actie": "naar_bak", "cluster": ""})
+        self.assertEqual(v.cluster, self.water)
+        # Zonder keuze gebeurt er niets (eerder verhuisde hij stilletjes naar Algemeen).
+        for leeg in ({}, {"cluster": ""}):
+            r = c.post("/beheer/werkplek/actie/", {"voorstel": v.pk, "actie": "naar_bak", **leeg}, follow=True)
+            v.refresh_from_db()
+            self.assertEqual(v.cluster, self.water)
+            self.assertContains(r, "Kies eerst een bak")
+        r = c.post(
+            "/beheer/werkplek/actie/", {"voorstel": v.pk, "actie": "naar_bak", "cluster": "algemeen"}, follow=True
+        )
         v.refresh_from_db()
         self.assertIsNone(v.cluster)
+        self.assertContains(r, "ligt nu in de bak Algemeen")
         c.post("/beheer/werkplek/actie/", {"voorstel": v.pk, "actie": "naar_bak", "cluster": self.weg.pk})
         v.refresh_from_db()
         self.assertEqual(v.cluster, self.weg)

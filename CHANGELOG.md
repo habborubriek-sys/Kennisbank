@@ -1,5 +1,34 @@
 # Wijzigingen
 
+## 1.17.1 – 2026-11-11
+
+Ronde 1 uit de functionele review van 11 november (UX-ontwerper en functioneel analist; in het project: `review-functioneel-ux-1.17.0.md` en `review-functioneel-analist-1.17.0.md`), met de keuzes van Alex.
+
+**Verbetervoorstellen**
+
+- **Afhandelen gaat met een bericht.** Wie een voorstel op *Verwerkt* of *Afgewezen* zet, moet erbij schrijven waarom (beheer en API). Vroeger kreeg de indiener dan zijn laatste tussenbericht ("we kijken ernaar") nog eens als antwoord. Een statuswijziging zonder bericht mailt alleen de nieuwe status; terug naar *Nieuw* mailt niet.
+- **Afgehandeld is definitief** (besluit van Alex): de status van een verwerkt of afgewezen voorstel staat op slot, ook via de API (409). Een bericht aan de indiener kan nog wel.
+- **Verplaatsen zonder keuze** verhuisde het voorstel stilletjes naar Algemeen; nu volgt "Kies eerst een bak".
+- **Eigen meldingen** na oppakken, toewijzen, verplaatsen en opslaan, met de titel van het artikel en waar het voorstel nu ligt (in plaats van "1 voorstel(len)" en Djangos "De verbetervoorstel …").
+- **Medewerker**: een nieuw antwoord op je eigen voorstel staat altijd bovenaan, ook als het filter het anders verbergt, en de teller krijgt dan de blauwe stip zoals bij Nieuws. Het indienvenster zegt dat procesmanagement laat weten wat ermee gebeurt, en bij steunen staat dat procesmanagement ziet wie steunt.
+- **Venster "Er ligt al een voorstel"**: een eigen tekst als het enige open voorstel van jezelf is, je geselecteerde tekst staat erin, en na steunen wordt de knop *Klaar*.
+
+**Publiceren**
+
+- Bij een gepubliceerd artikel heten de knoppen **Publiceren…** en **Publiceren en verder bewerken**; *Opslaan en nieuwe toevoegen* is weg. Ontbreekt de toelichting, dan vraagt een venster erom vóór het versturen; in conceptmodus altijd. Na de foutmelding over een ontbrekende toelichting verstuurt het venster nu echt (sloot eerst zonder iets te doen).
+- **Werk van een collega publiceren**: is de conceptversie begonnen of het laatst bijgewerkt door een collega, dan volgt eerst een bevestiging, en die collega krijgt na publiceren een e-mail.
+- Na *Publiceren…* ga je terug naar je werkplek.
+- Clusters kies je met vinkjes in plaats van het half-Engelse dubbele keuzevak.
+
+**Werkplek**
+
+- Heeft een collega je iets toegewezen dat je nog niet opende, dan opent de werkplek met je eigen bak.
+- Aantallen zijn rood alleen als er iets langer dan 30 dagen ligt.
+- De omgeving staat alleen bij een voorstel als je in meer omgevingen redacteur bent (de controle keek per ongeluk naar het aantal bakken).
+- Knop **Werkplek** rechtsboven in de kennisbank voor redacteuren.
+
+- **Tests** (nu 386): afsluitend bericht (beheer en API), geen mail bij terug naar Nieuw, afgehandeld op slot (beheer en API) met bericht nog mogelijk, verplaatsen zonder keuze, de meldingen, de knoppen, de collega-bevestiging en de e-mail, terug naar de werkplek, eigen bak eerst, rood alleen bij lang liggen, omgevingslabel, werkplekknop. Elk tegen een bewust kapotte versie gedraaid. In de browser nagelopen: werkplekknop, verplaatsen zonder keuze, toelichtingsvenster, collega-bevestiging, venster bij dubbele voorstellen.
+
 ## 1.17.0 – 2026-11-11
 
 De eerste twee stappen uit het ontwerp voor verbetervoorstellen per cluster en het reviewproces (ontwerp met Alex, 11 november; in het project: `ontwerp-reviewproces.md`). Stap A en B; het reviewproces zelf (C) en de opmerkingen in de zijbalk (D) volgen.

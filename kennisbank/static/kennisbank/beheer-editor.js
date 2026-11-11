@@ -828,6 +828,12 @@
 
   /* De toelichting bij publiceren staat buiten het volledige scherm. Zonder deze controle zou
    * opslaan vanuit het volledige scherm stilletjes mislukken op een foutmelding die je niet ziet. */
+  function publicerenVersturen() {
+    var form = document.querySelector("#artikel_form");
+    var knop = form && form.querySelector('input[name="_save"]');
+    if (knop) { knop.dataset.toelichtingGevraagd = "1"; knop.click(); }
+  }
+
   function toelichtingNodig(beginwaarden) {
     var status = veld("status");
     if (!status || status.value !== "gepubliceerd") return false;
@@ -837,6 +843,8 @@
     var klein = veld("kleine_correctie");
     if (toel && toel.value.trim()) return false;
     if (klein && klein.checked) return false;
+    // Een conceptversie verschilt per definitie van wat medewerkers nu zien.
+    if (document.querySelector('input[name="kb_conceptmodus"]')) return true;
     return Object.keys(beginwaarden).some(function (naam) {
       var el = veld(naam);
       return el && el.value !== beginwaarden[naam];
@@ -890,7 +898,7 @@
             "wie het als favoriet heeft, krijgt hem per e-mail.",
       ],
       inhoud: vak,
-      knoppen: [{ tekst: "Annuleren" }, { tekst: "Opslaan", primair: true, doen: opslaan }],
+      knoppen: [{ tekst: "Annuleren" }, { tekst: "Publiceren", primair: true, doen: opslaan }],
     });
     return true;
   }
@@ -977,7 +985,36 @@
     });
     // Mislukte opslag door de ontbrekende toelichting: toon hem alsnog in beeld.
     var foutje = document.querySelector(".field-wijzigingstoelichting .errorlist li");
-    if (foutje) setTimeout(function () { vraagToelichting(foutje.textContent); }, 60);
+    // Na het invullen echt versturen: zonder vervolgactie sloot het venster en gebeurde er niets
+    // (functionele review 11 november, B1).
+    if (foutje) setTimeout(function () { vraagToelichting(foutje.textContent, publicerenVersturen); }, 60);
+    // Publiceren vanaf de knoppen onderaan: eerst om de toelichting vragen als die nodig is, in plaats
+    // van een foutmelding na het laden van de pagina.
+    document.querySelectorAll('input.kb-publiceren').forEach(function (knop) {
+      knop.addEventListener("click", function (e) {
+        if (knop.dataset.toelichtingGevraagd === "1") return;
+        var collegas = document.getElementById("kb-concept-collegas");
+        var nogBevestigen = collegas && knop.dataset.collegaBevestigd !== "1";
+        var toelichting = toelichtingNodig(window.kbBeginwaarden || {});
+        if (!nogBevestigen && !toelichting) return;
+        e.preventDefault();
+        function verder() { knop.dataset.toelichtingGevraagd = "1"; knop.click(); }
+        function naBevestigen() {
+          knop.dataset.collegaBevestigd = "1";
+          if (toelichtingNodig(window.kbBeginwaarden || {})) vraagToelichting(null, verder); else verder();
+        }
+        if (!nogBevestigen) { naBevestigen(); return; }
+        // Werk van een collega live zetten: eerst bevestigen; de collega krijgt een e-mail (punt 4.3).
+        vensterTonen({
+          titel: "Werk van een collega publiceren?",
+          alineas: [
+            "Aan deze conceptversie werkte ook " + collegas.value + ".",
+            "Publiceer je nu, dan zien alle medewerkers deze tekst en krijgt " + collegas.value + " daar een e-mail over. Overleg eerst als je twijfelt of het werk af is.",
+          ],
+          knoppen: [{ tekst: "Annuleren" }, { tekst: "Ja, publiceren", primair: true, doen: function () { setTimeout(naBevestigen, 0); } }],
+        });
+      });
+    });
     // Nieuwe sectie toegevoegd via "Nog een sectie toevoegen".
     document.addEventListener("formset:added", function (e) {
       initAll(e.target);

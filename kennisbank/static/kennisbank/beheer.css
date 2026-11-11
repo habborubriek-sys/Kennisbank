@@ -31,7 +31,8 @@ a.kb-bakregel.gekozen .kb-aantal,a.kb-bakregel.gekozen .kb-jij{color:#fff}
 .kb-nieuw{color:#a6192e}
 a.kb-bakregel.gekozen .kb-nieuw{color:#ffd23f}
 .kb-aantal{font-variant-numeric:tabular-nums;color:var(--body-quiet-color);min-width:1.5em;text-align:right}
-.kb-aantal.vol{color:#a6192e;font-weight:700}
+.kb-aantal.vol{color:var(--body-fg);font-weight:700}
+.kb-aantal.oud{color:#a6192e}
 .kb-kolomknoppen{display:flex;flex-direction:column;gap:6px;margin:16px 8px 0}
 a.button.kb-knop{display:block;text-align:center;padding:8px 12px;border-radius:6px}
 .kb-inhoud{padding:20px 32px 40px;max-width:1000px}
@@ -72,3 +73,6 @@ a.button.kb-openen{margin-left:auto}
 .kb-conceptrij .kb-concept-opslaan{background:#b58500;color:#fff;border:0;padding:10px 15px;border-radius:4px;cursor:pointer;font-weight:600}
 .kb-concepthint{color:var(--body-quiet-color);font-size:.85rem}
 .kb-subkop{font-size:1rem;margin:18px 0 8px;background:none;color:var(--body-fg);padding:0}
+/* Gevaarknop (weggooien) — ronde 1, punt 9 */
+.button.kb-gevaar,button.kb-gevaar{background:var(--body-bg)!important;color:#a6192e!important;border:1px solid #a6192e!important}
+.button.kb-gevaar:hover,button.kb-gevaar:hover{background:#f8e0e3!important}

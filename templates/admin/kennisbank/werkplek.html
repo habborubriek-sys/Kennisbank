@@ -14,14 +14,14 @@
     <ul class="kb-bakkenlijst">
       {% for b in w.menu.bakken %}
       <li><a class="kb-bakregel{% if b.soort == "werkvoorraad" %} kb-werkvoorraad{% else %} kb-clusterbak{% endif %}{% if w.gekozen == b.sleutel %} gekozen{% endif %}" href="?bak={{ b.sleutel }}"{% if w.gekozen == b.sleutel %} aria-current="page"{% endif %}>
-        <span>{{ b.naam }}</span><span class="kb-aantal{% if b.aantal %} vol{% endif %}">{{ b.aantal }}</span></a></li>
+        <span>{{ b.naam }}</span><span class="kb-aantal{% if b.aantal %} vol{% endif %}{% if b.oud %} oud{% endif %}"{% if b.oud %} title="{{ b.oud }} ligt al meer dan {{ w.lang_dagen }} dagen"{% endif %}>{{ b.aantal }}</span></a></li>
       {% endfor %}
     </ul>
     <h3 class="kb-kolomsub">Procesmanagers</h3>
     <ul class="kb-bakkenlijst">
       {% for p in w.menu.personen %}
       <li><a class="kb-bakregel{% if p.ik %} kb-ik{% endif %}{% if w.gekozen == p.sleutel %} gekozen{% endif %}" href="?bak={{ p.sleutel }}"{% if w.gekozen == p.sleutel %} aria-current="page"{% endif %}>
-        <span>{{ p.naam }}{% if p.ik %} <span class="kb-jij">(jij)</span>{% endif %}{% if p.nieuw %} <b class="kb-nieuw">· {{ p.nieuw }} nieuw</b>{% endif %}</span><span class="kb-aantal">{{ p.aantal }}</span></a></li>
+        <span>{{ p.naam }}{% if p.ik %} <span class="kb-jij">(jij)</span>{% endif %}{% if p.nieuw %} <b class="kb-nieuw">· {{ p.nieuw }} nieuw</b>{% endif %}</span><span class="kb-aantal{% if p.oud %} vol oud{% endif %}"{% if p.oud %} title="{{ p.oud }} ligt al meer dan {{ w.lang_dagen }} dagen"{% endif %}>{{ p.aantal }}</span></a></li>
       {% endfor %}
     </ul>
     <ul class="kb-bakkenlijst kb-gescheiden">
@@ -71,7 +71,7 @@
             Ingediend {{ v.ingediend_op|date:"j F Y" }}
             {% if r.eigenaar %} · bij {% if r.van_mij %}jou{% else %}{{ r.eigenaar }}{% endif %}{% if r.dagen is not None and v.is_open %} {% if r.dagen == 0 %}sinds vandaag{% else %}sinds {{ r.dagen }} dag{{ r.dagen|pluralize:"en" }}{% endif %}{% endif %}{% elif v.is_open and r.dagen is not None %} · {% if r.dagen == 0 %}sinds vandaag{% else %}ligt {{ r.dagen }} dag{{ r.dagen|pluralize:"en" }}{% endif %}{% endif %}
             · {% if r.steun %}<b>{{ r.steun }} collega{{ r.steun|pluralize:"'s" }} steun{{ r.steun|pluralize:"t,en" }} dit</b>{% else %}nog geen steun{% endif %}
-            {% if w.menu.bakken|length > 1 %} · {{ v.artikel.omgeving.naam }}{% endif %}
+            {% if w.meer_omgevingen %} · {{ v.artikel.omgeving.naam }}{% endif %}
           </p>
           {% if v.is_open %}
           <div class="kb-vacties">
@@ -123,12 +123,12 @@
       {% if w.inhoud.conceptversies %}
       <h2 class="kb-subkop">Nieuwe versies in bewerking</h2>
       <table class="kb-tabel">
-        <thead><tr><th scope="col">Artikel</th><th scope="col">Gepubliceerd</th><th scope="col">Laatst bijgewerkt</th>{% if w.menu.bakken|length > 1 %}<th scope="col">Omgeving</th>{% endif %}</tr></thead>
+        <thead><tr><th scope="col">Artikel</th><th scope="col">Gepubliceerd</th><th scope="col">Laatst bijgewerkt</th>{% if w.meer_omgevingen %}<th scope="col">Omgeving</th>{% endif %}</tr></thead>
         <tbody>
         {% for c in w.inhoud.conceptversies %}
           <tr><td><a href="{{ c.url }}">{{ c.titel }}</a> <span class="kb-label">conceptversie</span></td>
             <td>versie {{ c.versie }}</td><td>{{ c.bijgewerkt_op|date:"j F Y H:i" }} · {{ c.door }}</td>
-            {% if w.menu.bakken|length > 1 %}<td>{{ c.omgeving }}</td>{% endif %}</tr>
+            {% if w.meer_omgevingen %}<td>{{ c.omgeving }}</td>{% endif %}</tr>
         {% endfor %}
         </tbody>
       </table>
@@ -136,12 +136,12 @@
       {% endif %}
       {% if w.inhoud.artikelen %}
       <table class="kb-tabel">
-        <thead><tr><th scope="col">Artikel</th><th scope="col">{% if w.gekozen == "nakijken" %}Nakijken vóór{% else %}Gewijzigd{% endif %}</th>{% if w.menu.bakken|length > 1 %}<th scope="col">Omgeving</th>{% endif %}</tr></thead>
+        <thead><tr><th scope="col">Artikel</th><th scope="col">{% if w.gekozen == "nakijken" %}Nakijken vóór{% else %}Gewijzigd{% endif %}</th>{% if w.meer_omgevingen %}<th scope="col">Omgeving</th>{% endif %}</tr></thead>
         <tbody>
         {% for a in w.inhoud.artikelen %}
           <tr><td><a href="{{ a.url }}">{{ a.titel }}</a></td>
             <td>{% if w.gekozen == "nakijken" %}{{ a.herzien_voor|date:"j F Y" }}{% else %}{{ a.gewijzigd_op|date:"j F Y H:i" }}{% endif %}</td>
-            {% if w.menu.bakken|length > 1 %}<td>{{ a.omgeving }}</td>{% endif %}</tr>
+            {% if w.meer_omgevingen %}<td>{{ a.omgeving }}</td>{% endif %}</tr>
         {% endfor %}
         </tbody>
       </table>

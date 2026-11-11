@@ -22,6 +22,7 @@
   <div class="topbtns">
     <button class="tb side-toggle on-accent" id="sideToggle" type="button" aria-controls="side" aria-expanded="false">Menu</button>
     <button class="toggle" id="onbToggle" type="button" aria-pressed="false" title="Toon extra uitleg voor nieuwe collega's"><span class="sw" aria-hidden="true"></span>Onboarding</button>
+    <a class="tb on-accent werkplek-link" id="lnkWerkplek" href="/beheer/" hidden>Werkplek</a>
     <span class="user" id="user"></span>
   </div>
 </header>
@@ -87,7 +88,7 @@
     <blockquote id="propQuote"></blockquote>
     <label for="propText">Wat kan beter?</label>
     <p class="hint prop-zichtbaar">Collega's zien je voorstel, zonder je naam. Alleen procesmanagement ziet wie het indiende, voor als ze contact met je willen opnemen.</p>
-    <textarea id="propText" required maxlength="4000" rows="10" placeholder="Beschrijf wat onduidelijk, verouderd of onjuist is en wat je zou voorstellen. Je mag er rustig de tijd voor nemen — procesmanagement kan hier daarna met je op doorpraten."></textarea>
+    <textarea id="propText" required maxlength="4000" rows="10" placeholder="Beschrijf wat onduidelijk, verouderd of onjuist is en wat je zou voorstellen. Je mag er rustig de tijd voor nemen — procesmanagement laat je hier weten wat ermee gebeurt."></textarea>
     <div class="row"><button type="button" class="tb" id="propCancel">Annuleren</button><button type="submit" class="tb primary">Indienen</button></div>
   </form>
 </div>
@@ -96,8 +97,9 @@
   <div class="modal" id="dubbel" role="dialog" aria-modal="true" aria-labelledby="dubbelTitel">
     <h2 id="dubbelTitel">Er ligt al een voorstel bij dit artikel</h2>
     <p class="art-line" id="dubbelArt"></p>
-    <p>Gaat jouw punt over hetzelfde? <b>Steun dan het bestaande voorstel</b>: procesmanagement ziet hoeveel
-      collega's erachter staan, en het wordt niet twee keer behandeld. Gaat het over iets anders, dien dan
+    <blockquote id="dubbelCitaat" hidden></blockquote>
+    <p id="dubbelUitleg">Gaat jouw punt over hetzelfde? <b>Steun dan het bestaande voorstel</b>: procesmanagement ziet hoeveel
+      collega's erachter staan (en wie), en het wordt niet twee keer behandeld. Gaat het over iets anders, dien dan
       gewoon je eigen voorstel in.</p>
     <div class="props dubbellijst" id="dubbelLijst"></div>
     <div class="row">

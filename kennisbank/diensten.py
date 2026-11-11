@@ -176,8 +176,25 @@ _TITEL_RUIS_KAPITAAL = re.compile(r"\b(DEFINITIEF|DEFINITIEVE|FINAL|CONCEPT)\b")
 
 #: Samenvattingen die net zo goed leeg hadden kunnen zijn.
 _SAMENVATTING_RUIS = {
-    "", "nvt", "n.v.t", "n.v.t.", "geen", "volgt", "volgt nog", "nog invullen", "nog in te vullen",
-    "tbd", "todo", "to do", "x", "xxx", "test", "tekst", "samenvatting", "zie artikel", "zie inhoud",
+    "",
+    "nvt",
+    "n.v.t",
+    "n.v.t.",
+    "geen",
+    "volgt",
+    "volgt nog",
+    "nog invullen",
+    "nog in te vullen",
+    "tbd",
+    "todo",
+    "to do",
+    "x",
+    "xxx",
+    "test",
+    "tekst",
+    "samenvatting",
+    "zie artikel",
+    "zie inhoud",
 }
 
 #: Minimale lengte van een samenvatting die iets zegt.
@@ -455,12 +472,18 @@ def meld_nieuw_voorstel(voorstel):
 
 
 def meld_terugkoppeling(voorstel):
-    if not voorstel.ingediend_door:
+    """Een statuswijziging zonder nieuw bericht: alleen de nieuwe status, geen oud bericht erbij.
+
+    Vroeger stond hier het laatste bericht in; dan kreeg de indiener bij 'Afgewezen' het tussenbericht
+    "we kijken ernaar" als antwoord. Terug naar 'Nieuw' levert geen e-mail op: voor de indiener is er
+    dan niets gebeurd.
+    """
+    if not voorstel.ingediend_door or voorstel.status == VoorstelStatus.NIEUW:
         return
     mail_na_commit(
-        f"Terugkoppeling op je verbetervoorstel: {voorstel.artikel.titel}",
-        f"Status: {voorstel.get_status_display()}\n\n{voorstel.terugkoppeling}\n\n"
-        f"Bekijk: {settings.KB_BASIS_URL}/voorstellen",
+        f"Je verbetervoorstel: {voorstel.artikel.titel}",
+        f"De status van je verbetervoorstel bij '{voorstel.artikel.titel}' is nu: "
+        f"{voorstel.get_status_display().lower()}.\n\nBekijk: {settings.KB_BASIS_URL}/voorstellen",
         [voorstel.ingediend_door.email],
     )
 
@@ -687,6 +710,29 @@ def concept_opslaan(artikel, gebruiker, velden, geladen: str) -> Conceptversie:
 
 def concept_weggooien(artikel) -> bool:
     return Conceptversie.objects.filter(artikel=artikel).delete()[0] > 0
+
+
+def concept_gepubliceerd(artikel, door) -> bool:
+    """De conceptversie is gepubliceerd: haal hem weg en laat collega's die eraan werkten het weten.
+
+    Wie een conceptversie publiceert die een collega begon of als laatste bijwerkte, krijgt in het
+    scherm eerst een bevestiging; de collega krijgt daarna een e-mail, zodat hij niet verder zoekt naar
+    werk dat al live staat (functionele review 11 november, punt 4.3).
+    """
+    concept = Conceptversie.objects.filter(artikel=artikel).select_related("gestart_door", "bijgewerkt_door").first()
+    if concept is None:
+        return False
+    collegas = {u for u in (concept.gestart_door, concept.bijgewerkt_door) if u and u.pk != door.pk and u.email}
+    concept.delete()
+    if collegas and artikel.status == Status.GEPUBLICEERD:
+        mail_na_commit(
+            f"Conceptversie gepubliceerd: {artikel.titel}",
+            f"{naam_van(door)} heeft de conceptversie van '{artikel.titel}' gepubliceerd, waar jij ook aan werkte. "
+            "Medewerkers zien die tekst nu; de conceptversie is daarmee afgesloten.\n\n"
+            f"{settings.KB_BASIS_URL}/beheer/kennisbank/artikel/{artikel.pk}/change/",
+            [u.email for u in collegas],
+        )
+    return True
 
 
 # --- Bakken: wie heeft een verbetervoorstel ---------------------------------------------
