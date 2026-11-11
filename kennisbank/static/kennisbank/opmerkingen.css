@@ -1,0 +1,17 @@
+/* Markeringen en lijst van opmerkingen bij tekst (stap D): reviewer en live voorbeeld. */
+mark.kb-opm{background:#ffe58a;color:inherit;padding:0 1px;border-radius:2px;cursor:pointer}
+mark.kb-opm.kb-opm-flits,.kb-opm-item.kb-opm-flits{outline:3px solid #b58500;outline-offset:2px}
+.kb-opm-nr{display:inline-block;min-width:1.2em;margin-right:2px;padding:0 4px;border-radius:8px;background:#b58500;color:#fff;font-size:.7em;font-weight:700;text-align:center;line-height:1.4;vertical-align:super}
+.kb-opm-lijst{list-style:none;margin:0 0 12px;padding:0}
+.kb-opm-item{border:1px solid #e0c46a;background:#fffbea;border-radius:6px;padding:8px 10px;margin:0 0 6px;display:flex;flex-direction:column;gap:3px;color:#222}
+.kb-opm-klikbaar{cursor:pointer}
+.kb-opm-klikbaar:hover{border-color:#b58500}
+.kb-opm-wie{font-size:.8rem;color:#6b5a1e;font-weight:600}
+.kb-opm-citaat{font-style:italic;color:#444;border-left:3px solid #e0c46a;padding-left:6px;display:block}
+.kb-opm-status{font-size:.78rem;color:#7a5200}
+.kb-opm-weg{background:#f6f6f6;border-color:#ddd}
+.kb-opm-weg .kb-opm-citaat{text-decoration:line-through;text-decoration-color:#bbb}
+.kb-opm-tekst{white-space:pre-wrap}
+.kb-opm-paneel{border:1px solid #e0c46a;background:#fffdf3;border-radius:8px;padding:8px 12px;margin:0 0 14px}
+.kb-opm-paneel summary{cursor:pointer;font-weight:600}
+.kb-opm-uitleg{font-size:.82rem;color:#6b5a1e;margin:.3rem 0 .5rem}

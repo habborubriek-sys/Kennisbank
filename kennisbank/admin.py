@@ -35,8 +35,10 @@ from .models import (
     Cluster,
     Conceptversie,
     GroepLabel,
+    InzageStatus,
     Kladversie,
     Omgeving,
+    ReviewOpmerking,
     Reviewteam,
     Sjabloon,
     Soort,
@@ -49,6 +51,9 @@ from .models import (
     VoorstelStatus,
     Zaaktype,
     normaliseer_tag,
+)
+from .models import (
+    OPEN as OPEN_VOORSTEL,
 )
 from .rechten import rechten
 from .word_import import WordImportFout, lees_docx
@@ -232,6 +237,7 @@ class ArtikelForm(forms.ModelForm):
     #: conceptversie hoort bij dit artikel?
     als_concept = False
     conceptversie = None
+    spoed = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -253,8 +259,9 @@ class ArtikelForm(forms.ModelForm):
             self._controleer_omvang(data)
             return data
         self._controleer_conflict(data)
-        self._controleer_concept(data)
-        self._inhoud_op_slot(data)
+        if not self.spoed:  # een spoedcorrectie raakt de conceptversie niet
+            self._controleer_concept(data)
+            self._inhoud_op_slot(data)
         self._controleer_omvang(data)
         self._controleer_dubbele_titel(data)
         self._controleer_eerste_publicatie(data)
@@ -552,6 +559,11 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 "<int:pk>/ter-inzage/",
                 self.admin_site.admin_view(self.ter_inzage),
                 name="kennisbank_artikel_ter_inzage",
+            ),
+            path(
+                "<int:pk>/voorstellen-afhandelen/",
+                self.admin_site.admin_view(self.voorstellen_afhandelen),
+                name="kennisbank_artikel_voorstellen_afhandelen",
             ),
             path(
                 "<int:pk>/terugroepen/",
@@ -919,7 +931,17 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         als_concept = request.method == "POST" and "_conceptversie" in request.POST and self._kan_concept(obj)
         if als_concept:
             request._kb_als_concept = True
-        return type(Form.__name__, (Form,), {"als_concept": als_concept, "conceptversie": self._concept_van(obj)})
+        concept = self._concept_van(obj)
+        # Spoedcorrectie (reviewpunt 12): de gepubliceerde versie aanpassen terwijl er een conceptversie
+        # is. Het formulier opent dan de gepubliceerde tekst; de conceptversie blijft ongewijzigd.
+        spoed = request.GET.get("spoed") == "1" and concept is not None and not als_concept
+        if spoed:
+            request._kb_spoed = True
+        return type(
+            Form.__name__,
+            (Form,),
+            {"als_concept": als_concept, "conceptversie": None if spoed else concept, "spoed": spoed},
+        )
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         extra = extra_context or {}
@@ -927,6 +949,18 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         if obj is not None:
             concept = self._concept_van(obj)
             extra["kb_kan_concept"] = self._kan_concept(obj)
+            extra["kb_meegenomen"] = [
+                {"titel": v.tekst[:90], "url": reverse("beheer-voorstel", args=[v.pk])}
+                for v in Verbetervoorstel.objects.filter(artikel=obj, in_conceptversie=True, status__in=OPEN_VOORSTEL)
+            ]
+            if request.GET.get("spoed") == "1" and concept is not None:
+                # Spoedcorrectie: de gepubliceerde versie, niet de conceptversie (reviewpunt 12).
+                from . import review
+
+                extra["kb_spoed"] = True
+                extra["kb_spoed_op_slot"] = review.op_slot(obj.pk)
+                extra["kb_concept_url"] = reverse("admin:kennisbank_artikel_change", args=[obj.pk])
+                concept = None
             extra["kb_concept"] = concept
             if concept is not None:
                 extra["kb_concept_gestart_door"] = diensten.naam_van(concept.gestart_door)
@@ -949,6 +983,28 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     stand = review.stand(obj)
                     voor = set(review.voorgevulde_teams(obj).values_list("pk", flat=True))
                     extra["kb_review"] = stand
+                    # Stap D: de opmerkingen voor het live voorbeeld in het volledig scherm.
+                    extra["kb_opmerkingen"] = [
+                        {
+                            "nr": nr,
+                            "wie": o.inzage.team.naam
+                            + " · "
+                            + (diensten.naam_van(o.auteur) if o.auteur_id else "reviewer"),
+                            "wanneer": date_format(timezone.localtime(o.moment), "j F H:i"),
+                            "tekst": o.tekst,
+                            "citaat": o.citaat,
+                        }
+                        for nr, o in enumerate(
+                            # Van de laatste ronde, en pas als het team heeft gereageerd: zolang een stuk ter
+                            # inzage ligt, zijn de opmerkingen nog van de reviewer.
+                            ReviewOpmerking.objects.filter(
+                                inzage__in=[r.pk for r in stand["rijen"] if r.status != InzageStatus.TER_INZAGE]
+                            )
+                            .select_related("inzage__team", "auteur")
+                            .order_by("moment", "pk"),
+                            start=1,
+                        )
+                    ]
                     extra["kb_review_teams"] = [
                         {"pk": t.pk, "naam": t.naam, "gekozen": t.pk in voor}
                         for t in obj.omgeving.reviewteams.order_by("naam")
@@ -1009,6 +1065,8 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     messages.SUCCESS,
                 )
             return redirect(reverse("admin:kennisbank_artikel_change", args=[obj.pk]))
+        if getattr(request, "_kb_meegenomen", False):
+            return redirect(reverse("admin:kennisbank_artikel_voorstellen_afhandelen", args=[obj.pk]))
         # Na "Publiceren…" terug naar de werkplek: daar ligt het volgende werk, niet in de lange
         # artikellijst (functionele review 11 november, B9). "Verder bewerken" blijft op het artikel.
         if (
@@ -1056,6 +1114,69 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 "terugroept. Publiceren kan altijd.",
             )
         return redirect(reverse("admin:kennisbank_artikel_change", args=[obj.pk]))
+
+    def voorstellen_afhandelen(self, request, pk):
+        """Na publiceren: de meegenomen voorstellen afhandelen met een voorgevuld bericht (reviewpunt 11)."""
+        obj = get_object_or_404(self.get_queryset(request), pk=pk)
+        qs = (
+            Verbetervoorstel.objects.filter(artikel=obj, verwerkt_in_versie__isnull=False, status__in=OPEN_VOORSTEL)
+            .select_related("ingediend_door")
+            .order_by("ingediend_op")
+        )
+        if request.method == "POST":
+            gedaan = 0
+            for v in qs:
+                if request.POST.get(f"afhandelen-{v.pk}") != "1":
+                    continue
+                with transaction.atomic():
+                    v = (
+                        Verbetervoorstel.objects.select_for_update(of=("self",))
+                        .select_related("artikel", "eigenaar")
+                        .get(pk=v.pk)
+                    )
+                    try:
+                        diensten.voorstel_afhandelen(
+                            v, request.user, VoorstelStatus.VERWERKT, request.POST.get(f"bericht-{v.pk}", "")
+                        )
+                    except diensten.VoorstelFout as e:
+                        self.message_user(request, f"{v.artikel.titel}: {e}", messages.WARNING)
+                        continue
+                    admin.site._registry[Verbetervoorstel].log_change(
+                        request, v, f"Verwerkt in versie {v.verwerkt_in_versie}."
+                    )
+                    gedaan += 1
+            if gedaan:
+                self.message_user(request, f"{gedaan} voorstel(len) afgehandeld; de indieners krijgen je bericht.")
+            if qs.all().exists():  # .all(): opnieuw vragen, niet de lijst van hierboven
+                return redirect(request.path)
+            from .werkoverzicht import werkplek_url
+
+            return redirect(werkplek_url())
+        from .behandelen import scherm_url
+
+        rijen = [
+            {
+                "v": v,
+                "indiener": diensten.naam_van(v.ingediend_door) if v.ingediend_door_id else "de indiener",
+                "bericht": (
+                    f"Dank je wel voor je verbetervoorstel. We hebben het verwerkt in versie {v.verwerkt_in_versie} "
+                    f"van '{obj.titel}', die nu voor iedereen te zien is."
+                ),
+                "url": scherm_url(v),
+            }
+            for v in qs
+        ]
+        return render(
+            request,
+            "admin/kennisbank/artikel/voorstellen_afhandelen.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": f"Voorstellen afhandelen: {obj.titel}",
+                "artikel": obj,
+                "rijen": rijen,
+                "artikel_url": reverse("admin:kennisbank_artikel_change", args=[obj.pk]),
+            },
+        )
 
     def terugroepen(self, request, pk):
         from . import review
@@ -1121,7 +1242,12 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             return
         super().save_related(request, form, formsets, change)
         review_regel = ""
-        if change:
+        spoed = getattr(form, "spoed", False)
+        if spoed:
+            # De conceptversie (en een lopende review) blijft zoals hij is; ook de kladversie, want daar
+            # staat het werk aan de conceptversie in.
+            review_regel = "Spoedcorrectie op de gepubliceerde versie; de conceptversie bleef ongewijzigd."
+        elif change:
             from . import review
 
             # Hoe stond de review? Dat komt in de versiegeschiedenis (stap C: publiceren kan altijd).
@@ -1132,7 +1258,8 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         diensten.claim_opheffen(form.instance, request.user)  # opgeslagen = niet meer aan het bewerken
         # Opgeslagen = de kladversie is afgehandeld. Bij een nieuw artikel was dat de kladversie
         # "nieuw"; die hoort nu niet meer op het toevoegscherm terug te komen.
-        diensten.klad_afsluiten(request.user, form.instance if change else None)
+        if not spoed:
+            diensten.klad_afsluiten(request.user, form.instance if change else None)
         form.instance.tags.set(
             [Tag.objects.get_or_create(naam=n)[0] for n in tags_uit_tekst(form.cleaned_data.get("tags_tekst", ""))]
         )
@@ -1144,6 +1271,14 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             kleine_correctie=bool(form.cleaned_data.get("kleine_correctie")),
             review=review_regel,
         )
+        if versie and not spoed:
+            # Reviewpunt 11: voorstellen die in deze versie zijn meegenomen, krijgen het versienummer; na
+            # het opslaan vraagt de kennisbank of je ze wilt afhandelen (response_change).
+            meegenomen = Verbetervoorstel.objects.filter(
+                artikel=form.instance, in_conceptversie=True, status__in=OPEN_VOORSTEL
+            )
+            if meegenomen.update(in_conceptversie=False, verwerkt_in_versie=versie.versie):
+                request._kb_meegenomen = True
         if versie:
             if versie.versie == 1:
                 messages.info(request, "Gepubliceerd als versie 1.")

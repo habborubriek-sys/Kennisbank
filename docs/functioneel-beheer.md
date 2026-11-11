@@ -60,6 +60,12 @@ artikel heeft een nieuwe versie.
   doe je onderaan het gewone scherm, waar de toelichting staat.
 - Op je werkplek staan conceptversies onder **Concepten**, bovenaan, met het label *conceptversie*.
 - Een artikel dat nog nooit is gepubliceerd, heeft geen conceptversie nodig: het is zelf nog een concept.
+- **Spoedcorrectie.** Moet er iets dringends verbeterd worden in wat medewerkers nu zien (een fout
+  telefoonnummer, een verkeerde termijn) terwijl je aan een conceptversie werkt, kies dan in de gele balk
+  **Corrigeer de gepubliceerde versie**. Je bewerkt dan de gepubliceerde tekst en publiceert die met een
+  toelichting; de conceptversie blijft ongewijzigd (en op slot als hij ter inzage ligt). Daarna meldt de gele
+  balk dat de gepubliceerde versie intussen is aangepast: **neem de correctie zelf mee in de conceptversie**,
+  anders draait publiceren hem terug. In de versiegeschiedenis staat "Spoedcorrectie".
 - Staat het reviewproces aan, dan kun je een conceptversie **ter inzage** geven aan een reviewteam; zie hieronder.
 
 ## Reviewproces: een conceptversie laten meelezen
@@ -73,11 +79,17 @@ nooit de publicatie: jij bent eindverantwoordelijk.
 2. **Ter inzage geven.** De conceptversie staat daarna **op slot**: je kunt hem niet wijzigen tot het team
    reageert. Wil je toch verder, kies dan **Terugroepen**.
 3. **Het team leest** in een eigen, eenvoudige leesweergave (`/review/`). Een reviewer ziet de nieuwe tekst met
-   de wijzigingen gemarkeerd (zoals *wijzigingen bijhouden* in Word), pakt het stuk op ("ligt bij Piet"),
-   plaatst opmerkingen en **geeft het terug** of geeft **akkoord**. Reviewers bewerken niets en publiceren niets.
-4. **Teruggegeven?** Je krijgt een e-mail en ziet de opmerkingen in de gele balk. De conceptversie is weer vrij:
-   verwerk de opmerkingen, sla op en geef hem opnieuw ter inzage (een nieuwe ronde; eerdere rondes blijven
-   te zien).
+   de wijzigingen gemarkeerd (zoals *wijzigingen bijhouden* in Word) en pakt het stuk op ("ligt bij Piet").
+   Hij **selecteert een stuk tekst** en zet er een opmerking bij, of schrijft een algemene opmerking. De
+   opmerkingen staan genummerd naast de tekst, met een gele markering in de tekst. Daarna **geeft hij het
+   terug** of geeft hij **akkoord**. Reviewers bewerken niets en publiceren niets.
+4. **Teruggegeven?** Je krijgt een e-mail en ziet de opmerkingen in de gele balk, elk met de tekst waar hij
+   over ging. Opmerkingen zie je pas als het team heeft gereageerd. De conceptversie is weer vrij. Open
+   **Volledig scherm** in de editor: in het voorbeeld rechts staan de opmerkingen van de laatste ronde
+   bovenaan, en de tekst waar ze over gaan is geel gemarkeerd met een nummer. Klik op een opmerking om naar
+   de plek te gaan. Pas je die zin aan, dan verdwijnt de markering en staat bij de opmerking "tekst is
+   intussen gewijzigd", met het oorspronkelijke citaat erbij. Sla op en geef hem opnieuw ter inzage (een
+   nieuwe ronde; eerdere rondes blijven te zien in de gele balk).
 5. **Akkoord?** In de gele balk staat dan *Versie n akkoord bevonden door Team Water, datum*. Dit label zie je
    alleen in het beheer. **Wijzig je daarna nog iets, dan vervalt het akkoord.** Bij meer teams verschijnt het
    label pas als alle teams akkoord zijn; tot dan zie je per team de stand.
@@ -373,6 +385,13 @@ het daarmee ook in je bak. Zet je de status terug op *Nieuw*, dan blijft het in 
 **Interne notities** zijn alleen voor de redactie: de indiener en collega's zien ze nooit. Gebruik ze voor wat
 de volgende behandelaar moet weten ("gebeld met Toezicht, wacht op antwoord"), bijvoorbeeld bij ziekte of
 vakantie. Bij het anonimiseren van een afgehandeld voorstel worden ze verwijderd.
+
+**Meenemen in de nieuwe versie.** Ga je een voorstel verwerken in het artikel, kies dan in het behandelscherm
+**Meenemen in de nieuwe versie** (meestal de conceptversie). In de gele balk van het artikel staat dan welke
+voorstellen erin zitten. Publiceer je het artikel, dan opent de kennisbank een scherm met per meegenomen
+voorstel een **voorgevuld bericht** ("We hebben het verwerkt in versie n …"). Pas het aan als je wilt en
+kies *Versturen en afhandelen*; laat je het vinkje weg, dan blijft het voorstel open met "Verwerkt in versie
+n" en handel je het later af.
 
 **Afhandelen gaat met een bericht.** Bij *Verwerkt* of *Afgewezen* schrijf je de indiener waarom; zonder dat
 bericht gebeurt er niets. Dat bericht is het antwoord dat de indiener krijgt. Handel je een voorstel af dat in

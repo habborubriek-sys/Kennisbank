@@ -20,6 +20,7 @@
 .rv-verschil{line-height:1.6}
 .rv-verschil p,.rv-verschil h2,.rv-verschil h3,.rv-verschil h4{margin:.5rem 0}
 .rv-verschil .vs-li{padding-left:1rem}
+.rv-verschil .vs-li::before{content:"• "}
 .rv-verschil .vs-gewijzigd,.rv-verschil .vs-nieuw,.rv-verschil .vs-weg{border-left:3px solid #b58500;padding-left:8px}
 .rv-main ins{background:#d8f3dc;color:#14532d;text-decoration:none;border-bottom:2px solid #2d6a4f}
 .rv-main del{background:#fde2e4;color:#7f1d1d;text-decoration:line-through}
@@ -37,3 +38,7 @@
 .rv-meldingen li{border-radius:6px;padding:8px 12px;margin:0 0 6px;background:var(--surface-2,#eef2f7)}
 .rv-meldingen li.warning{background:#fff1cc;color:#5c3d00}
 .rv-meldingen li.success{background:#dff1e3;color:#1e6b34}
+.rv-let-op{background:#fff1cc;border-left:3px solid #b58500;padding:8px 12px;border-radius:4px}
+.rv-selectieknop{position:absolute;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.rv-citaat-vak{display:flex;gap:6px;align-items:flex-start;background:#fffbea;border:1px solid #e0c46a;border-radius:6px;padding:6px 8px;margin:0 0 8px}
+.rv-citaat-vak q{flex:1;font-style:italic}

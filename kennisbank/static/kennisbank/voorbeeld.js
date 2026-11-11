@@ -50,6 +50,16 @@
     var secs = document.getElementById("sections"); secs.innerHTML = "";
     if (!uit.childNodes.length) secs.innerHTML = '<div class="empty">Nog geen tekst.</div>'; else while (uit.firstChild) secs.appendChild(uit.firstChild);
     document.getElementById("secbar").hidden = !heeftSectie;
+    // Stap D: opmerkingen van de review als genummerde markeringen, met de lijst bovenaan.
+    var paneel = document.getElementById("kbOpmPaneel"), opm = d.opmerkingen || [];
+    if (paneel && window.KbOpmerkingen) {
+      paneel.hidden = !opm.length;
+      if (opm.length) {
+        var gevonden = window.KbOpmerkingen.plaats(document.querySelector("article.art"), document.getElementById("kbOpmLijst"), opm);
+        document.getElementById("kbOpmKop").textContent = "Opmerkingen van de review (" + opm.length + ")" +
+          (gevonden < opm.filter(function (o) { return o.citaat; }).length ? " · niet alles staat nog in de tekst" : "");
+      }
+    }
   }
 
   document.getElementById("toggleAll").addEventListener("click", function () {

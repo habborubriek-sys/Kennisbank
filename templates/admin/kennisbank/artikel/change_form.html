@@ -3,6 +3,21 @@
   Bewerkscherm van een artikel, met de conceptversie (kennisbank/admin.py, ArtikelAdmin).
 {% endcomment %}
 {% block form_top %}
+{% if kb_spoed %}
+<div class="kb-spoedbalk" role="status">
+  <input type="hidden" id="kb-spoed" name="kb_spoed" value="1">
+  <p><strong>Spoedcorrectie: je past de gepubliceerde versie aan</strong> (versie {{ original.versie }}, wat medewerkers nu zien).
+    De conceptversie blijft ongewijzigd{% if kb_spoed_op_slot %} en ligt nog ter inzage{% endif %}. Neem de correctie straks
+    zelf mee in de conceptversie.</p>
+  <p><a class="button" href="{{ kb_concept_url }}">Terug naar de conceptversie</a></p>
+</div>
+{% endif %}
+{% if kb_meegenomen %}
+<div class="kb-meegenomen">
+  <p><strong>Meegenomen verbetervoorstellen ({{ kb_meegenomen|length }}).</strong> Na publiceren vraagt de kennisbank of je ze wilt afhandelen.</p>
+  <ul>{% for m in kb_meegenomen %}<li><a href="{{ m.url }}">{{ m.titel }}</a></li>{% endfor %}</ul>
+</div>
+{% endif %}
 {% if kb_concept %}
 <div class="kb-conceptbalk" role="status">
   <input type="hidden" name="kb_conceptmodus" value="1">
@@ -11,8 +26,9 @@
     Gestart door {{ kb_concept_gestart_door }} op {{ kb_concept.gestart_op|date:"j F Y" }}, laatst bijgewerkt door
     {{ kb_concept_bijgewerkt_door }} op {{ kb_concept.bijgewerkt_op|date:"j F Y H:i" }}.</p>
   {% if kb_concept_artikel_gewijzigd %}
-  <p class="kb-conceptlet"><strong>Let op:</strong> het gepubliceerde artikel is gewijzigd nadat deze conceptversie begon
-    (bijvoorbeeld door een import). Wat je nu publiceert, vervangt die wijziging. Kijk in de versiegeschiedenis wat er veranderde.</p>
+  <p class="kb-conceptlet"><strong>Let op:</strong> de gepubliceerde versie is gewijzigd nadat deze conceptversie begon
+    (bijvoorbeeld een spoedcorrectie of een import). Neem die wijziging mee in de conceptversie, anders draait publiceren hem
+    terug. Kijk in de versiegeschiedenis wat er veranderde.</p>
   {% endif %}
   {% if kb_review.op_slot %}
   <input type="hidden" id="kb-op-slot" value="1">
@@ -24,6 +40,7 @@
   {% endif %}
   <p class="kb-conceptknoppen">
     <a class="button" href="{{ kb_concept_bekijken }}" target="_blank" rel="noopener">Conceptversie bekijken</a>
+    <a class="button kb-knop-rustig" href="?spoed=1" title="Een kleine, dringende fout verbeteren in wat medewerkers nu zien, zonder de conceptversie te raken">Corrigeer de gepubliceerde versie</a>
     <button type="submit" class="button kb-concept-weg kb-gevaar" name="_weggooien" formaction="{{ kb_concept_weggooien }}" formnovalidate
       onclick="return confirm('De conceptversie weggooien? Het werk daarin is daarna weg; medewerkers blijven versie {{ original.versie }} zien.');">Conceptversie weggooien</button>
   </p>
@@ -40,15 +57,16 @@
         {% elif r.status == "akkoord" %}{% if r.vervallen %}akkoord vervallen: de tekst is daarna gewijzigd{% else %}akkoord op {{ r.afgerond_op|date:"j F" }}{% endif %}
         {% elif r.status == "teruggegeven" %}teruggegeven op {{ r.afgerond_op|date:"j F" }} met opmerkingen
         {% else %}teruggeroepen op {{ r.afgerond_op|date:"j F" }}{% endif %}
-        {% if r.opmerkingen.all %}
+        {% if r.opmerkingen.all and r.status != "ter_inzage" %}
         <ul class="kb-review-opmerkingen">
-          {% for o in r.opmerkingen.all %}<li><span class="wie">{{ o.auteur.get_full_name|default:o.auteur.username|default:"Reviewer" }} · {{ o.moment|date:"j F H:i" }}</span>{{ o.tekst|linebreaksbr }}</li>{% endfor %}
+          {% for o in r.opmerkingen.all %}<li><span class="wie">{{ o.auteur.get_full_name|default:o.auteur.username|default:"Reviewer" }} · {{ o.moment|date:"j F H:i" }}</span>{% if o.citaat %}<q class="kb-review-citaat">{{ o.citaat }}</q>{% endif %}{{ o.tekst|linebreaksbr }}</li>{% endfor %}
         </ul>
         {% endif %}
       </li>
       {% endfor %}
     </ul>
     {% endif %}
+    {% if kb_opmerkingen %}<p class="kb-concepthint">Open <strong>Volledig scherm</strong> in de editor: in het voorbeeld rechts staan de opmerkingen bij de tekst waar ze over gaan.</p>{{ kb_opmerkingen|json_script:"kb-opmerkingen" }}{% endif %}
     {% if kb_review.op_slot %}
     <button type="submit" class="button" name="_terugroepen" formaction="{{ kb_terugroepen_url }}" formnovalidate
       onclick="return confirm('De conceptversie terugroepen? Teams die er nog mee bezig zijn, zien dat het stuk is teruggeroepen.');">Terugroepen</button>
@@ -78,7 +96,7 @@
 {% endif %}
 {% endblock %}
 {% block submit_buttons_bottom %}
-{% if kb_kan_concept and not kb_review.op_slot %}
+{% if kb_kan_concept and not kb_review.op_slot and not kb_spoed %}
 <div class="submit-row kb-conceptrij">
   <button type="submit" class="button kb-concept-opslaan" name="_conceptversie" value="1">Opslaan als conceptversie</button>
   <span class="kb-concepthint">{% if kb_concept %}Publiceren zet de conceptversie live voor alle medewerkers.{% else %}Publiceren zet je wijziging meteen live voor alle medewerkers.{% endif %}</span>

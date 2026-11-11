@@ -1,5 +1,23 @@
 # Wijzigingen
 
+## 1.20.0 – 2026-11-11
+
+Het reviewproces, stap C2 en D (bouwlijst `ronde3-reviewproces-bouwlijst.md`, keuzes van Alex van 11 november).
+
+**C2: voorstellen en spoedcorrectie**
+
+- **Meenemen in de nieuwe versie** in het behandelscherm van een voorstel (en weer uitzetten). De gele balk van het artikel noemt de meegenomen voorstellen.
+- **Na publiceren** een scherm met per meegenomen voorstel een **voorgevuld bericht** ("We hebben het verwerkt in versie n …") en een vinkje *Nu afhandelen*. Zonder vinkje blijft het voorstel open met "Verwerkt in versie n".
+- **Corrigeer de gepubliceerde versie** (spoedcorrectie) in de gele balk: de gepubliceerde tekst aanpassen terwijl er een conceptversie is. De conceptversie, een lopende review, de kladversie en meegenomen voorstellen blijven ongemoeid; de gele balk en de reviewer zien daarna dat de gepubliceerde versie is aangepast. Versiegeschiedenis: "Spoedcorrectie".
+
+**D: opmerkingen bij de tekst**
+
+- De reviewer **selecteert tekst** in de weergave met de wijzigingen en zet er een opmerking bij; een algemene opmerking kan ook. De citaten zijn geel gemarkeerd met een nummer, de opmerkingen staan genummerd ernaast.
+- De redacteur ziet de opmerkingen van de laatste ronde **in het live voorbeeld van het volledig scherm**: markeringen met nummers, een lijst bovenaan, klikken springt naar de plek. Past hij de zin aan, dan verdwijnt de markering en staat er "tekst is intussen gewijzigd", met het oorspronkelijke citaat. In de gele balk staat bij elke opmerking het citaat.
+- Opmerkingen zijn voor de redacteur pas zichtbaar als het team heeft gereageerd (zoals de reviewer te zien krijgt).
+
+- **Tests** (nu 465): meenemen, scherm na publiceren met e-mail, overslaan, alleen eigen omgeving; spoedcorrectie (opent de gepubliceerde tekst, raakt conceptversie en review niet, vraagt een toelichting, neemt geen voorstellen mee, waarschuwing bij redacteur en reviewer); citaat bewaren, algemene opmerking, citaat bij teruggeven, gegevens voor reviewer en voorbeeld, geen HTML, alleen de laatste ronde en pas na reactie. Elke bescherming tegen een bewust kapotte versie gedraaid. In de browser nagelopen: tekst selecteren, markeringen bij de reviewer, markeringen in het volledig scherm, zin aanpassen.
+
 ## 1.19.0 – 2026-11-11
 
 Het reviewproces, stap C1 (bouwlijst `ronde3-reviewproces-bouwlijst.md`, keuzes van Alex van 11 november). Standaard uit; een beheerder zet het per omgeving aan.

@@ -677,6 +677,11 @@ class Verbetervoorstel(models.Model):
         editable=False,
     )
 
+    #: Meegenomen in de nieuwe versie (meestal de conceptversie) van het artikel (reviewpunt 11). Bij
+    #: publiceren wordt dit verwerkt_in_versie, en vraagt de kennisbank of het voorstel af kan.
+    in_conceptversie = models.BooleanField(default=False, editable=False)
+    verwerkt_in_versie = models.PositiveIntegerField(null=True, blank=True, editable=False)
+
     def save(self, *args, **kwargs):
         if self._state.adding and self.cluster_id is None and self.artikel_id:
             self.cluster = standaard_clusterbak(self.artikel)
@@ -1031,6 +1036,9 @@ class ReviewOpmerking(models.Model):
     """Een opmerking van een reviewer bij een conceptversie die ter inzage ligt."""
 
     inzage = models.ForeignKey(Inzage, on_delete=models.CASCADE, related_name="opmerkingen")
+    #: De tekst waar de opmerking bij hoort (stap D); leeg = een algemene opmerking. Het citaat blijft
+    #: bewaard, ook als de redacteur de zin later aanpast: zo is altijd terug te lezen wat er stond.
+    citaat = models.TextField(blank=True, max_length=1000)
     auteur = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )

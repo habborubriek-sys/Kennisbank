@@ -21,6 +21,8 @@
       · {% if v.is_open %}{% if eigenaar %}ligt bij {% if van_mij %}jou{% else %}{{ eigenaar }}{% endif %}{% else %}ligt in de bak {% if v.cluster %}{{ v.cluster.naam }}{% else %}Algemeen{% endif %}{% endif %}{% else %}afgehandeld door {{ behandeld_door|default:"procesmanagement" }} op {{ v.behandeld_op|date:"j F Y" }}{% endif %}
       {% if v.verborgen %} · <span class="kb-label">verborgen voor collega's</span>{% endif %}
     </p>
+    {% if v.in_conceptversie %}<p class="kb-meegenomen">Meegenomen in de nieuwe versie van het artikel{% if heeft_conceptversie %} (de conceptversie){% endif %}. Na publiceren vraagt de kennisbank of je het wilt afhandelen.</p>{% endif %}
+    {% if v.verwerkt_in_versie %}<p class="kb-meegenomen">Verwerkt in versie {{ v.verwerkt_in_versie }}.{% if v.is_open %} <a href="{{ afhandelen_url }}">Nu afhandelen</a>{% endif %}</p>{% endif %}
     {% if dubbel_van %}<p class="kb-uitleg">Afgewezen als dubbel van <a href="{{ dubbel_van_url }}">een ander voorstel</a>.</p>{% endif %}
 
     {% if intussen %}
@@ -127,6 +129,13 @@
           </form>
           {% endif %}
         </div>
+        {% endif %}
+        {% if v.is_open %}
+        <form method="post" class="kb-verbergen">{% csrf_token %}
+          <input type="hidden" name="terug" value="{{ terug }}">
+          <button type="submit" name="actie" value="meenemen" class="button{% if v.in_conceptversie %} kb-knop-rustig{% endif %}">{% if v.in_conceptversie %}Niet meer meenemen{% else %}Meenemen in de nieuwe versie{% endif %}</button>
+          <span class="kb-hint">Je verwerkt dit voorstel in {% if heeft_conceptversie %}de conceptversie{% else %}de volgende versie{% endif %} van het artikel. Na publiceren krijg je een voorgevuld bericht aan de indiener.</span>
+        </form>
         {% endif %}
         <form method="post" class="kb-verbergen">{% csrf_token %}
           <input type="hidden" name="terug" value="{{ terug }}">

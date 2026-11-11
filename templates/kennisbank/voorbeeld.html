@@ -2,6 +2,8 @@
 <html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ vaste_titelbalk|default:"Voorbeeld" }}</title>
 <link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}"><link rel="stylesheet" href="{% static 'kennisbank/app.css' %}">
+<link rel="stylesheet" href="{% static 'kennisbank/opmerkingen.css' %}">
+<script src="{% static 'kennisbank/opmerkingen.js' %}" defer></script>
 <script src="{% static 'kennisbank/voorbeeld.js' %}" defer></script></head>
 <body class="embed voorbeeld">
 <header class="top">
@@ -12,6 +14,11 @@
 </header>
 <div class="shell"><main class="main" id="main">
 <div class="view">
+ <details class="kb-opm-paneel" id="kbOpmPaneel" open hidden>
+  <summary id="kbOpmKop">Opmerkingen van de review</summary>
+  <p class="kb-opm-uitleg">Klik op een opmerking om naar de tekst te gaan. Pas je de zin aan, dan verdwijnt de markering en blijft het citaat hier staan.</p>
+  <ol class="kb-opm-lijst" id="kbOpmLijst"></ol>
+ </details>
  <article class="art" aria-labelledby="artTitel">
   <div class="head"><span class="type" id="soort" hidden></span></div>
   <h1 id="artTitel">(nog geen titel)</h1>

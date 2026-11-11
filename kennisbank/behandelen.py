@@ -27,7 +27,7 @@ from django.utils.safestring import mark_safe
 
 from . import diensten
 from .inhoud import naar_platte_tekst
-from .models import Omgeving, Verbetervoorstel, VoorstelStatus
+from .models import Conceptversie, Omgeving, Verbetervoorstel, VoorstelStatus
 from .rechten import rechten
 from .werkoverzicht import _menu, clusters_van, redacteuren_per_omgeving, werkplek_url
 
@@ -130,6 +130,8 @@ def _context(request, v, r, terug, invoer=None, intussen=None):
         "artikel_url": v.artikel.get_absolute_url(),
         "artikel_bewerken_url": reverse("admin:kennisbank_artikel_change", args=[v.artikel_id]),
         "geschiedenis_url": reverse("admin:kennisbank_verbetervoorstel_history", args=[v.pk]),
+        "heeft_conceptversie": Conceptversie.objects.filter(artikel_id=v.artikel_id).exists(),
+        "afhandelen_url": reverse("admin:kennisbank_artikel_voorstellen_afhandelen", args=[v.artikel_id]),
         "context_html": context_html,
         "citaat_gevonden": gevonden,
         "berichten": [{"naam": b.naam, "moment": b.moment, "tekst": b.tekst, "pm": b.van_redactie} for b in berichten],
@@ -177,6 +179,27 @@ def _verwerk(request, pk, terug):
                 return _opnieuw(request, v, r, terug, invoer)
             diensten.notitie_toevoegen(v, request.user, notitie)
             messages.success(request, "Notitie toegevoegd. Alleen de redactie ziet hem.")
+            return redirect(scherm_url(v, terug))
+        if actie == "meenemen":
+            # Reviewpunt 11: dit voorstel wordt verwerkt in de nieuwe versie van het artikel.
+            if not v.is_open:
+                raise Http404
+            v.in_conceptversie = not v.in_conceptversie
+            v.save(update_fields=["in_conceptversie"])
+            admin.site._registry[Verbetervoorstel].log_change(
+                request,
+                v,
+                "Meegenomen in de nieuwe versie van het artikel."
+                if v.in_conceptversie
+                else "Niet meer meegenomen in de nieuwe versie.",
+            )
+            messages.success(
+                request,
+                "Het voorstel wordt meegenomen in de nieuwe versie. Na publiceren vraagt de kennisbank of je het "
+                "wilt afhandelen."
+                if v.in_conceptversie
+                else "Het voorstel wordt niet meer meegenomen in de nieuwe versie.",
+            )
             return redirect(scherm_url(v, terug))
         if actie == "verbergen":
             v.verborgen = not v.verborgen

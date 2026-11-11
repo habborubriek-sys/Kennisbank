@@ -15,6 +15,8 @@
     <h2 id="rv-wijz">Wat is er veranderd</h2>
     <p class="rv-uitleg">Ten opzichte van wat medewerkers nu zien (versie {{ basis_versie }}).
       <ins>Nieuw</ins> en <del>weg</del> zijn gemarkeerd; {{ aantal_gewijzigd }} blok{{ aantal_gewijzigd|pluralize:"ken" }} gewijzigd.</p>
+    {% if gepubliceerd_gewijzigd %}<p class="rv-let-op"><b>Let op:</b> de gepubliceerde versie is aangepast nadat deze conceptversie begon
+      (bijvoorbeeld een spoedcorrectie). Wat je hieronder als "weg" ziet, kan die correctie zijn; de redacteur neemt hem nog mee.</p>{% endif %}
     <p class="rv-samenvatting"><b>Samenvatting:</b> {{ samenvatting_verschil }}</p>
     <div class="rv-verschil">{{ verschil }}</div>
     <details class="rv-volledig"><summary>Toon de nieuwe tekst zoals medewerkers hem straks zien</summary>
@@ -27,13 +29,19 @@
     <form method="post">{% csrf_token %}<button class="tb primary" type="submit" name="actie" value="oppakken">{% if bij %}Overnemen{% else %}Oppakken{% endif %}</button></form>
     {% endif %}
     <h2>Opmerkingen</h2>
+    <ol class="kb-opm-lijst" id="rv-opmerkingen-lijst" hidden></ol>
     {% if opmerkingen %}
-    <ul class="rv-opmerkingen">
-      {% for o in opmerkingen %}<li><span class="wie">{{ o.naam }} · {{ o.moment|date:"j F H:i" }}</span>{{ o.tekst|linebreaksbr }}</li>{% endfor %}
+    <ul class="rv-opmerkingen" id="rv-opmerkingen-zonderjs">
+      {% for o in opmerkingen %}<li><span class="wie">{{ o.naam }} · {{ o.moment|date:"j F H:i" }}</span>{% if o.citaat %}<q class="kb-opm-citaat">{{ o.citaat }}</q>{% endif %}{{ o.tekst|linebreaksbr }}</li>{% endfor %}
     </ul>
-    {% else %}<p class="rv-leeg">Nog geen opmerkingen.</p>{% endif %}
+    {% else %}<p class="rv-leeg" id="rv-opmerkingen-leeg">Nog geen opmerkingen.</p>{% endif %}
+    {{ opmerkingen_data|json_script:"rv-opmerkingen-data" }}
     {% if open %}
     <form method="post" class="rv-form">{% csrf_token %}
+      <p class="rv-uitleg">Selecteer tekst links om er een opmerking bij te zetten, of schrijf een algemene opmerking.</p>
+      <input type="hidden" name="citaat" id="rv-citaat" value="">
+      <div class="rv-citaat-vak" id="rv-citaat-vak" hidden><span>Bij:</span> <q id="rv-citaat-tekst"></q>
+        <button type="button" class="tb" id="rv-citaat-wis" aria-label="Citaat weghalen">×</button></div>
       <label for="rv-tekst">Opmerking</label>
       <textarea id="rv-tekst" name="tekst" rows="5" maxlength="4000" placeholder="Bijvoorbeeld: in stap 3 klopt de termijn niet; dat is 6 weken."></textarea>
       <div class="rv-knoppen">

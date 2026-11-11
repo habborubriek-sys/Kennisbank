@@ -1,0 +1,33 @@
+{% extends "admin/base_site.html" %}
+{% comment %}
+  Na publiceren: de meegenomen verbetervoorstellen afhandelen met een voorgevuld bericht (reviewpunt 11).
+{% endcomment %}
+{% block content %}
+<div class="kb-afhandelen">
+  <h1>Meegenomen voorstellen afhandelen</h1>
+  <p class="kb-uitleg">Deze voorstellen zijn verwerkt in de nieuwe versie van <a href="{{ artikel_url }}">{{ artikel.titel }}</a>.
+    Pas het bericht aan als je wilt; de indiener krijgt het als melding en per e-mail en het voorstel staat daarna onder Afgehandeld.
+    Laat je het vinkje weg, dan blijft het voorstel open met het label "verwerkt in versie …".</p>
+  {% if rijen %}
+  <form method="post">{% csrf_token %}
+    {% for r in rijen %}
+    <fieldset class="kb-afhandel-rij">
+      <legend><a href="{{ r.url }}">Voorstel van {{ r.indiener }}</a> · ingediend {{ r.v.ingediend_op|date:"j F Y" }}</legend>
+      {% if r.v.citaat %}<blockquote class="kb-vcitaat">“{{ r.v.citaat|truncatechars:200 }}”</blockquote>{% endif %}
+      <p class="kb-vtekst">{{ r.v.tekst|truncatechars:400 }}</p>
+      <label class="kb-afhandel-vink"><input type="checkbox" name="afhandelen-{{ r.v.pk }}" value="1" checked> Nu afhandelen als verwerkt</label>
+      <label for="bericht-{{ r.v.pk }}" class="kb-afhandel-label">Bericht aan {{ r.indiener }}</label>
+      <textarea id="bericht-{{ r.v.pk }}" name="bericht-{{ r.v.pk }}" rows="3" maxlength="5000">{{ r.bericht }}</textarea>
+    </fieldset>
+    {% endfor %}
+    <div class="kb-knoppenrij">
+      <button type="submit" class="button default">Versturen en afhandelen</button>
+      <a class="button kb-knop-rustig" href="{% url 'beheer-start' %}">Later doen</a>
+    </div>
+  </form>
+  {% else %}
+  <p class="kb-leeg">Er staan geen meegenomen voorstellen meer open.</p>
+  <p><a class="button" href="{% url 'beheer-start' %}">Naar de werkplek</a></p>
+  {% endif %}
+</div>
+{% endblock %}

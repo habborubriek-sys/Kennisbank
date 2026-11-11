@@ -190,20 +190,22 @@ def oppakken(inzage, reviewer):
     inzage.save(update_fields=["reviewer", "opgepakt_op"])
 
 
-def opmerking_toevoegen(inzage, auteur, tekst: str):
+def opmerking_toevoegen(inzage, auteur, tekst: str, citaat: str = ""):
+    """Een opmerking, bij een stuk tekst (citaat, stap D) of algemeen (zonder citaat)."""
     _moet_open(inzage)
     tekst = (tekst or "").strip()[:4000]
     if not tekst:
         raise ReviewFout("Schrijf eerst je opmerking.")
     if inzage.reviewer_id is None:
         oppakken(inzage, auteur)
-    return ReviewOpmerking.objects.create(inzage=inzage, auteur=auteur, tekst=tekst)
+    citaat = " ".join((citaat or "").split())[:1000]
+    return ReviewOpmerking.objects.create(inzage=inzage, auteur=auteur, tekst=tekst, citaat=citaat)
 
 
-def _afronden(inzage, door, status, tekst):
+def _afronden(inzage, door, status, tekst, citaat=""):
     _moet_open(inzage)
     if (tekst or "").strip():
-        opmerking_toevoegen(inzage, door, tekst)
+        opmerking_toevoegen(inzage, door, tekst, citaat)
     if status == InzageStatus.TERUGGEGEVEN and not inzage.opmerkingen.exists():
         raise ReviewFout("Schrijf bij teruggeven wat er anders moet; dat leest de redacteur.")
     inzage.status = status
@@ -225,12 +227,12 @@ def _afronden(inzage, door, status, tekst):
         )
 
 
-def teruggeven(inzage, door, tekst: str = ""):
-    _afronden(inzage, door, InzageStatus.TERUGGEGEVEN, tekst)
+def teruggeven(inzage, door, tekst: str = "", citaat: str = ""):
+    _afronden(inzage, door, InzageStatus.TERUGGEGEVEN, tekst, citaat)
 
 
-def akkoord_geven(inzage, door, tekst: str = ""):
-    _afronden(inzage, door, InzageStatus.AKKOORD, tekst)
+def akkoord_geven(inzage, door, tekst: str = "", citaat: str = ""):
+    _afronden(inzage, door, InzageStatus.AKKOORD, tekst, citaat)
 
 
 # --- Dagelijkse samenvatting voor reviewers (besluit c) -----------------------------------------

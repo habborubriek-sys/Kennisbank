@@ -201,7 +201,10 @@
     function stuur() {
       if (!klaar) return;
       editor.synchronizeValues();
-      frame.contentWindow.postMessage({ type: "kb-voorbeeld", titel: val("titel"), samenvatting: val("samenvatting"), soort: val("soort"), inhoud: editor.value }, location.origin);
+      // Stap D: opmerkingen van de review, als markeringen in het voorbeeld.
+      var opm = [];
+      try { var d = document.getElementById("kb-opmerkingen"); if (d) opm = JSON.parse(d.textContent); } catch (e) {}
+      frame.contentWindow.postMessage({ type: "kb-voorbeeld", titel: val("titel"), samenvatting: val("samenvatting"), soort: val("soort"), inhoud: editor.value, opmerkingen: opm }, location.origin);
     }
     function geplande() { clearTimeout(timer); timer = setTimeout(stuur, 250); }
     function opKlaar(e) { if (e.origin === location.origin && e.data && e.data.type === "kb-voorbeeld-klaar") { klaar = true; stuur(); } }
@@ -497,6 +500,8 @@
   var inhoudEditor = null;
 
   function kladversie() {
+    // Bij een spoedcorrectie geen kladversie: die hoort bij het werk aan de conceptversie.
+    if (document.getElementById("kb-spoed")) return;
     var m = location.pathname.match(/^(.*)\/kennisbank\/artikel\/(?:(\d+)\/change|add)\/$/);
     var form = document.querySelector("#artikel_form, form#content-main form, #content form");
     if (!m || !form) return;

@@ -11,6 +11,7 @@ from django.http import Http404
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.formats import date_format
 from django.utils.safestring import mark_safe
 
 from . import review
@@ -92,6 +93,15 @@ def stuk(request, pk):
     artikel = inzage.artikel
     v = concept.velden or {}
     verschil, aantal = verschil_html(artikel.inhoud, v.get("inhoud", ""))
+    opmerkingen = [
+        {
+            "naam": naam_van(o.auteur) if o.auteur_id else "Reviewer",
+            "moment": o.moment,
+            "tekst": o.tekst,
+            "citaat": o.citaat,
+        }
+        for o in inzage.opmerkingen.select_related("auteur")
+    ]
     return render(
         request,
         "kennisbank/review_stuk.html",
@@ -106,9 +116,16 @@ def stuk(request, pk):
             "verschil": verschil,
             "aantal_gewijzigd": aantal,
             "nieuwe_tekst": schoon(v.get("inhoud", "")),
-            "opmerkingen": [
-                {"naam": naam_van(o.auteur) if o.auteur_id else "Reviewer", "moment": o.moment, "tekst": o.tekst}
-                for o in inzage.opmerkingen.select_related("auteur")
+            "opmerkingen": opmerkingen,
+            "opmerkingen_data": [
+                {
+                    "nr": nr,
+                    "wie": o["naam"],
+                    "wanneer": date_format(timezone.localtime(o["moment"]), "j F H:i"),
+                    "tekst": o["tekst"],
+                    "citaat": o["citaat"],
+                }
+                for nr, o in enumerate(opmerkingen, start=1)
             ],
             "eerder": [
                 {
@@ -128,6 +145,10 @@ def stuk(request, pk):
             "open": inzage.status == InzageStatus.TER_INZAGE,
             "door": naam_van(inzage.gestart_door) if inzage.gestart_door_id else "procesmanagement",
             "basis_versie": artikel.versie,
+            # Spoedcorrectie of import na het begin van de conceptversie: de vergelijking hieronder is dan
+            # met de aangepaste versie, en de redacteur moet die wijziging nog meenemen.
+            "gepubliceerd_gewijzigd": bool(concept.basis_stempel)
+            and concept.basis_stempel != (artikel.gewijzigd_op.isoformat() if artikel.gewijzigd_op else ""),
         },
     )
 
@@ -135,6 +156,7 @@ def stuk(request, pk):
 def _actie(request, pk):
     actie = request.POST.get("actie")
     tekst = request.POST.get("tekst", "")
+    citaat = request.POST.get("citaat", "")
     with transaction.atomic():
         inzage = review._inzage_voor(request.user, pk, slot=True)
         if inzage is None:
@@ -144,16 +166,16 @@ def _actie(request, pk):
                 review.oppakken(inzage, request.user)
                 messages.success(request, f"Je hebt dit opgepakt. Het staat nu bij jou in {inzage.team.naam}.")
             elif actie == "opmerking":
-                review.opmerking_toevoegen(inzage, request.user, tekst)
+                review.opmerking_toevoegen(inzage, request.user, tekst, citaat)
                 messages.success(
                     request, "Opmerking toegevoegd. De redacteur ziet hem als je teruggeeft of akkoord geeft."
                 )
             elif actie == "teruggeven":
-                review.teruggeven(inzage, request.user, tekst)
+                review.teruggeven(inzage, request.user, tekst, citaat)
                 messages.success(request, "Teruggegeven aan de redacteur, met je opmerkingen.")
                 return redirect("review-lijst")
             elif actie == "akkoord":
-                review.akkoord_geven(inzage, request.user, tekst)
+                review.akkoord_geven(inzage, request.user, tekst, citaat)
                 messages.success(request, "Akkoord gegeven. De redacteur kan publiceren.")
                 return redirect("review-lijst")
             else:

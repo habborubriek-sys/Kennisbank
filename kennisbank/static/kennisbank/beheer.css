@@ -139,3 +139,15 @@ fieldset.kb-op-slot{pointer-events:none;opacity:.65}
 .kb-rij-let-op td:first-child{border-left:3px solid #a6192e}
 .kb-review-opmerkingen li{list-style:none}
 .kb-review-teams>li{list-style:disc}
+.kb-meegenomen{background:#eef6ff;border-left:3px solid #154273;padding:6px 10px;border-radius:4px;margin:.4rem 0}
+.kb-spoedbalk{border:2px solid #154273;background:#eef4fb;color:#0f2a4d;border-radius:8px;padding:10px 16px;margin:0 0 16px}
+.kb-spoedbalk p{margin:6px 0}
+div.kb-meegenomen ul{margin:4px 0 0;padding-left:18px}
+.kb-afhandelen{max-width:860px}
+.kb-afhandel-rij{border:1px solid var(--hairline-color);border-radius:8px;padding:10px 16px;margin:0 0 14px}
+.kb-afhandel-rij legend{font-weight:600;padding:0 6px}
+.kb-afhandel-rij textarea{width:100%;box-sizing:border-box;font:inherit;padding:.5rem}
+.kb-afhandel-vink{display:block;margin:6px 0}
+.kb-afhandel-label{display:block;font-weight:600;margin:6px 0 4px}
+.kb-afhandelen .button{padding:7px 14px}
+.kb-review-citaat{display:block;font-style:italic;color:#555;border-left:3px solid #e0c46a;padding-left:6px;margin:2px 0}

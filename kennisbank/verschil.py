@@ -85,7 +85,8 @@ def _blok_html(soort, inhoud, klasse=""):
     tag = soort if soort in KOPPEN else ("li" if soort == "li" else "p")
     attr = f' class="{klasse}"' if klasse else ""
     if tag == "li":
-        return f'<p class="vs-li{" " + klasse if klasse else ""}">• {inhoud}</p>'
+        # Het opsommingsteken komt uit de stylesheet, zodat het niet in een geselecteerd citaat belandt.
+        return f'<p class="vs-li{" " + klasse if klasse else ""}">{inhoud}</p>'
     return f"<{tag}{attr}>{inhoud}</{tag}>"
 
 
