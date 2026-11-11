@@ -350,3 +350,11 @@ class SamenvattingTests(Basis):
         self.voorstel()
         call_command("kennisbank_opschonen", stdout=open("/dev/null", "w"))
         self.assertEqual(len([m for m in mail.outbox if "verbetervoorstel" in m.subject]), 2)
+
+
+class KeuzevakVertaaldTests(Basis):
+    def test_dubbel_keuzevak_spreekt_nederlands(self):
+        """Bij zaaktypen stond 'Choose all zaaktypen': Django 5.2 vertaalt dat niet (kennisbank/locale)."""
+        js = self.als(self.anna).get("/beheer/jsi18n/").content.decode()
+        self.assertIn("Alle %s kiezen", js)
+        self.assertIn("Alle %s verwijderen", js)

@@ -1,0 +1,28 @@
+# Aanvulling op de Nederlandse vertaling van het Django-beheer: teksten van het dubbele keuzevak
+# (bijvoorbeeld bij zaaktypen) die in Django 5.2 nog niet vertaald zijn. Na een wijziging:
+#   python scripts/maak_mo.py
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: nl\n"
+
+msgid "Choose all %s"
+msgstr "Alle %s kiezen"
+
+msgid "Choose selected %s"
+msgstr "Gekozen %s toevoegen"
+
+msgid "Remove all %s"
+msgstr "Alle %s verwijderen"
+
+msgid "Remove selected %s"
+msgstr "Gekozen %s verwijderen"
+
+msgid "(click to clear)"
+msgstr "(klik om te wissen)"
+
+msgid "Choose %s by selecting them and then select the \"Choose\" arrow button."
+msgstr "Kies %s door ze te selecteren en dan op de pijl \"Kiezen\" te klikken."
+
+msgid "Remove %s by selecting them and then select the \"Remove\" arrow button."
+msgstr "Verwijder %s door ze te selecteren en dan op de pijl \"Verwijderen\" te klikken."

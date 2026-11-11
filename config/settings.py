@@ -106,6 +106,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # --- Taal en tijd -------------------------------------------------------------
 
 LANGUAGE_CODE = "nl"
+# Aanvullingen op de Nederlandse vertaling van het beheer (kennisbank/locale, zie scripts/maak_mo.py).
+LOCALE_PATHS = [BASE_DIR / "kennisbank" / "locale"]
 TIME_ZONE = env("KB_TIJDZONE", "Europe/Amsterdam")
 USE_I18N = True
 USE_TZ = True

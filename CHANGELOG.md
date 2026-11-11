@@ -16,13 +16,15 @@ Ronde 2 uit de functionele review van 11 november (punt 10), met de besluiten c,
 
 **Interne notities**: alleen voor de redactie, met naam en tijd. Nooit zichtbaar voor de indiener of collega's; ze verdwijnen bij het anonimiseren van het voorstel (migratie 0027).
 
+**Keuzevak bij zaaktypen in het Nederlands**: Django 5.2 vertaalt "Choose all", "Remove all" en de uitleg bij het dubbele keuzevak niet; die vertaling staat nu in `kennisbank/locale` (omzetten met `scripts/maak_mo.py`).
+
 **Zoeken in Afgehandeld**: op artikel, voorstel, berichten en notities, binnen je eigen omgevingen.
 
 **Archiveren sluit voorstellen af** (besluit e): de open voorstellen bij een gearchiveerd artikel krijgen de nieuwe status **Vervallen** met het bericht "Het artikel … is ingetrokken". De indiener krijgt een melding en een e-mail. Afgehandelde voorstellen blijven zoals ze waren.
 
 **Dagelijkse samenvatting voor redacteuren** (besluit c): in plaats van een e-mail per nieuw voorstel aan elke redacteur één e-mail per dag met de nieuwe voorstellen in je omgeving(en), je eigen bak en wat langer dan 30 dagen ligt. Verstuurd door `opschonen`; apart: `kennisbank_voorstellenmail`. Niets nieuw, geen e-mail.
 
-- **Tests** (nu 417): het behandelscherm (inhoud, alleen eigen omgeving, oude link, bericht, leeg bericht, verwerkt alleen met bericht, e-mail aan de collega, dubbel zonder steun, dubbel uit een andere omgeving, nieuw bericht of status intussen, definitief, notities alleen voor de redactie en weg bij anonimiseren, verbergen, terug na een bakactie), het citaat in de tekst (ook geen HTML), zoeken in het archief (ook niet in een andere omgeving), archiveren, de samenvatting (per redacteur, niet dubbel, via opschonen) en de dienst zelf als tweede laag. Elke bescherming tegen een bewust kapotte versie gedraaid. In de browser nagelopen.
+- **Tests** (nu 418): het behandelscherm (inhoud, alleen eigen omgeving, oude link, bericht, leeg bericht, verwerkt alleen met bericht, e-mail aan de collega, dubbel zonder steun, dubbel uit een andere omgeving, nieuw bericht of status intussen, definitief, notities alleen voor de redactie en weg bij anonimiseren, verbergen, terug na een bakactie), het citaat in de tekst (ook geen HTML), zoeken in het archief (ook niet in een andere omgeving), archiveren, de samenvatting (per redacteur, niet dubbel, via opschonen) en de dienst zelf als tweede laag. Elke bescherming tegen een bewust kapotte versie gedraaid. In de browser nagelopen.
 
 ## 1.17.1 – 2026-11-11
 
