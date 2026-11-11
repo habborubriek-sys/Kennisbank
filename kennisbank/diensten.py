@@ -18,6 +18,7 @@ from .models import (
     Bericht,
     BerichtStatus,
     BewerkClaim,
+    Conceptversie,
     Favoriet,
     FavorietenMail,
     Kladversie,
@@ -601,6 +602,93 @@ def voorstel_gelezen(voorstel, gebruiker) -> None:
         voorstel.save(update_fields=["gelezen_redactie_op"])
 
 
+# --- Conceptversie: een nieuwe versie naast de gepubliceerde --------------------------------
+#
+# Medewerkers zien de gepubliceerde tekst; de redactie werkt in de conceptversie. Opslaan als
+# conceptversie raakt het artikel niet (geen versie, geen melding, geen zoekindex). Publiceren gaat via
+# het gewone opslaan van het bewerkscherm; daarna verdwijnt de conceptversie.
+
+
+class ConceptConflict(Exception):
+    """De conceptversie is gewijzigd (of weg) sinds dit scherm werd geopend."""
+
+
+def concept_velden(cleaned_data) -> dict:
+    """De velden van het bewerkformulier, zoals ze in een conceptversie worden bewaard."""
+    from .inhoud import schoon
+
+    herzien = cleaned_data.get("herzien_voor")
+    omgeving = cleaned_data.get("omgeving")
+    return {
+        "titel": cleaned_data.get("titel") or "",
+        "samenvatting": cleaned_data.get("samenvatting") or "",
+        "inhoud": schoon(cleaned_data.get("inhoud") or ""),
+        "soort": cleaned_data.get("soort") or "",
+        "eigenaar": cleaned_data.get("eigenaar") or "",
+        "omgeving": omgeving.pk if omgeving else None,
+        "herzien_voor": herzien.isoformat() if herzien else "",
+        "clusters": sorted(c.pk for c in cleaned_data.get("clusters") or []),
+        "zaaktypen": sorted(z.pk for z in cleaned_data.get("zaaktypen") or []),
+        "tags_tekst": cleaned_data.get("tags_tekst") or "",
+    }
+
+
+def concept_beginwaarden(concept) -> dict:
+    """Wat het bewerkscherm invult als er een conceptversie is."""
+    v = concept.velden or {}
+    waarden = {k: v[k] for k in ("titel", "samenvatting", "inhoud", "soort", "eigenaar", "tags_tekst") if k in v}
+    if v.get("omgeving"):
+        waarden["omgeving"] = v["omgeving"]
+    if "herzien_voor" in v:
+        waarden["herzien_voor"] = v["herzien_voor"] or None
+    for veld in ("clusters", "zaaktypen"):
+        if veld in v:
+            waarden[veld] = v[veld]
+    return waarden
+
+
+def concept_stand(artikel_id) -> str:
+    """De stempel van de huidige conceptversie (vergrendeld), of '' als er geen is."""
+    moment = (
+        Conceptversie.objects.select_for_update()
+        .filter(artikel_id=artikel_id)
+        .values_list("bijgewerkt_op", flat=True)
+        .first()
+    )
+    return moment.isoformat() if moment else ""
+
+
+def concept_opslaan(artikel, gebruiker, velden, geladen: str) -> Conceptversie:
+    """Bewaar de conceptversie van een gepubliceerd artikel.
+
+    ``geladen`` is de stempel van de conceptversie toen het scherm werd geopend ('' als er toen geen
+    was). Wijkt die af van wat er nu staat, dan heeft een collega intussen de conceptversie opgeslagen,
+    gepubliceerd of weggegooid: ConceptConflict, zodat niemand ongemerkt andermans werk overschrijft.
+    """
+    nu = timezone.now()
+    with transaction.atomic():
+        if concept_stand(artikel.pk) != (geladen or ""):
+            raise ConceptConflict
+        concept = Conceptversie.objects.filter(artikel=artikel).first()
+        if concept is None:
+            concept = Conceptversie(
+                artikel=artikel,
+                basis_versie=artikel.versie or 0,
+                basis_stempel=artikel.gewijzigd_op.isoformat() if artikel.gewijzigd_op else "",
+                gestart_door=gebruiker,
+                gestart_op=nu,
+            )
+        concept.velden = velden
+        concept.bijgewerkt_door = gebruiker
+        concept.bijgewerkt_op = nu
+        concept.save()
+    return concept
+
+
+def concept_weggooien(artikel) -> bool:
+    return Conceptversie.objects.filter(artikel=artikel).delete()[0] > 0
+
+
 # --- Bakken: wie heeft een verbetervoorstel ---------------------------------------------
 #
 # Een nieuw voorstel ligt in de gezamenlijke bak van zijn omgeving (eigenaar leeg). Een redacteur
@@ -694,6 +782,20 @@ def voorstel_naar_bak(voorstel, door, naar=None):
                 [naar.email],
             )
     return v
+
+
+def voorstel_naar_clusterbak(voorstel, door, cluster) -> None:
+    """Verplaats een open voorstel naar een andere werkbak: een cluster, of None = de algemene bak.
+
+    Raakt de eigenaar niet: ligt het voorstel bij iemand, dan verandert alleen het label, en bij
+    terugleggen komt het in de nieuwe bak terecht.
+    """
+    with transaction.atomic():
+        v = Verbetervoorstel.objects.select_for_update().get(pk=voorstel.pk)
+        if not v.is_open:
+            raise VoorstelFout("Dit voorstel is al afgehandeld.")
+        v.cluster = cluster
+        v.save(update_fields=["cluster"])
 
 
 def eigenaar_bij_statuswijziging(voorstel, door) -> None:

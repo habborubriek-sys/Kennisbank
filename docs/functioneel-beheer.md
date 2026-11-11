@@ -34,6 +34,29 @@ Elke keer dat je een gepubliceerd artikel inhoudelijk wijzigt, ontstaat automati
 
 **Een artikel voor het eerst publiceren** gaat langs een laatste controle. De publicatie wordt geweigerd als de titel een bestandsnaam of versie-aanduiding is (`werkinstructie DEFINITIEF.docx`), als de samenvatting leeg of nietszeggend is, of als er een sectie zonder titel in staat — die heet voor de lezer namelijk "Sectie 1". Je krijgt per geval te zien wat eraan moet gebeuren. Ontbreekt alleen een zaaktype of tag, dan volgt een waarschuwing en gaat de publicatie door: slecht vindbaar is soms de bedoeling. Een artikel dat al eens is gepubliceerd, wordt niet opnieuw gekeurd, zodat een typfout altijd te herstellen blijft.
 
+## Conceptversie: rustig werken aan een nieuwe versie
+
+Een gepubliceerd artikel wijzig je op twee manieren:
+
+- **Opslaan** publiceert je wijziging meteen: medewerkers zien de nieuwe tekst, met je toelichting als melding.
+- **Opslaan als conceptversie** (de gele knop onderaan) bewaart je wijziging als **conceptversie**. Medewerkers
+  blijven de gepubliceerde versie zien en merken niets: geen nieuwe versie, geen melding, geen e-mail.
+
+Is er een conceptversie, dan opent het artikel in het beheer met die conceptversie en staat er bovenaan een gele
+balk: wie hem begon, wie hem het laatst bijwerkte, en welke versie medewerkers nu zien. Daar kun je hem ook
+**bekijken** zoals medewerkers hem straks zien, of **weggooien**. Werk verder met *Opslaan als conceptversie*;
+wil je hem publiceren, vul dan de toelichting in en kies **Opslaan**. De conceptversie is daarna weg en het
+artikel heeft een nieuwe versie.
+
+- Er is per artikel **één conceptversie, voor de hele redactie**: een collega die het artikel opent, werkt in
+  dezelfde conceptversie verder. Hebben jullie hem allebei open en slaat de ander eerst op, dan krijg je een
+  melding en wordt jouw opslag geweigerd, net als bij het artikel zelf. Je werk staat dan nog in je kladversie.
+- In het **volledige scherm** slaat *Opslaan* de conceptversie op zolang je in een conceptversie werkt. Publiceren
+  doe je onderaan het gewone scherm, waar de toelichting staat.
+- Op je werkplek staan conceptversies onder **Concepten**, bovenaan, met het label *conceptversie*.
+- Een artikel dat nog nooit is gepubliceerd, heeft geen conceptversie nodig: het is zelf nog een concept.
+- De conceptversie is de basis voor het reviewproces dat nog komt (ter inzage bij een specialistisch team).
+
 ## Wijzigingsmeldingen: wat medewerkers zien van een wijziging
 
 Als je een gepubliceerd artikel inhoudelijk wijzigt, gebeurt er drie dingen voor medewerkers:
@@ -250,8 +273,8 @@ Een bericht kun je, anders dan een artikel, gewoon verwijderen. Nieuwsberichten 
 Als je het beheer opent, zie je je **werkplek**. Links staat een kolom met je werkbakken, rechts de inhoud
 van wat je aanklikt. Achter elke bak staat hoeveel er in ligt.
 
-- **Werkvoorraad**: de verbetervoorstellen die nog niemand heeft opgepakt (bij meer omgevingen één per
-  omgeving). Oudste bovenaan.
+- **Werkvoorraad**: de verbetervoorstellen die nog niemand heeft opgepakt, verdeeld over **Algemeen** en
+  **één bak per cluster** (zie hieronder). Oudste bovenaan.
 - **Procesmanagers**: iedereen uit de redactie, met het aantal open voorstellen in zijn of haar bak — ook
   als dat 0 is. Je eigen naam staat bovenaan, met "nieuw" als er voorstellen in liggen die je nog niet hebt
   geopend.
@@ -267,14 +290,25 @@ van wat je aanklikt. Achter elke bak staat hoeveel er in ligt.
 Voorstellen behandel je op je **werkplek** in het beheer. In de kennisbank zelf zie je als redacteur alleen
 nog je eigen voorstellen en die van collega's (zie hieronder); daar staat een knop naar je werkplek.
 
-**Bakken.** Elk nieuw voorstel komt in de **gezamenlijke bak** van de omgeving. Van daaruit:
+**Waar een nieuw voorstel binnenkomt.** In de werkvoorraad:
+
+- heeft het artikel **precies één cluster**, dan komt het voorstel in de bak van dat cluster;
+- heeft het artikel **geen cluster, of twee of meer**, dan komt het in **Algemeen**. Zo komen ook artikelen
+  die meerdere clusters bedienen op één plek terecht.
+
+Ligt een voorstel in de verkeerde bak, kies dan bij het voorstel *Naar bak…* en **Verplaatsen** (ook naar
+Algemeen). Een clusterbak is gewoon een gezamenlijke bak met een label: iedereen in de redactie ziet en pakt
+er voorstellen uit. Het cluster blijft als label bij het voorstel staan, ook als iemand het heeft opgepakt;
+leg je het terug, dan komt het in die bak.
+
+**Bakken.** Van daaruit:
 
 | Wat je doet | Hoe | Wat er gebeurt |
 |---|---|---|
 | **Oppakken** | Knop *Oppakken* in de werkvoorraad, of in het voorstel bij *Bak* jezelf kiezen | Het voorstel gaat naar jouw bak. Een nieuw voorstel krijgt de status *In behandeling* |
 | **Toewijzen** | *Toewijzen aan…* een collega kiezen, of in het voorstel bij *Bak* | Het gaat naar de bak van je collega; die krijgt een e-mail. Een nieuw voorstel krijgt *In behandeling* |
 | **Overnemen** | Knop *Overnemen* bij een voorstel in de bak van een collega | Het gaat naar jouw bak; in de geschiedenis van het voorstel staat "Overgenomen uit de bak van …" |
-| **Terugleggen** | Knop *Terugleggen*, of bij *Bak* "Gezamenlijke bak" kiezen | Terug in de werkvoorraad. Is er nog geen bericht naar de indiener gestuurd, dan gaat de status terug naar *Nieuw*; anders blijft het *In behandeling* |
+| **Terugleggen** | Knop *Terugleggen*, of bij *Bak* "Niemand" kiezen | Terug in de werkvoorraad (in de bak van zijn cluster, of Algemeen). Is er nog geen bericht naar de indiener gestuurd, dan gaat de status terug naar *Nieuw*; anders blijft het *In behandeling* |
 | **Openen** | Op de titel of *Openen* klikken | Het behandelscherm met het gesprek met de indiener. Na *Opslaan* kom je terug in de bak waar je vandaan kwam |
 
 Iedereen in de redactie kan in elkaars bak kijken en er een voorstel uit overnemen, bijvoorbeeld bij ziekte

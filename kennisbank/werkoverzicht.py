@@ -23,7 +23,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from . import diensten
-from .models import Artikel, Kladversie, Omgeving, Rol, Status, Verbetervoorstel, VoorstelStatus
+from .models import Artikel, Cluster, Conceptversie, Kladversie, Omgeving, Rol, Status, Verbetervoorstel, VoorstelStatus
 from .rechten import rechten
 
 OPEN = [VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING]
@@ -71,15 +71,35 @@ def redacteuren_per_omgeving(omgevingen) -> dict:
     return {oid: sorted(namen.items(), key=lambda x: x[1].lower()) for oid, namen in per.items()}
 
 
+def clusters_van(omgevingen, open_qs=None):
+    """[(pk, naam)]: de clusters die in deze omgevingen voorkomen (bij een artikel of een open voorstel).
+
+    Clusters zijn organisatiebreed; een redacteur ziet alleen de clusters van zijn eigen omgevingen,
+    net als in de keuzelijsten van de kennisbank.
+    """
+    voorwaarde = Q(artikel__omgeving_id__in=omgevingen)
+    if open_qs is not None:
+        voorwaarde |= Q(voorstellen__in=open_qs)
+    return list(Cluster.objects.filter(voorwaarde).distinct().order_by("volgorde", "naam").values_list("pk", "naam"))
+
+
 def _menu(request, omgevingen, namen_omgeving):
     """De linkerkolom: alle bakken met hun aantal, en de artikelkant."""
     User = get_user_model()
     ik = request.user
     open_qs = Verbetervoorstel.objects.filter(status__in=OPEN, artikel__omgeving_id__in=omgevingen)
 
-    werkvoorraad = {
+    algemeen = {
         rij["artikel__omgeving_id"]: rij["n"]
-        for rij in open_qs.filter(eigenaar__isnull=True).values("artikel__omgeving_id").annotate(n=Count("pk"))
+        for rij in open_qs.filter(eigenaar__isnull=True, cluster__isnull=True)
+        .values("artikel__omgeving_id")
+        .annotate(n=Count("pk"))
+    }
+    per_cluster = {
+        rij["cluster_id"]: rij["n"]
+        for rij in open_qs.filter(eigenaar__isnull=True, cluster__isnull=False)
+        .values("cluster_id")
+        .annotate(n=Count("pk"))
     }
     per_eigenaar = {
         rij["eigenaar_id"]: rij
@@ -105,15 +125,20 @@ def _menu(request, omgevingen, namen_omgeving):
         .distinct()
     }
 
+    # De werkvoorraad: de algemene bak (per omgeving als er meer zijn) en één bak per cluster.
     bakken = []
     for oid in sorted(omgevingen, key=lambda o: namen_omgeving[o].lower()):
-        sleutel = "werkvoorraad" if len(omgevingen) == 1 else f"werkvoorraad-{oid}"
+        sleutel = "algemeen" if len(omgevingen) == 1 else f"algemeen-{oid}"
         bakken.append({
             "sleutel": sleutel,
-            "naam": "Werkvoorraad" if len(omgevingen) == 1 else f"Werkvoorraad · {namen_omgeving[oid]}",
-            "aantal": werkvoorraad.get(oid, 0),
+            "naam": "Algemeen" if len(omgevingen) == 1 else f"Algemeen · {namen_omgeving[oid]}",
+            "aantal": algemeen.get(oid, 0),
             "soort": "werkvoorraad",
         })
+    for cid, naam in clusters_van(omgevingen, open_qs):
+        bakken.append(
+            {"sleutel": f"cluster-{cid}", "naam": naam, "aantal": per_cluster.get(cid, 0), "soort": "cluster"}
+        )
     personen = []
     for pk, naam in mensen.items():
         rij = per_eigenaar.get(pk, {})
@@ -128,7 +153,10 @@ def _menu(request, omgevingen, namen_omgeving):
     personen.sort(key=lambda p: (not p["ik"], p["naam"].lower()))
 
     afgehandeld = Verbetervoorstel.objects.filter(status__in=KLAAR, artikel__omgeving_id__in=omgevingen).count()
-    concepten = Artikel.objects.filter(status=Status.CONCEPT, omgeving_id__in=omgevingen).count()
+    concepten = (
+        Artikel.objects.filter(status=Status.CONCEPT, omgeving_id__in=omgevingen).count()
+        + Conceptversie.objects.filter(artikel__omgeving_id__in=omgevingen).count()
+    )
     klad = Kladversie.objects.filter(gebruiker=ik, afgesloten_op__isnull=True).exclude(velden={}).count()
     nakijken = Artikel.objects.filter(
         status=Status.GEPUBLICEERD, omgeving_id__in=omgevingen, herzien_voor__lt=timezone.localdate()
@@ -151,11 +179,12 @@ def _menu(request, omgevingen, namen_omgeving):
 def _voorstellen(request, qs, omgevingen, bak):
     """De rechterkant voor een bak met voorstellen."""
     qs = (
-        qs.select_related("artikel", "artikel__omgeving", "eigenaar")
+        qs.select_related("artikel", "artikel__omgeving", "eigenaar", "cluster")
         .annotate(_steun=Count("steun", distinct=True))
     )
     pagina = Paginator(qs, PER_PAGINA).get_page(request.GET.get("pagina"))
     keuzes = redacteuren_per_omgeving(omgevingen)
+    clusterkeuzes = clusters_van(omgevingen)
     terug = bak
     rijen = []
     for v in pagina.object_list:
@@ -169,6 +198,9 @@ def _voorstellen(request, qs, omgevingen, bak):
             "nog_niet_geopend": v.is_open and v.eigenaar_id and v.eigenaar_gezien_op is None,
             "dagen": _dagen(v.eigenaar_sinds if v.eigenaar_id else v.ingediend_op),
             "collegas": [(pk, naam) for pk, naam in keuzes.get(v.artikel.omgeving_id, []) if pk != v.eigenaar_id],
+            "bakken": [("", "Algemeen")] + [(str(pk), naam) for pk, naam in clusterkeuzes if pk != v.cluster_id]
+            if v.cluster_id
+            else [(str(pk), naam) for pk, naam in clusterkeuzes],
         })
     return {"rijen": rijen, "pagina": pagina}
 
@@ -202,17 +234,33 @@ def werkplek(request):
     bak = request.GET.get("bak") or menu["bakken"][0]["sleutel"]
     open_qs = Verbetervoorstel.objects.filter(status__in=OPEN, artikel__omgeving_id__in=omgevingen)
     inhoud, titel, uitleg = {}, "", ""
-    if bak == "werkvoorraad" or bak.startswith("werkvoorraad-"):
-        qs = open_qs.filter(eigenaar__isnull=True)
-        if bak.startswith("werkvoorraad-"):
+    if bak == "werkvoorraad":  # oude naam (links in e-mails, bladwijzers)
+        bak = menu["bakken"][0]["sleutel"]
+    if bak == "algemeen" or bak.startswith("algemeen-"):
+        qs = open_qs.filter(eigenaar__isnull=True, cluster__isnull=True)
+        if bak.startswith("algemeen-"):
             oid = bak.split("-", 1)[1]
             if not oid.isdigit() or int(oid) not in namen_omgeving:
                 raise Http404
             qs = qs.filter(artikel__omgeving_id=int(oid))
-            titel = f"Werkvoorraad · {namen_omgeving[int(oid)]}"
+            titel = f"Algemeen · {namen_omgeving[int(oid)]}"
         else:
-            titel = "Werkvoorraad"
-        uitleg = "Nieuwe voorstellen die nog niemand heeft opgepakt. Oudste bovenaan."
+            titel = "Algemeen"
+        uitleg = (
+            "Nieuwe voorstellen bij artikelen zonder cluster of met meer clusters, en wat uit een clusterbak "
+            "is verplaatst. Oudste bovenaan."
+        )
+        inhoud = _voorstellen(request, qs.order_by("ingediend_op"), omgevingen, bak)
+    elif bak.startswith("cluster-"):
+        cid = bak.split("-", 1)[1]
+        clusters = {
+            int(b["sleutel"].split("-", 1)[1]): b["naam"] for b in menu["bakken"] if b["soort"] == "cluster"
+        }
+        if not cid.isdigit() or int(cid) not in clusters:
+            raise Http404
+        titel = clusters[int(cid)]
+        uitleg = "Nieuwe voorstellen bij artikelen van dit cluster die nog niemand heeft opgepakt. Oudste bovenaan."
+        qs = open_qs.filter(eigenaar__isnull=True, cluster_id=int(cid))
         inhoud = _voorstellen(request, qs.order_by("ingediend_op"), omgevingen, bak)
     elif bak.startswith("u") and bak[1:].isdigit():
         pk = int(bak[1:])
@@ -229,9 +277,25 @@ def werkplek(request):
         inhoud = _voorstellen(request, qs.order_by("-behandeld_op", "-pk"), omgevingen, bak)
     elif bak == "concepten":
         titel = "Concepten"
-        uitleg = "Artikelen die nog niet zijn gepubliceerd. Laatst gewijzigd bovenaan."
+        uitleg = (
+            "Nieuwe versies van gepubliceerde artikelen waar nog aan wordt gewerkt (medewerkers zien de "
+            "gepubliceerde versie), en artikelen die nog nooit zijn gepubliceerd. Laatst gewijzigd bovenaan."
+        )
         qs = Artikel.objects.filter(status=Status.CONCEPT, omgeving_id__in=omgevingen).select_related("omgeving")
         inhoud = _artikelen(request, qs.order_by("-gewijzigd_op"), bak)
+        inhoud["conceptversies"] = [
+            {
+                "titel": c.titel,
+                "url": reverse("admin:kennisbank_artikel_change", args=[c.artikel_id]),
+                "bijgewerkt_op": c.bijgewerkt_op,
+                "door": diensten.naam_van(c.bijgewerkt_door),
+                "versie": c.artikel.versie,
+                "omgeving": c.artikel.omgeving.naam,
+            }
+            for c in Conceptversie.objects.filter(artikel__omgeving_id__in=omgevingen)
+            .select_related("artikel__omgeving", "bijgewerkt_door")
+            .order_by("-bijgewerkt_op")
+        ]
     elif bak == "nakijken":
         titel = "Opnieuw nakijken"
         uitleg = "Gepubliceerde artikelen waarvan de herzieningsdatum is verstreken. Langst over datum bovenaan."
@@ -305,6 +369,24 @@ def werkplek_actie(request):
         naar = request.user
     elif actie == "terugleggen":
         naar = None
+    elif actie == "naar_bak":
+        keuze = request.POST.get("cluster") or ""
+        cluster = None
+        if keuze:
+            toegestaan = dict(clusters_van(sorted(r.redactie_omgevingen)))
+            if not keuze.isdigit() or int(keuze) not in toegestaan:
+                raise Http404
+            cluster = Cluster.objects.get(pk=int(keuze))
+        try:
+            diensten.voorstel_naar_clusterbak(v, request.user, cluster)
+        except diensten.VoorstelFout as e:
+            messages.warning(request, str(e))
+            return redirect(werkplek_url(terug))
+        model_admin = admin.site._registry[Verbetervoorstel]
+        waar = cluster.naam if cluster else "Algemeen"
+        model_admin.log_change(request, v, f"Verplaatst naar de bak {waar}.")
+        messages.success(request, f"Voorstel verplaatst naar de bak {waar}.")
+        return redirect(werkplek_url(terug))
     elif actie == "toewijzen":
         keuze = request.POST.get("naar") or ""
         naar = diensten.redacteuren_van(v.artikel.omgeving_id).filter(pk=keuze).first() if keuze.isdigit() else None

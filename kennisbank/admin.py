@@ -11,12 +11,13 @@ import json
 from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
+from django.contrib.admin.models import CHANGE, LogEntry
 from django.contrib.auth.admin import GroupAdmin as DjangoGroupAdmin
 from django.contrib.auth.models import Group
 from django.db import transaction
 from django.db.models import Count, OuterRef, Subquery
-from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from django.http import HttpResponseNotAllowed, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -31,6 +32,7 @@ from .models import (
     ArtikelVersie,
     Bericht,
     Cluster,
+    Conceptversie,
     GroepLabel,
     Kladversie,
     Omgeving,
@@ -195,6 +197,9 @@ class ArtikelForm(forms.ModelForm):
         "maar medewerkers krijgen geen melding en geen e-mail.",
     )
     geladen_stempel = forms.CharField(required=False, widget=forms.HiddenInput)
+    #: Stempel van de conceptversie toen dit scherm werd geopend ('' = er was er geen). Zie
+    #: diensten.concept_opslaan: zo overschrijft niemand ongemerkt de conceptversie van een collega.
+    geladen_concept = forms.CharField(required=False, widget=forms.HiddenInput)
     #: Alleen een hint voor het bewerkscherm (is dit artikel al eens gepubliceerd?), zodat het
     #: volledige scherm weet wanneer het om een toelichting moet vragen. De regel zelf staat in clean().
     al_gepubliceerd = forms.CharField(required=False, widget=forms.HiddenInput)
@@ -221,16 +226,32 @@ class ArtikelForm(forms.ModelForm):
         ]
         widgets = {"inhoud": forms.Textarea(attrs={"class": "kb-editor", "rows": 24})}
 
+    #: Gezet door ArtikelAdmin.get_form: wordt dit verzoek opgeslagen als conceptversie, en welke
+    #: conceptversie hoort bij dit artikel?
+    als_concept = False
+    conceptversie = None
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance.pk and not self.is_bound:
             self.fields["tags_tekst"].initial = ", ".join(self.instance.tags.values_list("naam", flat=True))
             self.fields["geladen_stempel"].initial = stempel_van(self.instance)
             self.fields["al_gepubliceerd"].initial = "1" if self.instance.versie else ""
+            if self.conceptversie is not None:
+                # Er wordt aan een nieuwe versie gewerkt: die openen, niet de gepubliceerde tekst.
+                self.initial.update(diensten.concept_beginwaarden(self.conceptversie))
+                self.fields["geladen_concept"].initial = self.conceptversie.stempel
 
     def clean(self):
         data = super().clean()
+        if self.als_concept:
+            # Opslaan als conceptversie: het artikel zelf verandert niet, dus geen controle op de
+            # publicatieregels of een toelichting. Wel op de omvang; een collega die de conceptversie
+            # intussen opsloeg, vangt concept_opslaan onder slot af.
+            self._controleer_omvang(data)
+            return data
         self._controleer_conflict(data)
+        self._controleer_concept(data)
         self._controleer_omvang(data)
         self._controleer_dubbele_titel(data)
         self._controleer_eerste_publicatie(data)
@@ -266,6 +287,23 @@ class ArtikelForm(forms.ModelForm):
             )
         return data
 
+
+    def _controleer_concept(self, data):
+        """Publiceren vanuit een scherm waarvan de conceptversie intussen is veranderd, weigeren.
+
+        Anders zou het publiceren de nieuwere conceptversie van een collega weggooien (bij publiceren
+        verdwijnt de conceptversie), of een conceptversie publiceren die hier nooit te zien was.
+        """
+        if not self.instance.pk:
+            return
+        with transaction.atomic():
+            nu = diensten.concept_stand(self.instance.pk)
+        if nu != (data.get("geladen_concept") or ""):
+            raise forms.ValidationError(
+                "Een collega heeft de conceptversie van dit artikel opgeslagen, gepubliceerd of weggegooid "
+                "terwijl jij het openhad. Je wijzigingen zijn niet opgeslagen; ze staan nog in dit scherm. "
+                "Open het artikel in een nieuw tabblad om te zien wat er nu staat."
+            )
 
     def _controleer_eerste_publicatie(self, data):
         """Laatste controle voordat een artikel voor het eerst zichtbaar wordt voor medewerkers.
@@ -435,8 +473,12 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     readonly_fields = ["versie", "gepubliceerd_op", "link"]
     actions = ["publiceren", "archiveren", "nagekeken"]
     change_list_template = "admin/kennisbank/artikel/change_list.html"
+    change_form_template = "admin/kennisbank/artikel/change_form.html"
     fieldsets = [
-        (None, {"fields": ["titel", "samenvatting", "inhoud", "geladen_stempel", "al_gepubliceerd"]}),
+        (
+            None,
+            {"fields": ["titel", "samenvatting", "inhoud", "geladen_stempel", "geladen_concept", "al_gepubliceerd"]},
+        ),
         ("Eigenschappen", {"fields": ["soort", "omgeving", "eigenaar", "herzien_voor", "link"]}),
         ("Vindbaarheid", {"fields": ["clusters", "tags_tekst", "zaaktypen"]}),
         (
@@ -475,6 +517,16 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 "<int:pk>/bewerkclaim/",
                 self.admin_site.admin_view(self.bewerkclaim),
                 name="kennisbank_artikel_bewerkclaim",
+            ),
+            path(
+                "<int:pk>/conceptversie/weggooien/",
+                self.admin_site.admin_view(self.concept_weggooien),
+                name="kennisbank_artikel_concept_weggooien",
+            ),
+            path(
+                "<int:pk>/conceptversie/bekijken/",
+                self.admin_site.admin_view(self.concept_bekijken),
+                name="kennisbank_artikel_concept_bekijken",
             ),
             path("kladversie/", self.admin_site.admin_view(self.kladversie), name="kennisbank_artikel_klad_nieuw"),
             path(
@@ -808,8 +860,132 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             kwargs["queryset"] = Omgeving.objects.filter(pk__in=self._omgevingen(request))
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
+    # --- Conceptversie ------------------------------------------------------------------
+
+    @staticmethod
+    def _kan_concept(obj) -> bool:
+        """Een conceptversie bestaat alleen naast een gepubliceerde versie."""
+        return bool(obj and obj.pk and obj.versie and obj.status == Status.GEPUBLICEERD)
+
+    @staticmethod
+    def _concept_van(obj):
+        if not (obj and obj.pk):
+            return None
+        return Conceptversie.objects.filter(artikel=obj).select_related("gestart_door", "bijgewerkt_door").first()
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        Form = super().get_form(request, obj, change=change, **kwargs)
+        als_concept = request.method == "POST" and "_conceptversie" in request.POST and self._kan_concept(obj)
+        if als_concept:
+            request._kb_als_concept = True
+        return type(Form.__name__, (Form,), {"als_concept": als_concept, "conceptversie": self._concept_van(obj)})
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        extra = extra_context or {}
+        obj = self.get_object(request, object_id)
+        if obj is not None:
+            concept = self._concept_van(obj)
+            extra["kb_kan_concept"] = self._kan_concept(obj)
+            extra["kb_concept"] = concept
+            if concept is not None:
+                extra["kb_concept_gestart_door"] = diensten.naam_van(concept.gestart_door)
+                extra["kb_concept_bijgewerkt_door"] = diensten.naam_van(concept.bijgewerkt_door)
+                extra["kb_concept_artikel_gewijzigd"] = concept.basis_stempel != stempel_van(obj)
+                extra["kb_concept_bekijken"] = reverse("admin:kennisbank_artikel_concept_bekijken", args=[obj.pk])
+                extra["kb_concept_weggooien"] = reverse("admin:kennisbank_artikel_concept_weggooien", args=[obj.pk])
+        return super().change_view(request, object_id, form_url, extra)
+
+    def save_model(self, request, obj, form, change):
+        if getattr(form, "als_concept", False):
+            # Het artikel zelf blijft zoals het is; alleen de conceptversie wordt bijgewerkt.
+            try:
+                diensten.concept_opslaan(
+                    obj,
+                    request.user,
+                    diensten.concept_velden(form.cleaned_data),
+                    form.cleaned_data.get("geladen_concept"),
+                )
+            except diensten.ConceptConflict:
+                request._kb_concept_conflict = True
+            return
+        super().save_model(request, obj, form, change)
+
+    def log_change(self, request, obj, message):
+        if getattr(request, "_kb_als_concept", False):
+            if getattr(request, "_kb_concept_conflict", False):
+                return None
+            message = "Conceptversie opgeslagen."
+        return super().log_change(request, obj, message)
+
+    def response_change(self, request, obj):
+        if getattr(request, "_kb_als_concept", False):
+            if getattr(request, "_kb_concept_conflict", False):
+                self.message_user(
+                    request,
+                    "Een collega heeft de conceptversie opgeslagen, gepubliceerd of weggegooid terwijl jij het "
+                    "artikel openhad. Je wijzigingen zijn NIET opgeslagen; ze staan nog in de kladversie in deze "
+                    "browser. Kijk wat er nu staat en kies dan of je verder wilt gaan met je kladversie.",
+                    messages.ERROR,
+                )
+            else:
+                self.message_user(
+                    request,
+                    f"Conceptversie opgeslagen. Medewerkers zien nog versie {obj.versie}; zij merken pas iets als "
+                    "je publiceert.",
+                    messages.SUCCESS,
+                )
+            return redirect(reverse("admin:kennisbank_artikel_change", args=[obj.pk]))
+        return super().response_change(request, obj)
+
+    def concept_weggooien(self, request, pk):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST"])
+        obj = get_object_or_404(self.get_queryset(request), pk=pk)
+        if diensten.concept_weggooien(obj):
+            diensten.klad_afsluiten(request.user, obj)
+            LogEntry.objects.log_actions(
+                request.user.pk, [obj], CHANGE, change_message="Conceptversie weggegooid.", single_object=True
+            )
+            self.message_user(request, "De conceptversie is weggegooid. Je ziet weer de gepubliceerde tekst.")
+        return redirect(reverse("admin:kennisbank_artikel_change", args=[obj.pk]))
+
+    def concept_bekijken(self, request, pk):
+        from .inhoud import schoon
+
+        obj = get_object_or_404(self.get_queryset(request), pk=pk)
+        concept = get_object_or_404(Conceptversie, artikel=obj)
+        return render(
+            request,
+            "kennisbank/voorbeeld.html",
+            {
+                "app_naam": settings.KB_APP_NAAM,
+                "vaste_inhoud": {
+                    "titel": concept.titel,
+                    "samenvatting": concept.velden.get("samenvatting", ""),
+                    "soort": concept.velden.get("soort", obj.soort),
+                    "inhoud": schoon(concept.velden.get("inhoud", "")),
+                },
+                "vaste_regel": (
+                    f"conceptversie · bijgewerkt {date_format(timezone.localtime(concept.bijgewerkt_op), 'j F Y H:i')} "
+                    f"door {diensten.naam_van(concept.bijgewerkt_door)} · gepubliceerd is versie {obj.versie}"
+                ),
+                "vaste_titelbalk": "Conceptversie",
+            },
+        )
+
     def save_related(self, request, form, formsets, change):
+        if getattr(form, "als_concept", False):
+            # Niets aan het artikel zelf: geen clusters/tags/zaaktypen, geen zoekindex, geen versie.
+            for formset in formsets:  # het beheer leest deze lijsten voor zijn logboek
+                formset.new_objects, formset.changed_objects, formset.deleted_objects = [], [], []
+            diensten.claim_opheffen(form.instance, request.user)
+            if not getattr(request, "_kb_concept_conflict", False):
+                diensten.klad_afsluiten(request.user, form.instance)
+            return
         super().save_related(request, form, formsets, change)
+        if change:
+            # Gepubliceerd (of anders opgeslagen) vanuit dit scherm: de conceptversie is daarmee afgehandeld.
+            diensten.concept_weggooien(form.instance)
         diensten.claim_opheffen(form.instance, request.user)  # opgeslagen = niet meer aan het bewerken
         # Opgeslagen = de kladversie is afgehandeld. Bij een nieuw artikel was dat de kladversie
         # "nieuw"; die hoort nu niet meer op het toevoegscherm terug te komen.
@@ -1049,17 +1225,17 @@ class VoorstelForm(forms.ModelForm):
         label="Bak",
         required=False,
         help_text="Kies jezelf om het op te pakken, een collega om het toe te wijzen (die krijgt een "
-        "e-mail), of de gezamenlijke bak om het terug te leggen.",
+        "e-mail), of 'niemand' om het terug te leggen in de werkvoorraad.",
     )
 
     class Meta:
         model = Verbetervoorstel
-        fields = ["status", "verborgen"]
+        fields = ["status", "cluster", "verborgen"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         v = self.instance
-        keuzes = [("", "— Gezamenlijke bak")]
+        keuzes = [("", "— Niemand (ligt in de werkvoorraad)")]
         if v.pk:
             keuzes += [(str(u.pk), diensten.naam_van(u)) for u in diensten.redacteuren_van(v.artikel.omgeving_id)]
             if v.eigenaar_id and str(v.eigenaar_id) not in {k for k, _ in keuzes}:
@@ -1067,6 +1243,14 @@ class VoorstelForm(forms.ModelForm):
                 # stil te verhuizen naar de gezamenlijke bak.
                 keuzes.append((str(v.eigenaar_id), f"{diensten.naam_van(v.eigenaar)} (geen redacteur meer)"))
         self.fields["naar_bak"].choices = keuzes
+        if v.pk and "cluster" in self.fields:
+            from .werkoverzicht import clusters_van
+
+            toegestaan = [pk for pk, _ in clusters_van([v.artikel.omgeving_id])]
+            if v.cluster_id:
+                toegestaan.append(v.cluster_id)
+            self.fields["cluster"].queryset = Cluster.objects.filter(pk__in=toegestaan)
+            self.fields["cluster"].empty_label = "Algemeen"
         self.fields["naar_bak"].initial = str(v.eigenaar_id or "")
         self.fields["geladen_eigenaar"].initial = str(v.eigenaar_id or "")
         self.fields["geladen_status"].initial = v.status
@@ -1199,6 +1383,7 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             {
                 "fields": [
                     "naar_bak",
+                    "cluster",
                     "status",
                     "verborgen",
                     "steun_overzicht",
@@ -1347,7 +1532,9 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             diensten.eigenaar_bij_statuswijziging(obj, request.user)
         # Alleen deze velden: de rest (terugkoppeling, gelezen-stempels) schrijft de dienstlaag, en die
         # mag een verouderd object hier niet overschrijven.
-        obj.save(update_fields=["status", "verborgen", "behandeld_door", "behandeld_op", *diensten.BAK_VELDEN])
+        obj.save(
+            update_fields=["status", "cluster", "verborgen", "behandeld_door", "behandeld_op", *diensten.BAK_VELDEN]
+        )
 
     def save_related(self, request, form, formsets, change):
         """Elk nieuw bericht gaat via de dienstlaag, zodat de melding en de e-mail er één keer uitgaan.

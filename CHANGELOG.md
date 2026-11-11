@@ -1,5 +1,24 @@
 # Wijzigingen
 
+## 1.17.0 – 2026-11-11
+
+De eerste twee stappen uit het ontwerp voor verbetervoorstellen per cluster en het reviewproces (ontwerp met Alex, 11 november; in het project: `ontwerp-reviewproces.md`). Stap A en B; het reviewproces zelf (C) en de opmerkingen in de zijbalk (D) volgen.
+
+**A. Werkvoorraad per cluster**
+
+- Een nieuw voorstel komt in de werkbak van het **cluster** van het artikel als dat er precies één heeft, en anders in **Algemeen** (geen cluster, of twee of meer). Op de werkplek staat de werkvoorraad nu als *Algemeen* plus één bak per cluster, met aantallen. Alleen clusters die in je eigen omgevingen voorkomen.
+- Met *Naar bak…* → *Verplaatsen* zet je een voorstel in een andere bak, ook naar Algemeen; dat staat in de geschiedenis van het voorstel. Het cluster blijft als label staan als iemand het voorstel oppakt, en terugleggen brengt het terug in die bak. Ook in het behandelscherm te kiezen (*Clusterbak*).
+- Bestaande voorstellen worden bij de update volgens dezelfde regel verdeeld.
+
+**B. Conceptversie naast de gepubliceerde versie**
+
+- Nieuwe knop **Opslaan als conceptversie** bij een gepubliceerd artikel. Medewerkers blijven de gepubliceerde versie zien: geen nieuwe versie, geen melding, geen e-mail, geen wijziging in de zoekindex. Er is één conceptversie per artikel, voor de hele redactie.
+- Een artikel met een conceptversie opent in het beheer met die conceptversie, met een gele balk (wie, wanneer, welke versie medewerkers zien) en de knoppen *Conceptversie bekijken* en *Conceptversie weggooien*. **Opslaan** publiceert de conceptversie (met de gewone toelichting) en ruimt hem op.
+- Twee redacteuren in dezelfde conceptversie overschrijven elkaar niet ongemerkt, en publiceren vanuit een scherm waarvan de conceptversie intussen is veranderd wordt geweigerd. In het volledige scherm slaat *Opslaan* de conceptversie op. Weggooien ruimt ook de kopie in de browser op.
+- Op de werkplek staan conceptversies onder *Concepten*.
+
+- **Tests** (nu 369): de binnenkomstregel (ook via de API), de werkplek per cluster en de afscherming van clusters tussen omgevingen, verplaatsen, terugleggen, vast aantal databasevragen; de conceptversie (artikel blijft ongewijzigd, medewerkers zien de oude tekst, openen toont de conceptversie, publiceren, toelichting blijft verplicht, twee redacteuren, verouderd scherm, weggooien, bekijken geschoond, andere omgeving, alleen naast een gepubliceerde versie, kladversie, werkplek). De beschermingen zijn ook tegen een bewust kapotte versie gedraaid; één test raakte de tweede verdediging niet en is aangescherpt.
+
 ## 1.16.0 – 2026-11-10
 
 De werkplek voor redacteuren, en de reparaties uit de onafhankelijke review van 10 november over alles sinds 1.11.0 (rapport in het project: `review-sinds-1.11.0-onafhankelijk.md`).

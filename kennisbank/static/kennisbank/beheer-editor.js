@@ -238,11 +238,15 @@
         });
         return;
       }
+      // Wordt er aan een conceptversie gewerkt, dan bewaart het volledige scherm de conceptversie;
+      // publiceren gebeurt bewust onderaan het gewone scherm, waar de toelichting staat.
+      var conceptKnop = form.querySelector('input[name="kb_conceptmodus"]') && form.querySelector('button[name="_conceptversie"]');
       function bewaren() {
         try { sessionStorage.setItem("kb.split.heropen", "1"); } catch (e) {}
-        var knop = form.querySelector('input[name="_continue"]');
+        var knop = conceptKnop || form.querySelector('input[name="_continue"]');
         if (knop) knop.click(); else form.submit();
       }
+      if (conceptKnop) { bewaren(); return; }
       // De toelichting bij publiceren staat op het scherm eronder; vraag hem hier, anders mislukt
       // het opslaan op een foutmelding die in het volledige scherm niet te zien is.
       if (window.kbToelichtingNodig && window.kbToelichtingNodig(window.kbBeginwaarden || {})) {
@@ -814,6 +818,11 @@
       kladNu();
       bezigMetOpslaan = true;
       setTimeout(function () { if (e.defaultPrevented) bezigMetOpslaan = false; }, 0);
+    });
+    // Conceptversie weggooien: dan hoort ook de kopie in deze browser weg, anders vraagt het scherm
+    // straks "verder gaan?" met het werk dat je net bewust hebt weggegooid.
+    form.addEventListener("submit", function (e) {
+      if (e.submitter && e.submitter.name === "_weggooien") lokaalWeg();
     });
   }
 

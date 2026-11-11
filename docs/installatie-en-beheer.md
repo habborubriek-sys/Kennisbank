@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.16.0 .
-docker push registry.example.nl/kennisbank:1.16.0
+docker build -t registry.example.nl/kennisbank:1.17.0 .
+docker push registry.example.nl/kennisbank:1.17.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -119,7 +119,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.16.0
+  registry.example.nl/kennisbank:1.17.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -140,6 +140,17 @@ De migraties lopen automatisch mee bij het starten (of via `migreer`). Maak voor
 zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens gebeurt; alleen de
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
+
+#### Naar 1.17.0 (vanaf 1.7.0 of later)
+
+**Twee migraties** (`0025_voorstel_clusterbak`, `0026_conceptversie`): een kolom op de verbetervoorstellen en
+een nieuwe tabel. `0025` zet bestaande voorstellen bij een artikel met precies één cluster in de bak van dat
+cluster; de rest komt in *Algemeen*. Niets om te configureren.
+
+- **Werkvoorraad per cluster.** Nieuwe voorstellen komen in de bak van het cluster van het artikel (bij precies
+  één cluster) of in *Algemeen*.
+- **Conceptversie.** Redacteuren kunnen een wijziging aan een gepubliceerd artikel opslaan als conceptversie;
+  medewerkers zien dan de gepubliceerde versie tot de redacteur publiceert. Geen invloed op de API voor lezers.
 
 #### Naar 1.16.0 (vanaf 1.7.0 of later)
 

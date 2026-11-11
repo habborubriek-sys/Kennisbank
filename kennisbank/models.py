@@ -569,6 +569,14 @@ class VoorstelStatus(models.TextChoices):
     AFGEWEZEN = "afgewezen", "Afgewezen"
 
 
+def standaard_clusterbak(artikel):
+    """De bak voor een nieuw voorstel: het cluster als het artikel er precies één heeft, anders
+    None (de algemene bak). Een artikel zonder cluster geldt voor iedereen, en een artikel met twee
+    clusters bedient twee teams: beide horen in de algemene bak."""
+    clusters = list(artikel.clusters.all()[:2])
+    return clusters[0] if len(clusters) == 1 else None
+
+
 class Verbetervoorstel(models.Model):
     artikel = models.ForeignKey(Artikel, on_delete=models.CASCADE, related_name="voorstellen")
     artikel_versie = models.PositiveIntegerField(help_text="Versie van het artikel bij indienen.")
@@ -618,6 +626,19 @@ class Verbetervoorstel(models.Model):
     #: Wanneer de eigenaar het voorstel voor het laatst opende. Zo ziet hij wat nieuw in zijn bak is:
     #: "gelezen" is per bak. Voor de gezamenlijke bak blijft gelezen_redactie_op het teamstempel.
     eigenaar_gezien_op = models.DateTimeField(null=True, blank=True, editable=False)
+    #: In welke werkbak het voorstel ligt zolang niemand het heeft opgepakt (en als label daarna):
+    #: een cluster, of leeg = de algemene bak. Bij binnenkomst gezet door save(): precies één cluster
+    #: bij het artikel → die clusterbak; geen of meerdere clusters → algemeen. Daarna met de hand te
+    #: verplaatsen.
+    cluster = models.ForeignKey(
+        Cluster,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="voorstellen",
+        verbose_name="clusterbak",
+        help_text="Leeg = de algemene bak.",
+    )
     #: Door de redactie verborgen voor collega's (onder "Alle voorstellen"), bijvoorbeeld omdat er de
     #: naam van een collega in staat. De indiener en de redactie zien het gewoon.
     verborgen = models.BooleanField(
@@ -626,6 +647,11 @@ class Verbetervoorstel(models.Model):
         help_text="Het voorstel staat dan niet meer onder 'Alle voorstellen' en kan niet meer worden gesteund, "
         "bijvoorbeeld omdat er een naam van een collega in staat. De indiener ziet het gewoon.",
     )
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.cluster_id is None and self.artikel_id:
+            self.cluster = standaard_clusterbak(self.artikel)
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "verbetervoorstel"
@@ -749,6 +775,49 @@ class BewerkClaim(models.Model):
     @property
     def naam(self) -> str:
         return self.gebruiker.get_full_name() or self.gebruiker.get_username()
+
+
+class Conceptversie(models.Model):
+    """Een nieuwe versie van een gepubliceerd artikel waar nog aan wordt gewerkt.
+
+    Medewerkers blijven de gepubliceerde tekst zien; de redactie werkt in de conceptversie. Er is er
+    hoogstens één per artikel, gedeeld door de redactie (anders dan een kladversie, die van één persoon
+    is en alleen een vangnet). Publiceren zet de inhoud in het artikel, maakt een nieuwe versie en
+    verwijdert de conceptversie. Fundament voor het reviewproces (ontwerp 11 november).
+
+    `velden` bevat het bewerkformulier zoals de redacteur het opsloeg: titel, samenvatting, inhoud
+    (geschoond), soort, eigenaar, omgeving (pk), herzien_voor, clusters/zaaktypen (pk's) en tags_tekst.
+    """
+
+    artikel = models.OneToOneField(Artikel, on_delete=models.CASCADE, related_name="conceptversie")
+    velden = models.JSONField(default=dict)
+    #: Het versienummer van het artikel toen de conceptversie begon, en de stempel ervan. Wijkt het
+    #: artikel daarna af (bijvoorbeeld via de import), dan waarschuwt het bewerkscherm.
+    basis_versie = models.PositiveIntegerField(default=0)
+    basis_stempel = models.CharField(max_length=40, blank=True)
+    gestart_door = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    gestart_op = models.DateTimeField(default=timezone.now)
+    bijgewerkt_door = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    bijgewerkt_op = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "conceptversie"
+        verbose_name_plural = "conceptversies"
+
+    def __str__(self):
+        return f"Conceptversie van {self.artikel}"
+
+    @property
+    def stempel(self) -> str:
+        return self.bijgewerkt_op.isoformat() if self.bijgewerkt_op else ""
+
+    @property
+    def titel(self) -> str:
+        return self.velden.get("titel") or self.artikel.titel
 
 
 class Kladversie(models.Model):

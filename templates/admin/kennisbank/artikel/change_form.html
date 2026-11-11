@@ -1,0 +1,39 @@
+{% extends "admin/change_form.html" %}
+{% comment %}
+  Bewerkscherm van een artikel, met de conceptversie (kennisbank/admin.py, ArtikelAdmin).
+{% endcomment %}
+{% block form_top %}
+{% if kb_concept %}
+<div class="kb-conceptbalk" role="status">
+  <input type="hidden" name="kb_conceptmodus" value="1">
+  <p><strong>Je bewerkt de conceptversie.</strong> Medewerkers zien nog versie {{ original.versie }}.
+    Gestart door {{ kb_concept_gestart_door }} op {{ kb_concept.gestart_op|date:"j F Y" }}, laatst bijgewerkt door
+    {{ kb_concept_bijgewerkt_door }} op {{ kb_concept.bijgewerkt_op|date:"j F Y H:i" }}.</p>
+  {% if kb_concept_artikel_gewijzigd %}
+  <p class="kb-conceptlet"><strong>Let op:</strong> het gepubliceerde artikel is gewijzigd nadat deze conceptversie begon
+    (bijvoorbeeld door een import). Wat je nu publiceert, vervangt die wijziging. Kijk in de versiegeschiedenis wat er veranderde.</p>
+  {% endif %}
+  <p>Kies onderaan <strong>Opslaan als conceptversie</strong> om verder te werken zonder dat medewerkers iets merken,
+    of <strong>Opslaan</strong> om de conceptversie te publiceren.</p>
+  <p class="kb-conceptknoppen">
+    <a class="button" href="{{ kb_concept_bekijken }}" target="_blank" rel="noopener">Conceptversie bekijken</a>
+    <button type="submit" class="button kb-concept-weg" name="_weggooien" formaction="{{ kb_concept_weggooien }}" formnovalidate
+      onclick="return confirm('De conceptversie weggooien? Het werk daarin is daarna weg; medewerkers blijven versie {{ original.versie }} zien.');">Conceptversie weggooien</button>
+  </p>
+</div>
+{% elif kb_kan_concept %}
+<div class="kb-conceptuitleg">
+  <p>Medewerkers zien dit artikel. Wil je in alle rust aan een nieuwe versie werken, kies dan onderaan
+    <strong>Opslaan als conceptversie</strong>: medewerkers blijven versie {{ original.versie }} zien tot je publiceert.</p>
+</div>
+{% endif %}
+{% endblock %}
+{% block submit_buttons_bottom %}
+{% if kb_kan_concept %}
+<div class="submit-row kb-conceptrij">
+  <button type="submit" class="button kb-concept-opslaan" name="_conceptversie" value="1">Opslaan als conceptversie</button>
+  <span class="kb-concepthint">{% if kb_concept %}Opslaan hieronder publiceert de conceptversie.{% else %}Opslaan hieronder publiceert meteen.{% endif %}</span>
+</div>
+{% endif %}
+{{ block.super }}
+{% endblock %}

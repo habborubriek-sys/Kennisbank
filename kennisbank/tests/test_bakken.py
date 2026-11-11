@@ -276,7 +276,7 @@ class WerkplekTests(Basis):
         diensten.voorstel_naar_bak(self.voorstel(), self.bram, self.bram)
         diensten.voorstel_naar_bak(self.voorstel(), self.bram, self.bram)
         m = self.werkplek(self.anna).context["werkplek"]["menu"]
-        self.assertEqual([(b["naam"], b["aantal"]) for b in m["bakken"]], [("Werkvoorraad", 1)])
+        self.assertEqual([(b["naam"], b["aantal"]) for b in m["bakken"]], [("Algemeen", 1)])
         personen = [(p["naam"], p["aantal"], p["ik"]) for p in m["personen"]]
         self.assertEqual(personen, [("Anna", 1, True), ("Bram", 2, False)])
         artikelkant = {b["sleutel"]: b["aantal"] for b in m["artikelkant"]}
@@ -349,7 +349,7 @@ class WerkplekTests(Basis):
     def test_redacteur_van_zuid_ziet_en_raakt_niets_van_noord(self):
         v = self.voorstel()
         m = self.werkplek(self.zoe).context["werkplek"]["menu"]
-        self.assertEqual([(b["naam"], b["aantal"]) for b in m["bakken"]], [("Werkvoorraad", 0)])
+        self.assertEqual([(b["naam"], b["aantal"]) for b in m["bakken"]], [("Algemeen", 0)])
         self.assertEqual([p["naam"] for p in m["personen"]], ["Zoe"])
         self.assertEqual(self.als(self.zoe).get(f"/beheer/?bak=u{self.anna.pk}").status_code, 404)
         r = self.als(self.zoe).post("/beheer/werkplek/actie/", {"voorstel": v.pk, "actie": "oppakken"})
