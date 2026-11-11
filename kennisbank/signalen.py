@@ -12,7 +12,7 @@ from django.contrib.auth.models import Group
 from django.db.models.signals import m2m_changed, post_delete, post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
-from .models import Artikel, Tag, Toegang
+from .models import Artikel, Status, Tag, Toegang
 from .rechten import werk_staf_status_bij
 
 User = get_user_model()
@@ -105,8 +105,12 @@ def artikel_wordt_opgeslagen(sender, instance, **kwargs):
     # Verhuist een artikel naar een andere omgeving, dan horen zijn open voorstellen niet meer in de bak
     # van een redacteur van de oude omgeving.
     if instance.pk:
-        oud = Artikel.objects.filter(pk=instance.pk).values_list("omgeving_id", flat=True).first()
-        instance._kb_andere_omgeving = oud is not None and oud != instance.omgeving_id
+        oud = Artikel.objects.filter(pk=instance.pk).values_list("omgeving_id", "status").first()
+        instance._kb_andere_omgeving = oud is not None and oud[0] != instance.omgeving_id
+        # Gearchiveerd: open voorstellen worden afgesloten met "het artikel is ingetrokken" (besluit e).
+        instance._kb_gearchiveerd = (
+            oud is not None and oud[1] != Status.GEARCHIVEERD and instance.status == Status.GEARCHIVEERD
+        )
 
 
 @receiver(post_save, sender=Artikel)
@@ -115,3 +119,7 @@ def artikel_opgeslagen(sender, instance, **kwargs):
         from .diensten import bakken_rechtzetten
 
         bakken_rechtzetten(artikel=instance)
+    if getattr(instance, "_kb_gearchiveerd", False):
+        from .diensten import voorstellen_vervallen
+
+        voorstellen_vervallen(instance)

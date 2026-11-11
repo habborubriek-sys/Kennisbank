@@ -132,7 +132,7 @@ class BakkenDienstTests(Basis):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["bram@example.org"])
         self.assertIn("Anna", mail.outbox[0].body)
-        self.assertIn(f"/beheer/kennisbank/verbetervoorstel/{v.pk}/change/", mail.outbox[0].body)
+        self.assertIn(f"/beheer/voorstel/{v.pk}/", mail.outbox[0].body)
 
     def test_toewijzen_aan_iemand_buiten_de_redactie_kan_niet(self):
         v = self.voorstel()
@@ -220,7 +220,7 @@ class BakkenBeheerTests(Basis):
 
     def test_keuzelijst_bevat_alleen_redacteuren_van_de_omgeving(self):
         v = self.voorstel()
-        html = self.als(self.anna).get(wijzig_url(v)).content.decode()
+        html = self.als(self.anna).get(wijzig_url(v), follow=True).content.decode()
         self.assertIn("Bram", html)
         self.assertNotIn(">Zoe<", html)
         self.assertNotIn(">Piet<", html)
@@ -258,18 +258,18 @@ class BakkenBeheerTests(Basis):
     def test_openen_door_de_eigenaar_haalt_het_nieuw_label_weg(self):
         v = diensten.voorstel_naar_bak(self.voorstel(), self.anna, self.bram)
         self.assertIn("nog niet geopend", self.als(self.anna).get(LIJST).content.decode())
-        self.als(self.anna).get(wijzig_url(v))  # Anna is niet de eigenaar: verandert niets
+        self.als(self.anna).get(wijzig_url(v), follow=True)  # Anna is niet de eigenaar: verandert niets
         v.refresh_from_db()
         self.assertIsNone(v.eigenaar_gezien_op)
-        self.als(self.bram).get(wijzig_url(v))
+        self.als(self.bram).get(wijzig_url(v), follow=True)
         v.refresh_from_db()
         self.assertIsNotNone(v.eigenaar_gezien_op)
 
     def test_redactie_ziet_wie_steunt(self):
         v = self.voorstel()
         diensten.steun_geven(v, self.piet)
-        html = self.als(self.anna).get(wijzig_url(v)).content.decode()
-        self.assertIn("1 collega(&#x27;s): Piet", html)
+        html = self.als(self.anna).get(wijzig_url(v), follow=True).content.decode()
+        self.assertIn("1 collega steunt dit:</b> Piet", html)
 
     def test_redacteur_van_zuid_ziet_niets_van_noord(self):
         v = self.voorstel()

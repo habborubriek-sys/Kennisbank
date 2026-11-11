@@ -25,6 +25,7 @@ from rest_framework.throttling import UserRateThrottle
 from . import diensten
 from .assistent import beantwoord
 from .models import (
+    AFGEHANDELD,
     MAX_VOORSTELBERICHT,
     Artikel,
     ArtikelVersie,
@@ -642,7 +643,8 @@ def voorstellen(request):
             if bestaand:
                 return Response(VoorstelSerializer(bestaand, context=_ctx(request)).data, status=status.HTTP_200_OK)
             v = s.save(ingediend_door=request.user, artikel_versie=a.versie)
-        diensten.meld_nieuw_voorstel(v)
+        # Geen e-mail per voorstel meer: redacteuren krijgen een dagelijkse samenvatting
+        # (diensten.verstuur_voorstellenmail, besluit c van Alex).
         return Response(VoorstelSerializer(v, context=_ctx(request)).data, status=status.HTTP_201_CREATED)
 
     lijst = request.GET.get("lijst")
@@ -756,7 +758,7 @@ def voorstel(request, pk):
         tekst = (s.validated_data.get("terugkoppeling") or "").strip()
         if (
             nieuwe_status != v.status
-            and nieuwe_status in (VoorstelStatus.VERWERKT, VoorstelStatus.AFGEWEZEN)
+            and nieuwe_status in AFGEHANDELD
             and (not tekst or tekst == v.terugkoppeling)
         ):
             return Response(

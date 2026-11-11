@@ -13,6 +13,8 @@ from django.utils import timezone
 from django.utils.formats import date_format
 
 from .models import (
+    AFGEHANDELD,
+    OPEN,
     Artikel,
     ArtikelVersie,
     Bericht,
@@ -30,6 +32,7 @@ from .models import (
     Systeemstand,
     Verbetervoorstel,
     VoorstelBericht,
+    VoorstelNotitie,
     VoorstelStatus,
     WeergaveTelling,
     WijzigingGezien,
@@ -451,24 +454,88 @@ def _mail(onderwerp, tekst, ontvangers) -> bool:
         return False
 
 
-def meld_nieuw_voorstel(voorstel):
+#: Na zoveel dagen telt een open voorstel in de dagelijkse samenvatting als "ligt lang".
+LANG_LIGGEN_DAGEN = 30
+
+
+def verstuur_voorstellenmail(nu=None) -> int:
+    """De dagelijkse samenvatting voor redacteuren: welke voorstellen er sinds de vorige keer binnenkwamen.
+
+    Vervangt de e-mail per nieuw voorstel aan elke redacteur (besluit c van Alex, 11 november). Wie
+    in een omgeving redacteur is waar iets nieuws binnenkwam, krijgt één e-mail met de nieuwe
+    voorstellen, wat er in zijn eigen bak ligt en wat al lang ligt. Komt er niets nieuws binnen, dan
+    gaat er niets uit. Geeft het aantal verstuurde e-mails terug.
+    """
     from django.contrib.auth import get_user_model
 
-    redacteuren = (
-        get_user_model()
-        .objects.filter(
-            groups__kennisbank_toegang__omgeving=voorstel.artikel.omgeving,
-            groups__kennisbank_toegang__rol=Rol.REDACTEUR,
-            is_active=True,
+    nu = nu or timezone.now()
+    vorige = laatste_stand("voorstellenmail")
+    sinds = vorige.moment if vorige else nu - datetime.timedelta(days=1)
+    nieuw = list(
+        Verbetervoorstel.objects.filter(ingediend_op__gt=sinds, ingediend_op__lte=nu)
+        .select_related("artikel", "cluster")
+        .order_by("ingediend_op")
+    )
+    per_omgeving = {}
+    for v in nieuw:
+        per_omgeving.setdefault(v.artikel.omgeving_id, []).append(v)
+    ontvangers = {}
+    if per_omgeving:
+        for u in (
+            get_user_model()
+            .objects.filter(
+                is_active=True,
+                groups__kennisbank_toegang__omgeving_id__in=list(per_omgeving),
+                groups__kennisbank_toegang__rol=Rol.REDACTEUR,
+            )
+            .exclude(email="")
+            .values_list("pk", "email", "groups__kennisbank_toegang__omgeving_id")
+        ):
+            ontvangers.setdefault((u[0], u[1]), set()).add(u[2])
+    verstuurd = 0
+    lang_grens = nu - datetime.timedelta(days=LANG_LIGGEN_DAGEN)
+    for (pk, email), omgevingen in ontvangers.items():
+        voorstellen = [v for oid in sorted(omgevingen) for v in per_omgeving.get(oid, [])]
+        if not voorstellen:
+            continue
+        regels = [
+            f"- {v.artikel.titel} ({'bak ' + v.cluster.naam if v.cluster_id else 'Algemeen'}): "
+            f"{' '.join(v.tekst.split())[:140]}"
+            for v in voorstellen
+        ]
+        eigen = Verbetervoorstel.objects.filter(eigenaar_id=pk, status__in=OPEN)
+        n_eigen = eigen.count()
+        n_ongeopend = eigen.filter(eigenaar_gezien_op__isnull=True).count()
+        n_lang = Verbetervoorstel.objects.filter(
+            status__in=OPEN, artikel__omgeving_id__in=omgevingen, ingediend_op__lt=lang_grens
+        ).count()
+        extra = []
+        if n_eigen:
+            extra.append(
+                f"In jouw bak liggen {n_eigen} open voorstel(len)"
+                + (f", waarvan {n_ongeopend} nog niet geopend." if n_ongeopend else ".")
+            )
+        if n_lang:
+            extra.append(f"{n_lang} open voorstel(len) liggen al langer dan {LANG_LIGGEN_DAGEN} dagen.")
+        tekst = (
+            f"Sinds de vorige samenvatting {'is' if len(voorstellen) == 1 else 'zijn'} er {len(voorstellen)} "
+            f"nieuw{'' if len(voorstellen) == 1 else 'e'} verbetervoorstel{'' if len(voorstellen) == 1 else 'len'} "
+            "binnengekomen:\n\n"
+            + "\n".join(regels)
+            + "\n\n"
+            + ("\n".join(extra) + "\n\n" if extra else "")
+            + f"Naar je werkplek: {settings.KB_BASIS_URL}/beheer/"
         )
-        .values_list("email", flat=True)
+        onderwerp = f"Kennisbank: {len(voorstellen)} nieuw{'' if len(voorstellen) == 1 else 'e'} verbetervoorstel" + (
+            "" if len(voorstellen) == 1 else "len"
+        )
+        if _mail(onderwerp, tekst, [email]):
+            verstuurd += 1
+    Systeemstand.objects.update_or_create(
+        sleutel="voorstellenmail",
+        defaults={"moment": nu, "melding": f"{len(nieuw)} nieuw(e) voorstel(len), {verstuurd} mail(s) verstuurd"},
     )
-    mail_na_commit(
-        f"Nieuw verbetervoorstel: {voorstel.artikel.titel}",
-        f"Er is een verbetervoorstel ingediend bij '{voorstel.artikel.titel}'.\n\n"
-        f"{voorstel.tekst}\n\nHet ligt in de werkvoorraad: {settings.KB_BASIS_URL}/beheer/",
-        redacteuren,
-    )
+    return verstuurd
 
 
 def meld_terugkoppeling(voorstel):
@@ -747,7 +814,7 @@ class VoorstelFout(Exception):
 
 
 def voorstel_beheer_url(voorstel) -> str:
-    return f"{settings.KB_BASIS_URL}/beheer/kennisbank/verbetervoorstel/{voorstel.pk}/change/"
+    return f"{settings.KB_BASIS_URL}/beheer/voorstel/{voorstel.pk}/"
 
 
 def naam_van(gebruiker) -> str:
@@ -892,6 +959,83 @@ def bakken_rechtzetten(gebruiker=None, artikel=None) -> int:
                 continue
             teruggelegd += 1
     return teruggelegd
+
+
+def voorstel_afhandelen(voorstel, door, status, tekst: str, *, dubbel_van=None):
+    """Sluit een voorstel af met een afsluitend bericht aan de indiener (Verwerkt, Afgewezen, Vervallen).
+
+    Afgehandeld is definitief (besluit van Alex): een afgesloten voorstel gaat niet meer open. Het
+    bericht is verplicht als er een redacteur afhandelt; dat is wat de indiener als antwoord krijgt.
+    Wie een voorstel uit de bak van een collega afhandelt, wordt eigenaar; die collega krijgt een
+    e-mail, zodat hij niet verder werkt aan iets wat al af is.
+
+    De aanroeper zet het voorstel op slot (select_for_update binnen een transactie).
+    """
+    if status not in AFGEHANDELD:
+        raise VoorstelFout("Onbekende eindstand.")
+    if not voorstel.is_open:
+        raise VoorstelFout("Dit voorstel is al afgehandeld. Dat is definitief; een bericht kan nog wel.")
+    tekst = (tekst or "").strip()
+    if not tekst:
+        raise VoorstelFout(
+            "Schrijf de indiener waarom. Dat bericht krijgt hij als antwoord, per melding en per e-mail."
+        )
+    if dubbel_van is not None:
+        if status != VoorstelStatus.AFGEWEZEN:
+            raise VoorstelFout("Alleen afwijzen kan als dubbel voorstel.")
+        if dubbel_van.pk == voorstel.pk or dubbel_van.artikel.omgeving_id != voorstel.artikel.omgeving_id:
+            raise VoorstelFout("Kies een ander voorstel uit dezelfde omgeving.")
+    vorige = voorstel.eigenaar
+    nu = timezone.now()
+    voorstel.status = status
+    voorstel.behandeld_door = door
+    voorstel.behandeld_op = nu
+    voorstel.dubbel_van = dubbel_van
+    if door is not None:
+        eigenaar_bij_statuswijziging(voorstel, door)
+    voorstel.save(update_fields=["status", "behandeld_door", "behandeld_op", "dubbel_van", *BAK_VELDEN])
+    voorstelbericht_toevoegen(voorstel, door, tekst, van_redactie=True)
+    if vorige and door is not None and vorige.pk != door.pk and vorige.email and vorige.is_active:
+        mail_na_commit(
+            f"Voorstel afgehandeld: {voorstel.artikel.titel}",
+            f"{naam_van(door)} heeft het verbetervoorstel bij '{voorstel.artikel.titel}' uit jouw bak "
+            f"afgehandeld ({voorstel.get_status_display().lower()}). Je hoeft er niets meer mee te doen.\n\n"
+            f"{voorstel_beheer_url(voorstel)}",
+            [vorige.email],
+        )
+    return voorstel
+
+
+#: Het afsluitende bericht als een artikel wordt gearchiveerd (besluit e van Alex).
+INGETROKKEN_BERICHT = (
+    "Het artikel '{titel}' is ingetrokken. Daarom sluiten we je verbetervoorstel af. Bedankt voor het meedenken."
+)
+
+
+def voorstellen_vervallen(artikel) -> int:
+    """Sluit de open voorstellen van een gearchiveerd artikel af als *Vervallen*, met een bericht."""
+    n = 0
+    with transaction.atomic():
+        for v in (
+            Verbetervoorstel.objects.select_for_update(of=("self",))
+            .select_related("artikel", "eigenaar")
+            .filter(artikel=artikel, status__in=OPEN)
+        ):
+            voorstel_afhandelen(v, None, VoorstelStatus.VERVALLEN, INGETROKKEN_BERICHT.format(titel=artikel.titel))
+            n += 1
+    return n
+
+
+def notitie_toevoegen(voorstel, auteur, tekst: str):
+    """Een interne notitie: alleen de redactie ziet hem. Een dubbelklik geeft geen tweede notitie."""
+    tekst = (tekst or "").strip()[:4000]
+    if not tekst:
+        return None
+    slot(f"voorstelnotitie:{voorstel.pk}")
+    dubbel = voorstel.notities.filter(
+        auteur=auteur, tekst=tekst, moment__gte=timezone.now() - datetime.timedelta(seconds=DUBBEL_VENSTER)
+    ).first()
+    return dubbel or VoorstelNotitie.objects.create(voorstel=voorstel, auteur=auteur, tekst=tekst)
 
 
 def voorstel_gezien_door_eigenaar(voorstel, gebruiker) -> None:

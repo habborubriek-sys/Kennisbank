@@ -1,7 +1,7 @@
 {% if pagina.paginator.num_pages > 1 %}
 <nav class="kb-paginas" aria-label="Pagina's">
-  {% if pagina.has_previous %}<a href="?bak={{ gekozen }}&amp;pagina={{ pagina.previous_page_number }}">← Vorige</a>{% endif %}
+  {% if pagina.has_previous %}<a href="?bak={{ gekozen }}{% if zoek %}&amp;q={{ zoek|urlencode }}{% endif %}&amp;pagina={{ pagina.previous_page_number }}">← Vorige</a>{% endif %}
   <span>Pagina {{ pagina.number }} van {{ pagina.paginator.num_pages }}</span>
-  {% if pagina.has_next %}<a href="?bak={{ gekozen }}&amp;pagina={{ pagina.next_page_number }}">Volgende →</a>{% endif %}
+  {% if pagina.has_next %}<a href="?bak={{ gekozen }}{% if zoek %}&amp;q={{ zoek|urlencode }}{% endif %}&amp;pagina={{ pagina.next_page_number }}">Volgende →</a>{% endif %}
 </nav>
 {% endif %}

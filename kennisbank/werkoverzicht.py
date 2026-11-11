@@ -24,13 +24,24 @@ from django.urls import reverse
 from django.utils import timezone
 
 from . import diensten
-from .models import Artikel, Cluster, Conceptversie, Kladversie, Omgeving, Rol, Status, Verbetervoorstel, VoorstelStatus
+from .models import (
+    AFGEHANDELD,
+    Artikel,
+    Cluster,
+    Conceptversie,
+    Kladversie,
+    Omgeving,
+    Rol,
+    Status,
+    Verbetervoorstel,
+    VoorstelStatus,
+)
 from .rechten import rechten
 
 OPEN = [VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING]
 # Na zoveel dagen kleurt het aantal in een bak rood: dan ligt er iets te lang.
 LANG_GELEDEN_DAGEN = 30
-KLAAR = [VoorstelStatus.VERWERKT, VoorstelStatus.AFGEWEZEN]
+KLAAR = list(AFGEHANDELD)
 PER_PAGINA = 25
 
 
@@ -212,9 +223,7 @@ def _voorstellen(request, qs, omgevingen, bak):
         rijen.append(
             {
                 "v": v,
-                "url": reverse("admin:kennisbank_verbetervoorstel_change", args=[v.pk])
-                + "?"
-                + urlencode({"terug": terug}),
+                "url": reverse("beheer-voorstel", args=[v.pk]) + "?" + urlencode({"terug": terug}),
                 "artikel_url": reverse("admin:kennisbank_artikel_change", args=[v.artikel_id]),
                 "eigenaar": diensten.naam_van(v.eigenaar) if v.eigenaar_id else None,
                 "van_mij": v.eigenaar_id == request.user.pk,
@@ -299,9 +308,25 @@ def werkplek(request):
         inhoud = _voorstellen(request, open_qs.filter(eigenaar_id=pk).order_by("eigenaar_sinds"), omgevingen, bak)
     elif bak == "afgehandeld":
         titel = "Afgehandeld"
-        uitleg = "Het archief: verwerkte en afgewezen voorstellen, nieuwste bovenaan. Alleen zichtbaar in het beheer."
+        uitleg = (
+            "Het archief: verwerkte, afgewezen en vervallen voorstellen, nieuwste bovenaan. Alleen zichtbaar in "
+            "het beheer."
+        )
         qs = Verbetervoorstel.objects.filter(status__in=KLAAR, artikel__omgeving_id__in=omgevingen)
+        # Zoeken in het archief (ronde 2): op artikel, voorstel, berichten en interne notities.
+        zoek = (request.GET.get("q") or "").strip()[:200]
+        if zoek:
+            treffers = (
+                Q(artikel__titel__icontains=zoek)
+                | Q(tekst__icontains=zoek)
+                | Q(citaat__icontains=zoek)
+                | Q(berichten__tekst__icontains=zoek)
+                | Q(notities__tekst__icontains=zoek)
+            )
+            qs = qs.filter(pk__in=Verbetervoorstel.objects.filter(treffers).values("pk"))
         inhoud = _voorstellen(request, qs.order_by("-behandeld_op", "-pk"), omgevingen, bak)
+        inhoud["zoek"] = zoek
+        inhoud["zoekbaar"] = True
     elif bak == "concepten":
         titel = "Concepten"
         uitleg = (
@@ -404,7 +429,7 @@ def werkplek_actie(request):
         keuze = request.POST.get("cluster") or ""
         if not keuze:
             messages.warning(request, "Kies eerst een bak om het voorstel naartoe te verplaatsen.")
-            return redirect(werkplek_url(terug))
+            return _terug_naar(request, v, terug)
         cluster = None
         if keuze != "algemeen":
             toegestaan = dict(clusters_van(sorted(r.redactie_omgevingen)))
@@ -415,23 +440,31 @@ def werkplek_actie(request):
             diensten.voorstel_naar_clusterbak(v, request.user, cluster)
         except diensten.VoorstelFout as e:
             messages.warning(request, str(e))
-            return redirect(werkplek_url(terug))
+            return _terug_naar(request, v, terug)
         model_admin = admin.site._registry[Verbetervoorstel]
         waar = cluster.naam if cluster else "Algemeen"
         model_admin.log_change(request, v, f"Verplaatst naar de bak {waar}.")
         messages.success(request, f"Het voorstel bij '{v.artikel.titel}' ligt nu in de bak {waar}.")
-        return redirect(werkplek_url(terug))
+        return _terug_naar(request, v, terug)
     elif actie == "toewijzen":
         keuze = request.POST.get("naar") or ""
         naar = diensten.redacteuren_van(v.artikel.omgeving_id).filter(pk=keuze).first() if keuze.isdigit() else None
         if naar is None:
             messages.warning(request, "Kies eerst een collega om het voorstel aan toe te wijzen.")
-            return redirect(werkplek_url(terug))
+            return _terug_naar(request, v, terug)
     else:
         raise Http404
     model_admin = admin.site._registry[Verbetervoorstel]
     werkwoord = {"oppakken": "opgepakt", "terugleggen": "teruggelegd", "toewijzen": "toegewezen"}[actie]
     model_admin._verplaats(request, Verbetervoorstel.objects.filter(pk=v.pk), naar, werkwoord)
+    return _terug_naar(request, v, terug)
+
+
+def _terug_naar(request, v, terug):
+    """Terug naar waar de actie vandaan kwam: de werkplek, of het behandelscherm van het voorstel."""
+    if request.POST.get("na") == "scherm":
+        url = reverse("beheer-voorstel", args=[v.pk])
+        return redirect(f"{url}?{urlencode({'terug': terug})}" if terug else url)
     return redirect(werkplek_url(terug))
 
 

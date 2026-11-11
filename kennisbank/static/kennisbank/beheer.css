@@ -47,6 +47,7 @@ a.kb-vtitel{font-weight:600;font-size:1rem}
 .kb-status-in_behandeling{background:#fff1cc;color:#7a5200}
 .kb-status-verwerkt{background:#dff1e3;color:#1e6b34}
 .kb-status-afgewezen{background:#f8e0e3;color:#a6192e}
+.kb-status-vervallen{background:var(--darkened-bg);color:var(--body-quiet-color)}
 .kb-label{background:#f8e0e3;color:#a6192e}
 .kb-vcitaat{margin:8px 0 0;padding:4px 10px;border-left:3px solid var(--hairline-color);color:var(--body-quiet-color);font-style:italic}
 .kb-vtekst{margin:8px 0 4px;white-space:pre-wrap}
@@ -76,3 +77,35 @@ a.button.kb-openen{margin-left:auto}
 /* Gevaarknop (weggooien) — ronde 1, punt 9 */
 .button.kb-gevaar,button.kb-gevaar{background:var(--body-bg)!important;color:#a6192e!important;border:1px solid #a6192e!important}
 .button.kb-gevaar:hover,button.kb-gevaar:hover{background:#f8e0e3!important}
+
+/* Behandelscherm van een voorstel (kennisbank/behandelen.py, 1.18.0) */
+.kb-behandel .kb-terug{margin:0 0 .4rem}
+.kb-behandel h1 a{color:inherit}
+.kb-behandel-raster{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:28px;align-items:start;margin-top:12px}
+@media (max-width:1100px){.kb-behandel-raster{grid-template-columns:1fr}}
+.kb-behandel .kb-hint{color:var(--body-quiet-color);font-size:.85rem;margin:.35rem 0}
+.kb-context{border-left:3px solid var(--hairline-color);padding:.6rem .9rem;background:var(--darkened-bg);line-height:1.6;border-radius:4px}
+.kb-context mark{background:#ffe58a;color:#111;padding:0 2px;border-radius:2px}
+.kb-voorsteltekst{font-size:1rem;margin-top:.8rem}
+.kb-gesprek,.kb-notities{list-style:none;margin:0;padding:0}
+.kb-gesprek li,.kb-notities li{border:1px solid var(--hairline-color);border-radius:6px;padding:.5rem .8rem;margin:0 0 .5rem}
+.kb-gesprek li.pm{border-left:3px solid #154273}
+.kb-gesprek .wie,.kb-notities .wie{display:block;font-size:.8rem;color:var(--body-quiet-color);margin-bottom:.2rem}
+.kb-notities li{background:#fffbea;border-color:#f0e2a8}
+.kb-berichtvak textarea,.kb-behandel-zij textarea{width:100%;box-sizing:border-box;font:inherit;padding:.5rem}
+.kb-knoppenrij{display:flex;gap:8px;flex-wrap:wrap;margin:.5rem 0}
+.kb-dubbelkeuze{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:.6rem 0 0}
+.kb-dubbelkeuze select{max-width:100%}
+.kb-vacties-kolom{display:flex;flex-direction:column;align-items:stretch;gap:8px}
+.kb-vacties-kolom form{display:flex;gap:6px}
+.kb-vacties-kolom select{flex:1;min-width:0}
+.kb-verbergen{margin:12px 0}
+.kb-verbergen .kb-hint{display:block}
+.kb-intussen{border:1px solid #a6192e;background:#fdecee;border-radius:6px;padding:.4rem .9rem;margin:.6rem 0}
+.kb-afgehandeld-zoek{display:flex;gap:8px;margin:0 0 12px}
+.kb-afgehandeld-zoek input[type=search]{flex:1;max-width:420px;padding:.4rem}
+.kb-behandel button.button,.kb-afgehandeld-zoek .button{padding:7px 14px;font-size:.85rem}
+.kb-behandel .kb-knop-rustig,.kb-afgehandeld-zoek .kb-knop-rustig{background:transparent;color:var(--link-fg);border:1px solid var(--hairline-color)}
+.kb-behandel .kb-knop-rustig:hover{background:var(--darkened-bg)}
+.kb-behandel-zij form{margin:0 0 8px}
+.kb-behandel-zij textarea + .button{margin-top:6px}

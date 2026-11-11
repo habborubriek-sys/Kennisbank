@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.17.1
+  version: 1.18.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -1059,6 +1059,7 @@ components:
             * `in_behandeling` - In behandeling
             * `verwerkt` - Verwerkt
             * `afgewezen` - Afgewezen
+            * `vervallen` - Vervallen
         terugkoppeling:
           type: string
           maxLength: 5000
@@ -1336,12 +1337,14 @@ components:
       - in_behandeling
       - verwerkt
       - afgewezen
+      - vervallen
       type: string
       description: |-
         * `nieuw` - Nieuw
         * `in_behandeling` - In behandeling
         * `verwerkt` - Verwerkt
         * `afgewezen` - Afgewezen
+        * `vervallen` - Vervallen
     ZaaktypeKeuze:
       type: object
       properties:

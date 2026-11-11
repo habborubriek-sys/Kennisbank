@@ -194,6 +194,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .status.behandeling{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
 .status.verwerkt{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
 .status.afgewezen{background:color-mix(in srgb,var(--crit) 16%,transparent);color:var(--crit)}
+.status.vervallen{background:var(--line);color:var(--fg-muted)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
 .tile b{display:block;font-size:1.6rem;font-family:var(--font-title);font-variant-numeric:tabular-nums}

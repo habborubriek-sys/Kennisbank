@@ -314,7 +314,7 @@ leg je het terug, dan komt het in die bak.
 | **Toewijzen** | *Toewijzen aan…* een collega kiezen, of in het voorstel bij *Bak* | Het gaat naar de bak van je collega; die krijgt een e-mail. Een nieuw voorstel krijgt *In behandeling* |
 | **Overnemen** | Knop *Overnemen* bij een voorstel in de bak van een collega | Het gaat naar jouw bak; in de geschiedenis van het voorstel staat "Overgenomen uit de bak van …" |
 | **Terugleggen** | Knop *Terugleggen*, of bij *Bak* "Niemand" kiezen | Terug in de werkvoorraad (in de bak van zijn cluster, of Algemeen). Is er nog geen bericht naar de indiener gestuurd, dan gaat de status terug naar *Nieuw*; anders blijft het *In behandeling* |
-| **Openen** | Op de titel of *Openen* klikken | Het behandelscherm met het gesprek met de indiener. Na *Opslaan* kom je terug in de bak waar je vandaan kwam |
+| **Openen** | Op de titel of *Openen* klikken | Het behandelscherm (zie hieronder). Na afhandelen kom je terug in de bak waar je vandaan kwam |
 
 Iedereen in de redactie kan in elkaars bak kijken en er een voorstel uit overnemen, bijvoorbeeld bij ziekte
 of vakantie. Heeft een collega je iets toegewezen dat je nog niet opende, dan opent de werkplek met jouw bak.
@@ -325,8 +325,42 @@ de knop **Werkplek** rechtsboven op je werkplek. "Nog niet geopend" staat erbij 
 bak — ook als het bij een collega lag. Zet je de status van een voorstel uit de werkvoorraad, dan neem je
 het daarmee ook in je bak. Zet je de status terug op *Nieuw*, dan blijft het in de bak waar het lag.
 
-**Afhandelen gaat met een bericht.** Bij *Verwerkt* of *Afgewezen* schrijf je onder *Gesprek met de indiener*
-waarom; zonder dat bericht wordt het niet opgeslagen. Dat bericht is het antwoord dat de indiener krijgt.
+**Het behandelscherm.** Links blijft de kolom van je werkplek staan. Rechts:
+
+- **Het voorstel**, met de tekst die de indiener selecteerde *in de tekst van het artikel* (geel gemarkeerd), zodat
+  je het artikel niet apart hoeft te openen. Staat die tekst er niet meer letterlijk in, dan zie je dat.
+- **Het gesprek** met de indiener en daaronder **Bericht aan [naam]**, met de knoppen **Versturen**, **Versturen en
+  verwerkt** en **Versturen en afwijzen**. De indiener krijgt elk bericht als melding en per e-mail; je kunt het
+  daarna niet meer aanpassen. Verstuur je een bericht bij een voorstel uit de werkvoorraad, dan pak je het
+  daarmee op.
+- **Afwijzen als dubbel**: kies bij *Afwijzen als dubbel van* het andere voorstel bij hetzelfde artikel en klik
+  *Versturen en afwijzen*. Voorstellen worden niet samengevoegd en de steun gaat niet mee (anders telt een
+  steunbetuiging dubbel; besluit van Alex).
+- Ernaast: **Bak** (oppakken, terugleggen, toewijzen, verplaatsen), **Verbergen voor collega's** en de
+  **interne notities**.
+- **Iemand anders was je voor.** Heeft een collega intussen een bericht gestuurd, de status veranderd of (bij
+  afhandelen) het voorstel verplaatst, dan wordt er niets verstuurd. Je ziet wat er gebeurde en je tekst staat er
+  nog; lees het en kies dan opnieuw.
+
+**Interne notities** zijn alleen voor de redactie: de indiener en collega's zien ze nooit. Gebruik ze voor wat
+de volgende behandelaar moet weten ("gebeld met Toezicht, wacht op antwoord"), bijvoorbeeld bij ziekte of
+vakantie. Bij het anonimiseren van een afgehandeld voorstel worden ze verwijderd.
+
+**Afhandelen gaat met een bericht.** Bij *Verwerkt* of *Afgewezen* schrijf je de indiener waarom; zonder dat
+bericht gebeurt er niets. Dat bericht is het antwoord dat de indiener krijgt. Handel je een voorstel af dat in
+de bak van een collega lag, dan krijgt die collega daar een e-mail van.
+
+**Een artikel archiveren** sluit de open voorstellen erbij af met de status **Vervallen** en het bericht "Het
+artikel … is ingetrokken. Daarom sluiten we je verbetervoorstel af." De indiener krijgt dat als melding en
+per e-mail.
+
+**Zoeken in het archief.** Onder **Afgehandeld** staat een zoekvak. Je zoekt op de titel van het artikel, de
+tekst van het voorstel, de berichten aan de indiener en de interne notities.
+
+**E-mail over nieuwe voorstellen.** Je krijgt niet meer een e-mail per nieuw voorstel, maar **één samenvatting
+per dag** met de voorstellen die sinds de vorige keer binnenkwamen in jouw omgeving(en), wat er in je eigen bak
+ligt en hoeveel voorstellen al langer dan 30 dagen liggen. Komt er niets nieuws binnen, dan krijg je niets.
+Wijst een collega je een voorstel toe, dan krijg je daar wel meteen een e-mail van.
 
 **Afgehandeld is definitief.** Een verwerkt of afgewezen voorstel gaat niet meer open (besluit van Alex): zo
 heeft het proces een duidelijk einde. Ziet de indiener toch nog iets, dan dient hij een nieuw voorstel in.
@@ -368,8 +402,9 @@ hier als bericht.
 Werken met een voorstel gaat zo:
 
 1. **Pak het op** uit de gezamenlijke bak (of wijs het toe).
-2. **Stuur een bericht** met je terugkoppeling of een tussenstand.
-3. **Zet de status** op *Verwerkt* of *Afgewezen* als je klaar bent. Dat legt ook vast wie het heeft
+2. **Stuur een bericht** met een tussenstand als het even duurt, en zet wat de redactie moet weten in een
+   **interne notitie**.
+3. **Handel af** met *Versturen en verwerkt* of *Versturen en afwijzen*. Dat legt ook vast wie het heeft
    afgehandeld en wanneer. Verwerk je het voorstel, pas dan het artikel aan en noem het voorstel in de
    wijzigingstoelichting.
 

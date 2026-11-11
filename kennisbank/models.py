@@ -163,7 +163,7 @@ class Sjabloon(models.Model):
     inhoud = models.TextField(
         blank=True,
         help_text="De tekst van het artikel, met dezelfde opmaak als in de editor. "
-        "Secties maak je met <section class=\"sectie\"><h2 class=\"sectie-kop\">Titel</h2>…</section>.",
+        'Secties maak je met <section class="sectie"><h2 class="sectie-kop">Titel</h2>…</section>.',
     )
     soort = models.CharField(max_length=20, choices=Soort.choices, default=Soort.WERKINSTRUCTIE)
     volgorde = models.PositiveIntegerField(default=0, help_text="Bepaalt de volgorde waarin ze worden geplaatst.")
@@ -567,6 +567,13 @@ class VoorstelStatus(models.TextChoices):
     IN_BEHANDELING = "in_behandeling", "In behandeling"
     VERWERKT = "verwerkt", "Verwerkt"
     AFGEWEZEN = "afgewezen", "Afgewezen"
+    #: Afgesloten zonder oordeel, omdat het artikel is gearchiveerd ("het artikel is ingetrokken").
+    VERVALLEN = "vervallen", "Vervallen"
+
+
+#: Alle eindstanden. Afgehandeld is definitief (besluit van Alex, 11 november).
+AFGEHANDELD = (VoorstelStatus.VERWERKT, VoorstelStatus.AFGEWEZEN, VoorstelStatus.VERVALLEN)
+OPEN = (VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING)
 
 
 def standaard_clusterbak(artikel):
@@ -648,6 +655,17 @@ class Verbetervoorstel(models.Model):
         "bijvoorbeeld omdat er een naam van een collega in staat. De indiener ziet het gewoon.",
     )
 
+    #: Afgewezen als dubbel van dit voorstel (besluit van Alex: niet samenvoegen; de steun gaat niet mee,
+    #: anders telt een steunbetuiging dubbel).
+    dubbel_van = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="dubbele",
+        editable=False,
+    )
+
     def save(self, *args, **kwargs):
         if self._state.adding and self.cluster_id is None and self.artikel_id:
             self.cluster = standaard_clusterbak(self.artikel)
@@ -664,7 +682,31 @@ class Verbetervoorstel(models.Model):
 
     @property
     def is_open(self):
-        return self.status in {VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING}
+        return self.status in OPEN
+
+
+class VoorstelNotitie(models.Model):
+    """Een interne notitie bij een voorstel: alleen de redactie ziet hem.
+
+    Voor wat de volgende behandelaar moet weten ("gebeld met Toezicht, wacht op antwoord"), zonder dat
+    het bij de indiener belandt. Bij het anonimiseren van een afgehandeld voorstel gaan de notities
+    weg: er kunnen namen in staan.
+    """
+
+    voorstel = models.ForeignKey(Verbetervoorstel, on_delete=models.CASCADE, related_name="notities")
+    auteur = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    tekst = models.TextField(max_length=4000)
+    moment = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "interne notitie"
+        verbose_name_plural = "interne notities"
+        ordering = ["moment", "pk"]
+
+    def __str__(self):
+        return f"Notitie bij voorstel {self.voorstel_id}"
 
 
 class Steun(models.Model):
@@ -837,7 +879,11 @@ class Kladversie(models.Model):
 
     gebruiker = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="kladversies")
     artikel = models.ForeignKey(
-        Artikel, null=True, blank=True, on_delete=models.CASCADE, related_name="kladversies",
+        Artikel,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="kladversies",
         help_text="Leeg bij een nieuw artikel dat nog nooit is opgeslagen.",
     )
     #: Voor een nieuw artikel: de gekozen omgeving, zodat collega's van die omgeving hem kunnen zien.

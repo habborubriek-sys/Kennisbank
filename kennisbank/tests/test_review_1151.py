@@ -234,8 +234,9 @@ class KleineWensenTests(Basis):
         from django.core import mail
         from django.test import override_settings
 
-        with override_settings(KB_EMAIL_AAN=True), self.captureOnCommitCallbacks(execute=True):
-            diensten.meld_nieuw_voorstel(self.voorstel())
+        self.voorstel()
+        with override_settings(KB_EMAIL_AAN=True):
+            diensten.verstuur_voorstellenmail()
         self.assertTrue(mail.outbox)
         self.assertIn("/beheer/", mail.outbox[0].body)
-        self.assertIn("werkvoorraad", mail.outbox[0].body)
+        self.assertIn("werkplek", mail.outbox[0].body)

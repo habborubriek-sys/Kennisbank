@@ -460,13 +460,17 @@ class VoorstelTests(Basis):
     def test_mail_naar_redacteuren(self):
         # De mail gaat via transaction.on_commit, zodat er niets wordt verstuurd als de transactie
         # alsnog terugrolt. In een test komt die commit er niet, dus voeren we de callbacks zelf uit.
+        # Sinds 1.18.0 geen e-mail per voorstel, maar een dagelijkse samenvatting (besluit c van Alex).
         with self.captureOnCommitCallbacks(execute=True):
             self.als(self.lezer).post(
                 "/api/v1/voorstellen",
                 {"artikel": pk_van("mailbox"), "tekst": "Graag aanvullen"},
                 content_type="application/json",
             )
+        self.assertEqual(mail.outbox, [])
+        self.assertEqual(diensten.verstuur_voorstellenmail(), 1)
         self.assertEqual(mail.outbox[0].to, ["pm@example.org"])
+        self.assertIn("Graag aanvullen", mail.outbox[0].body)
 
 
 class GebruikTests(Basis):
@@ -2523,9 +2527,9 @@ class VoorstelGesprekTests(Basis):
         """De inline rechten komen uit de omgeving, niet uit de Django-rechtentabel; zonder de
         expliciete methoden liet Django de hele inline weg en zag de redacteur het gesprek niet."""
         diensten.voorstelbericht_toevoegen(self.v, self.redacteur, "Opgepakt", van_redactie=True, melden=False)
-        r = self.als(self.redacteur).get(f"/beheer/kennisbank/verbetervoorstel/{self.v.pk}/change/")
+        r = self.als(self.redacteur).get(f"/beheer/kennisbank/verbetervoorstel/{self.v.pk}/change/", follow=True)
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, "Gesprek met de indiener")
+        self.assertContains(r, "Gesprek met")
         self.assertContains(r, "Opgepakt")
 
     def test_een_bericht_via_de_inline_wordt_verstuurd(self):
@@ -2562,7 +2566,7 @@ class VoorstelGesprekTests(Basis):
         self.assertEqual(self.v.terugkoppeling, "Aangepast, dank voor de melding.")
 
     def test_het_beheerformulier_heeft_geen_los_terugkoppelingsveld_meer(self):
-        r = self.als(self.redacteur).get(f"/beheer/kennisbank/verbetervoorstel/{self.v.pk}/change/")
+        r = self.als(self.redacteur).get(f"/beheer/kennisbank/verbetervoorstel/{self.v.pk}/change/", follow=True)
         self.assertNotContains(r, 'name="terugkoppeling"')
 
     def test_een_tussentijds_bericht_schuift_de_bewaartermijn_niet_op(self):

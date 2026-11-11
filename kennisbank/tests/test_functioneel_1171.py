@@ -94,7 +94,7 @@ class AfgehandeldIsDefinitiefTests(BehandelFormulier):
         self.assertEqual(r.status_code, 302, r.content[:400])
         v.refresh_from_db()
         self.assertEqual(v.status, VoorstelStatus.VERWERKT)
-        self.assertIn("Afgehandeld is definitief", self.client.get(wijzig_url(v)).content.decode())
+        self.assertIn("dat is definitief", self.client.get(wijzig_url(v), follow=True).content.decode())
 
     def test_api_heropenen_kan_niet(self):
         v = self.afgehandeld()

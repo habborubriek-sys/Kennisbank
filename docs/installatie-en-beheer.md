@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.17.1 .
-docker push registry.example.nl/kennisbank:1.17.1
+docker build -t registry.example.nl/kennisbank:1.18.0 .
+docker push registry.example.nl/kennisbank:1.18.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -119,7 +119,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.17.1
+  registry.example.nl/kennisbank:1.18.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -130,7 +130,8 @@ Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` e
 |---|---|
 | `web` (standaard) | migreert de database (tenzij `KB_MIGREER_BIJ_START=nee`) en start gunicorn |
 | `migreer` | alleen migraties |
-| `opschonen` | voert de bewaartermijnen uit en verstuurt de gebundelde favorietenmail; **dagelijks inplannen** |
+| `opschonen` | voert de bewaartermijnen uit en verstuurt de gebundelde favorietenmail en de samenvatting van nieuwe verbetervoorstellen voor redacteuren; **dagelijks inplannen** |
+| `beheer kennisbank_voorstellenmail` | alleen de samenvatting van nieuwe voorstellen versturen; optioneel zelf inplannen op een vast moment (bijvoorbeeld 8 uur). Er gaat alleen iets uit als er iets nieuws is |
 | `beheer kennisbank_favorietenmail` | alleen de favorietenmail versturen; optioneel vaker inplannen dan dagelijks (zie `KB_FAVORIETEN_MAIL`) |
 | `beheer <commando>` | beheercommando, bijvoorbeeld `beheer kennisbank_import /data/artikelen.json` |
 
@@ -140,6 +141,20 @@ De migraties lopen automatisch mee bij het starten (of via `migreer`). Maak voor
 zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens gebeurt; alleen de
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
+
+#### Naar 1.18.0 (vanaf 1.7.0 of later)
+
+**Eén migratie** (`0027_voorstel_vervallen_dubbel_notities`): een kolom op de verbetervoorstellen, een nieuwe
+status en een nieuwe tabel voor interne notities. Raakt geen bestaande gegevens.
+
+- **Geen e-mail meer per nieuw voorstel aan alle redacteuren.** In de plaats komt één samenvatting per dag,
+  verstuurd door de dagelijkse taak `opschonen` (of apart: `beheer kennisbank_voorstellenmail`). **Draait
+  `opschonen` niet dagelijks, dan horen redacteuren niets meer van nieuwe voorstellen.** Controleer de taak op de
+  statuspagina.
+- **Archiveren sluit open voorstellen af** met de status *Vervallen* en een bericht aan de indiener ("het artikel
+  is ingetrokken"); de indiener krijgt daarvan een e-mail.
+- Het behandelscherm van een voorstel staat op `/beheer/voorstel/<id>/`; oude links naar het beheerformulier
+  sturen daarheen door. Voor de API verandert er niets, behalve de nieuwe status `vervallen`.
 
 #### Naar 1.17.1 (vanaf 1.7.0 of later)
 

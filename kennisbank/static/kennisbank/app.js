@@ -88,7 +88,7 @@
   const artById = (id) => artikelen.find((a) => a.id === Number(id));
   const clusterLabel = (a) => (a.clusters.length ? a.clusters.join(", ") : "Alle clusters");
   const soortLabel = (w) => { const s = lijsten.soorten.find((x) => x.waarde === w); return s ? s.label : w; };
-  const VOORSTEL_LABEL = { nieuw: "Nieuw", in_behandeling: "In behandeling", verwerkt: "Verwerkt", afgewezen: "Afgewezen" };
+  const VOORSTEL_LABEL = { nieuw: "Nieuw", in_behandeling: "In behandeling", verwerkt: "Verwerkt", afgewezen: "Afgewezen", vervallen: "Vervallen" };
 
   /* ---------- Navigatie (echte URL's, zodat links te delen zijn) ---------- */
   const VIEWS = ["recent", "artikelen", "favorieten", "gewijzigd", "nieuws", "voorstellen", "statistieken"];
@@ -394,6 +394,7 @@
     ["open", "Nog open"],
     ["verwerkt", "Verwerkt"],
     ["afgewezen", "Afgewezen"],
+    ["vervallen", "Vervallen"],
     ["alles", "Alles"],
   ];
 
@@ -445,6 +446,7 @@
       .sort((a, b) => (b.ongelezen ? 1 : 0) - (a.ongelezen ? 1 : 0));
     const knoppen = PROPFILTERS.map(([k, label]) => {
       const n = voorstellen.filter((p) => (k === "alles" ? true : k === "open" ? p.status === "nieuw" || p.status === "in_behandeling" : p.status === k)).length;
+      if (k === "vervallen" && !n && filter !== k) return "";  // alleen als het voorkomt (artikel gearchiveerd)
       return `<button type="button" data-propfilter="${k}" aria-pressed="${k === filter}">${label}${n ? ` (${n})` : ""}</button>`;
     }).join("");
     const leeg =

@@ -26,6 +26,7 @@ from django.utils.html import format_html
 
 from . import diensten
 from .models import (
+    AFGEHANDELD,
     GUID_PATROON,
     MAX_INHOUD,
     Artikel,
@@ -1190,7 +1191,7 @@ class VoorstelOpenFilter(admin.SimpleListFilter):
         if keuze == "open":
             return queryset.filter(status__in=[VoorstelStatus.NIEUW, VoorstelStatus.IN_BEHANDELING])
         if keuze == "klaar":
-            return queryset.filter(status__in=[VoorstelStatus.VERWERKT, VoorstelStatus.AFGEWEZEN])
+            return queryset.filter(status__in=AFGEHANDELD)
         if keuze == "wacht":
             laatste = (
                 VoorstelBericht.objects.filter(voorstel=OuterRef("pk"))
@@ -1335,7 +1336,7 @@ class VoorstelForm(forms.ModelForm):
         eens als antwoord. Het nieuwe bericht staat in de inline eronder; die is hier nog niet
         gevalideerd, dus we kijken naar wat er is ingevuld.
         """
-        if not self.wil_status or data.get("status") not in (VoorstelStatus.VERWERKT, VoorstelStatus.AFGEWEZEN):
+        if not self.wil_status or data.get("status") not in AFGEHANDELD:
             return
         nieuw = [
             waarde
@@ -1527,10 +1528,14 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             self.message_user(request, f, messages.WARNING)
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
+        # Behandelen gebeurt sinds 1.18.0 op het eigen behandelscherm (kennisbank/behandelen.py). Oude
+        # links en bladwijzers komen daar uit; het formulier hier blijft voor bestaande koppelingen.
         if request.method == "GET":
             v = self.get_object(request, object_id)
             if v is not None:
-                diensten.voorstel_gezien_door_eigenaar(v, request.user)
+                from .behandelen import scherm_url
+
+                return redirect(scherm_url(v, request.GET.get("terug")))
         return super().change_view(request, object_id, form_url, extra_context)
 
     def get_model_perms(self, request):
@@ -1557,7 +1562,7 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     def _waar_ligt(v):
         if v.eigenaar_id:
             return f"Het ligt in de bak van {diensten.naam_van(v.eigenaar)}."
-        if v.status in (VoorstelStatus.VERWERKT, VoorstelStatus.AFGEWEZEN):
+        if v.status in AFGEHANDELD:
             return "Het is afgehandeld."
         return f"Het ligt in de bak {v.cluster.naam if v.cluster_id else 'Algemeen'}."
 

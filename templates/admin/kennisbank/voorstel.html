@@ -1,0 +1,156 @@
+{% extends "admin/base_site.html" %}
+{% comment %}
+  Het behandelscherm van een verbetervoorstel (kennisbank/behandelen.py). Links de kolom van de werkplek.
+{% endcomment %}
+{% block bodyclass %}{{ block.super }} kb-werkplek-pagina{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block content %}
+{% with w=werkplek %}
+<div class="kb-werkplek">
+  {% include "admin/kennisbank/werkplek_kolom.html" %}
+
+  <section class="kb-inhoud kb-behandel" aria-labelledby="kb-inhoud-titel">
+    <p class="kb-terug"><a href="{{ terug_url }}">← Terug naar de werkplek</a></p>
+    <h1 id="kb-inhoud-titel">Voorstel bij <a href="{{ artikel_url }}" target="_blank" rel="noopener">{{ v.artikel.titel }}</a></h1>
+    <p class="kb-vmeta">
+      <span class="kb-vstatus kb-status-{{ v.status }}">{{ v.get_status_display }}</span>
+      Ingediend door <b>{% if indiener %}{{ indiener }}{% else %}een collega (naam verwijderd na de bewaartermijn){% endif %}</b>
+      op {{ v.ingediend_op|date:"j F Y" }}, bij versie {{ v.artikel_versie }}
+      · {% if v.is_open %}{% if eigenaar %}ligt bij {% if van_mij %}jou{% else %}{{ eigenaar }}{% endif %}{% else %}ligt in de bak {% if v.cluster %}{{ v.cluster.naam }}{% else %}Algemeen{% endif %}{% endif %}{% else %}afgehandeld door {{ behandeld_door|default:"procesmanagement" }} op {{ v.behandeld_op|date:"j F Y" }}{% endif %}
+      {% if v.verborgen %} · <span class="kb-label">verborgen voor collega's</span>{% endif %}
+    </p>
+    {% if dubbel_van %}<p class="kb-uitleg">Afgewezen als dubbel van <a href="{{ dubbel_van_url }}">een ander voorstel</a>.</p>{% endif %}
+
+    {% if intussen %}
+    <div class="kb-intussen" role="alert">
+      <p><strong>Er is niets verstuurd.</strong> Terwijl jij dit voorstel openhad: {{ intussen|join:"; " }}.
+        Je tekst staat hieronder nog. Kijk of hij nog klopt en kies dan opnieuw.</p>
+    </div>
+    {% endif %}
+
+    <div class="kb-behandel-raster">
+      <div class="kb-behandel-hoofd">
+        <h2 class="kb-subkop">Het voorstel</h2>
+        {% if v.citaat %}
+          {% if citaat_gevonden %}
+          <div class="kb-context" aria-label="Het citaat in de tekst van het artikel">{{ context_html }}</div>
+          {% else %}
+          <blockquote class="kb-vcitaat">“{{ v.citaat }}”</blockquote>
+          <p class="kb-hint">Deze tekst staat niet meer letterlijk in het artikel; misschien is hij al aangepast.</p>
+          {% endif %}
+        {% endif %}
+        <div class="kb-vtekst kb-voorsteltekst">{{ v.tekst|linebreaks }}</div>
+        <p class="kb-hint">
+          {% if steun %}<b>{{ steun|length }} collega{{ steun|length|pluralize:"'s" }} steun{{ steun|length|pluralize:"t,en" }} dit:</b> {{ steun|join:", " }}{% else %}Nog geen steun van collega's.{% endif %}
+          · <a href="{{ artikel_bewerken_url }}">Artikel bewerken</a> · <a href="{{ geschiedenis_url }}">Geschiedenis</a>
+        </p>
+
+        <h2 class="kb-subkop">Gesprek met {{ indiener|default:"de indiener" }}</h2>
+        {% if berichten %}
+        <ul class="kb-gesprek">
+          {% for b in berichten %}
+          <li class="{% if b.pm %}pm{% else %}ind{% endif %}"><span class="wie">{{ b.naam }}{% if b.pm %} · procesmanagement{% endif %} · {{ b.moment|date:"j F Y H:i" }}</span>{{ b.tekst|linebreaks }}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="kb-leeg">Nog geen berichten.</p>
+        {% endif %}
+
+        <form method="post" class="kb-berichtvak">{% csrf_token %}
+          <input type="hidden" name="terug" value="{{ terug }}">
+          <input type="hidden" name="geladen_status" value="{{ geladen.status }}">
+          <input type="hidden" name="geladen_eigenaar" value="{{ geladen.eigenaar }}">
+          <input type="hidden" name="geladen_bericht" value="{{ geladen.bericht }}">
+          <label for="kb-bericht"><b>Bericht aan {{ indiener|default:"de indiener" }}</b></label>
+          <textarea id="kb-bericht" name="bericht" rows="5" maxlength="5000">{{ invoer.bericht }}</textarea>
+          <p class="kb-hint">{% if indiener %}{{ indiener }} krijgt dit{% else %}De indiener krijgt dit{% endif %} als melding in de kennisbank en per e-mail. Je kunt het daarna niet meer aanpassen.</p>
+          <div class="kb-knoppenrij">
+            <button type="submit" name="actie" value="bericht" class="button">Versturen</button>
+            {% if v.is_open %}
+            <button type="submit" name="actie" value="verwerkt" class="button default">Versturen en verwerkt</button>
+            <button type="submit" name="actie" value="afwijzen" class="button">Versturen en afwijzen</button>
+            {% endif %}
+          </div>
+          {% if v.is_open %}
+          {% if andere %}
+          <p class="kb-dubbelkeuze">
+            <label for="kb-dubbel">Afwijzen als dubbel van:</label>
+            <select id="kb-dubbel" name="dubbel_van"><option value="">— geen dubbel —</option>
+              {% for a in andere %}<option value="{{ a.pk }}"{% if invoer.dubbel == a.pk|stringformat:"s" %} selected{% endif %}>{{ a.label }}</option>{% endfor %}
+            </select>
+          </p>
+          <p class="kb-hint">Een dubbel voorstel wordt afgewezen; de steun gaat niet mee naar het andere voorstel.</p>
+          {% endif %}
+          <p class="kb-hint">Verwerkt of afgewezen is definitief: het voorstel gaat daarna niet meer open. Ziet de indiener toch iets nieuws, dan dient hij een nieuw voorstel in.</p>
+          {% else %}
+          <p class="kb-hint">Dit voorstel is afgehandeld; dat is definitief. Een bericht aan de indiener kan nog wel.</p>
+          {% endif %}
+        </form>
+      </div>
+
+      <aside class="kb-behandel-zij">
+        {% if v.is_open %}
+        <h2 class="kb-subkop">Bak</h2>
+        <div class="kb-vacties kb-vacties-kolom">
+          {% if not van_mij %}
+          <form method="post" action="{{ actie_url }}">{% csrf_token %}
+            <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ terug }}"><input type="hidden" name="na" value="scherm">
+            <button type="submit" name="actie" value="oppakken" class="button default">{% if eigenaar %}Overnemen{% else %}Oppakken{% endif %}</button>
+          </form>
+          {% endif %}
+          {% if eigenaar %}
+          <form method="post" action="{{ actie_url }}">{% csrf_token %}
+            <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ terug }}"><input type="hidden" name="na" value="scherm">
+            <button type="submit" name="actie" value="terugleggen" class="button">Terugleggen</button>
+          </form>
+          {% endif %}
+          {% if collegas %}
+          <form method="post" action="{{ actie_url }}" class="kb-toewijzen">{% csrf_token %}
+            <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ terug }}"><input type="hidden" name="na" value="scherm">
+            <label class="visually-hidden" for="kb-naar">Toewijzen aan</label>
+            <select name="naar" id="kb-naar"><option value="">Toewijzen aan…</option>
+              {% for pk, naam in collegas %}<option value="{{ pk }}">{{ naam }}</option>{% endfor %}
+            </select>
+            <button type="submit" name="actie" value="toewijzen" class="button">Toewijzen</button>
+          </form>
+          {% endif %}
+          {% if bakken %}
+          <form method="post" action="{{ actie_url }}" class="kb-toewijzen">{% csrf_token %}
+            <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="terug" value="{{ terug }}"><input type="hidden" name="na" value="scherm">
+            <label class="visually-hidden" for="kb-bak">Naar een andere bak</label>
+            <select name="cluster" id="kb-bak"><option value="" disabled selected>Naar bak…</option>
+              {% for pk, naam in bakken %}<option value="{{ pk }}">{{ naam }}</option>{% endfor %}
+            </select>
+            <button type="submit" name="actie" value="naar_bak" class="button">Verplaatsen</button>
+          </form>
+          {% endif %}
+        </div>
+        {% endif %}
+        <form method="post" class="kb-verbergen">{% csrf_token %}
+          <input type="hidden" name="terug" value="{{ terug }}">
+          <button type="submit" name="actie" value="verbergen" class="button kb-knop-rustig">{% if v.verborgen %}Weer tonen aan collega's{% else %}Verbergen voor collega's{% endif %}</button>
+          <span class="kb-hint">Bijvoorbeeld als er de naam van een collega in staat. De indiener ziet het gewoon.</span>
+        </form>
+
+        <h2 class="kb-subkop">Interne notities</h2>
+        <p class="kb-hint">Alleen de redactie ziet deze notities, niet de indiener.</p>
+        {% if notities %}
+        <ul class="kb-notities">
+          {% for n in notities %}<li><span class="wie">{{ n.naam }} · {{ n.moment|date:"j F Y H:i" }}</span>{{ n.tekst|linebreaks }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="terug" value="{{ terug }}">
+          <label class="visually-hidden" for="kb-notitie">Notitie</label>
+          <textarea id="kb-notitie" name="notitie" rows="3" maxlength="4000" placeholder="Bijvoorbeeld: gebeld met Toezicht, wacht op antwoord.">{{ invoer.notitie }}</textarea>
+          <button type="submit" name="actie" value="notitie" class="button">Notitie toevoegen</button>
+        </form>
+        {% if dubbele %}<p class="kb-hint">Hier zijn {{ dubbele|length }} voorstel(len) als dubbel van afgewezen.</p>{% endif %}
+      </aside>
+    </div>
+  </section>
+</div>
+{% endwith %}
+{% endblock %}
