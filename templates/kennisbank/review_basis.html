@@ -1,0 +1,19 @@
+{% load static %}<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block titel %}Review{% endblock %} – {{ app_naam }}</title>
+<link rel="icon" href="{% static 'kennisbank/favicon.svg' %}" type="image/svg+xml">
+<link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}">
+<link rel="stylesheet" href="{% static 'kennisbank/app.css' %}">
+<link rel="stylesheet" href="{% static 'kennisbank/review.css' %}"></head>
+<body class="review-pagina">
+<a class="skip" href="#main">Naar de inhoud</a>
+<header class="top">
+  <div class="brand"><a href="/"><span class="mark" aria-hidden="true">K</span><span>{{ app_naam }}</span></a></div>
+  <nav class="rv-nav" aria-label="Review"><a href="{% url 'review-lijst' %}">Ter inzage</a><a href="/">Naar de kennisbank</a></nav>
+  <span class="user">{{ naam }}</span>
+</header>
+<main class="rv-main" id="main">
+  {% if messages %}<ul class="rv-meldingen">{% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>{% endif %}
+  {% block inhoud %}{% endblock %}
+</main>
+</body></html>

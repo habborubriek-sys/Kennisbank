@@ -117,3 +117,25 @@ a.button.kb-openen{margin-left:auto}
 .kb-behandel .kb-knop-rustig:hover{background:var(--darkened-bg)}
 .kb-behandel-zij form{margin:0 0 8px}
 .kb-behandel-zij textarea + .button{margin-top:6px}
+
+/* Review in de gele balk (stap C) */
+.kb-review{border-top:1px solid #e0c46a;margin-top:10px;padding-top:8px}
+.kb-review h3{margin:0 0 6px;font-size:.95rem;background:none;color:inherit;padding:0}
+.kb-review-label{font-weight:700;color:#1e6b34}
+.kb-review-teams{margin:0 0 8px;padding-left:18px}
+.kb-review-teams>li{margin:4px 0}
+.kb-review-teruggegeven{color:#a6192e}
+.kb-review-vervallen{color:#7a5200}
+.kb-review-opmerkingen{list-style:none;margin:4px 0 6px;padding:0}
+.kb-review-opmerkingen li{background:#fff;border:1px solid #e0c46a;border-radius:6px;padding:6px 10px;margin:4px 0;color:#222}
+.kb-review .wie{display:block;font-size:.8rem;color:#6b5a1e}
+.kb-review-keuze{border:0;padding:0;margin:4px 0 8px;display:flex;flex-wrap:wrap;gap:4px 16px}
+.kb-review-keuze legend{font-weight:600;padding:0;margin-bottom:4px}
+.kb-review-eerder{margin-top:8px}
+fieldset.kb-op-slot{pointer-events:none;opacity:.65}
+.kb-inzage-ter_inzage{background:#fff1cc;color:#7a5200}
+.kb-inzage-akkoord{background:#dff1e3;color:#1e6b34}
+.kb-inzage-teruggegeven{background:#f8e0e3;color:#a6192e}
+.kb-rij-let-op td:first-child{border-left:3px solid #a6192e}
+.kb-review-opmerkingen li{list-style:none}
+.kb-review-teams>li{list-style:disc}

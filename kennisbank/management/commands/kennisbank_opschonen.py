@@ -5,7 +5,7 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from kennisbank import diensten
+from kennisbank import diensten, review
 from kennisbank.models import (
     AFGEHANDELD,
     AssistentDagTotaal,
@@ -60,6 +60,7 @@ class Command(BaseCommand):
         # Eerst de openstaande favorietenmail versturen, dan de verzonden regels na 30 dagen opruimen.
         mails = diensten.verstuur_favorietenmail()
         voorstellenmails = diensten.verstuur_voorstellenmail()
+        voorstellenmails += review.verstuur_reviewmail()  # samenvatting voor reviewteams (stap C)
         wachtrij = FavorietenMail.objects.filter(verzonden_op__lt=nu - timezone.timedelta(days=30)).delete()[0]
         claims = diensten.verlopen_claims_opruimen()
         klad = diensten.kladversies_opruimen()

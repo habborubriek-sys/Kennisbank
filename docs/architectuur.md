@@ -125,3 +125,5 @@ Alle controles zitten op één plek ([kennisbank/rechten.py](../kennisbank/recht
 | `kennisbank/static/kennisbank/` | Frontend |
 | `kennisbank/management/commands/` | Beheercommando's (import, export, toegang, opschonen, demo) |
 | `kennisbank/tests/` | Geautomatiseerde tests |
+
+**Reviewproces (stap C, 1.19.0).** `kennisbank/review.py` bevat alle regels. Een `Reviewteam` (omgeving, Django-groep = Entra ID-groep, clusters) leest mee; een `Inzage` is één conceptversie bij één team in één ronde (status ter inzage, teruggegeven, akkoord, teruggeroepen; `afgesloten` na publiceren of weggooien). Zolang er een inzage *ter inzage* is, weigert `diensten.concept_opslaan` (`ConceptOpSlot`) en publiceert `ArtikelForm._inhoud_op_slot` de opgeslagen conceptversie, ongeacht wat de browser stuurt. Akkoord bewaart de stempel van de conceptversie (`akkoord_stempel`); wijkt die later af, dan is het akkoord vervallen. `review.samenvatting_bij_publiceren` schrijft de stand in `ArtikelVersie.review`. De leesweergave voor reviewers staat buiten het beheer (`kennisbank/reviewweergave.py`, `/review/`), met een verschil per blok en per woord (`kennisbank/verschil.py`, ge-escaped).

@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.18.0 .
-docker push registry.example.nl/kennisbank:1.18.0
+docker build -t registry.example.nl/kennisbank:1.19.0 .
+docker push registry.example.nl/kennisbank:1.19.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -119,7 +119,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.18.0
+  registry.example.nl/kennisbank:1.19.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -141,6 +141,14 @@ De migraties lopen automatisch mee bij het starten (of via `migreer`). Maak voor
 zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens gebeurt; alleen de
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
+
+#### Naar 1.19.0 (vanaf 1.7.0 of later)
+
+**Eén migratie** (`0028_reviewproces`): nieuwe tabellen voor reviewteams, inzages en opmerkingen, een
+schakelaar op de omgeving en een kolom in de versiegeschiedenis. Raakt geen bestaande gegevens. Het
+reviewproces staat standaard **uit**; er verandert niets tot een beheerder het per omgeving aanzet en
+reviewteams aanmaakt (zie hoofdstuk 5). Nieuwe pagina's: `/review/` (leesweergave voor reviewers). De
+dagelijkse taak `opschonen` verstuurt nu ook een samenvatting aan reviewers.
 
 #### Naar 1.18.0 (vanaf 1.7.0 of later)
 
@@ -302,7 +310,16 @@ beheer kennisbank_toegang handhaving <object-id-groep-medewerkers> lezer --naam 
 beheer kennisbank_toegang handhaving <object-id-groep-procesmanagement> redacteur
 ```
 
-Dit kan ook in het beheerscherm (`/beheer/` → Omgevingen → Toegang). Daarna de inhoud laden:
+Dit kan ook in het beheerscherm (`/beheer/` → Omgevingen → Toegang).
+
+**Reviewteams (optioneel, vanaf 1.19.0).** Wil een omgeving het reviewproces gebruiken, zet dan bij de
+omgeving *Reviewproces gebruiken* aan en maak onder `/beheer/` → **Reviewteams** per team een regel: naam,
+omgeving, de Entra ID-groep van het team en (optioneel) de clusters. Iedereen in die groep is reviewer en
+ziet de leesweergave op `/review/`. Een reviewer hoeft geen redacteur te zijn; wil hij ook de kennisbank
+zelf lezen, geef de groep dan ook de rol *lezer*. Zorg dat de groep aan de applicatie is toegewezen in
+Entra ID (stap 3), anders zit hij niet in het token.
+
+Daarna de inhoud laden:
 
 ```bash
 beheer kennisbank_import /pad/naar/artikelen.json

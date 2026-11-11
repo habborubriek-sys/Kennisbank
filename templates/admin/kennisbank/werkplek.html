@@ -95,6 +95,22 @@
       <p class="kb-leeg">Deze bak is leeg.</p>
       {% endif %}
 
+    {% elif w.inhoud.inzages is not None %}
+      {% if w.inhoud.inzages %}
+      <table class="kb-tabel">
+        <thead><tr><th scope="col">Artikel</th><th scope="col">Review</th>{% if w.meer_omgevingen %}<th scope="col">Omgeving</th>{% endif %}</tr></thead>
+        <tbody>
+        {% for a in w.inhoud.inzages %}
+          <tr{% if a.teruggegeven %} class="kb-rij-let-op"{% endif %}><td><a href="{{ a.url }}">{{ a.titel }}</a></td>
+            <td>{% for t in a.teams %}<span class="kb-vstatus kb-inzage-{{ t.status }}">{{ t.naam }}: {{ t.label }}{% if t.status == "ter_inzage" %} sinds {{ t.sinds|date:"j F" }}{% if t.bij %}, bij {{ t.bij }}{% endif %}{% endif %}</span> {% endfor %}</td>
+            {% if w.meer_omgevingen %}<td>{{ a.omgeving }}</td>{% endif %}</tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="kb-leeg">Er ligt niets ter inzage.</p>
+      {% endif %}
+
     {% elif w.inhoud.artikelen is not None %}
       {% if w.inhoud.conceptversies %}
       <h2 class="kb-subkop">Nieuwe versies in bewerking</h2>

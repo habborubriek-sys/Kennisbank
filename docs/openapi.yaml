@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.18.0
+  version: 1.19.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -933,6 +933,8 @@ components:
             $ref: '#/components/schemas/MijnKladversie'
         is_redacteur:
           type: boolean
+        is_reviewer:
+          type: boolean
         onboarding:
           type: boolean
         begroeten:
@@ -976,6 +978,7 @@ components:
       - favorieten
       - favorieten_mail
       - is_redacteur
+      - is_reviewer
       - kladversies
       - mail_bij_favorieten
       - naam

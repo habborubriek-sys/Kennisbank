@@ -22,7 +22,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 
-from . import diensten
+from . import diensten, review
 from .assistent import beantwoord
 from .models import (
     AFGEHANDELD,
@@ -370,6 +370,7 @@ def _mijn_kladversies(gebruiker, r):
                 many=True,
             ),
             "is_redacteur": serializers.BooleanField(),
+            "is_reviewer": serializers.BooleanField(),
             "onboarding": serializers.BooleanField(),
             "begroeten": serializers.BooleanField(),
             "mail_bij_favorieten": serializers.BooleanField(),
@@ -439,6 +440,7 @@ def ik(request):
             "beheer_url": "/beheer/" if request.user.is_staff else None,
             # De API-documentatie is voor functioneel beheer en IT, niet voor medewerkers en redacteuren.
             "is_beheerder": request.user.is_superuser,
+            "is_reviewer": review.is_reviewer(request.user),
             "uitlog_url": "/oidc/logout/" if settings.KB_AUTH_MODUS == "oidc" else "/uitloggen/",
             "ai_aan": settings.KB_AI_PROVIDER != "uit",
             "app_naam": settings.KB_APP_NAAM,
@@ -756,11 +758,7 @@ def voorstel(request, pk):
                 status=status.HTTP_409_CONFLICT,
             )
         tekst = (s.validated_data.get("terugkoppeling") or "").strip()
-        if (
-            nieuwe_status != v.status
-            and nieuwe_status in AFGEHANDELD
-            and (not tekst or tekst == v.terugkoppeling)
-        ):
+        if nieuwe_status != v.status and nieuwe_status in AFGEHANDELD and (not tekst or tekst == v.terugkoppeling):
             return Response(
                 {"detail": "Geef bij afhandelen een afsluitend bericht mee (terugkoppeling); dat krijgt de indiener."},
                 status=status.HTTP_400_BAD_REQUEST,

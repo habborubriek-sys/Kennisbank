@@ -14,13 +14,61 @@
   <p class="kb-conceptlet"><strong>Let op:</strong> het gepubliceerde artikel is gewijzigd nadat deze conceptversie begon
     (bijvoorbeeld door een import). Wat je nu publiceert, vervangt die wijziging. Kijk in de versiegeschiedenis wat er veranderde.</p>
   {% endif %}
+  {% if kb_review.op_slot %}
+  <input type="hidden" id="kb-op-slot" value="1">
+  <p><strong>Deze conceptversie ligt ter inzage en staat op slot.</strong> Je kunt hem pas weer wijzigen als het
+    team reageert of als je hem terugroept. <strong>Publiceren…</strong> kan altijd; dan gaat precies deze tekst live.</p>
+  {% else %}
   <p>Kies onderaan <strong>Opslaan als conceptversie</strong> om verder te werken zonder dat medewerkers iets merken,
     of <strong>Publiceren…</strong> om de conceptversie live te zetten.</p>
+  {% endif %}
   <p class="kb-conceptknoppen">
     <a class="button" href="{{ kb_concept_bekijken }}" target="_blank" rel="noopener">Conceptversie bekijken</a>
     <button type="submit" class="button kb-concept-weg kb-gevaar" name="_weggooien" formaction="{{ kb_concept_weggooien }}" formnovalidate
       onclick="return confirm('De conceptversie weggooien? Het werk daarin is daarna weg; medewerkers blijven versie {{ original.versie }} zien.');">Conceptversie weggooien</button>
   </p>
+  {% if kb_review_teams %}
+  <div class="kb-review">
+    <h3>Review</h3>
+    {% if kb_review.label %}<p class="kb-review-label">✓ {{ kb_review.label }}</p>{% endif %}
+    {% if kb_review.rijen %}
+    <ul class="kb-review-teams">
+      {% for r in kb_review.rijen %}
+      <li class="kb-review-{{ r.status }}{% if r.vervallen %} kb-review-vervallen{% endif %}">
+        <strong>{{ r.team.naam }}</strong>:
+        {% if r.status == "ter_inzage" %}ter inzage sinds {{ r.gestart_op|date:"j F" }}{% if r.reviewer %}, ligt bij {{ r.reviewer.get_full_name|default:r.reviewer.username }}{% else %}, nog niet opgepakt{% endif %}
+        {% elif r.status == "akkoord" %}{% if r.vervallen %}akkoord vervallen: de tekst is daarna gewijzigd{% else %}akkoord op {{ r.afgerond_op|date:"j F" }}{% endif %}
+        {% elif r.status == "teruggegeven" %}teruggegeven op {{ r.afgerond_op|date:"j F" }} met opmerkingen
+        {% else %}teruggeroepen op {{ r.afgerond_op|date:"j F" }}{% endif %}
+        {% if r.opmerkingen.all %}
+        <ul class="kb-review-opmerkingen">
+          {% for o in r.opmerkingen.all %}<li><span class="wie">{{ o.auteur.get_full_name|default:o.auteur.username|default:"Reviewer" }} · {{ o.moment|date:"j F H:i" }}</span>{{ o.tekst|linebreaksbr }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if kb_review.op_slot %}
+    <button type="submit" class="button" name="_terugroepen" formaction="{{ kb_terugroepen_url }}" formnovalidate
+      onclick="return confirm('De conceptversie terugroepen? Teams die er nog mee bezig zijn, zien dat het stuk is teruggeroepen.');">Terugroepen</button>
+    {% else %}
+    <fieldset class="kb-review-keuze">
+      <legend>Ter inzage geven aan:</legend>
+      {% for t in kb_review_teams %}
+      <label><input type="checkbox" name="reviewteams" value="{{ t.pk }}"{% if t.gekozen %} checked{% endif %}> {{ t.naam }}</label>
+      {% endfor %}
+    </fieldset>
+    <button type="submit" class="button kb-ter-inzage" name="_ter_inzage" formaction="{{ kb_ter_inzage_url }}" formnovalidate>Ter inzage geven</button>
+    <span class="kb-concepthint">Sla eerst je laatste wijzigingen op als conceptversie. Daarna staat hij op slot tot het team reageert.</span>
+    {% endif %}
+    {% if kb_review.eerder %}
+    <details class="kb-review-eerder"><summary>Eerdere rondes ({{ kb_review.eerder|length }})</summary>
+      <ul>{% for r in kb_review.eerder %}<li><strong>{{ r.team.naam }}</strong> (ronde {{ r.ronde }}): {{ r.get_status_display|lower }}{% for o in r.opmerkingen.all %}<br><span class="wie">{{ o.auteur.get_full_name|default:o.auteur.username|default:"Reviewer" }}:</span> {{ o.tekst|linebreaksbr }}{% endfor %}</li>{% endfor %}</ul>
+    </details>
+    {% endif %}
+  </div>
+  {% endif %}
 </div>
 {% elif kb_kan_concept %}
 <div class="kb-conceptuitleg">
@@ -30,7 +78,7 @@
 {% endif %}
 {% endblock %}
 {% block submit_buttons_bottom %}
-{% if kb_kan_concept %}
+{% if kb_kan_concept and not kb_review.op_slot %}
 <div class="submit-row kb-conceptrij">
   <button type="submit" class="button kb-concept-opslaan" name="_conceptversie" value="1">Opslaan als conceptversie</button>
   <span class="kb-concepthint">{% if kb_concept %}Publiceren zet de conceptversie live voor alle medewerkers.{% else %}Publiceren zet je wijziging meteen live voor alle medewerkers.{% endif %}</span>

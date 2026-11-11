@@ -15,7 +15,9 @@ from kennisbank.models import (
     Artikel,
     Bericht,
     BerichtStatus,
+    Cluster,
     Omgeving,
+    Reviewteam,
     Rol,
     Toegang,
     Verbetervoorstel,
@@ -48,12 +50,14 @@ class Command(BaseCommand):
         omgeving = Omgeving.objects.get(slug="handhaving")
         lezers, _ = Group.objects.get_or_create(name="demo-medewerkers")
         redactie, _ = Group.objects.get_or_create(name="demo-procesmanagement")
+        reviewgroep, _ = Group.objects.get_or_create(name="demo-review-water")
         Toegang.objects.get_or_create(omgeving=omgeving, groep=lezers, defaults={"rol": Rol.LEZER})
         Toegang.objects.get_or_create(omgeving=omgeving, groep=redactie, defaults={"rol": Rol.REDACTEUR})
         User = get_user_model()
         for naam, voornaam, groep, superuser in [
             ("medewerker", "Demo Medewerker", lezers, False),
             ("redacteur", "Demo Procesmanagement", redactie, False),
+            ("reviewer", "Demo Reviewer (Team Water)", reviewgroep, False),
             ("beheerder", "Demo Beheerder", None, True),
         ]:
             # Aanmaakdatum een week terug: wijzigingsmeldingen gelden alleen voor wijzigingen van ná de eerste inlog,
@@ -69,6 +73,15 @@ class Command(BaseCommand):
             if groep:
                 u.groups.add(groep)
             werk_staf_status_bij(u)
+        # Reviewproces (stap C): aan in de demo, met een Team Water voor het cluster Nat beheer. De
+        # reviewer leest ook de kennisbank zelf, dus hij is ook medewerker.
+        omgeving.reviewproces = True
+        omgeving.save(update_fields=["reviewproces"])
+        User.objects.get(username="reviewer").groups.add(lezers)
+        team, _ = Reviewteam.objects.get_or_create(
+            omgeving=omgeving, naam="Team Water", defaults={"groep": reviewgroep}
+        )
+        team.clusters.add(*Cluster.objects.filter(naam__in=["Nat beheer"]))
         # Bakken (1.15.0): een voorbeeldvoorstel dat al "in behandeling" is, hoort in de bak van iemand,
         # niet in de gezamenlijke bak. Werkt ook op een bestaande demodatabase, en doet niets als er al
         # een eigenaar is.
@@ -78,7 +91,7 @@ class Command(BaseCommand):
         )
         self.stdout.write(
             self.style.SUCCESS(
-                "Demo klaar. Inloggen met medewerker / redacteur / beheerder (wachtwoord: "
+                "Demo klaar. Inloggen met medewerker / redacteur / reviewer / beheerder (wachtwoord: "
                 + ("demo" if wachtwoord == "demo" else "zoals opgegeven")
                 + ")."
             )

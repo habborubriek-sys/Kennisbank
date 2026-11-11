@@ -29,6 +29,8 @@ from .models import (
     Artikel,
     Cluster,
     Conceptversie,
+    Inzage,
+    InzageStatus,
     Kladversie,
     Omgeving,
     Rol,
@@ -194,17 +196,30 @@ def _menu(request, omgevingen, namen_omgeving):
     nakijken = Artikel.objects.filter(
         status=Status.GEPUBLICEERD, omgeving_id__in=omgevingen, herzien_voor__lt=timezone.localdate()
     ).count()
+    artikelkant = [
+        {"sleutel": "concepten", "naam": "Concepten", "aantal": concepten},
+        {"sleutel": "kladversies", "naam": "Mijn kladversies", "aantal": klad},
+        {"sleutel": "nakijken", "naam": "Opnieuw nakijken", "aantal": nakijken},
+    ]
+    # Reviewproces (stap C): alleen als het in een van mijn omgevingen aanstaat.
+    if Omgeving.objects.filter(pk__in=omgevingen, reviewproces=True).exists():
+        lopend = Inzage.objects.filter(artikel__omgeving_id__in=omgevingen, afgesloten=False)
+        artikelkant.insert(
+            1,
+            {
+                "sleutel": "ter_inzage",
+                "naam": "Ter inzage",
+                "aantal": lopend.values("artikel_id").distinct().count(),
+                "oud": lopend.filter(status=InzageStatus.TERUGGEGEVEN).values("artikel_id").distinct().count(),
+            },
+        )
     return {
         "bakken": bakken,
         "personen": personen,
         "overig": [
             {"sleutel": "afgehandeld", "naam": "Afgehandeld", "aantal": afgehandeld},
         ],
-        "artikelkant": [
-            {"sleutel": "concepten", "naam": "Concepten", "aantal": concepten},
-            {"sleutel": "kladversies", "naam": "Mijn kladversies", "aantal": klad},
-            {"sleutel": "nakijken", "naam": "Opnieuw nakijken", "aantal": nakijken},
-        ],
+        "artikelkant": artikelkant,
         "mensen": mensen,
     }
 
@@ -348,6 +363,42 @@ def werkplek(request):
             .select_related("artikel__omgeving", "bijgewerkt_door")
             .order_by("-bijgewerkt_op")
         ]
+    elif bak == "ter_inzage":
+        titel = "Ter inzage"
+        uitleg = (
+            "Conceptversies die bij een reviewteam liggen of terugkwamen. Teruggegeven met opmerkingen staat "
+            "bovenaan. Publiceren kan altijd."
+        )
+        rijen = {}
+        for i in (
+            Inzage.objects.filter(artikel__omgeving_id__in=omgevingen, afgesloten=False)
+            .select_related("artikel", "artikel__omgeving", "team", "reviewer")
+            .order_by("-ronde", "team__naam")
+        ):
+            a = rijen.setdefault(
+                i.artikel_id,
+                {
+                    "titel": i.artikel.titel,
+                    "url": reverse("admin:kennisbank_artikel_change", args=[i.artikel_id]),
+                    "omgeving": i.artikel.omgeving.naam,
+                    "ronde": i.ronde,
+                    "teams": [],
+                    "teruggegeven": False,
+                },
+            )
+            if i.ronde != a["ronde"]:
+                continue  # alleen de laatste ronde
+            a["teams"].append(
+                {
+                    "naam": i.team.naam,
+                    "status": i.status,
+                    "label": i.get_status_display().lower(),
+                    "sinds": i.gestart_op,
+                    "bij": diensten.naam_van(i.reviewer) if i.reviewer_id else None,
+                }
+            )
+            a["teruggegeven"] = a["teruggegeven"] or i.status == InzageStatus.TERUGGEGEVEN
+        inhoud = {"inzages": sorted(rijen.values(), key=lambda r: (not r["teruggegeven"], r["titel"].lower()))}
     elif bak == "nakijken":
         titel = "Opnieuw nakijken"
         uitleg = "Gepubliceerde artikelen waarvan de herzieningsdatum is verstreken. Langst over datum bovenaan."

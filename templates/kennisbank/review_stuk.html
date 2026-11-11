@@ -1,0 +1,57 @@
+{% extends "kennisbank/review_basis.html" %}
+{% block titel %}{{ artikel.titel }}{% endblock %}
+{% block inhoud %}
+<p class="rv-terug"><a href="{% url 'review-lijst' %}">← Alles wat ter inzage ligt</a></p>
+<h1>{{ titel_verschil }}</h1>
+<div class="rv-statusbalk" role="status">
+  <span>{{ i.team.naam }}</span>
+  <span>{{ i.get_status_display }}{% if i.status != "ter_inzage" %} op {{ i.afgerond_op|date:"j F" }}{% endif %}</span>
+  <span>voorgelegd door <b>{{ door }}</b> op {{ i.gestart_op|date:"j F Y" }}</span>
+  <span>{% if bij %}ligt bij <b>{% if van_mij %}jou{% else %}{{ bij }}{% endif %}</b>{% else %}nog niet opgepakt{% endif %}</span>
+</div>
+
+<div class="rv-raster">
+  <section class="rv-tekst" aria-labelledby="rv-wijz">
+    <h2 id="rv-wijz">Wat is er veranderd</h2>
+    <p class="rv-uitleg">Ten opzichte van wat medewerkers nu zien (versie {{ basis_versie }}).
+      <ins>Nieuw</ins> en <del>weg</del> zijn gemarkeerd; {{ aantal_gewijzigd }} blok{{ aantal_gewijzigd|pluralize:"ken" }} gewijzigd.</p>
+    <p class="rv-samenvatting"><b>Samenvatting:</b> {{ samenvatting_verschil }}</p>
+    <div class="rv-verschil">{{ verschil }}</div>
+    <details class="rv-volledig"><summary>Toon de nieuwe tekst zoals medewerkers hem straks zien</summary>
+      <div class="art"><div class="sections">{{ nieuwe_tekst|safe }}</div></div>
+    </details>
+  </section>
+
+  <aside class="rv-zij" aria-label="Opmerkingen en reageren">
+    {% if open and not van_mij %}
+    <form method="post">{% csrf_token %}<button class="tb primary" type="submit" name="actie" value="oppakken">{% if bij %}Overnemen{% else %}Oppakken{% endif %}</button></form>
+    {% endif %}
+    <h2>Opmerkingen</h2>
+    {% if opmerkingen %}
+    <ul class="rv-opmerkingen">
+      {% for o in opmerkingen %}<li><span class="wie">{{ o.naam }} · {{ o.moment|date:"j F H:i" }}</span>{{ o.tekst|linebreaksbr }}</li>{% endfor %}
+    </ul>
+    {% else %}<p class="rv-leeg">Nog geen opmerkingen.</p>{% endif %}
+    {% if open %}
+    <form method="post" class="rv-form">{% csrf_token %}
+      <label for="rv-tekst">Opmerking</label>
+      <textarea id="rv-tekst" name="tekst" rows="5" maxlength="4000" placeholder="Bijvoorbeeld: in stap 3 klopt de termijn niet; dat is 6 weken."></textarea>
+      <div class="rv-knoppen">
+        <button class="tb" type="submit" name="actie" value="opmerking">Opmerking toevoegen</button>
+      </div>
+      <p class="rv-uitleg">Klaar met lezen?</p>
+      <div class="rv-knoppen">
+        <button class="tb" type="submit" name="actie" value="teruggeven">Teruggeven met opmerkingen</button>
+        <button class="tb primary" type="submit" name="actie" value="akkoord">Akkoord</button>
+      </div>
+      <p class="rv-uitleg">Wat je in het vak hierboven typt, gaat mee als opmerking. Akkoord geldt voor precies deze tekst:
+        wijzigt de redacteur daarna nog iets, dan vervalt het.</p>
+    </form>
+    {% endif %}
+    {% if eerder %}
+    <h2>Eerdere rondes</h2>
+    <ul class="rv-opmerkingen">{% for e in eerder %}<li><span class="wie">Ronde {{ e.ronde }} · {{ e.status }}</span>{% for o in e.opmerkingen %}{{ o.tekst|linebreaksbr }}<br>{% endfor %}</li>{% endfor %}</ul>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

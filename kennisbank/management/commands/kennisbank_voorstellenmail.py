@@ -7,12 +7,13 @@ alleen iets uit als er sinds de vorige keer iets nieuws is binnengekomen.
 
 from django.core.management.base import BaseCommand
 
-from kennisbank import diensten
+from kennisbank import diensten, review
 
 
 class Command(BaseCommand):
-    help = "Stuur redacteuren één e-mail met de verbetervoorstellen die sinds de vorige keer zijn binnengekomen."
+    help = "Stuur redacteuren en reviewers één e-mail met wat er sinds de vorige keer is binnengekomen."
 
     def handle(self, **opties):
         n = diensten.verstuur_voorstellenmail()
-        self.stdout.write(f"{n} samenvatting(en) verstuurd.")
+        r = review.verstuur_reviewmail()
+        self.stdout.write(f"{n} samenvatting(en) voor redacteuren en {r} voor reviewers verstuurd.")

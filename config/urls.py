@@ -4,7 +4,7 @@ from django.contrib.auth.views import LogoutView
 from django.urls import include, path, re_path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView
 
-from kennisbank import api, behandelen, views, werkoverzicht
+from kennisbank import api, behandelen, reviewweergave, views, werkoverzicht
 
 admin.site.site_header = f"{settings.KB_APP_NAAM} – beheer"
 admin.site.site_title = f"{settings.KB_APP_NAAM} – beheer"
@@ -59,6 +59,9 @@ urlpatterns = [
     path("beheer/voorstel/<int:pk>/", admin.site.admin_view(behandelen.voorstel_scherm), name="beheer-voorstel"),
     path("beheer/", admin.site.urls),
     path("uitloggen/", LogoutView.as_view(), name="uitloggen"),
+    # Leesweergave voor reviewers (stap C): bewust buiten het beheer.
+    path("review/", reviewweergave.lijst, name="review-lijst"),
+    path("review/<int:pk>/", reviewweergave.stuk, name="review-stuk"),
     path("login-voltooid/", views.login_voltooid, name="login-voltooid"),
     path("demo/zaaksysteem/", views.demo_zaaksysteem, name="demo-zaaksysteem"),
     path("zaaktype/<str:code>", views.ingebed, name="ingebed"),

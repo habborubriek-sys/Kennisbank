@@ -219,6 +219,7 @@
     $("#navStats").hidden = !isPM();
     // Redacteuren: in één klik naar hun werkplek in het beheer (functionele review 11 november, B9).
     $("#lnkWerkplek").hidden = !isPM() || EMBED;
+    $("#lnkReview").hidden = !(ik && ik.is_reviewer) || EMBED;  // leesweergave voor reviewteams (stap C)
     const terug = $("#embedTerug");
     if (terug) {
       // Vaste weg terug in het zaaksysteem: de zijbalk is daar verborgen, dus zonder deze knop kom je

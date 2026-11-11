@@ -17,6 +17,14 @@ class Omgeving(models.Model):
     slug = models.SlugField(unique=True)
     naam = models.CharField(max_length=120)
     beschrijving = models.TextField(blank=True)
+    #: Stap C van het reviewproces (ontwerp 11 november): conceptversies kunnen ter inzage naar een
+    #: reviewteam. Uit = alles werkt zoals daarvoor.
+    reviewproces = models.BooleanField(
+        "reviewproces gebruiken",
+        default=False,
+        help_text="Redacteuren kunnen een conceptversie ter inzage geven aan een reviewteam. Een review blokkeert "
+        "nooit de publicatie.",
+    )
 
     class Meta:
         verbose_name = "omgeving"
@@ -320,6 +328,9 @@ class ArtikelVersie(models.Model):
     )
     gepubliceerd_door = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     gepubliceerd_op = models.DateTimeField(default=timezone.now)
+    #: Hoe het met de review stond bij publicatie ("Akkoord van Team Water", "Gepubliceerd zonder
+    #: akkoord van …"). Leeg als het reviewproces niet werd gebruikt.
+    review = models.CharField(max_length=300, blank=True)
 
     class Meta:
         verbose_name = "artikelversie"
@@ -935,3 +946,101 @@ class Kladversie(models.Model):
     @property
     def open(self) -> bool:
         return self.afgesloten_op is None
+
+
+# --- Reviewproces (stap C, ontwerp 11 november) ------------------------------------------------
+
+
+class Reviewteam(models.Model):
+    """Een team dat conceptversies leest en akkoord geeft, bijvoorbeeld "Team Water".
+
+    Wie in de groep zit (in productie een Entra ID-groep), is reviewer voor dit team. Alleen een
+    beheerder maakt teams aan. De clusters bepalen welk team bij *Ter inzage* is voorgevuld.
+    """
+
+    naam = models.CharField(max_length=120)
+    omgeving = models.ForeignKey(Omgeving, on_delete=models.CASCADE, related_name="reviewteams")
+    groep = models.ForeignKey(
+        Group,
+        on_delete=models.PROTECT,
+        related_name="kennisbank_reviewteams",
+        help_text="De groep uit de identity provider (Entra ID). Iedereen in deze groep is reviewer voor dit team.",
+    )
+    clusters = models.ManyToManyField(
+        "Cluster",
+        blank=True,
+        related_name="reviewteams",
+        help_text="Bij artikelen met deze clusters staat dit team voorgevuld bij Ter inzage.",
+    )
+
+    class Meta:
+        verbose_name = "reviewteam"
+        verbose_name_plural = "reviewteams"
+        ordering = ["naam"]
+        constraints = [models.UniqueConstraint(fields=["omgeving", "naam"], name="reviewteam_naam_uniek")]
+
+    def __str__(self):
+        return self.naam
+
+
+class InzageStatus(models.TextChoices):
+    TER_INZAGE = "ter_inzage", "Ter inzage"
+    TERUGGEGEVEN = "teruggegeven", "Teruggegeven"
+    AKKOORD = "akkoord", "Akkoord"
+    TERUGGEROEPEN = "teruggeroepen", "Teruggeroepen"
+
+
+class Inzage(models.Model):
+    """Een conceptversie ter inzage bij één reviewteam. Eén rij per team per ronde.
+
+    Zolang er een rij *Ter inzage* is, staat de conceptversie op slot voor de redactie. Akkoord geldt
+    voor precies de tekst van dat moment (`akkoord_stempel`); verandert de conceptversie daarna, dan
+    vervalt het akkoord vanzelf. Bij publiceren of weggooien van de conceptversie worden de rijen
+    afgesloten (`afgesloten`): ze tellen dan niet meer mee, maar blijven als geschiedenis bestaan.
+    """
+
+    artikel = models.ForeignKey("Artikel", on_delete=models.CASCADE, related_name="inzages")
+    team = models.ForeignKey(Reviewteam, on_delete=models.CASCADE, related_name="inzages")
+    ronde = models.PositiveIntegerField(default=1)
+    status = models.CharField(max_length=20, choices=InzageStatus.choices, default=InzageStatus.TER_INZAGE)
+    #: De stempel van de conceptversie toen hij ter inzage ging, en bij akkoord.
+    concept_stempel = models.CharField(max_length=40, blank=True)
+    akkoord_stempel = models.CharField(max_length=40, blank=True)
+    gestart_door = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    gestart_op = models.DateTimeField(default=timezone.now)
+    reviewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    opgepakt_op = models.DateTimeField(null=True, blank=True)
+    afgerond_op = models.DateTimeField(null=True, blank=True)
+    afgesloten = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "inzage"
+        verbose_name_plural = "inzages"
+        ordering = ["-gestart_op", "pk"]
+        indexes = [models.Index(fields=["artikel", "afgesloten"], name="inzage_artikel_idx")]
+
+    def __str__(self):
+        return f"{self.artikel} bij {self.team} ({self.get_status_display()})"
+
+
+class ReviewOpmerking(models.Model):
+    """Een opmerking van een reviewer bij een conceptversie die ter inzage ligt."""
+
+    inzage = models.ForeignKey(Inzage, on_delete=models.CASCADE, related_name="opmerkingen")
+    auteur = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    tekst = models.TextField(max_length=4000)
+    moment = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "opmerking bij een review"
+        verbose_name_plural = "opmerkingen bij reviews"
+        ordering = ["moment", "pk"]
+
+    def __str__(self):
+        return f"Opmerking bij {self.inzage}"

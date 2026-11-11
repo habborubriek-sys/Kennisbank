@@ -1,0 +1,39 @@
+/* Leesweergave voor reviewers (/review/, stap C). Bouwt op app.css. */
+.review-pagina .top{display:flex;align-items:center;gap:16px}
+.rv-nav{display:flex;gap:16px;margin-left:auto}
+.rv-nav a{color:inherit;text-decoration:none;font-weight:600}
+.rv-nav a:hover{text-decoration:underline}
+.rv-main{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+.rv-main h1{margin:.2rem 0 .6rem}
+.rv-main h2{font-size:1.05rem;margin:1.4rem 0 .5rem}
+.rv-uitleg{color:var(--fg-muted);margin:.3rem 0 .8rem}
+.rv-leeg{color:var(--fg-muted)}
+.rv-terug{margin:0}
+.rv-statusbalk{display:flex;flex-wrap:wrap;gap:8px 18px;background:var(--surface-2,#eef2f7);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:0 0 16px}
+.rv-lijst{list-style:none;margin:0;padding:0}
+.rv-item{border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:0 0 8px;display:flex;flex-direction:column;gap:2px}
+.rv-van-mij{border-left:4px solid var(--accent)}
+.rv-titel{font-weight:600;font-size:1.02rem}
+.rv-meta{color:var(--fg-muted);font-size:.9rem}
+.rv-raster{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start}
+@media (max-width:1000px){.rv-raster{grid-template-columns:1fr}}
+.rv-verschil{line-height:1.6}
+.rv-verschil p,.rv-verschil h2,.rv-verschil h3,.rv-verschil h4{margin:.5rem 0}
+.rv-verschil .vs-li{padding-left:1rem}
+.rv-verschil .vs-gewijzigd,.rv-verschil .vs-nieuw,.rv-verschil .vs-weg{border-left:3px solid #b58500;padding-left:8px}
+.rv-main ins{background:#d8f3dc;color:#14532d;text-decoration:none;border-bottom:2px solid #2d6a4f}
+.rv-main del{background:#fde2e4;color:#7f1d1d;text-decoration:line-through}
+.rv-samenvatting{margin:.2rem 0 1rem}
+.rv-volledig{margin-top:1.4rem;border-top:1px solid var(--line);padding-top:.8rem}
+.rv-volledig summary{cursor:pointer;font-weight:600}
+.rv-zij form{margin:0 0 10px}
+.rv-form label{font-weight:600;display:block;margin-bottom:4px}
+.rv-form textarea{width:100%;box-sizing:border-box;font:inherit;padding:8px;border:1px solid var(--line);border-radius:6px}
+.rv-knoppen{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.rv-opmerkingen{list-style:none;margin:0 0 12px;padding:0}
+.rv-opmerkingen li{border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:0 0 6px}
+.rv-opmerkingen .wie{display:block;font-size:.8rem;color:var(--fg-muted);margin-bottom:2px}
+.rv-meldingen{list-style:none;margin:0 0 14px;padding:0}
+.rv-meldingen li{border-radius:6px;padding:8px 12px;margin:0 0 6px;background:var(--surface-2,#eef2f7)}
+.rv-meldingen li.warning{background:#fff1cc;color:#5c3d00}
+.rv-meldingen li.success{background:#dff1e3;color:#1e6b34}

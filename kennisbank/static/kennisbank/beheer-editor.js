@@ -972,8 +972,27 @@
     });
   }
 
+  // Ligt de conceptversie ter inzage bij een reviewteam, dan staat hij op slot: alleen-lezen, behalve
+  // de publicatievelden (publiceren kan altijd). De server publiceert dan sowieso de opgeslagen tekst.
+  function opSlot() {
+    if (!document.getElementById("kb-op-slot")) return;
+    if (inhoudEditor && inhoudEditor.setReadOnly) inhoudEditor.setReadOnly(true);
+    var publicatie = veld("wijzigingstoelichting");
+    document.querySelectorAll("#artikel_form fieldset.module").forEach(function (fs) {
+      if (publicatie && fs.contains(publicatie)) return;
+      fs.classList.add("kb-op-slot");
+      fs.setAttribute("aria-disabled", "true");
+      fs.querySelectorAll("input, textarea, select").forEach(function (el) {
+        if (el.type === "hidden") return;
+        el.setAttribute("readonly", "readonly");
+        el.tabIndex = -1;
+      });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     initAll();
+    opSlot();
     zachtSlot();
     tagSuggesties();
     kladversie();

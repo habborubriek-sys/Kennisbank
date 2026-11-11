@@ -1,0 +1,41 @@
+{% extends "kennisbank/review_basis.html" %}
+{% block titel %}Ter inzage{% endblock %}
+{% block inhoud %}
+<h1>Ter inzage</h1>
+{% if not teams %}
+  <p class="rv-uitleg">Je zit nog in geen reviewteam. Een beheerder koppelt reviewteams aan een groep; vraag procesmanagement
+    als je denkt dat je erin hoort.</p>
+{% else %}
+  <p class="rv-uitleg">Conceptversies die procesmanagement aan {% if teams|length == 1 %}je team{% else %}je teams{% endif %}
+    ({% for t in teams %}{{ t.naam }}{% if not forloop.last %}, {% endif %}{% endfor %}) heeft voorgelegd. Je leest, plaatst opmerkingen en
+    geeft het terug of geeft akkoord. Je bewerkt de tekst niet; publiceren doet procesmanagement.</p>
+  <div class="rv-statusbalk" role="status">
+    <span><b>{{ balk.totaal }}</b> ter inzage</span>
+    <span><b>{{ balk.bij_mij }}</b> bij jou</span>
+    <span><b>{{ balk.niet_opgepakt }}</b> nog niet opgepakt</span>
+    {% if balk.oudste %}<span>oudste sinds <b>{{ balk.oudste|date:"j F" }}</b></span>{% endif %}
+  </div>
+  {% if rijen %}
+  <ul class="rv-lijst">
+    {% for r in rijen %}
+    <li class="rv-item{% if r.van_mij %} rv-van-mij{% endif %}">
+      <a class="rv-titel" href="{{ r.url }}">{{ r.i.artikel.titel }}</a>
+      <span class="rv-meta">{{ r.i.team.naam }} · voorgelegd door {{ r.door }} op {{ r.i.gestart_op|date:"j F" }}
+        · {% if r.bij %}ligt bij {% if r.van_mij %}jou{% else %}{{ r.bij }}{% endif %}{% else %}nog niet opgepakt{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="rv-leeg">Er ligt niets ter inzage. Je krijgt een dagelijkse e-mail als er iets binnenkomt.</p>
+  {% endif %}
+  {% if afgerond %}
+  <h2>Onlangs afgerond</h2>
+  <ul class="rv-lijst rv-afgerond">
+    {% for r in afgerond %}
+    <li class="rv-item"><a class="rv-titel" href="{{ r.url }}">{{ r.i.artikel.titel }}</a>
+      <span class="rv-meta">{{ r.i.team.naam }} · {{ r.i.get_status_display|lower }}{% if r.bij %} door {{ r.bij }}{% endif %} op {{ r.i.afgerond_op|date:"j F" }}</span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+{% endif %}
+{% endblock %}

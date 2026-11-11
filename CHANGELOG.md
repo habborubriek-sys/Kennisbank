@@ -1,5 +1,20 @@
 # Wijzigingen
 
+## 1.19.0 – 2026-11-11
+
+Het reviewproces, stap C1 (bouwlijst `ronde3-reviewproces-bouwlijst.md`, keuzes van Alex van 11 november). Standaard uit; een beheerder zet het per omgeving aan.
+
+- **Reviewteams** (alleen een beheerder): naam, omgeving, de Entra ID-groep van het team en de clusters waarvoor het team is voorgevuld. Wie in de groep zit, is reviewer.
+- **Ter inzage** in de gele balk van een conceptversie: het team van het cluster staat aangevinkt, meer teams mag. De conceptversie staat daarna **op slot** (het scherm wordt alleen-lezen, en de server weigert opslaan als conceptversie). **Terugroepen** maakt hem weer vrij.
+- **Leesweergave voor reviewers** op `/review/`, buiten het beheer: een statusbalk (hoeveel ter inzage, bij jou, nog niet opgepakt, oudste), per stuk de nieuwe tekst met **de wijzigingen gemarkeerd** zoals in Word, oppakken ("ligt bij"), opmerkingen, **teruggeven met opmerkingen** of **akkoord**. Knop **Review** in de kennisbank voor reviewers.
+- **Akkoord-label** in het beheer: "Versie n akkoord bevonden door Team Water, datum". Bij meer teams pas als alle teams akkoord zijn. **Wijzigt de redacteur daarna iets, dan vervalt het akkoord.** Teruggegeven opmerkingen en eerdere rondes staan in de gele balk; de redacteur krijgt een e-mail bij teruggeven of akkoord.
+- **Publiceren kan altijd.** Ligt de conceptversie nog ter inzage, dan gaat precies de opgeslagen tekst live. De versiegeschiedenis heeft een kolom *Review*: "Akkoord van Team Water." of "Gepubliceerd zonder akkoord van …".
+- **Werkplek**: bak *Ter inzage* onder Artikelen, met de stand per team; teruggegeven bovenaan en in de telling.
+- **Dagelijkse samenvatting voor reviewers** (besluit c), via `opschonen` en `kennisbank_voorstellenmail`.
+- **Demo**: reviewproces aan, een Team Water (cluster Nat beheer) en het account `reviewer` / `demo`.
+- **Reparatie (uit 1.18.0)**: op het behandelscherm van een voorstel wezen de bakken in de linkerkolom naar het scherm zelf in plaats van naar de werkplek.
+- **Tests** (nu 446): ter inzage (voorgevuld, op slot, oud scherm, andere omgeving, niet dubbel, reviewproces uit), publiceren tijdens de review publiceert de conceptversie, terugroepen, weggooien, werkplekbak, de leesweergave (alleen het eigen team, niet ingelogd, wijzigingen gemarkeerd, oppakken, opmerking, teruggeven alleen met opmerking, akkoord en vervallen, versiegeschiedenis), meerdere teams en rondes, reviewteams alleen voor een beheerder, de samenvatting, `/ik`, het verschil (ook geen HTML). Elke bescherming tegen een bewust kapotte versie gedraaid; twee gaten gevonden en gedicht. In de browser nagelopen met de demo-accounts.
+
 ## 1.18.0 – 2026-11-11
 
 Ronde 2 uit de functionele review van 11 november (punt 10), met de besluiten c, d en e van Alex.

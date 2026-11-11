@@ -6,28 +6,28 @@
     <h2 class="kb-kolomkop">Werkvoorraad</h2>
     <ul class="kb-bakkenlijst">
       {% for b in w.menu.bakken %}
-      <li><a class="kb-bakregel{% if b.soort == "werkvoorraad" %} kb-werkvoorraad{% else %} kb-clusterbak{% endif %}{% if w.gekozen == b.sleutel %} gekozen{% endif %}" href="?bak={{ b.sleutel }}"{% if w.gekozen == b.sleutel %} aria-current="page"{% endif %}>
+      <li><a class="kb-bakregel{% if b.soort == "werkvoorraad" %} kb-werkvoorraad{% else %} kb-clusterbak{% endif %}{% if w.gekozen == b.sleutel %} gekozen{% endif %}" href="{% url 'beheer-start' %}?bak={{ b.sleutel }}"{% if w.gekozen == b.sleutel %} aria-current="page"{% endif %}>
         <span>{{ b.naam }}</span><span class="kb-aantal{% if b.aantal %} vol{% endif %}{% if b.oud %} oud{% endif %}"{% if b.oud %} title="{{ b.oud }} ligt al meer dan {{ w.lang_dagen }} dagen"{% endif %}>{{ b.aantal }}</span></a></li>
       {% endfor %}
     </ul>
     <h3 class="kb-kolomsub">Procesmanagers</h3>
     <ul class="kb-bakkenlijst">
       {% for p in w.menu.personen %}
-      <li><a class="kb-bakregel{% if p.ik %} kb-ik{% endif %}{% if w.gekozen == p.sleutel %} gekozen{% endif %}" href="?bak={{ p.sleutel }}"{% if w.gekozen == p.sleutel %} aria-current="page"{% endif %}>
+      <li><a class="kb-bakregel{% if p.ik %} kb-ik{% endif %}{% if w.gekozen == p.sleutel %} gekozen{% endif %}" href="{% url 'beheer-start' %}?bak={{ p.sleutel }}"{% if w.gekozen == p.sleutel %} aria-current="page"{% endif %}>
         <span>{{ p.naam }}{% if p.ik %} <span class="kb-jij">(jij)</span>{% endif %}{% if p.nieuw %} <b class="kb-nieuw">· {{ p.nieuw }} nieuw</b>{% endif %}</span><span class="kb-aantal{% if p.oud %} vol oud{% endif %}"{% if p.oud %} title="{{ p.oud }} ligt al meer dan {{ w.lang_dagen }} dagen"{% endif %}>{{ p.aantal }}</span></a></li>
       {% endfor %}
     </ul>
     <ul class="kb-bakkenlijst kb-gescheiden">
       {% for b in w.menu.overig %}
-      <li><a class="kb-bakregel{% if w.gekozen == b.sleutel %} gekozen{% endif %}" href="?bak={{ b.sleutel }}"{% if w.gekozen == b.sleutel %} aria-current="page"{% endif %}>
+      <li><a class="kb-bakregel{% if w.gekozen == b.sleutel %} gekozen{% endif %}" href="{% url 'beheer-start' %}?bak={{ b.sleutel }}"{% if w.gekozen == b.sleutel %} aria-current="page"{% endif %}>
         <span>{{ b.naam }}</span><span class="kb-aantal">{{ b.aantal }}</span></a></li>
       {% endfor %}
     </ul>
     <h2 class="kb-kolomkop">Artikelen</h2>
     <ul class="kb-bakkenlijst">
       {% for b in w.menu.artikelkant %}
-      <li><a class="kb-bakregel{% if w.gekozen == b.sleutel %} gekozen{% endif %}" href="?bak={{ b.sleutel }}"{% if w.gekozen == b.sleutel %} aria-current="page"{% endif %}>
-        <span>{{ b.naam }}</span><span class="kb-aantal">{{ b.aantal }}</span></a></li>
+      <li><a class="kb-bakregel{% if w.gekozen == b.sleutel %} gekozen{% endif %}" href="{% url 'beheer-start' %}?bak={{ b.sleutel }}"{% if w.gekozen == b.sleutel %} aria-current="page"{% endif %}>
+        <span>{{ b.naam }}{% if b.oud %} <b class="kb-nieuw">· {{ b.oud }} terug</b>{% endif %}</span><span class="kb-aantal">{{ b.aantal }}</span></a></li>
       {% endfor %}
     </ul>
     <div class="kb-kolomknoppen">
@@ -35,6 +35,6 @@
       <a class="button kb-knop" href="{{ w.nieuw_bericht_url }}">Nieuw bericht</a>
     </div>
     <ul class="kb-bakkenlijst kb-gescheiden">
-      <li><a class="kb-bakregel{% if w.is_alles %} gekozen{% endif %}" href="?bak=alles">Alle onderdelen</a></li>
+      <li><a class="kb-bakregel{% if w.is_alles %} gekozen{% endif %}" href="{% url 'beheer-start' %}?bak=alles">Alle onderdelen</a></li>
     </ul>
   </nav>

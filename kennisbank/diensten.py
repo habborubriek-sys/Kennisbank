@@ -113,7 +113,7 @@ def werk_zoekvectoren_bij(artikel_id: int) -> None:
 
 @transaction.atomic
 def registreer_publicatie(
-    artikel: Artikel, gebruiker=None, toelichting: str = "", kleine_correctie: bool = False
+    artikel: Artikel, gebruiker=None, toelichting: str = "", kleine_correctie: bool = False, review: str = ""
 ) -> ArtikelVersie | None:
     """Leg een nieuwe versie vast als een gepubliceerd artikel inhoudelijk is gewijzigd.
 
@@ -139,6 +139,7 @@ def registreer_publicatie(
         inhoud=inhoud,
         toelichting=toelichting[:300],
         kleine_correctie=kleine_correctie,
+        review=review[:300],
         gepubliceerd_door=gebruiker if gebruiker and gebruiker.is_authenticated else None,
         gepubliceerd_op=nu,
     )
@@ -703,6 +704,10 @@ class ConceptConflict(Exception):
     """De conceptversie is gewijzigd (of weg) sinds dit scherm werd geopend."""
 
 
+class ConceptOpSlot(ConceptConflict):
+    """De conceptversie ligt ter inzage bij een reviewteam en kan nu niet worden gewijzigd."""
+
+
 def concept_velden(cleaned_data) -> dict:
     """De velden van het bewerkformulier, zoals ze in een conceptversie worden bewaard."""
     from .inhoud import schoon
@@ -755,10 +760,14 @@ def concept_opslaan(artikel, gebruiker, velden, geladen: str) -> Conceptversie:
     was). Wijkt die af van wat er nu staat, dan heeft een collega intussen de conceptversie opgeslagen,
     gepubliceerd of weggegooid: ConceptConflict, zodat niemand ongemerkt andermans werk overschrijft.
     """
+    from .review import op_slot
+
     nu = timezone.now()
     with transaction.atomic():
         if concept_stand(artikel.pk) != (geladen or ""):
             raise ConceptConflict
+        if op_slot(artikel.pk):
+            raise ConceptOpSlot
         concept = Conceptversie.objects.filter(artikel=artikel).first()
         if concept is None:
             concept = Conceptversie(
@@ -776,6 +785,9 @@ def concept_opslaan(artikel, gebruiker, velden, geladen: str) -> Conceptversie:
 
 
 def concept_weggooien(artikel) -> bool:
+    from .review import afsluiten
+
+    afsluiten(artikel)  # wat ter inzage lag, telt niet meer mee
     return Conceptversie.objects.filter(artikel=artikel).delete()[0] > 0
 
 
@@ -786,7 +798,10 @@ def concept_gepubliceerd(artikel, door) -> bool:
     scherm eerst een bevestiging; de collega krijgt daarna een e-mail, zodat hij niet verder zoekt naar
     werk dat al live staat (functionele review 11 november, punt 4.3).
     """
+    from .review import afsluiten
+
     concept = Conceptversie.objects.filter(artikel=artikel).select_related("gestart_door", "bijgewerkt_door").first()
+    afsluiten(artikel)
     if concept is None:
         return False
     collegas = {u for u in (concept.gestart_door, concept.bijgewerkt_door) if u and u.pk != door.pk and u.email}

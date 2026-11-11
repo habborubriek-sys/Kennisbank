@@ -60,7 +60,35 @@ artikel heeft een nieuwe versie.
   doe je onderaan het gewone scherm, waar de toelichting staat.
 - Op je werkplek staan conceptversies onder **Concepten**, bovenaan, met het label *conceptversie*.
 - Een artikel dat nog nooit is gepubliceerd, heeft geen conceptversie nodig: het is zelf nog een concept.
-- De conceptversie is de basis voor het reviewproces dat nog komt (ter inzage bij een specialistisch team).
+- Staat het reviewproces aan, dan kun je een conceptversie **ter inzage** geven aan een reviewteam; zie hieronder.
+
+## Reviewproces: een conceptversie laten meelezen
+
+Staat in de omgeving **Reviewproces gebruiken** aan (een beheerder zet dat aan bij *Omgevingen*), dan kun je
+een conceptversie laten meelezen door een specialistisch team, bijvoorbeeld Team Water. Een review blokkeert
+nooit de publicatie: jij bent eindverantwoordelijk.
+
+1. **Sla je wijziging op als conceptversie.** In de gele balk staat onder *Review* welke teams er zijn; het team
+   van het cluster van het artikel staat al aangevinkt. Pas dat aan als dat nodig is (meer teams mag).
+2. **Ter inzage geven.** De conceptversie staat daarna **op slot**: je kunt hem niet wijzigen tot het team
+   reageert. Wil je toch verder, kies dan **Terugroepen**.
+3. **Het team leest** in een eigen, eenvoudige leesweergave (`/review/`). Een reviewer ziet de nieuwe tekst met
+   de wijzigingen gemarkeerd (zoals *wijzigingen bijhouden* in Word), pakt het stuk op ("ligt bij Piet"),
+   plaatst opmerkingen en **geeft het terug** of geeft **akkoord**. Reviewers bewerken niets en publiceren niets.
+4. **Teruggegeven?** Je krijgt een e-mail en ziet de opmerkingen in de gele balk. De conceptversie is weer vrij:
+   verwerk de opmerkingen, sla op en geef hem opnieuw ter inzage (een nieuwe ronde; eerdere rondes blijven
+   te zien).
+5. **Akkoord?** In de gele balk staat dan *Versie n akkoord bevonden door Team Water, datum*. Dit label zie je
+   alleen in het beheer. **Wijzig je daarna nog iets, dan vervalt het akkoord.** Bij meer teams verschijnt het
+   label pas als alle teams akkoord zijn; tot dan zie je per team de stand.
+6. **Publiceren kan altijd**, ook als het nog ter inzage ligt: dan gaat precies de opgeslagen conceptversie
+   live. In de versiegeschiedenis staat bij die versie "Akkoord van Team Water" of "Gepubliceerd zonder akkoord
+   van …".
+
+Op je werkplek staat onder *Artikelen* de bak **Ter inzage**, met per artikel de stand per team; wat is
+teruggegeven, staat bovenaan. Reviewers krijgen één e-mail per dag als er iets nieuws ter inzage komt. Wie
+reviewer is, regelt een beheerder onder **Reviewteams**: een naam, de omgeving, de groep uit Entra ID en de
+clusters waarvoor het team is voorgevuld. Een reviewer ziet in de kennisbank rechtsboven de knop **Review**.
 
 ## Wijzigingsmeldingen: wat medewerkers zien van een wijziging
 

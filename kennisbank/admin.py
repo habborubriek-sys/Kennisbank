@@ -37,6 +37,7 @@ from .models import (
     GroepLabel,
     Kladversie,
     Omgeving,
+    Reviewteam,
     Sjabloon,
     Soort,
     Status,
@@ -90,7 +91,7 @@ class VersieInline(admin.TabularInline):
     extra = 0
     max_num = 0  # geen lege regel onderaan; er valt hier niets toe te voegen
     can_delete = False
-    fields = ["versie", "gepubliceerd_op", "gepubliceerd_door", "toelichting", "kleine_correctie", "bekijk"]
+    fields = ["versie", "gepubliceerd_op", "gepubliceerd_door", "toelichting", "kleine_correctie", "review", "bekijk"]
     readonly_fields = fields
     verbose_name_plural = "Versiegeschiedenis (onveranderlijk)"
 
@@ -253,6 +254,7 @@ class ArtikelForm(forms.ModelForm):
             return data
         self._controleer_conflict(data)
         self._controleer_concept(data)
+        self._inhoud_op_slot(data)
         self._controleer_omvang(data)
         self._controleer_dubbele_titel(data)
         self._controleer_eerste_publicatie(data)
@@ -304,6 +306,32 @@ class ArtikelForm(forms.ModelForm):
                 "terwijl jij het openhad. Je wijzigingen zijn niet opgeslagen; ze staan nog in dit scherm. "
                 "Open het artikel in een nieuw tabblad om te zien wat er nu staat."
             )
+
+    def _inhoud_op_slot(self, data):
+        """Ligt de conceptversie ter inzage, dan publiceer je precies die tekst (reviewproces, stap C).
+
+        De conceptversie staat op slot: wat er in het scherm is veranderd, telt niet. Het scherm maakt de
+        velden alleen-lezen, maar de regel staat hier, zodat hij ook geldt als de browser iets anders stuurt.
+        """
+        from . import review
+
+        if not self.instance.pk or not review.op_slot(self.instance.pk):
+            return
+        concept = Conceptversie.objects.filter(artikel=self.instance).first()
+        if concept is None:
+            return
+        v = concept.velden or {}
+        for veld in ("titel", "samenvatting", "inhoud", "soort", "eigenaar", "tags_tekst"):
+            if veld in v:
+                data[veld] = v[veld]
+        if v.get("omgeving"):
+            data["omgeving"] = Omgeving.objects.filter(pk=v["omgeving"]).first() or data.get("omgeving")
+        if "herzien_voor" in v:
+            data["herzien_voor"] = datetime.date.fromisoformat(v["herzien_voor"]) if v["herzien_voor"] else None
+        if "clusters" in v:
+            data["clusters"] = Cluster.objects.filter(pk__in=v["clusters"])
+        if "zaaktypen" in v:
+            data["zaaktypen"] = Zaaktype.objects.filter(pk__in=v["zaaktypen"])
 
     def _controleer_eerste_publicatie(self, data):
         """Laatste controle voordat een artikel voor het eerst zichtbaar wordt voor medewerkers.
@@ -519,6 +547,16 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 "<int:pk>/bewerkclaim/",
                 self.admin_site.admin_view(self.bewerkclaim),
                 name="kennisbank_artikel_bewerkclaim",
+            ),
+            path(
+                "<int:pk>/ter-inzage/",
+                self.admin_site.admin_view(self.ter_inzage),
+                name="kennisbank_artikel_ter_inzage",
+            ),
+            path(
+                "<int:pk>/terugroepen/",
+                self.admin_site.admin_view(self.terugroepen),
+                name="kennisbank_artikel_terugroepen",
             ),
             path(
                 "<int:pk>/conceptversie/weggooien/",
@@ -905,6 +943,18 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 )
                 extra["kb_concept_artikel_gewijzigd"] = concept.basis_stempel != stempel_van(obj)
                 extra["kb_concept_bekijken"] = reverse("admin:kennisbank_artikel_concept_bekijken", args=[obj.pk])
+                from . import review
+
+                if review.gebruikt_review(obj):
+                    stand = review.stand(obj)
+                    voor = set(review.voorgevulde_teams(obj).values_list("pk", flat=True))
+                    extra["kb_review"] = stand
+                    extra["kb_review_teams"] = [
+                        {"pk": t.pk, "naam": t.naam, "gekozen": t.pk in voor}
+                        for t in obj.omgeving.reviewteams.order_by("naam")
+                    ]
+                    extra["kb_ter_inzage_url"] = reverse("admin:kennisbank_artikel_ter_inzage", args=[obj.pk])
+                    extra["kb_terugroepen_url"] = reverse("admin:kennisbank_artikel_terugroepen", args=[obj.pk])
                 extra["kb_concept_weggooien"] = reverse("admin:kennisbank_artikel_concept_weggooien", args=[obj.pk])
         return super().change_view(request, object_id, form_url, extra)
 
@@ -918,6 +968,9 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     diensten.concept_velden(form.cleaned_data),
                     form.cleaned_data.get("geladen_concept"),
                 )
+            except diensten.ConceptOpSlot:
+                request._kb_concept_conflict = True
+                request._kb_concept_op_slot = True
             except diensten.ConceptConflict:
                 request._kb_concept_conflict = True
             return
@@ -932,7 +985,15 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
 
     def response_change(self, request, obj):
         if getattr(request, "_kb_als_concept", False):
-            if getattr(request, "_kb_concept_conflict", False):
+            if getattr(request, "_kb_concept_op_slot", False):
+                self.message_user(
+                    request,
+                    "De conceptversie ligt ter inzage bij een reviewteam en staat op slot. Je wijzigingen zijn NIET "
+                    "opgeslagen; ze staan nog in de kladversie in deze browser. Roep de conceptversie eerst terug "
+                    "als je verder wilt werken.",
+                    messages.ERROR,
+                )
+            elif getattr(request, "_kb_concept_conflict", False):
                 self.message_user(
                     request,
                     "Een collega heeft de conceptversie opgeslagen, gepubliceerd of weggegooid terwijl jij het "
@@ -966,6 +1027,52 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             self.message_user(request, tekst, messages.SUCCESS)
             return redirect(werkplek_url())
         return super().response_change(request, obj)
+
+    def ter_inzage(self, request, pk):
+        """Knop *Ter inzage* in de gele balk: de conceptversie naar één of meer reviewteams."""
+        from . import review
+
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST"])
+        obj = get_object_or_404(self.get_queryset(request), pk=pk)
+        keuze = [int(t) for t in request.POST.getlist("reviewteams") if t.isdigit()]
+        teams = list(obj.omgeving.reviewteams.filter(pk__in=keuze))
+        try:
+            rijen = review.ter_inzage_geven(obj, request.user, teams, request.POST.get("geladen_concept", ""))
+        except review.ReviewFout as e:
+            self.message_user(request, str(e), messages.WARNING)
+        else:
+            namen = ", ".join(r.team.naam for r in rijen)
+            LogEntry.objects.log_actions(
+                request.user.pk,
+                [obj],
+                CHANGE,
+                change_message=f"Conceptversie ter inzage bij {namen}.",
+                single_object=True,
+            )
+            self.message_user(
+                request,
+                f"De conceptversie ligt ter inzage bij {namen}. Hij staat op slot tot het team reageert of je hem "
+                "terugroept. Publiceren kan altijd.",
+            )
+        return redirect(reverse("admin:kennisbank_artikel_change", args=[obj.pk]))
+
+    def terugroepen(self, request, pk):
+        from . import review
+
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST"])
+        obj = get_object_or_404(self.get_queryset(request), pk=pk)
+        if review.terugroepen(obj, request.user):
+            LogEntry.objects.log_actions(
+                request.user.pk,
+                [obj],
+                CHANGE,
+                change_message="Conceptversie teruggeroepen uit de review.",
+                single_object=True,
+            )
+            self.message_user(request, "De conceptversie is teruggeroepen. Je kunt er weer aan werken.")
+        return redirect(reverse("admin:kennisbank_artikel_change", args=[obj.pk]))
 
     def concept_weggooien(self, request, pk):
         if request.method != "POST":
@@ -1013,7 +1120,13 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 diensten.klad_afsluiten(request.user, form.instance)
             return
         super().save_related(request, form, formsets, change)
+        review_regel = ""
         if change:
+            from . import review
+
+            # Hoe stond de review? Dat komt in de versiegeschiedenis (stap C: publiceren kan altijd).
+            if Conceptversie.objects.filter(artikel=form.instance).exists():
+                review_regel = review.samenvatting_bij_publiceren(form.instance)
             # Gepubliceerd (of anders opgeslagen) vanuit dit scherm: de conceptversie is daarmee afgehandeld.
             diensten.concept_gepubliceerd(form.instance, request.user)
         diensten.claim_opheffen(form.instance, request.user)  # opgeslagen = niet meer aan het bewerken
@@ -1029,6 +1142,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             request.user,
             form.cleaned_data.get("wijzigingstoelichting", ""),
             kleine_correctie=bool(form.cleaned_data.get("kleine_correctie")),
+            review=review_regel,
         )
         if versie:
             if versie.versie == 1:
@@ -1750,6 +1864,42 @@ class SjabloonAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
+
+
+@admin.register(Reviewteam)
+class ReviewteamAdmin(admin.ModelAdmin):
+    """Reviewteams (stap C): alleen een beheerder maakt ze aan en koppelt ze aan een Entra ID-groep."""
+
+    list_display = ["naam", "omgeving", "groep", "clusterlijst"]
+    list_filter = ["omgeving"]
+    fields = ["naam", "omgeving", "groep", "clusters"]
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "clusters":
+            kwargs["widget"] = forms.CheckboxSelectMultiple
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
+
+    @admin.display(description="Clusters (voorgevuld)")
+    def clusterlijst(self, obj):
+        return ", ".join(obj.clusters.values_list("naam", flat=True)) or "—"
+
+    def _beheerder(self, request):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_module_permission(self, request):
+        return self._beheerder(request)
+
+    def has_view_permission(self, request, obj=None):
+        return self._beheerder(request)
+
+    def has_add_permission(self, request):
+        return self._beheerder(request)
+
+    def has_change_permission(self, request, obj=None):
+        return self._beheerder(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return self._beheerder(request)
 
 
 @admin.register(Omgeving)

@@ -1,5 +1,5 @@
 # Kennisbank – direct proberen:   docker compose up
-# Daarna: http://localhost:8000  (demo-accounts: medewerker / redacteur / beheerder, wachtwoord: demo)
+# Daarna: http://localhost:8000  (demo-accounts: medewerker / redacteur / reviewer / beheerder, wachtwoord: demo)
 #
 # Dit bestand is bedoeld om te proberen en te testen. Voor productie: zie docs/installatie-en-beheer.md.
 name: kennisbank
@@ -21,7 +21,7 @@ services:
 
   app:
     build: .
-    image: kennisbank:1.18.0
+    image: kennisbank:1.19.0
     depends_on:
       db:
         condition: service_healthy
