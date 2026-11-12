@@ -10,7 +10,7 @@ Eén centrale plek voor werkinstructies, werkafspraken en processen. Medewerkers
 docker compose up
 ```
 
-Open daarna http://localhost:8000 en log in als `medewerker`, `redacteur` of `beheerder` (wachtwoord `demo`). Je krijgt dan de voorbeeldinhoud uit het prototype. Op http://localhost:8000/demo/zaaksysteem/ zie je hoe de kennisbank eruitziet als hij in een zaaksysteem is ingebed.
+Open daarna http://localhost:8000 en log in als `medewerker`, `redacteur`, `reviewer` (lid van het reviewteam *Team Water*) of `beheerder` (wachtwoord `demo`). Je krijgt dan de voorbeeldinhoud uit het prototype. Op http://localhost:8000/demo/zaaksysteem/ zie je hoe de kennisbank eruitziet als hij in een zaaksysteem is ingebed.
 
 | Artikel met onboarding-uitleg | Assistent met bronnen | Ingebed in het zaaksysteem |
 |---|---|---|
