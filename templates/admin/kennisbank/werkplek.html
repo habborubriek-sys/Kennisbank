@@ -29,65 +29,58 @@
       </form>
       {% endif %}
       {% if w.inhoud.rijen %}
-      <ul class="kb-voorstellen">
+      {% with af=w.inhoud.zoekbaar sel=w.inhoud.selectie %}
+      {% comment %}
+        Sinds 1.26.0 een rustige lijst: één regel per voorstel, klik opent (een open voorstel in de editor van
+        het artikel, met de lade op dit voorstel). Toewijzen en verplaatsen via de vinkjes en de balk erboven.
+      {% endcomment %}
+      {% if not af %}
+      <form method="post" action="{{ w.selectie_url }}" id="kb-selectie" class="kb-selectiebalk">{% csrf_token %}
+        <input type="hidden" name="terug" value="{{ w.gekozen }}">
+        <span class="kb-selectie-uitleg">Vink voorstellen aan om ze toe te wijzen of te verplaatsen.</span>
+        <label class="visually-hidden" for="kb-sel-naar">Toewijzen aan</label>
+        <select name="naar" id="kb-sel-naar"><option value="">Toewijzen aan…</option>
+          {% for pk, naam in sel.collegas %}<option value="{{ pk }}">{% if pk == sel.ik %}Mijzelf ({{ naam }}){% else %}{{ naam }}{% endif %}</option>{% endfor %}
+          <option value="terug">Terug naar de werkvoorraad</option>
+        </select>
+        <button type="submit" name="actie" value="toewijzen" class="button">Toewijzen</button>
+        <label class="visually-hidden" for="kb-sel-bak">Naar een andere bak</label>
+        <select name="cluster" id="kb-sel-bak"><option value="">Naar bak…</option>
+          {% for pk, naam in sel.bakken %}<option value="{{ pk }}">{{ naam }}</option>{% endfor %}
+        </select>
+        <button type="submit" name="actie" value="naar_bak" class="button">Verplaatsen</button>
+      </form>
+      {% endif %}
+      <table class="kb-tabel kb-bak">
+        <thead><tr>
+          {% if not af %}<th scope="col" class="kb-bak-vink"><span class="visually-hidden">Selecteren</span></th>{% endif %}
+          <th scope="col" class="kb-bak-stip"><span class="visually-hidden">Nog niet geopend</span></th>
+          <th scope="col">Artikel</th><th scope="col">Voorstel</th>
+          {% if not af and not w.persoonlijk %}<th scope="col">Bij</th>{% endif %}
+          {% if w.meer_omgevingen %}<th scope="col">Omgeving</th>{% endif %}
+          {% if af %}<th scope="col">Uitkomst</th><th scope="col">Datum</th>{% else %}<th scope="col" class="kb-getal">Ligt</th><th scope="col" class="kb-getal">Steun</th>{% endif %}
+        </tr></thead>
+        <tbody>
         {% for r in w.inhoud.rijen %}{% with v=r.v %}
-        <li class="kb-voorstel">
-          <div class="kb-vkop">
-            <a class="kb-vtitel" href="{{ r.url }}">{{ v.artikel.titel }}</a>
-            <span class="kb-vstatus kb-status-{{ v.status }}">{{ v.get_status_display }}</span>
-            {% if r.nog_niet_geopend %}<span class="kb-label">nog niet geopend</span>{% endif %}
-            {% if v.verborgen %}<span class="kb-label">verborgen voor collega's</span>{% endif %}
-            <span class="kb-clusterlabel">{% if v.cluster %}{{ v.cluster.naam }}{% else %}Algemeen{% endif %}</span>
-          </div>
-          {% if v.citaat %}<blockquote class="kb-vcitaat">“{{ v.citaat|truncatechars:200 }}”</blockquote>{% endif %}
-          <p class="kb-vtekst">{{ v.tekst|truncatechars:300 }}</p>
-          <p class="kb-vmeta">
-            Ingediend {{ v.ingediend_op|date:"j F Y" }}
-            {% if r.eigenaar %} · bij {% if r.van_mij %}jou{% else %}{{ r.eigenaar }}{% endif %}{% if r.dagen is not None and v.is_open %} {% if r.dagen == 0 %}sinds vandaag{% else %}sinds {{ r.dagen }} dag{{ r.dagen|pluralize:"en" }}{% endif %}{% endif %}{% elif v.is_open and r.dagen is not None %} · {% if r.dagen == 0 %}sinds vandaag{% else %}ligt {{ r.dagen }} dag{{ r.dagen|pluralize:"en" }}{% endif %}{% endif %}
-            · {% if r.steun %}<b>{{ r.steun }} collega{{ r.steun|pluralize:"'s" }} steun{{ r.steun|pluralize:"t,en" }} dit</b>{% else %}nog geen steun{% endif %}
-            {% if w.meer_omgevingen %} · {{ v.artikel.omgeving.naam }}{% endif %}
-          </p>
-          {% if v.is_open %}
-          <div class="kb-vacties">
-            {% if not r.van_mij %}
-            <form method="post" action="{{ w.actie_url }}">{% csrf_token %}
-              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="geladen_eigenaar" value="{{ v.eigenaar_id|default:'' }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
-              <button type="submit" name="actie" value="oppakken" class="button">{% if r.eigenaar %}Overnemen{% else %}Oppakken{% endif %}</button>
-            </form>
+          <tr class="kb-bak-rij{% if r.nog_niet_geopend %} kb-bak-nieuw{% endif %}">
+            {% if not af %}<td class="kb-bak-vink"><input type="checkbox" name="voorstel" value="{{ v.pk }}-{{ v.eigenaar_id|default:0 }}" form="kb-selectie" aria-label="Selecteer het voorstel bij {{ v.artikel.titel }}"></td>{% endif %}
+            <td class="kb-bak-stip">{% if r.nog_niet_geopend %}<span class="kb-stip" title="Nog niet geopend"></span>{% endif %}</td>
+            <td><a class="kb-bak-link" href="{{ r.url }}">{{ v.artikel.titel }}</a></td>
+            <td class="kb-bak-snip">{{ r.titel }}</td>
+            {% if not af and not w.persoonlijk %}<td>{% if r.eigenaar %}{% if r.van_mij %}jij{% else %}{{ r.eigenaar }}{% endif %}{% else %}—{% endif %}</td>{% endif %}
+            {% if w.meer_omgevingen %}<td>{{ v.artikel.omgeving.naam }}</td>{% endif %}
+            {% if af %}
+            <td>{% if v.status == "verwerkt" and v.verwerkt_in_versie %}Verwerkt in versie {{ v.verwerkt_in_versie }}{% elif v.dubbel_van_id %}Dubbel{% else %}{{ v.get_status_display }}{% endif %}</td>
+            <td>{{ v.behandeld_op|date:"j F Y" }}</td>
+            {% else %}
+            <td class="kb-getal">{% if r.dagen is None %}—{% elif r.dagen == 0 %}vandaag{% else %}{{ r.dagen }} dag{{ r.dagen|pluralize:"en" }}{% endif %}</td>
+            <td class="kb-getal">{{ r.steun|default:"—" }}</td>
             {% endif %}
-            {% if r.eigenaar %}
-            <form method="post" action="{{ w.actie_url }}">{% csrf_token %}
-              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="geladen_eigenaar" value="{{ v.eigenaar_id|default:'' }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
-              <button type="submit" name="actie" value="terugleggen" class="button">Terugleggen</button>
-            </form>
-            {% endif %}
-            {% if r.collegas %}
-            <form method="post" action="{{ w.actie_url }}" class="kb-toewijzen">{% csrf_token %}
-              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="geladen_eigenaar" value="{{ v.eigenaar_id|default:'' }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
-              <label class="visually-hidden" for="naar-{{ v.pk }}">Toewijzen aan</label>
-              <select name="naar" id="naar-{{ v.pk }}"><option value="">Toewijzen aan…</option>
-                {% for pk, naam in r.collegas %}<option value="{{ pk }}">{{ naam }}</option>{% endfor %}
-              </select>
-              <button type="submit" name="actie" value="toewijzen" class="button">Toewijzen</button>
-            </form>
-            {% endif %}
-            {% if r.bakken %}
-            <form method="post" action="{{ w.actie_url }}" class="kb-toewijzen">{% csrf_token %}
-              <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="geladen_eigenaar" value="{{ v.eigenaar_id|default:'' }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
-              <label class="visually-hidden" for="bak-{{ v.pk }}">Naar een andere bak</label>
-              <select name="cluster" id="bak-{{ v.pk }}">
-                <option value="" disabled selected>Naar bak…</option>
-                {% for pk, naam in r.bakken %}<option value="{{ pk }}">{{ naam }}</option>{% endfor %}
-              </select>
-              <button type="submit" name="actie" value="naar_bak" class="button">Verplaatsen</button>
-            </form>
-            {% endif %}
-            <a class="button kb-openen" href="{{ r.url }}">Openen</a>
-          </div>
-          {% endif %}
-        </li>
+          </tr>
         {% endwith %}{% endfor %}
-      </ul>
+        </tbody>
+      </table>
+      {% endwith %}
       {% include "admin/kennisbank/werkplek_paginas.html" with pagina=w.inhoud.pagina gekozen=w.gekozen zoek=w.inhoud.zoek %}
       {% elif w.inhoud.zoek %}
       <p class="kb-leeg">Niets gevonden voor “{{ w.inhoud.zoek }}”.</p>

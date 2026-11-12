@@ -48,14 +48,12 @@ class BehandelschermTests(Scherm):
         v = self.voorstel(tekst="De termijn klopt niet")
         diensten.voorstelbericht_toevoegen(v, self.bram, "We kijken ernaar.", van_redactie=True, melden=False)
         diensten.steun_geven(v, self.piet)
-        html = self.als(self.anna).get(scherm(v)).content.decode()
-        self.assertIn("Ingediend door <b>Lies</b>", html)
-        self.assertIn("De termijn klopt niet", html)
+        # Sinds 1.26.0 opent een open voorstel in de editor; de lade krijgt alles mee als gegevens.
+        html = self.als(self.anna).get(scherm(v), follow=True).content.decode()
+        self.assertIn('"indiener": "Lies"', html)
+        self.assertIn('"tekst": "De termijn klopt niet"', html)
         self.assertIn("We kijken ernaar.", html)
-        self.assertIn("1 collega steunt dit:</b> Piet", html)
-        self.assertIn("Bericht aan Lies", html)
-        self.assertIn("Versturen en verwerkt", html)
-        self.assertIn("Interne notities", html)
+        self.assertIn('"steuners": ["Piet', html)
 
     def test_alleen_de_eigen_omgeving(self):
         v = self.voorstel()
@@ -177,7 +175,7 @@ class BehandelschermTests(Scherm):
         self.als(self.anna)
         self.post(v, "notitie", notitie="Gebeld met Toezicht.")
         self.assertEqual(list(v.notities.values_list("tekst", flat=True)), ["Gebeld met Toezicht."])
-        self.assertIn("Gebeld met Toezicht.", self.client.get(scherm(v)).content.decode())
+        self.assertIn("Gebeld met Toezicht.", self.client.get(scherm(v), follow=True).content.decode())
         eigen = self.als(self.lies).get("/api/v1/voorstellen?lijst=mijn").content.decode()
         self.assertNotIn("Gebeld met Toezicht", eigen)
         alle = self.als(self.piet).get("/api/v1/voorstellen?lijst=alle").content.decode()
@@ -210,7 +208,10 @@ class BehandelschermTests(Scherm):
 
     def test_werkplek_linkt_naar_het_scherm(self):
         v = self.voorstel()
-        self.assertIn(f"{scherm(v)}?terug=algemeen", self.als(self.anna).get("/beheer/").content.decode())
+        # Sinds 1.26.0 opent de regel de editor van het artikel met de lade op dit voorstel.
+        self.assertIn(
+            f"/artikel/{v.artikel_id}/change/?voorstel={v.pk}", self.als(self.anna).get("/beheer/").content.decode()
+        )
 
 
 class AfhandelenDienstTests(Basis):

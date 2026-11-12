@@ -80,7 +80,9 @@ class MeenemenTests(ReviewBasis):
         self.client.post(afhandelen, {f"bericht-{self.v.pk}": "x"})  # geen vinkje
         self.v.refresh_from_db()
         self.assertTrue(self.v.is_open)
-        self.assertIn("Verwerkt in versie 2", self.client.get(f"/beheer/voorstel/{self.v.pk}/").content.decode())
+        # Sinds 1.26.0 staat het open voorstel in de lade, met "al verwerkt in versie 2".
+        html = self.client.get(f"/beheer/voorstel/{self.v.pk}/", follow=True).content.decode()
+        self.assertIn('"verwerkt_in_versie": 2', html)
 
     def test_zonder_meegenomen_voorstellen_gewoon_naar_de_werkplek(self):
         self.maak_concept()

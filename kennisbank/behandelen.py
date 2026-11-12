@@ -168,6 +168,12 @@ def voorstel_scherm(request, pk):
     v, r = _voorstel_voor(request, pk)
     if not r.is_redacteur:
         raise Http404
+    # 1.26.0: een open voorstel behandel je in de editor van het artikel (de lade); dit scherm is er nog
+    # voor afgehandelde voorstellen (alleen-lezen) en voor oude links, die hier doorverwijzen.
+    if v.is_open:
+        return redirect(
+            reverse("admin:kennisbank_artikel_change", args=[v.artikel_id]) + "?" + urlencode({"voorstel": v.pk})
+        )
     diensten.voorstel_gezien_door_eigenaar(v, request.user)
     return TemplateResponse(request, "admin/kennisbank/voorstel.html", _context(request, v, r, terug))
 

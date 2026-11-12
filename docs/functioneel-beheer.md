@@ -384,56 +384,73 @@ Algemeen). Kies je geen bak, dan gebeurt er niets. Een clusterbak is gewoon een 
 er voorstellen uit. Het cluster blijft als label bij het voorstel staan, ook als iemand het heeft opgepakt;
 leg je het terug, dan komt het in die bak.
 
-**Bakken.** Van daaruit:
+**De bak is een lijst** (sinds 1.26.0). Eén regel per voorstel: het artikel, het begin van het voorstel, bij
+wie het ligt, hoe lang al en hoeveel steun. Een stip en vette letters: de eigenaar heeft het nog niet geopend.
+**Klik op een regel** om het voorstel te openen. Er staan geen knoppen per regel; zo zie je in één oogopslag
+wat er ligt.
+
+**Toewijzen en verplaatsen** doe je in de bak: vink een of meer voorstellen aan en kies in de balk erboven
 
 | Wat je doet | Hoe | Wat er gebeurt |
 |---|---|---|
-| **Oppakken** | Knop *Oppakken* in de werkvoorraad, of in het voorstel bij *Bak* jezelf kiezen | Het voorstel gaat naar jouw bak. Een nieuw voorstel krijgt de status *In behandeling* |
-| **Toewijzen** | *Toewijzen aan…* een collega kiezen, of in het voorstel bij *Bak* | Het gaat naar de bak van je collega; die krijgt een e-mail. Een nieuw voorstel krijgt *In behandeling* |
-| **Overnemen** | Knop *Overnemen* bij een voorstel in de bak van een collega | Het gaat naar jouw bak; in de geschiedenis van het voorstel staat "Overgenomen uit de bak van …" |
-| **Terugleggen** | Knop *Terugleggen*, of bij *Bak* "Niemand" kiezen | Terug in de werkvoorraad (in de bak van zijn cluster, of Algemeen). Is er nog geen bericht naar de indiener gestuurd, dan gaat de status terug naar *Nieuw*; anders blijft het *In behandeling* |
-| **Openen** | Op de titel of *Openen* klikken | Het behandelscherm (zie hieronder). Na afhandelen kom je terug in de bak waar je vandaan kwam |
+| **Oppakken** | *Toewijzen aan…* → *Mijzelf* | Het voorstel gaat naar jouw bak. Een nieuw voorstel krijgt de status *In behandeling* |
+| **Toewijzen** | *Toewijzen aan…* een collega | Het gaat naar de bak van je collega; die krijgt een e-mail. Een nieuw voorstel krijgt *In behandeling* |
+| **Terugleggen** | *Toewijzen aan…* → *Terug naar de werkvoorraad* | Terug in de werkvoorraad (in de bak van zijn cluster, of Algemeen). Is er nog geen bericht naar de indiener gestuurd, dan gaat de status terug naar *Nieuw* |
+| **Verplaatsen** | *Naar bak…* | Naar een andere clusterbak of Algemeen |
 
-Iedereen in de redactie kan in elkaars bak kijken en er een voorstel uit overnemen, bijvoorbeeld bij ziekte
-of vakantie. Heeft een collega je iets toegewezen dat je nog niet opende, dan opent de werkplek met jouw bak.
-Een aantal kleurt **rood** als er in die bak iets langer dan 30 dagen ligt. Vanuit de kennisbank kom je met
-de knop **Werkplek** rechtsboven op je werkplek. "Nog niet geopend" staat erbij zolang de eigenaar het voorstel nog niet heeft bekeken.
+Heeft een collega een aangevinkt voorstel intussen opgepakt (nadat jij de bak opende), dan slaat de
+kennisbank dat voorstel over en zegt bij wie het ligt. De rest gaat gewoon door.
 
-**Wie afhandelt, is eigenaar.** Zet je een voorstel op *Verwerkt* of *Afgewezen*, dan komt het in jouw
-bak — ook als het bij een collega lag. Zet je de status van een voorstel uit de werkvoorraad, dan neem je
-het daarmee ook in je bak. Zet je de status terug op *Nieuw*, dan blijft het in de bak waar het lag.
+Iedereen in de redactie kan in elkaars bak kijken. Heeft een collega je iets toegewezen dat je nog niet opende,
+dan opent de werkplek met jouw bak. Een aantal kleurt **rood** als er in die bak iets langer dan 30 dagen ligt.
+Vanuit de kennisbank kom je met de knop **Werkplek** rechtsboven op je werkplek.
 
-**Het behandelscherm.** Links blijft de kolom van je werkplek staan. Rechts:
+**Een voorstel behandel je in het artikel zelf.** Klik je op een regel, dan opent het bewerkscherm van het
+artikel met links de **lade Verbetervoorstellen** open, op dat voorstel. De lade schuift open en dicht met het
+blauwe tabblad dat uit de linkerrand steekt (met het aantal open voorstellen bij dit artikel).
 
-- **Het voorstel**, met de tekst die de indiener selecteerde *in de tekst van het artikel* (geel gemarkeerd), zodat
-  je het artikel niet apart hoeft te openen. Staat die tekst er niet meer letterlijk in, dan zie je dat.
-- **Het gesprek** met de indiener en daaronder **Bericht aan [naam]**, met de knoppen **Versturen**, **Versturen en
-  verwerkt** en **Versturen en afwijzen**. De indiener krijgt elk bericht als melding en per e-mail; je kunt het
-  daarna niet meer aanpassen. Verstuur je een bericht bij een voorstel uit de werkvoorraad, dan pak je het
-  daarmee op.
-- **Afwijzen als dubbel**: kies bij *Afwijzen als dubbel van* het andere voorstel bij hetzelfde artikel en klik
-  *Versturen en afwijzen*. Voorstellen worden niet samengevoegd en de steun gaat niet mee (anders telt een
-  steunbetuiging dubbel; besluit van Alex).
-- Ernaast: **Bak** (oppakken, terugleggen, toewijzen, verplaatsen), **Verbergen voor collega's** en de
-  **interne notities**.
-- **Iemand anders was je voor.** Heeft een collega intussen een bericht gestuurd, de status veranderd of (bij
-  afhandelen) het voorstel verplaatst, dan wordt er niets verstuurd. Je ziet wat er gebeurde en je tekst staat er
-  nog; lees het en kies dan opnieuw. Hetzelfde geldt op de werkplek: klik je *Oppakken*, *Terugleggen* of
-  *Toewijzen* bij een voorstel dat intussen bij een collega ligt, dan gebeurt er niets en zie je bij wie het
-  ligt. Overnemen kan daarna bewust. *Verbergen voor collega's* en *Meenemen* zetten precies de stand die je
-  ziet: heeft een collega het al gedaan, dan krijg je "Dat had een collega al gedaan".
+- **Elk open voorstel bij dit artikel** staat in de lade als één regel met een **nummer** en een **titel** (de
+  eerste zin van het voorstel), daaronder in welke sectie het speelt, de steun en bij wie het ligt.
+- **In de tekst** staat de tekst die de indiener selecteerde **blauw** met een stippellijn, met hetzelfde
+  **ronde nummer** erachter. Klik op het nummer om het voorstel in de lade te openen. Opmerkingen van een
+  reviewteam blijven **geel** met een **vierkant** nummer, in de marge rechts. Staat de tekst er niet meer
+  letterlijk in, dan zegt de lade dat.
+- **Klik op een voorstel** om het uit te klappen: de tekst, wie het indiende (alleen de redactie ziet dat),
+  wanneer, en wie het steunt.
 
-**Interne notities** zijn alleen voor de redactie: de indiener en collega's zien ze nooit. Gebruik ze voor wat
-de volgende behandelaar moet weten ("gebeld met Toezicht, wacht op antwoord"), bijvoorbeeld bij ziekte of
-vakantie. Bij het anonimiseren van een afgehandeld voorstel worden ze verwijderd.
+**Meenemen in deze versie.** Ga je het voorstel verwerken, vink dan *Meenemen in deze versie* aan. **Dat telt
+pas als je opslaat** (*Afronden → Opslaan als concept*, *Ter inzage aanbieden* of *Publiceren*). Ga je weg
+zonder opslaan, dan waarschuwt de browser; het voorstel blijft dan in de bak liggen en is niet opgepakt.
 
-**Meenemen in de nieuwe versie.** Ga je een voorstel verwerken in het artikel, kies dan in het behandelscherm
-**Meenemen in de nieuwe versie** (meestal de conceptversie). In het paneel *Geschiedenis* van het artikel staat dan welke
-voorstellen erin zitten. Publiceer je het artikel, dan opent de kennisbank een scherm met per meegenomen
-voorstel een **voorgevuld bericht** ("We hebben het verwerkt in versie n …"). Pas het aan als je wilt en
-kies *Versturen en afhandelen*; laat je het vinkje weg, dan blijft het voorstel open met "Verwerkt in versie
-n" en handel je het later af. Een **kleine correctie** (typfout) en een spoedcorrectie nemen geen voorstellen mee,
-en gooi je de conceptversie weg, dan gaat *meenemen* bij de voorstellen weer uit.
+- **Wie meeneemt, wordt eigenaar.** Ligt het voorstel bij een collega, dan vraagt de kennisbank eerst of je het
+  wilt overnemen; bij het opslaan krijgt die collega een e-mail.
+- **Publiceer je**, dan opent de kennisbank een scherm met per meegenomen voorstel een **voorgevuld bericht**
+  ("We hebben het verwerkt in versie n …"). Pas het aan als je wilt en kies *Versturen en afhandelen*; laat je
+  het vinkje weg, dan blijft het voorstel open met "Al verwerkt in versie n" in de lade, en handel je het later af.
+- **Spoedcorrectie**: ook dan kun je meenemen (bijvoorbeeld een spelfout); het hoort bij de correctie die je
+  publiceert.
+- **Ligt de conceptversie ter inzage**, dan kun je niet meenemen. Een voorstel dat al is meegenomen, kun je
+  dan ook niet afwijzen tot de review terug is.
+- Een **kleine correctie** neemt geen voorstellen mee, en gooi je de conceptversie weg, dan gaat *meenemen*
+  bij de voorstellen weer uit.
+
+**Bericht aan de indiener of interne notitie.** Twee tabbladen, steeds één zichtbaar, zodat je ze niet
+verwisselt:
+
+- **✉ Bericht aan [naam]** (blauw vak): gaat per e-mail naar de indiener en staat daarna bij het voorstel.
+  Versturen vraagt eerst een bevestiging, met je bericht erin. Het is eenrichtingsverkeer: de indiener kan
+  niet reageren; overleg gaat via Teams of mail. Verstuur je een bericht bij een voorstel uit de werkvoorraad,
+  dan pak je het daarmee op.
+- **🔒 Interne notitie** (geel vak met stippellijn): alleen voor de redactie. De indiener, collega's en
+  reviewers zien hem nooit. Voor wat de volgende behandelaar moet weten ("gebeld met Toezicht, wacht op
+  antwoord"). Bij het anonimiseren van een afgehandeld voorstel worden notities verwijderd.
+
+**Afhandelen zonder wijziging** kan ook in de lade: **Afwijzen…** of **Dubbel…** (kies het andere voorstel
+bij hetzelfde artikel; voorstellen worden niet samengevoegd en de steun gaat niet mee). Beide vragen een
+afsluitend bericht aan de indiener. Daaronder **Verbergen voor collega's**, bijvoorbeeld als er een naam van
+een collega in staat.
+
+**Afgehandeld** is het archief. Een afgehandeld voorstel opent alleen-lezen, niet in de editor.
 
 **Afhandelen gaat met een bericht.** Bij *Verwerkt* of *Afgewezen* schrijf je de indiener waarom; zonder dat
 bericht gebeurt er niets. Dat bericht is het antwoord dat de indiener krijgt. Handel je een voorstel af dat in

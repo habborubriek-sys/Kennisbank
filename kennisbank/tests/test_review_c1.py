@@ -21,6 +21,7 @@ from kennisbank.models import (
     InzageStatus,
     Reviewteam,
     Status,
+    VoorstelStatus,
 )
 from kennisbank.tests.test_bakken import Basis
 from kennisbank.tests.test_kennisbank import beheerdata
@@ -328,7 +329,9 @@ class BeheerEnMailTests(ReviewBasis):
         self.assertFalse(self.als(self.anna).get("/api/v1/ik").json()["is_reviewer"])
 
     def test_linkerkolom_op_het_behandelscherm_wijst_naar_de_werkplek(self):
+        # Sinds 1.26.0 bestaat het scherm alleen nog voor afgehandelde voorstellen (alleen-lezen).
         v = self.voorstel()
+        diensten.voorstel_afhandelen(v, self.anna, VoorstelStatus.AFGEWEZEN, "Niet nodig.")
         html = self.als(self.anna).get(f"/beheer/voorstel/{v.pk}/").content.decode()
         self.assertIn('href="/beheer/?bak=afgehandeld"', html)
         self.assertNotIn('href="?bak=', html)

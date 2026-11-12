@@ -4,7 +4,7 @@ from django.contrib.auth.views import LogoutView
 from django.urls import include, path, re_path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView
 
-from kennisbank import api, behandelen, reviewweergave, views, werkoverzicht
+from kennisbank import api, behandelen, lade, reviewweergave, views, werkoverzicht
 
 admin.site.site_header = f"{settings.KB_APP_NAAM} – beheer"
 admin.site.site_title = f"{settings.KB_APP_NAAM} – beheer"
@@ -56,7 +56,13 @@ urlpatterns = [
     # dit pad wint. admin_view zorgt voor dezelfde inlogcontrole als de rest van het beheer.
     path("beheer/", admin.site.admin_view(werkoverzicht.werkplek), name="beheer-start"),
     path("beheer/werkplek/actie/", admin.site.admin_view(werkoverzicht.werkplek_actie), name="beheer-werkplek-actie"),
+    path(
+        "beheer/werkplek/selectie/",
+        admin.site.admin_view(werkoverzicht.werkplek_selectie),
+        name="beheer-werkplek-selectie",
+    ),
     path("beheer/voorstel/<int:pk>/", admin.site.admin_view(behandelen.voorstel_scherm), name="beheer-voorstel"),
+    path("beheer/voorstel/<int:pk>/lade/", admin.site.admin_view(lade.lade_actie), name="beheer-voorstel-lade"),
     path("beheer/", admin.site.urls),
     path("uitloggen/", LogoutView.as_view(), name="uitloggen"),
     # Leesweergave voor reviewers (stap C): bewust buiten het beheer.

@@ -71,7 +71,11 @@
     }
 
     // De balk is sticky; de werkbalk van de editor plakt eronder.
-    function balkHoogte() { document.body.style.setProperty("--kb-balk-h", balk.offsetHeight + "px"); }
+    function balkHoogte() {
+      document.body.style.setProperty("--kb-balk-h", balk.offsetHeight + "px");
+      var wb = document.querySelector(".kb-ae-werkbalk");
+      if (wb) document.body.style.setProperty("--kb-werkbalk-h", wb.offsetHeight + "px"); // de lade begint eronder
+    }
     balkHoogte();
     window.addEventListener("resize", balkHoogte);
 

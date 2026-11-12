@@ -209,7 +209,8 @@ body.kb-met-opm .kb-marge { display: block; }
 .kb-ae-kaart:hover, .kb-ae-kaart.kb-ae-actief { box-shadow: 0 4px 14px rgba(15, 27, 45, .15); border-color: #d4a017; }
 .kb-ae-kaart::before { content: ""; position: absolute; left: -21px; top: 15px; width: 20px; border-top: 2px dotted #d4a017; }
 .kb-ae-kaart.kb-ae-alg::before { display: none; }
-.kb-ae-nr { flex: none; width: 22px; height: 22px; border-radius: 11px; background: var(--kb-geel); color: #2b2000; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.kb-ae-nr { flex: none; min-width: 22px; height: 22px; padding: 0 4px; border-radius: 4px; background: #b58500; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+/* Vierkant en oranje: zo verschillen opmerkingen van de review van de ronde blauwe nummers van verbetervoorstellen (1.26.0). */
 .kb-ae-nr.kb-ae-alg { background: #d5dbe3; color: #17212b; }
 .kb-ae-kaarttekst { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .kb-ae-wie { font-size: 12px; color: var(--kb-zacht); }

@@ -175,10 +175,13 @@ class Bevindingen(ReviewBasis):
         self.assertTrue(v.in_conceptversie)
 
     def test_5c_het_scherm_stuurt_de_stand_mee(self):
+        # Sinds 1.26.0 vanuit de lade: de knop stuurt de gewenste stand, dus twee keer klikken draait niets terug.
         v = self.voorstel(artikel=self.a)
-        html = self.als(self.anna).get(f"/beheer/voorstel/{v.pk}/").content.decode()
-        self.assertIn('name="waarde" value="1"><button type="submit" name="actie" value="verbergen"', html)
-        self.assertIn('name="waarde" value="1"><button type="submit" name="actie" value="meenemen"', html)
+        c = self.als(self.anna)
+        for _ in range(2):
+            c.post(f"/beheer/voorstel/{v.pk}/lade/", {"actie": "verbergen", "waarde": "1"})
+        v.refresh_from_db()
+        self.assertTrue(v.verborgen)
 
     @override_settings(KB_EMAIL_AAN=True)
     def test_6_archiveren_via_de_lijst_stopt_de_review_en_bewaart_het_concept(self):
@@ -289,9 +292,10 @@ class Bevindingen(ReviewBasis):
         self.assertEqual(v.eigenaar, self.anna)
 
     def test_9b_de_werkplek_stuurt_de_eigenaar_mee(self):
-        self.voorstel(artikel=self.a)
+        # Sinds 1.26.0 de vinkjes van de selectiebalk: voorstel en eigenaar bij het laden.
+        v = self.voorstel(artikel=self.a)
         html = self.als(self.anna).get(f"/beheer/?bak=cluster-{self.water.pk}").content.decode()
-        self.assertIn('name="geladen_eigenaar" value=""', html)
+        self.assertIn(f'name="voorstel" value="{v.pk}-0"', html)
 
     # --- Laag ---------------------------------------------------------------------------------
 

@@ -106,6 +106,21 @@
 {% for veld in f.hidden_fields %}{{ veld }}{% endfor %}
 <div class="kb-ae-werkbalk"><div class="kb-ae-werkbalk-in" role="toolbar" aria-label="Opmaak van de tekst"></div></div>
 
+{% if kb_lade %}
+{# Verbetervoorstellen (1.26.0): de lade links. Meenemen telt pas bij opslaan: deze twee velden gaan mee. #}
+{{ kb_lade|json_script:"kb-lade-gegevens" }}
+<input type="hidden" name="kb_lade" id="kb-lade-ids" value="">
+<input type="hidden" name="kb_meenemen" id="kb-meenemen" value="">
+<aside class="kb-lade" id="kb-lade" aria-label="Verbetervoorstellen" hidden>
+  <div class="kb-lade-scroll">
+    <div class="kb-lade-kop"><h2>Verbetervoorstellen</h2></div>
+    <p class="kb-lade-uitleg">Open voorstellen bij dit artikel. Klik op een voorstel om het te lezen en te behandelen.{% if not kb_spoed %} Meenemen telt pas als je opslaat.{% endif %}</p>
+    <div id="kb-lade-meldingen"></div>
+    <div id="kb-lade-lijst"></div>
+  </div>
+</aside>
+<button type="button" class="kb-lip" id="kb-lip" aria-controls="kb-lade" aria-expanded="false" hidden title="Verbetervoorstellen"><span class="kb-lip-pijl" aria-hidden="true">▶</span><span class="kb-lip-teller" id="kb-lip-teller">0</span><span class="kb-lip-tekst">Voorstellen</span></button>
+{% endif %}
 <div class="kb-werkvlak">
   <div class="kb-blad">
     <span class="kb-blad-soort" data-kb-soort>{% if original %}{{ original.get_soort_display }}{% else %}Werkinstructie{% endif %}</span>

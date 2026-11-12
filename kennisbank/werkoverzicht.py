@@ -234,11 +234,22 @@ def _voorstellen(request, qs, omgevingen, bak):
     clusterkeuzes = clusters_van(omgevingen)
     terug = bak
     rijen = []
+    from .lade import titel_van
+
     for v in pagina.object_list:
         rijen.append(
             {
                 "v": v,
-                "url": reverse("beheer-voorstel", args=[v.pk]) + "?" + urlencode({"terug": terug}),
+                "titel": titel_van(v.tekst),
+                # 1.26.0: een open voorstel opent in de editor van het artikel, met de lade open op dit
+                # voorstel; een afgehandeld voorstel in het (alleen-lezen) voorstelscherm.
+                "url": (
+                    reverse("admin:kennisbank_artikel_change", args=[v.artikel_id])
+                    + "?"
+                    + urlencode({"voorstel": v.pk})
+                    if v.is_open
+                    else reverse("beheer-voorstel", args=[v.pk]) + "?" + urlencode({"terug": terug})
+                ),
                 "artikel_url": reverse("admin:kennisbank_artikel_change", args=[v.artikel_id]),
                 "eigenaar": diensten.naam_van(v.eigenaar) if v.eigenaar_id else None,
                 "van_mij": v.eigenaar_id == request.user.pk,
@@ -252,7 +263,20 @@ def _voorstellen(request, qs, omgevingen, bak):
                 else [(str(pk), naam) for pk, naam in clusterkeuzes],
             }
         )
-    return {"rijen": rijen, "pagina": pagina}
+    # De selectiebalk (1.26.0): toewijzen en verplaatsen gebeurt in de werkbak, voor één of meer voorstellen.
+    alle_collegas = {}
+    for lijst in keuzes.values():
+        for pk, naam in lijst:
+            alle_collegas[pk] = naam
+    return {
+        "rijen": rijen,
+        "pagina": pagina,
+        "selectie": {
+            "collegas": sorted(alle_collegas.items(), key=lambda x: (x[0] != request.user.pk, x[1].lower())),
+            "bakken": [("algemeen", "Algemeen")] + [(str(pk), naam) for pk, naam in clusterkeuzes],
+            "ik": request.user.pk,
+        },
+    }
 
 
 def _artikelen(request, qs, sleutel):
@@ -448,6 +472,8 @@ def werkplek(request):
             "inhoud": inhoud,
             "is_alles": bak == "alles",
             "actie_url": reverse("beheer-werkplek-actie"),
+            "selectie_url": reverse("beheer-werkplek-selectie"),
+            "persoonlijk": bak.startswith("u") and bak[1:].isdigit(),
             "nieuw_artikel_url": reverse("admin:kennisbank_artikel_add"),
             "nieuw_bericht_url": reverse("admin:kennisbank_bericht_add"),
             "url": werkplek_url,
@@ -528,6 +554,94 @@ def werkplek_actie(request):
     werkwoord = {"oppakken": "opgepakt", "terugleggen": "teruggelegd", "toewijzen": "toegewezen"}[actie]
     model_admin._verplaats(request, Verbetervoorstel.objects.filter(pk=v.pk), naar, werkwoord)
     return _terug_naar(request, v, terug)
+
+
+def werkplek_selectie(request):
+    """POST vanuit de selectiebalk van de werkbak (1.26.0): een of meer voorstellen toewijzen, terugleggen of
+    naar een andere bak verplaatsen. Wat niet kan (al afgehandeld, collega niet van die omgeving), wordt
+    overgeslagen en gemeld; de rest gaat door."""
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    r = rechten(request)
+    terug = request.POST.get("terug") or None
+    # Elk vinkje stuurt "voorstel-eigenaar bij het laden" mee (zoals geladen_eigenaar vroeger, review 1.20.1
+    # bevinding 9): heeft een collega het intussen opgepakt, dan slaan we het over en zeggen we dat.
+    geladen = {}
+    for x in request.POST.getlist("voorstel"):
+        pk, _, eig = x.partition("-")
+        if pk.isdigit():
+            geladen[int(pk)] = int(eig) if eig.isdigit() else None
+    voorstellen = list(
+        Verbetervoorstel.objects.filter(
+            pk__in=list(geladen), artikel__omgeving_id__in=r.redactie_omgevingen
+        ).select_related("artikel", "eigenaar")
+    )
+    intussen = [v for v in voorstellen if geladen.get(v.pk) is not None and geladen[v.pk] != (v.eigenaar_id or 0)]
+    for v in intussen:
+        waar = f"bij {diensten.naam_van(v.eigenaar)}" if v.eigenaar_id else "weer in de werkvoorraad"
+        messages.warning(request, f"Het voorstel bij '{v.artikel.titel}' ligt intussen {waar}; dat is overgeslagen.")
+    voorstellen = [v for v in voorstellen if v not in intussen]
+    if intussen and not voorstellen:
+        return redirect(werkplek_url(terug))
+    if not voorstellen:
+        messages.warning(request, "Vink eerst een of meer voorstellen aan.")
+        return redirect(werkplek_url(terug))
+    actie = request.POST.get("actie")
+    model_admin = admin.site._registry[Verbetervoorstel]
+    gedaan, fouten = 0, []
+    if actie == "toewijzen":
+        keuze = request.POST.get("naar") or ""
+        if keuze == "terug":
+            naar = None
+        else:
+            naar = get_user_model().objects.filter(pk=keuze, is_active=True).first() if keuze.isdigit() else None
+            if naar is None:
+                messages.warning(request, "Kies eerst aan wie je de voorstellen toewijst.")
+                return redirect(werkplek_url(terug))
+        for v in voorstellen:
+            try:
+                diensten.voorstel_naar_bak(v, request.user, naar)
+            except diensten.VoorstelFout as e:
+                fouten.append(f"'{v.artikel.titel}': {e}")
+                continue
+            model_admin.log_change(
+                request, v, f"Toegewezen aan {diensten.naam_van(naar)}." if naar else "Teruggelegd in de werkvoorraad."
+            )
+            gedaan += 1
+        if gedaan:
+            wie = "jou" if naar and naar.pk == request.user.pk else (diensten.naam_van(naar) if naar else None)
+            messages.success(
+                request,
+                f"{gedaan} voorstel{'len' if gedaan > 1 else ''} "
+                + (f"toegewezen aan {wie}." if wie else "teruggelegd in de werkvoorraad."),
+            )
+    elif actie == "naar_bak":
+        keuze = request.POST.get("cluster") or ""
+        if not keuze:
+            messages.warning(request, "Kies eerst een bak.")
+            return redirect(werkplek_url(terug))
+        cluster = None
+        if keuze != "algemeen":
+            toegestaan = dict(clusters_van(sorted(r.redactie_omgevingen)))
+            if not keuze.isdigit() or int(keuze) not in toegestaan:
+                raise Http404
+            cluster = Cluster.objects.get(pk=int(keuze))
+        waar = cluster.naam if cluster else "Algemeen"
+        for v in voorstellen:
+            try:
+                diensten.voorstel_naar_clusterbak(v, request.user, cluster)
+            except diensten.VoorstelFout as e:
+                fouten.append(f"'{v.artikel.titel}': {e}")
+                continue
+            model_admin.log_change(request, v, f"Verplaatst naar de bak {waar}.")
+            gedaan += 1
+        if gedaan:
+            messages.success(request, f"{gedaan} voorstel{'len' if gedaan > 1 else ''} verplaatst naar de bak {waar}.")
+    else:
+        raise Http404
+    for f in fouten:
+        messages.warning(request, f"Niet gelukt bij {f}")
+    return redirect(werkplek_url(terug))
 
 
 def _terug_naar(request, v, terug):

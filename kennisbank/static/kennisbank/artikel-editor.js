@@ -167,6 +167,76 @@
     },
   });
 
+  /* Verbetervoorstellen (1.26.0): het citaat blauw met een stippellijn en een rond nummer erachter. Net als
+   * de opmerkingen een decoratie: het hoort niet bij de tekst en gaat niet mee bij opslaan. */
+  var vsSleutel = new T.PluginKey("kbVoorstellen");
+
+  function vsDecoraties(doc, lijst) {
+    var deco = [];
+    (lijst || []).forEach(function (v) {
+      v._plek = null;
+      if (!v.citaat) return;
+      var r = vind(doc, v.citaat);
+      v._plek = r;
+      if (!r) return;
+      deco.push(T.Decoration.inline(r.from, r.to, { class: "kb-ae-vs" + (v.actief ? " kb-ae-vs-actief" : ""), "data-vs": String(v.id) }));
+      deco.push(T.Decoration.widget(r.to, function () {
+        var s = document.createElement("sup");
+        s.className = "kb-ae-vsnr" + (v.actief ? " kb-ae-vsnr-actief" : "");
+        s.textContent = String(v.nr);
+        s.setAttribute("data-vs", String(v.id));
+        s.setAttribute("contenteditable", "false");
+        s.title = "Verbetervoorstel " + v.nr;
+        return s;
+      }, { side: 1, key: "vs" + v.id + "-" + v.nr + (v.actief ? "a" : ""), ignoreSelection: true }));
+    });
+    return T.DecorationSet.create(doc, deco);
+  }
+
+  function sectieVoor(doc, pos) {
+    var kop = "";
+    doc.nodesBetween(0, pos, function (node, p) {
+      if (p >= pos) return false;
+      if (node.type.name === "sectieKop" || node.type.name === "heading") kop = node.textContent;
+      return true;
+    });
+    return kop;
+  }
+
+  var Voorstellen = T.Extension.create({
+    name: "kbVoorstellen",
+    addOptions: function () { return { opKlik: null }; },
+    addProseMirrorPlugins: function () {
+      var ext = this;
+      return [
+        new T.Plugin({
+          key: vsSleutel,
+          state: {
+            init: function () { return { lijst: [], deco: T.DecorationSet.empty }; },
+            apply: function (tr, oud, _o, nieuw) {
+              var lijst = tr.getMeta(vsSleutel);
+              if (lijst !== undefined) return { lijst: lijst, deco: vsDecoraties(nieuw.doc, lijst) };
+              if (tr.docChanged) return { lijst: oud.lijst, deco: vsDecoraties(nieuw.doc, oud.lijst) };
+              return oud;
+            },
+          },
+          props: {
+            decorations: function (state) { return vsSleutel.getState(state).deco; },
+            handleDOMEvents: {
+              mousedown: function (view, e) {
+                var t = e.target.closest && e.target.closest("sup.kb-ae-vsnr");
+                if (!t || !ext.options.opKlik) return false;
+                e.preventDefault();
+                ext.options.opKlik(Number(t.getAttribute("data-vs")));
+                return true;
+              },
+            },
+          },
+        }),
+      ];
+    },
+  });
+
   /* --- Hulpjes ---------------------------------------------------------------------------- */
 
   function el(tag, cls, tekst) {
@@ -652,6 +722,7 @@
         Sectie,
         Onboarding,
         Opmerkingen,
+        Voorstellen.configure({ opKlik: function (id) { if (opties.opVoorstel) opties.opVoorstel(id); else if (window.kbOpVoorstel) window.kbOpVoorstel(id); } }),
       ],
       editorProps: {
         attributes: { class: "kb-ae-inhoud art", "aria-label": opties.eenvoudig ? "Tekst" : "Tekst van het artikel", role: "textbox", "aria-multiline": "true" },
@@ -675,6 +746,26 @@
       synchronizeValues: function () { textarea.value = naarOpslag(ed.getHTML()); },
       setReadOnly: function (aan) { ed.setEditable(!aan); wrapper.classList.toggle("kb-ae-alleen-lezen", !!aan); },
       opmerkingen: function (lijst) { if (opm) opm.zet(lijst); },
+      // Verbetervoorstellen markeren: lijst van {id, nr, citaat, actief}. Geeft per id terug of het citaat
+      // gevonden is en in welke sectie het staat.
+      voorstellen: function (lijst) {
+        lijst = (lijst || []).map(function (v) { return { id: v.id, nr: v.nr, citaat: v.citaat, actief: !!v.actief }; });
+        ed.view.dispatch(ed.state.tr.setMeta(vsSleutel, lijst).setMeta("addToHistory", false));
+        var info = {};
+        lijst.forEach(function (v) {
+          info[v.id] = { gevonden: !!v._plek, sectie: v._plek ? sectieVoor(ed.state.doc, v._plek.from) : "" };
+        });
+        return info;
+      },
+      naarVoorstel: function (id) {
+        var st = vsSleutel.getState(ed.state);
+        var v = (st.lijst || []).filter(function (x) { return x.id === id; })[0];
+        if (!v || !v._plek) return false;
+        var dom = ed.view.domAtPos(v._plek.from);
+        var node = dom.node.nodeType === 1 ? dom.node : dom.node.parentElement;
+        if (node && node.scrollIntoView) node.scrollIntoView({ block: "center", behavior: "smooth" });
+        return true;
+      },
       tekenMarge: function () { if (opm) opm.teken(); },
       focus: function () { ed.commands.focus("start"); },
     };

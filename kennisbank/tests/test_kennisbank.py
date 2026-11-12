@@ -2529,8 +2529,8 @@ class VoorstelGesprekTests(Basis):
         diensten.voorstelbericht_toevoegen(self.v, self.redacteur, "Opgepakt", van_redactie=True, melden=False)
         r = self.als(self.redacteur).get(f"/beheer/kennisbank/verbetervoorstel/{self.v.pk}/change/", follow=True)
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, "Gesprek met")
-        self.assertContains(r, "Opgepakt")
+        # Sinds 1.26.0 in de lade van het bewerkscherm.
+        self.assertContains(r, '"berichten": [{"tekst": "Opgepakt"')
 
     def test_een_bericht_via_de_inline_wordt_verstuurd(self):
         c = self.als(self.redacteur)

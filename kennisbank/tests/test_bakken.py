@@ -219,9 +219,12 @@ class BakkenBeheerTests(Basis):
         self.assertEqual(v.eigenaar, self.bram)
 
     def test_keuzelijst_bevat_alleen_redacteuren_van_de_omgeving(self):
-        v = self.voorstel()
-        html = self.als(self.anna).get(wijzig_url(v), follow=True).content.decode()
-        self.assertIn("Bram", html)
+        # Sinds 1.26.0 wijs je toe in de werkbak (de selectiebalk).
+        self.voorstel()
+        html = self.als(self.anna).get("/beheer/?bak=algemeen").content.decode()
+        sel = html[html.index('id="kb-sel-naar"') : html.index("</select>", html.index('id="kb-sel-naar"'))]
+        self.assertIn("Bram", sel)
+        html = sel
         self.assertNotIn(">Zoe<", html)
         self.assertNotIn(">Piet<", html)
 
@@ -268,8 +271,9 @@ class BakkenBeheerTests(Basis):
     def test_redactie_ziet_wie_steunt(self):
         v = self.voorstel()
         diensten.steun_geven(v, self.piet)
+        # Sinds 1.26.0 in de lade van het bewerkscherm: de namen staan in de gegevens van de lade.
         html = self.als(self.anna).get(wijzig_url(v), follow=True).content.decode()
-        self.assertIn("1 collega steunt dit:</b> Piet", html)
+        self.assertIn('"steuners": ["Piet', html)
 
     def test_redacteur_van_zuid_ziet_niets_van_noord(self):
         v = self.voorstel()
@@ -308,10 +312,12 @@ class WerkplekTests(Basis):
         self.assertEqual([x["v"].pk for x in r.context["werkplek"]["inhoud"]["rijen"]], [v.pk])
         html = r.content.decode()
         self.assertIn("Bak van Bram", html)
-        self.assertIn("Overnemen", html)
+        # Sinds 1.26.0 een rustige lijst: een regel die de editor opent, en de selectiebalk erboven.
+        self.assertIn(f"?voorstel={v.pk}", html)
+        self.assertIn('id="kb-selectie"', html)
+        self.assertNotIn("Overnemen", html)
         r = self.werkplek(self.anna)  # standaard: de werkvoorraad
         self.assertEqual([x["v"].tekst for x in r.context["werkplek"]["inhoud"]["rijen"]], ["In de werkvoorraad"])
-        self.assertIn("Oppakken", r.content.decode())
 
     def test_afgehandeld_is_het_archief(self):
         self.voorstel(tekst="klaar", status=VoorstelStatus.VERWERKT, eigenaar=self.anna)

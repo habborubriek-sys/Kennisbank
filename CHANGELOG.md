@@ -1,5 +1,18 @@
 # Wijzigingen
 
+## 1.26.0 – 2026-11-12
+
+Verbetervoorstellen behandelen in de editor, stap 1 (bouwlijst `bouwlijst-1.26.0-voorstellen-in-editor.md`, ontwerp en prototype met Alex).
+
+- **De werkbak is een rustige lijst.** Eén regel per voorstel (artikel, begin van het voorstel, bij wie, hoe lang, steun), klik opent. Geen knoppen per regel meer.
+- **Toewijzen en verplaatsen in de werkbak**, via vinkjes en een balk erboven, ook voor meerdere voorstellen tegelijk. Heeft een collega een aangevinkt voorstel intussen opgepakt, dan wordt het overgeslagen en gemeld.
+- **Een open voorstel opent in het bewerkscherm van het artikel**, met links een **lade Verbetervoorstellen** (een tabblad dat uit de linkerrand steekt). Daarin alle open voorstellen bij het artikel, genummerd, met als titel de eerste zin.
+- **In de tekst** staat het citaat blauw met een stippellijn en hetzelfde ronde nummer; klik op het nummer opent het voorstel. Opmerkingen van de review blijven geel, nu met een vierkant oranje nummer. Kleine legenda in de infobalk.
+- **Meenemen in deze versie** telt pas bij opslaan. Wie meeneemt wordt eigenaar; ligt het voorstel bij een collega, dan eerst een vraag, en bij opslaan krijgt die collega een e-mail. Kan ook bij een spoedcorrectie; niet terwijl de versie ter inzage ligt.
+- **Bericht aan de indiener en interne notitie** in twee aparte tabbladen (blauw en geel); versturen vraagt een bevestiging. **Afwijzen** en **Dubbel** met een afsluitend bericht; een meegenomen voorstel kun je niet afwijzen zolang de review loopt. **Verbergen voor collega's** staat er ook.
+- **Het behandelscherm** bestaat alleen nog voor afgehandelde voorstellen (alleen-lezen). Oude links en e-mails naar een open voorstel komen in de editor uit.
+- Tests (nu 546); in de browser nagelopen.
+
 ## 1.25.1 – 2026-11-12
 
 - **Kleinere balk in het bewerkscherm** (wens Alex: "nog steeds te groot"). De blauwe balk is nu één regel: ← Werkplek, de titel, de knoppen en Afronden. De labels (Conceptversie, stand van de review) en de details staan eronder in een dunne, lichte infobalk met kleine letters. Geldt ook voor nieuwsberichten.

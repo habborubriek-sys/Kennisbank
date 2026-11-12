@@ -64,8 +64,9 @@ class Bovenbalk(ReviewBasis):
         Verbetervoorstel.objects.create(artikel=self.a, artikel_versie=self.a.versie, tekst="De termijn klopt niet.")
         self.client.force_login(self.anna)
         html = self.client.get(f"/beheer/?bak=cluster-{self.water.pk}").content.decode()
-        self.assertIn('value="oppakken" class="button">', html)
-        self.assertIn('class="button kb-openen"', html)
+        # Sinds 1.26.0 een lijst zonder knoppen per regel; de selectiebalk heeft gewone (omrande) knoppen.
+        self.assertIn('name="actie" value="toewijzen" class="button">', html)
+        self.assertNotIn("button default", html[html.index('id="kb-selectie"') :])
 
 
 class OnlangsAfgerond(ReviewBasis):

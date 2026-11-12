@@ -24,7 +24,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.formats import date_format
 from django.utils.html import format_html
 
-from . import diensten
+from . import diensten, lade
 from .models import (
     AFGEHANDELD,
     GUID_PATROON,
@@ -582,12 +582,20 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
 
     class Media:
         # Het bewerkscherm voor artikelen (1.22.0): de editor Tiptap en de nieuwe indeling.
-        css = {"all": ["kennisbank/fonts.css", "kennisbank/beheer-editor.css", "kennisbank/artikel-scherm.css"]}
+        css = {
+            "all": [
+                "kennisbank/fonts.css",
+                "kennisbank/beheer-editor.css",
+                "kennisbank/artikel-scherm.css",
+                "kennisbank/voorstellen-lade.css",
+            ]
+        }
         js = [
             "kennisbank/vendor/tiptap/tiptap.min.js",
             "kennisbank/artikel-editor.js",
             "kennisbank/artikel-scherm.js",
             "kennisbank/beheer-editor.js",
+            "kennisbank/voorstellen-lade.js",
         ]
 
     def get_urls(self):
@@ -996,12 +1004,27 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             {"als_concept": als_concept, "conceptversie": None if spoed else concept, "spoed": spoed},
         )
 
+    def _mag_lade(self, request, obj) -> bool:
+        return self.has_change_permission(request, obj) and rechten(request).mag_redigeren(obj)
+
     def change_view(self, request, object_id, form_url="", extra_context=None):
         extra = extra_context or {}
         obj = self.get_object(request, object_id)
         if obj is not None:
             concept = self._concept_van(obj)
             extra["kb_kan_concept"] = self._kan_concept(obj)
+            if self._mag_lade(request, obj):
+                from . import review as _review
+
+                extra["kb_lade"] = lade.lade_gegevens(
+                    obj, request.user, request.GET.get("voorstel"), op_slot=_review.op_slot(obj.pk)
+                )
+                open_pk = extra["kb_lade"]["open"]
+                if open_pk:
+                    # Geopend vanuit de werkbak: telt als gezien (de stip in de werkbak gaat weg).
+                    Verbetervoorstel.objects.filter(pk=open_pk, eigenaar=request.user).update(
+                        eigenaar_gezien_op=timezone.now()
+                    )
             extra["kb_meegenomen"] = [
                 {"titel": v.tekst[:90], "url": reverse("beheer-voorstel", args=[v.pk])}
                 for v in Verbetervoorstel.objects.filter(artikel=obj, in_conceptversie=True, status__in=OPEN_VOORSTEL)
@@ -1378,6 +1401,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             diensten.claim_opheffen(form.instance, request.user)
             if not getattr(request, "_kb_concept_conflict", False):
                 diensten.klad_afsluiten(request.user, form.instance)
+                lade.meenemen_opslaan(request, form.instance)  # 1.26.0: de vinkjes in de lade
             return
         super().save_related(request, form, formsets, change)
         review_regel = ""
@@ -1408,6 +1432,9 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             [Tag.objects.get_or_create(naam=n)[0] for n in tags_uit_tekst(form.cleaned_data.get("tags_tekst", ""))]
         )
         diensten.herbouw_secties(form.instance)  # ook de zoekdocumenten, dus ná de tags
+        # 1.26.0: de vinkjes *Meenemen in deze versie* in de lade. Bij een spoedcorrectie horen ze bij de
+        # versie die nu wordt gepubliceerd (hieronder), anders volgen ze het gewone meenemen.
+        spoed_mee = lade.meenemen_opslaan(request, form.instance, spoed=spoed) if change else []
         versie = diensten.registreer_publicatie(
             form.instance,
             request.user,
@@ -1423,6 +1450,11 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             )
             if meegenomen.update(in_conceptversie=False, verwerkt_in_versie=versie.versie):
                 request._kb_meegenomen = True
+        if versie and spoed and spoed_mee:
+            Verbetervoorstel.objects.filter(pk__in=spoed_mee, status__in=OPEN_VOORSTEL).update(
+                in_conceptversie=False, verwerkt_in_versie=versie.versie
+            )
+            request._kb_meegenomen = True
         if versie:
             if versie.versie == 1:
                 messages.info(request, "Gepubliceerd als versie 1.")
