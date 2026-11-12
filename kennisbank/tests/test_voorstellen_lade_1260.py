@@ -282,3 +282,34 @@ class Werkbak(LadeBasis):
         self.assertEqual(r["Location"], f"/beheer/kennisbank/artikel/{self.a.pk}/change/?voorstel={v.pk}")
         diensten.voorstel_afhandelen(v, self.anna, VoorstelStatus.AFGEWEZEN, "Niet nodig.")
         self.assertEqual(self.client.get(f"/beheer/voorstel/{v.pk}/").status_code, 200)  # afgehandeld: alleen-lezen
+
+
+class Reviewer(LadeBasis):
+    """1.27.0: de reviewer ziet de meegenomen voorstellen als context, zonder de naam van de indiener."""
+
+    def test_meegenomen_voorstel_zonder_naam(self):
+        from kennisbank.models import Inzage
+
+        mee = self.voorstel(tekst="De termijn is drie weken geworden.", citaat="twee weken")
+        los = self.voorstel(tekst="Iets anders, niet meegenomen.")
+        diensten.notitie_toevoegen(mee, self.anna, "Interne notitie over Lies")
+        self.maak_concept()
+        self.opslaan_als_concept([mee, los], [mee])
+        self.ter_inzage()
+        i = Inzage.objects.get(artikel=self.a, team=self.team_water)
+        self.client.force_login(self.wim)
+        html = self.client.get(f"/review/{i.pk}/").content.decode()
+        blok = html[html.index('class="rv-voorstellen"') : html.index('class="rv-verschil"')]
+        self.assertIn("De termijn is drie weken geworden.", blok)
+        self.assertNotIn("Iets anders", blok)
+        self.assertNotIn("Lies", html)
+        self.assertNotIn("Interne notitie", html)
+
+    def test_zonder_meegenomen_voorstellen_geen_blok(self):
+        from kennisbank.models import Inzage
+
+        self.maak_concept()
+        self.ter_inzage()
+        i = Inzage.objects.get(artikel=self.a, team=self.team_water)
+        self.client.force_login(self.wim)
+        self.assertNotIn('class="rv-voorstellen"', self.client.get(f"/review/{i.pk}/").content.decode())

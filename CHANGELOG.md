@@ -1,5 +1,12 @@
 # Wijzigingen
 
+## 1.27.0 – 2026-11-12
+
+Verbetervoorstellen behandelen in de editor, stap 2.
+
+- **De reviewer ziet waarom de tekst veranderde.** Op de reviewpagina staat boven de wijzigingen een blauw blok *Waarom deze wijziging* met de verbetervoorstellen die in deze versie zijn meegenomen: het citaat en de tekst. **Niet** wie het indiende, en niet de interne notities of berichten (besluit van Alex). Zonder meegenomen voorstellen staat het blok er niet.
+- Tests (nu 548); in de browser nagelopen.
+
 ## 1.26.0 – 2026-11-12
 
 Verbetervoorstellen behandelen in de editor, stap 1 (bouwlijst `bouwlijst-1.26.0-voorstellen-in-editor.md`, ontwerp en prototype met Alex).

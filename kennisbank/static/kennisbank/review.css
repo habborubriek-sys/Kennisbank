@@ -42,3 +42,9 @@
 .rv-eerder{margin-top:6px;font-size:.85rem;color:var(--fg-muted)}
 .rv-eerder summary{cursor:pointer}
 .rv-eerder ul{margin:4px 0 0;padding-left:18px}
+/* Waarom deze wijziging (1.27.0): de meegenomen verbetervoorstellen, zonder namen. Blauw, zoals in de editor. */
+.rv-voorstellen{background:#f3f8fd;border:1px solid #b9d0ea;border-left:4px solid #154273;border-radius:8px;padding:10px 14px;margin:0 0 14px}
+.rv-voorstellen h3{font-size:1rem;margin:0 0 4px}
+.rv-voorstellen ul{margin:6px 0 0;padding-left:18px}
+.rv-voorstellen li{margin:4px 0}
+.rv-voorstellen q{font-style:italic;color:var(--fg-muted)}

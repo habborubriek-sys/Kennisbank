@@ -106,7 +106,9 @@ nodig om te publiceren: jij bent eindverantwoordelijk. Maar zolang een team aan 
    tot het team reageert. Wil je toch verder, kies dan **Terugroepen** (in het paneel *Review* of via *Afronden*). Is het team er al mee bezig, dan vraagt de
    kennisbank eerst of je het zeker weet. Een reviewer die het had opgepakt, krijgt een e-mail. Wat hij al had
    opgemerkt, blijft bewaard en zie je als *voorlopig*: "mogelijk niet compleet".
-3. **Het team leest** in een eigen, eenvoudige leesweergave: de knop **Review** bovenaan de kennisbank (`/review/`). Een reviewer ziet de nieuwe tekst met
+3. **Het team leest** in een eigen, eenvoudige leesweergave: de knop **Review** bovenaan de kennisbank (`/review/`).
+   Heb je verbetervoorstellen meegenomen in deze versie, dan ziet het team die bovenaan onder **Waarom deze
+   wijziging**: wat er werd voorgesteld, niet wie het indiende, en zonder je notities of berichten. Een reviewer ziet de nieuwe tekst met
    de wijzigingen gemarkeerd (zoals *wijzigingen bijhouden* in Word) en pakt het stuk op ("ligt bij Piet").
    Hij **selecteert een stuk tekst** en zet er een opmerking bij, of schrijft een algemene opmerking. De
    opmerkingen staan genummerd naast de tekst, met een gele markering in de tekst. Daarna **geeft hij het

@@ -18,7 +18,8 @@ from django.utils.safestring import mark_safe
 from . import review
 from .diensten import naam_van
 from .inhoud import schoon
-from .models import Conceptversie, Inzage, InzageStatus
+from .models import OPEN as OPEN_VOORSTEL
+from .models import Conceptversie, Inzage, InzageStatus, Verbetervoorstel
 from .verschil import verschil_html, woordverschil
 
 
@@ -139,6 +140,16 @@ def stuk(request, pk):
             ),
             "verschil": verschil,
             "aantal_gewijzigd": aantal,
+            # 1.27.0: de verbetervoorstellen die in deze versie zijn meegenomen, als context. Alleen de tekst en
+            # het citaat: niet wie het indiende, geen notities of berichten (besluit 6 van Alex).
+            "voorstellen": [
+                {"citaat": cit, "tekst": tekst}
+                for cit, tekst in Verbetervoorstel.objects.filter(
+                    artikel=artikel, in_conceptversie=True, status__in=OPEN_VOORSTEL
+                )
+                .order_by("ingediend_op", "pk")
+                .values_list("citaat", "tekst")
+            ],
             "nieuwe_tekst": schoon(v.get("inhoud", "")),
             "opmerkingen": opmerkingen,
             "opmerkingen_data": [
