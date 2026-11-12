@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.23.1 – 2026-11-12
+
+- **Geen flits meer van het oude formulier** bij het openen van een artikel of nieuwsbericht (melding van Alex). Het scherm blijft onzichtbaar tot de velden op hun plek staan; dat duurt meestal minder dan een halve seconde. Lukt het script niet, dan verschijnt het formulier na 3 seconden toch.
+
 ## 1.23.0 – 2026-11-12
 
 Nieuwsberichten in hetzelfde scherm als artikelen (bouwlijst `bouwlijst-1.23.0-nieuwsberichten.md`, keuze van Alex: "Zelfde scherm als artikelen").

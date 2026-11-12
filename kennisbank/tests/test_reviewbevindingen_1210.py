@@ -606,3 +606,12 @@ class Bewerkscherm(ReviewBasis):
         self.ter_inzage()
         self.post(f"/beheer/kennisbank/artikel/{self.a.pk}/terugroepen/", {})
         self.assertIn(">Teruggeroepen<", self.client.get(self.url).content.decode())
+
+
+class GeenFlits(ReviewBasis):
+    def test_scherm_start_verborgen_tot_het_script_klaar_is(self):
+        # 1.23.1: de pagina begint met kb-bezig (verborgen), anders zie je eerst het oude formulier.
+        self.maak_concept()
+        for url in (self.url, "/beheer/kennisbank/bericht/add/"):
+            html = self.client.get(url).content.decode()
+            self.assertRegex(html, r'<body class="[^"]*kb-scherm kb-bezig')

@@ -158,6 +158,9 @@
     // --- Bekijk als medewerker ----------------------------------------------------------
     var lees = $("[data-kb-lees]", balk);
     if (lees) lees.addEventListener("click", function () { bekijkAlsMedewerker(form); });
+
+    // Alles staat op zijn plek; de editor wordt in dezelfde ronde gemaakt (beheer-editor.js). Daarna zichtbaar.
+    setTimeout(function () { document.body.classList.remove("kb-bezig"); }, 0);
   }
 
   function bekijkAlsMedewerker(form) {

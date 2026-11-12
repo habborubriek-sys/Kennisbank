@@ -252,3 +252,9 @@ body.kb-scherm #container { min-width: 0; }
 /* Een editor buiten het bewerkscherm (bijvoorbeeld bij sjablonen): werkbalk boven het tekstvak. */
 .kb-ae-werkbalk-los { display: flex !important; position: static !important; border: 1px solid var(--kb-lijn, #d3d9e2); border-bottom: none; border-radius: 6px 6px 0 0; }
 .kb-ae-werkbalk-los + .kb-ae { border: 1px solid var(--kb-lijn, #d3d9e2); border-radius: 0 0 6px 6px; padding: 8px 12px; background: #fff; }
+
+/* Geen flits van het oude formulier: tot artikel-scherm.js de velden op hun plek heeft gezet, is het
+ * scherm onzichtbaar (body.kb-bezig, uit de template). Lukt het script niet, dan verschijnt alles na 3 seconden
+ * toch, gewoon onder elkaar. */
+@keyframes kb-toon { to { visibility: visible; } }
+body.kb-bezig #content-main, body.kb-bezig .messagelist { visibility: hidden; animation: kb-toon 0s 3s forwards; }
