@@ -127,6 +127,7 @@ def _context(request, v, r, terug, invoer=None, intussen=None):
             "is_alles": False,
             "nieuw_artikel_url": reverse("admin:kennisbank_artikel_add"),
             "nieuw_bericht_url": reverse("admin:kennisbank_bericht_add"),
+            "word_import_url": reverse("admin:kennisbank_artikel_importeren_word"),
         },
         "v": v,
         "terug": terug or "",
@@ -178,6 +179,27 @@ def voorstel_scherm(request, pk):
     return TemplateResponse(request, "admin/kennisbank/voorstel.html", _context(request, v, r, terug))
 
 
+def naar_editor(request, v):
+    """Ronde A (review 1.27.0, M1): een open voorstel behandel je in de lade van de editor. Een POST uit een
+    oud tabblad of een bladwijzer wordt niet meer verwerkt; je gaat naar de editor, en wat je had getypt
+    staat in de melding, zodat het niet verloren gaat."""
+    getypt = [
+        (request.POST.get(veld) or "").strip()
+        for veld in ("bericht", "notitie")
+        if (request.POST.get(veld) or "").strip()
+    ]
+    melding = (
+        "Open voorstellen behandel je sinds versie 1.26 in de editor van het artikel (de lade links). "
+        "Er is niets verstuurd of veranderd."
+    )
+    if getypt:
+        melding += " Je getypte tekst, om over te nemen: " + " / ".join(f"“{t}”" for t in getypt)
+    messages.warning(request, melding)
+    return redirect(
+        reverse("admin:kennisbank_artikel_change", args=[v.artikel_id]) + "?" + urlencode({"voorstel": v.pk})
+    )
+
+
 def _verwerk(request, pk, terug):
     actie = request.POST.get("actie")
     tekst = (request.POST.get("bericht") or "").strip()
@@ -187,39 +209,14 @@ def _verwerk(request, pk, terug):
         v, r = _voorstel_voor(request, pk, slot=True)
         if not r.is_redacteur:
             raise Http404
+        if v.is_open:
+            return naar_editor(request, v)
         if actie == "notitie":
             if not notitie:
                 messages.warning(request, "Schrijf eerst een notitie.")
                 return _opnieuw(request, v, r, terug, invoer)
             diensten.notitie_toevoegen(v, request.user, notitie)
             messages.success(request, "Notitie toegevoegd. Alleen de redactie ziet hem.")
-            return redirect(scherm_url(v, terug))
-        if actie == "meenemen":
-            # Reviewpunt 11: dit voorstel wordt verwerkt in de nieuwe versie van het artikel.
-            if not v.is_open:
-                raise Http404
-            # Review 1.20.1, bevinding 5: de knop stuurt de gewenste stand mee. Zo draait een dubbelklik of
-            # een verouderd scherm niet terug wat een collega net deed.
-            gewenst = _gewenste_stand(request, not v.in_conceptversie)
-            if gewenst == v.in_conceptversie:
-                messages.info(request, "Dat had een collega al gedaan.")
-                return redirect(scherm_url(v, terug))
-            v.in_conceptversie = gewenst
-            v.save(update_fields=["in_conceptversie"])
-            admin.site._registry[Verbetervoorstel].log_change(
-                request,
-                v,
-                "Meegenomen in de nieuwe versie van het artikel."
-                if v.in_conceptversie
-                else "Niet meer meegenomen in de nieuwe versie.",
-            )
-            messages.success(
-                request,
-                "Het voorstel wordt meegenomen in de nieuwe versie. Na publiceren vraagt de kennisbank of je het "
-                "wilt afhandelen."
-                if v.in_conceptversie
-                else "Het voorstel wordt niet meer meegenomen in de nieuwe versie.",
-            )
             return redirect(scherm_url(v, terug))
         if actie == "verbergen":
             gewenst = _gewenste_stand(request, not v.verborgen)

@@ -313,7 +313,7 @@ er grijs bij staan, zodat je hem met Entra ID kunt vergelijken.
 
 ## Een Word-document importeren
 
-Bestaande werkinstructies in Word hoef je niet over te typen: **Beheer → Artikelen → Importeren uit Word**, kies het `.docx`-bestand en de omgeving.
+Bestaande werkinstructies in Word hoef je niet over te typen: klik op je **werkplek** links op **Artikel uit Word** (of in de artikellijst op *Importeren uit Word*), kies het `.docx`-bestand en controleer de omgeving. Heb je maar één omgeving, dan staat die al goed. Klopt het bestand niet (geen `.docx`, te groot), dan zegt de pagina dat; je keuzes blijven staan, alleen het bestand kies je opnieuw.
 
 - Alleen de **tekst en de opmaak** komen mee: vet, cursief, onderstreept, doorgehaald, super- en subscript, koppen, lijsten, tabellen en links. Kleuren, lettertypen, markeringen, uitlijning, koptekst, voettekst en opmerkingen niet.
 - **Afbeeldingen** worden overgeslagen (nog niet ondersteund); op hun plek staat *[afbeelding weggelaten]* en de import meldt hoeveel.
@@ -325,7 +325,7 @@ Bestaande werkinstructies in Word hoef je niet over te typen: **Beheer → Artik
   - *Eerste rij van een tabel als koprij* — maakt van de eerste rij van elke tabel een koprij. Handig bij tabellen met kolomnamen, onhandig bij tabellen die meteen met gegevens beginnen.
 
   Ze staan standaard uit omdat de opmaak in een Word-document niet betrouwbaar zegt wat de bedoeling was; jij bepaalt het per document.
-- Het artikel is een **concept** tot je de status op *Gepubliceerd* zet.
+- Het artikel is een **concept** (medewerkers zien nog niets) tot je in de editor **Afronden → Publiceren** kiest.
 
 Een `.doc` of PDF upload je niet rechtstreeks: open het in Word en sla het op als `.docx`.
 
@@ -353,6 +353,13 @@ dat al gepubliceerd is **Opslaan** (meteen zichtbaar), **Terugzetten naar concep
 
 Een bericht kun je, anders dan een artikel, gewoon verwijderen (onderaan het paneel Eigenschappen). Nieuwsberichten gaan niet per e-mail; daarvoor is de nieuwspagina.
 
+## Licht of donker
+
+Het **beheer** is altijd licht (besluit van Alex, 1.28.0). De **site** volgt het apparaat: staat je telefoon
+of laptop op donker, dan is de kennisbank donker. Met de knop **☾ Donker** rechtsboven draai je dat om; handig
+voor handhavers die 's avonds onderweg zijn. De keuze onthoudt de browser van dat apparaat. Hij gaat niet naar
+de server en geldt ook op de reviewpagina's.
+
 ## Je werkplek in het beheer
 
 Als je het beheer opent, zie je je **werkplek**. Links staat een kolom met je werkbakken, rechts de inhoud
@@ -367,7 +374,7 @@ van wat je aanklikt. Achter elke bak staat hoeveel er in ligt.
   (behalve hun eigen voorstellen, met het antwoord dat ze kregen).
 - **Artikelen**: *Concepten*, *Mijn kladversies* en *Opnieuw nakijken* (artikelen waarvan de
   herzieningsdatum is verstreken).
-- Knoppen voor **Nieuw artikel** en **Nieuw bericht**, en onderaan **Alle onderdelen**: de gewone lijst
+- Knoppen voor **Nieuw artikel**, **Nieuw bericht** en **Artikel uit Word**, en onderaan **Alle onderdelen**: de gewone lijst
   van het beheer (artikelen, tags, zaaktypen, enz.).
 
 ## Verbetervoorstellen behandelen
@@ -430,17 +437,39 @@ zonder opslaan, dan waarschuwt de browser; het voorstel blijft dan in de bak lig
   ("We hebben het verwerkt in versie n …"). Pas het aan als je wilt en kies *Versturen en afhandelen*; laat je
   het vinkje weg, dan blijft het voorstel open met "Al verwerkt in versie n" in de lade, en handel je het later af.
 - **Spoedcorrectie**: ook dan kun je meenemen (bijvoorbeeld een spelfout); het hoort bij de correctie die je
-  publiceert.
+  publiceert. Een voorstel dat is meegenomen in een conceptversie die **ter inzage** ligt, kun je niet in een
+  spoedcorrectie meenemen: dat hoort bij de review (het vinkje staat dan uit, met uitleg).
 - **Ligt de conceptversie ter inzage**, dan kun je niet meenemen. Een voorstel dat al is meegenomen, kun je
-  dan ook niet afwijzen tot de review terug is.
-- Een **kleine correctie** neemt geen voorstellen mee, en gooi je de conceptversie weg, dan gaat *meenemen*
-  bij de voorstellen weer uit.
+  dan ook niet afwijzen tot de review terug is. Dat geldt overal: in de lade, via de API en in oude schermen.
+- Een **kleine correctie** neemt geen voorstellen mee, ook niet bij een spoedcorrectie. Publiceer je een
+  conceptversie als kleine correctie, of zonder inhoudelijke wijziging, dan gelden de meegenomen voorstellen
+  **niet als verwerkt**: ze staan weer open in de lade, en de kennisbank zegt dat. Gooi je de conceptversie
+  weg, dan gaat *meenemen* bij de voorstellen ook weer uit.
+- **Twee redacteuren tegelijk** (sinds 1.28.0): bij opslaan telt alleen wat jíj bij Meenemen hebt veranderd.
+  Zette een collega intussen iets anders aan of uit, dan blijft dat staan; je wordt niet ongevraagd eigenaar
+  van een voorstel dat je niet hebt aangeraakt. Is een aangevinkt voorstel intussen afgehandeld, dan zegt de
+  melding dat.
+- **Lukt opslaan niet** (een veld ontbreekt, een collega was je voor), dan blijven je vinkjes staan met
+  "nog niet opgeslagen". De melding bovenaan noemt het veld en waar het staat.
+
+**Meegenomen, maar ook echt verwerkt?** (sinds 1.28.0, besluit van Alex) De lade helpt je voorkomen dat je
+een voorstel meeneemt zonder er iets mee te doen:
+
+- staat de tekst van het voorstel nog **letterlijk** in het artikel, dan zegt de lade *tekst nog ongewijzigd –
+  al aangepast?*; heb je de tekst aangepast, dan *aangepast ✓*;
+- heeft een reviewteam al **akkoord** gegeven en neem je daarna nog een voorstel mee, dan waarschuwen de lade en
+  het venster *Afronden*: de reviewer heeft dat voorstel niet gezien. Het akkoord blijft staan, want dat gaat
+  over de tekst;
+- staat er in de lade nog een **bericht of notitie die je niet hebt verstuurd**, dan zegt *Afronden* dat ook:
+  opslaan stuurt die niet mee.
 
 **Bericht aan de indiener of interne notitie.** Twee tabbladen, steeds één zichtbaar, zodat je ze niet
 verwisselt:
 
 - **✉ Bericht aan [naam]** (blauw vak): gaat per e-mail naar de indiener en staat daarna bij het voorstel.
-  Versturen vraagt eerst een bevestiging, met je bericht erin. Het is eenrichtingsverkeer: de indiener kan
+  Versturen vraagt eerst een bevestiging, met je bericht erin. Wat je typt, blijft staan als je van tabblad
+  wisselt, iets aanvinkt of in het artikel verder werkt; ga je weg met een bericht dat nog niet is verstuurd,
+  dan waarschuwt de browser. Het is eenrichtingsverkeer: de indiener kan
   niet reageren; overleg gaat via Teams of mail. Verstuur je een bericht bij een voorstel uit de werkvoorraad,
   dan pak je het daarmee op.
 - **🔒 Interne notitie** (geel vak met stippellijn): alleen voor de redactie. De indiener, collega's en
@@ -452,7 +481,14 @@ bij hetzelfde artikel; voorstellen worden niet samengevoegd en de steun gaat nie
 afsluitend bericht aan de indiener. Daaronder **Verbergen voor collega's**, bijvoorbeeld als er een naam van
 een collega in staat.
 
-**Afgehandeld** is het archief. Een afgehandeld voorstel opent alleen-lezen, niet in de editor.
+**Iemand anders was je voor.** Stuurde een collega intussen een bericht aan de indiener, of ligt het voorstel
+intussen bij een ander, dan verstuurt de lade niets. Je ziet meteen wat er gebeurde, en je getypte tekst
+blijft staan.
+
+**Afgehandeld** is het archief. Een afgehandeld voorstel opent alleen-lezen, niet in de editor; een bericht
+aan de indiener of een notitie kan daar nog wel. Het oude behandelscherm en het oude beheerformulier
+verwerken voor een **open** voorstel niets meer: wie zo'n oude pagina nog open had, komt in de editor uit,
+met wat hij had getypt in de melding.
 
 **Afhandelen gaat met een bericht.** Bij *Verwerkt* of *Afgewezen* schrijf je de indiener waarom; zonder dat
 bericht gebeurt er niets. Dat bericht is het antwoord dat de indiener krijgt. Handel je een voorstel af dat in
@@ -474,14 +510,10 @@ Wijst een collega je een voorstel toe, dan krijg je daar wel meteen een e-mail v
 heeft het proces een duidelijk einde. Ziet de indiener toch nog iets, dan dient hij een nieuw voorstel in.
 Een bericht aan de indiener kun je na afhandelen nog wel sturen.
 
-**Iemand anders was je voor.** Heeft een collega het voorstel intussen opgepakt, verplaatst of de status
-gewijzigd terwijl jij het openhad, dan voert de kennisbank alleen door wat jij zelf hebt veranderd. Wilde jij
-precies hetzelfde veranderen (de bak of de status), dan krijg je een melding en gebeurt er niets; open het
-voorstel dan opnieuw. Een bericht aan de indiener gaat gewoon mee.
-
 **Voorstellen verbergen.** Staat er in een voorstel iets wat collega's niet hoeven te lezen, bijvoorbeeld
 de naam van een collega, zet dan in het voorstel **Verbergen voor collega's** aan. Het staat dan niet meer
-onder *Alle voorstellen* en kan niet meer worden gesteund. De indiener ziet het gewoon.
+onder *Alle voorstellen* en kan niet meer worden gesteund. Ook een **reviewer** ziet het niet; die leest
+alleen "1 voorstel is niet zichtbaar, omdat er persoonlijke gegevens in staan". De indiener ziet het gewoon.
 
 **Wie geen redacteur meer is, heeft geen bak meer.** Verliest iemand zijn redacteursrol, of verhuist een
 artikel naar een andere omgeving, dan gaan de open voorstellen uit die bak vanzelf terug naar de
@@ -494,7 +526,7 @@ voorstel zelf ook wie. Steun intrekken kan alleen zolang een voorstel open is. W
 voorstel ligt, dan krijgt hij die eerst te zien met de vraag of hij dat liever steunt. Zo komen er minder
 dubbele voorstellen binnen.
 
-**Je kunt de indiener tussentijds op de hoogte houden.** Onderaan elk voorstel staat het gesprek: de
+**Je kunt de indiener tussentijds op de hoogte houden.** In de lade staat bij elk voorstel het gesprek: de
 berichten die de redactie hem heeft gestuurd, met een leeg vak eronder. Elk bericht komt bij hem binnen
 als melding in de kennisbank én als e-mail. Gebruik dat ook voor een tussenstand — "opgepakt, we kijken
 ernaar met Toezicht" — zodat een voorstel niet maanden stil lijkt te liggen. Het laatste bericht is wat
@@ -509,12 +541,12 @@ hier als bericht.
 
 Werken met een voorstel gaat zo:
 
-1. **Pak het op** uit de gezamenlijke bak (of wijs het toe).
+1. **Pak het op** uit de werkbak (vinkje, *Toewijzen aan… → Mijzelf*), of open het en neem het mee.
 2. **Stuur een bericht** met een tussenstand als het even duurt, en zet wat de redactie moet weten in een
-   **interne notitie**.
-3. **Handel af** met *Versturen en verwerkt* of *Versturen en afwijzen*. Dat legt ook vast wie het heeft
-   afgehandeld en wanneer. Verwerk je het voorstel, pas dan het artikel aan en noem het voorstel in de
-   wijzigingstoelichting.
+   **interne notitie** (beide in de lade).
+3. **Verwerk het**: pas de tekst aan, vink *Meenemen in deze versie* aan en publiceer (met of zonder review).
+   Daarna handel je het af met het voorgevulde bericht. Neem je het niet over, kies dan **Afwijzen…** of
+   **Dubbel…** in de lade. Dat legt ook vast wie het heeft afgehandeld en wanneer.
 
 Het filter *Indiener heeft als laatste geschreven* is er voor voorstellen uit een oudere installatie,
 waarin terugschrijven nog kon.

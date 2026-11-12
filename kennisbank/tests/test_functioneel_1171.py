@@ -40,10 +40,8 @@ class AfsluitendBerichtTests(BehandelFormulier):
 
     def test_afwijzen_zonder_bericht_kan_niet(self):
         v = self.voorstel()
-        self.als(self.anna)
-        r = self.post_formulier(v, status="afgewezen")
-        self.assertEqual(r.status_code, 200)
-        self.assertIn("Gesprek met de indiener", r.content.decode())
+        r = self.als(self.anna).post(f"/beheer/voorstel/{v.pk}/lade/", {"actie": "afwijzen", "tekst": " "})
+        self.assertEqual(r.status_code, 400)
         v.refresh_from_db()
         self.assertEqual(v.status, VoorstelStatus.NIEUW)
 
@@ -54,8 +52,10 @@ class AfsluitendBerichtTests(BehandelFormulier):
         mail.outbox.clear()
         self.als(self.anna)
         with self.captureOnCommitCallbacks(execute=True):
-            r = self.post_formulier(v, status="afgewezen", bericht="Dit staat zo in de wet.")
-        self.assertEqual(r.status_code, 302, r.content[:400])
+            r = self.client.post(
+                f"/beheer/voorstel/{v.pk}/lade/", {"actie": "afwijzen", "tekst": "Dit staat zo in de wet."}
+            )
+        self.assertEqual(r.status_code, 200, r.content[:400])
         teksten = " ".join(m.body for m in mail.outbox)
         self.assertIn("Dit staat zo in de wet.", teksten)
         self.assertNotIn("We kijken ernaar.", teksten, "het oude tussenbericht is geen antwoord")

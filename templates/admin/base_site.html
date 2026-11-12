@@ -3,5 +3,7 @@
 {% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}"><link rel="stylesheet" href="{% static 'kennisbank/bovenbalk.css' %}"><link rel="stylesheet" href="{% static 'kennisbank/beheer.css' %}">{% endblock %}
 {% block branding %}<div id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></div>{% endblock %}
 {% block nav-global %}{% endblock %}
+{# Sinds 1.28.0 altijd licht (besluit Alex, review 1.27.0 M22): geen donkere modus van Django in het beheer. #}
+{% block dark-mode-vars %}{% endblock %}
 {# Sinds 1.25.0 dezelfde bovenbalk als de site en de reviewpagina's, in plaats van die van Django. #}
 {% block header %}{% bovenbalk "werkplek" "Beheer" %}{% endblock %}

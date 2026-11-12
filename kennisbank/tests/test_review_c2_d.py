@@ -28,7 +28,8 @@ class MeenemenTests(ReviewBasis):
         self.v = self.voorstel(artikel=self.a, tekst="Twee weken is te kort")
 
     def meenemen(self):
-        self.als(self.anna).post(f"/beheer/voorstel/{self.v.pk}/", {"actie": "meenemen"})
+        """Sinds 1.26.0 neem je mee in de lade, en dat telt bij opslaan. Hier: de stand direct omzetten."""
+        Verbetervoorstel.objects.filter(pk=self.v.pk).update(in_conceptversie=not self.v.in_conceptversie)
         self.v.refresh_from_db()
 
     def publiceer_concept(self, **extra):
@@ -39,6 +40,7 @@ class MeenemenTests(ReviewBasis):
         )
 
     def test_meenemen_en_weer_uitzetten(self):
+        self.als(self.anna)
         self.meenemen()
         self.assertTrue(self.v.in_conceptversie)
         self.assertIn("Meegenomen verbetervoorstellen (1)", self.client.get(self.url).content.decode())

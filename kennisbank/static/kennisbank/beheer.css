@@ -1,29 +1,20 @@
-/* Beheerscherm in de huisstijl van de kennisbank, alleen in de lichte modus. Donker blijft Django-standaard. */
+/* Beheerscherm in de huisstijl van de kennisbank. Sinds 1.28.0 (ronde A, besluit Alex over M22) altijd licht:
+ * base_site.html laadt de donkere modus van Django niet meer. */
 
-html[data-theme="light"],
-html[data-theme="auto"] {
+html:root {
   --primary:#154273;--secondary:#1f4f86;--accent:#ffd23f;--header-bg:#154273;--breadcrumbs-bg:#1f4f86;--link-fg:#154273;--link-hover-color:#0b2a4d;--button-bg:#fff;--button-fg:#154273;--button-hover-bg:#eef3f9;--default-button-bg:#154273;--default-button-hover-bg:#0b2a4d;--selected-row:#dfe8f4
 }
 /* Eén knoppenstijl (1.25.0): de hoofdactie donkerblauw gevuld (class default, Openen, Nieuw artikel), de rest
  * omrand. Op de donkere balk van de bewerkschermen gelden eigen regels (artikel-scherm.css). */
-html[data-theme="light"] .button, html[data-theme="light"] input[type=submit], html[data-theme="light"] input[type=button],
-html[data-theme="auto"] .button, html[data-theme="auto"] input[type=submit], html[data-theme="auto"] input[type=button] {
+html:root .button, html:root input[type=submit], html:root input[type=button] {
   border: 1px solid #9fb3cc; border-radius: 6px;
 }
-html[data-theme="light"] .button:hover, html[data-theme="light"] input[type=submit]:hover,
-html[data-theme="auto"] .button:hover, html[data-theme="auto"] input[type=submit]:hover { border-color: #154273; }
-html[data-theme="light"] .button.default, html[data-theme="light"] input[type=submit].default, html[data-theme="light"] a.button.kb-openen, html[data-theme="light"] a.button.kb-knop,
-html[data-theme="auto"] .button.default, html[data-theme="auto"] input[type=submit].default, html[data-theme="auto"] a.button.kb-openen, html[data-theme="auto"] a.button.kb-knop {
+html:root .button:hover, html:root input[type=submit]:hover { border-color: #154273; }
+html:root .button.default, html:root input[type=submit].default, html:root a.button.kb-openen, html:root a.button.kb-knop {
   background: #154273; color: #fff; border-color: #154273;
 }
-html[data-theme="light"] .button.default:hover, html[data-theme="light"] input[type=submit].default:hover, html[data-theme="light"] a.button.kb-openen:hover, html[data-theme="light"] a.button.kb-knop:hover,
-html[data-theme="auto"] .button.default:hover, html[data-theme="auto"] input[type=submit].default:hover, html[data-theme="auto"] a.button.kb-openen:hover, html[data-theme="auto"] a.button.kb-knop:hover {
+html:root .button.default:hover, html:root input[type=submit].default:hover, html:root a.button.kb-openen:hover, html:root a.button.kb-knop:hover {
   background: #0b2a4d; color: #fff;
-}
-@media (prefers-color-scheme: dark) {
-  html[data-theme="auto"] {
-    --primary:#264b6e;--secondary:#1a2a3d;--accent:#ffd23f;--header-bg:#1a2a3d;--breadcrumbs-bg:#223a55;--link-fg:#81b3e6;--link-hover-color:#a9ccf0;--button-bg:#264b6e;--button-hover-bg:#355f88;--default-button-bg:#1f4f86;--default-button-hover-bg:#355f88;--selected-row:#1f3a58
-  }
 }
 .inline-group textarea{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
 
@@ -50,7 +41,8 @@ a.kb-bakregel.gekozen .kb-nieuw{color:#ffd23f}
 .kb-aantal.vol{color:var(--body-fg);font-weight:700}
 .kb-aantal.oud{color:#a6192e}
 .kb-kolomknoppen{display:flex;flex-direction:column;gap:6px;margin:16px 8px 0}
-a.button.kb-knop{display:block;text-align:center;padding:8px 12px;border-radius:6px}
+a.button.kb-knop,a.button.kb-knop-word{display:block;text-align:center;padding:8px 12px;border-radius:6px}
+a.button.kb-knop-word{background:#fff;color:#154273}
 .kb-inhoud{padding:20px 32px 40px;max-width:1000px}
 .kb-inhoud h1{margin:0 0 4px;font-size:1.5rem}
 .kb-uitleg{color:var(--body-quiet-color);margin:0 0 16px}
@@ -218,3 +210,19 @@ table.kb-bak{width:100%}
 .kb-bak-nieuw td{font-weight:700}
 .kb-bak-snip{color:var(--body-quiet-color);font-weight:400!important;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kb-getal{text-align:right;white-space:nowrap}
+
+/* Artikel uit Word (1.28.0, ronde A A22): dezelfde rust als de werkplek, zonder Django-zijbalk. */
+.kb-import-pagina #content{max-width:760px;margin:0 auto;padding:24px 20px 48px}
+.kb-import-terug{margin:0 0 8px}
+.kb-import h1{font-size:1.6rem;margin:0 0 10px;color:#154273}
+.kb-import-uitleg{font-size:1rem;margin:0 0 8px}
+.kb-import-lijst{margin:0 0 20px;padding-left:20px;line-height:1.5}
+.kb-import-form{border:1px solid var(--hairline-color);border-radius:10px;padding:18px 20px;background:#fff}
+.kb-import-veld{display:flex;flex-direction:column;gap:4px;margin:0 0 14px}
+.kb-import-veld > label{font-weight:600}
+.kb-import-veld select,.kb-import-veld input[type=file]{max-width:420px}
+.kb-import-keuze label{font-weight:400;display:flex;gap:8px;align-items:flex-start}
+.kb-import-veld .help{color:var(--body-quiet-color);font-size:.85rem;margin:0}
+.kb-import-veld.errors select,.kb-import-veld.errors input[type=file]{outline:2px solid #ba2121;outline-offset:2px}
+.kb-import-knoppen{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+.kb-import-knoppen .button,.kb-import-knoppen input{padding:8px 16px}

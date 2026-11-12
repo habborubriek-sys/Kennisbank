@@ -824,22 +824,35 @@
 
   /* ---------- Verbetervoorstel-venster ---------- */
   let terugFocus = null;
+  // Ronde A (review 1.27.0, M10): wat je typt, blijft bewaard als het venster dichtgaat zonder in te dienen.
+  // Open je het opnieuw bij hetzelfde artikel en dezelfde tekst, dan staat je voorstel er weer.
+  let propConcept = null;
   function openPropVenster(quote) {
     const a = huidigArtikel;
     $("#propArt").textContent = "Artikel: " + a.titel + " (versie " + a.versie + ")";
     $("#propQuote").textContent = quote;
     $("#propQuote").hidden = !quote;
-    $("#propText").value = "";
+    const zelfde = propConcept && propConcept.artikel === a.id && propConcept.quote === (quote || "");
+    $("#propText").value = zelfde ? propConcept.tekst : "";
     $("#backdrop").classList.add("open");
     $("#propText").focus();
   }
   function closeProp() {
     if (!$("#backdrop").classList.contains("open")) return;
+    const tekst = $("#propText").value;
+    propConcept = tekst.trim()
+      ? { artikel: huidigArtikel && huidigArtikel.id, quote: $("#propQuote").hidden ? "" : $("#propQuote").textContent, tekst }
+      : null;
     $("#backdrop").classList.remove("open");
     if (terugFocus) terugFocus.focus();
   }
   $("#propCancel").addEventListener("click", closeProp);
-  $("#backdrop").addEventListener("click", (e) => { if (e.target === $("#backdrop")) closeProp(); });
+  // Naast het venster klikken sluit het alleen als er nog niets getypt is; anders zou je voorstel zomaar weg zijn.
+  $("#backdrop").addEventListener("click", (e) => {
+    if (e.target !== $("#backdrop")) return;
+    if ($("#propText").value.trim()) { $("#propText").focus(); return; }
+    closeProp();
+  });
   $("#propForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const knop = e.submitter || $("#propForm [type=submit]");
@@ -848,6 +861,7 @@
       const v = await api("voorstellen", { method: "POST", body: { artikel: huidigArtikel.id, citaat: $("#propQuote").hidden ? "" : $("#propQuote").textContent, tekst: $("#propText").value.trim() } });
       voorstellen = [v, ...voorstellen];
       collegaVoorstellen = null;
+      $("#propText").value = "";
       closeProp();
       renderFilters();
       toast("Verbetervoorstel ingediend. Je krijgt een terugkoppeling van procesmanagement.");

@@ -1011,6 +1011,9 @@ class Inzage(models.Model):
     #: De stempel van de conceptversie toen hij ter inzage ging, en bij akkoord.
     concept_stempel = models.CharField(max_length=40, blank=True)
     akkoord_stempel = models.CharField(max_length=40, blank=True)
+    #: Ronde A (review 1.27.0, M7): de voorstellen die waren meegenomen toen de versie ter inzage ging. Zo
+    #: weet de redacteur welke voorstellen er ná het akkoord nog bij kwamen (die heeft de reviewer niet gezien).
+    voorstellen = models.JSONField(default=list, blank=True)
     gestart_door = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )

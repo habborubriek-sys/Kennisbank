@@ -84,7 +84,13 @@
     laag.appendChild(vak);
     document.body.appendChild(laag);
     function sluit() { if (laag.parentNode) laag.parentNode.removeChild(laag); }
-    var eerste = vak.querySelector("textarea, input, button");
+    // Ronde A (review 1.27.0, H2): de focus op het eerste invoerveld, anders op de knop die `focus` heeft of de
+    // hoofdknop. Niet op de eerste knop: dat was bij de kladversie *Weggooien*, en dan gooide Enter je werk weg.
+    var knoppen = vak.querySelectorAll(".kb-venster-knoppen button");
+    var gekozen = -1;
+    (opties.knoppen || []).forEach(function (k, i) { if (gekozen < 0 && k.focus) gekozen = i; });
+    if (gekozen < 0) (opties.knoppen || []).forEach(function (k, i) { if (gekozen < 0 && k.primair) gekozen = i; });
+    var eerste = vak.querySelector("textarea, input, select") || knoppen[gekozen] || vak.querySelector("button");
     if (eerste) eerste.focus();
     return { sluit: sluit, vak: vak };
   }
@@ -395,9 +401,11 @@
       inhoud.appendChild(regel);
       var alineas = ["Er staat een kladversie klaar van " + kandidaat.tijd + ". Verder gaan waar je gebleven was?"];
       if (kandidaat.basis_stempel && huidigStempel && kandidaat.basis_stempel !== huidigStempel) {
+        var door = (document.getElementById("kb-laatst-door") || {}).textContent || "";
         alineas.push(
-          "Let op: het artikel is opgeslagen nadat je aan deze kladversie begon. Ga je verder en sla je op, " +
-            "dan meldt het scherm dat er intussen iets is veranderd, zodat je niemands werk overschrijft."
+          "Let op: " + (door ? door + " heeft" : "iemand heeft") + " het artikel opgeslagen nadat je aan deze kladversie begon. " +
+            "Verder gaan vervangt in dit scherm wat " + (door || "die collega") + " heeft opgeslagen door jouw kladversie. " +
+            "Sla je daarna op, dan meldt het scherm dat er intussen iets is veranderd, zodat je kunt vergelijken."
         );
       }
       var voorAanpassing = tekst(lees());
@@ -408,16 +416,19 @@
           inhoud: inhoud,
           knoppen: [
             {
-              tekst: "Weggooien",
+              tekst: "Weggooien…",
               doen: function () {
-                lokaalWeg();
-                fetch(url, { method: "POST", body: body(null, true), credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
-                  .then(function (r) { return r.ok ? r.json() : null; })
-                  .then(function (j) { if (j && j.server_nu) geopendOp = j.server_nu; })  // nieuw werk in dit scherm mag weer
-                  .catch(function () {});
-                basisTekst = tekst(lees());
-                laatsteServer = null;
-                heeftGewerkt = false;
+                // Ronde A (H2): eerst bevestigen. Weggooien is definitief.
+                wachtOpVrijScherm(function () {
+                  vensterTonen({
+                    titel: "Kladversie weggooien?",
+                    alineas: ["Wat je in de kladversie had geschreven, is daarna weg. Dat kun je niet terughalen."],
+                    knoppen: [
+                      { tekst: "Ja, weggooien", doen: weggooien },
+                      { tekst: "Terug", primair: true, doen: function () { vraag(kandidaat, huidigStempel); } },
+                    ],
+                  });
+                });
               },
             },
             {
@@ -437,6 +448,16 @@
           ],
         });
       });
+      function weggooien() {
+        lokaalWeg();
+        fetch(url, { method: "POST", body: body(null, true), credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) { if (j && j.server_nu) geopendOp = j.server_nu; })  // nieuw werk in dit scherm mag weer
+          .catch(function () {});
+        basisTekst = tekst(lees());
+        laatsteServer = null;
+        heeftGewerkt = false;
+      }
     }
 
     function wachtOpVrijScherm(daarna) {
@@ -689,6 +710,8 @@
       });
       var alineas = [];
       if (cfg.akkoord && gewijzigd()) alineas.push("Let op: je hebt de tekst gewijzigd na het akkoord van het reviewteam. Sla je op of publiceer je, dan geldt het akkoord niet meer.");
+      // Ronde A (M7/M13): voorstellen die meegenomen zijn maar misschien nog niet behandeld.
+      if (window.kbVoorstelWaarschuwingen) alineas = alineas.concat(window.kbVoorstelWaarschuwingen());
       venster = vensterTonen({ titel: "Afronden", alineas: alineas, inhoud: lijst, knoppen: [{ tekst: "Annuleren" }] });
     });
 

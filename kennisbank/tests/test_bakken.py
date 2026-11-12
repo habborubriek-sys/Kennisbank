@@ -191,32 +191,16 @@ class BakkenBeheerTests(Basis):
         # Verstuurd zoals een browser het doet.
         return self.client.post(wijzig_url(v), urlencode(data), content_type="application/x-www-form-urlencoded")
 
-    @override_settings(KB_EMAIL_AAN=True)
-    def test_toewijzen_via_het_formulier(self):
+    def test_oud_beheerformulier_verwerkt_niets_voor_een_open_voorstel(self):
+        # Ronde A (review 1.27.0, M1): het oude formulier omzeilde de regels van de lade. Voor een open
+        # voorstel verandert het niets meer; je gaat naar de editor.
         v = self.voorstel()
         self.als(self.anna)
-        with self.captureOnCommitCallbacks(execute=True):
-            r = self.post_formulier(v, naar_bak=str(self.bram.pk))
-        self.assertEqual(r.status_code, 302, r.content[:500])
+        r = self.post_formulier(v, naar_bak=str(self.bram.pk), status="afgewezen", bericht="Staat al zo in de wet.")
+        self.assertEqual(r["Location"], f"/beheer/kennisbank/artikel/{v.artikel_id}/change/?voorstel={v.pk}")
         v.refresh_from_db()
-        self.assertEqual(v.eigenaar, self.bram)
-        self.assertEqual(v.status, VoorstelStatus.IN_BEHANDELING, "toewijzen zet een nieuw voorstel in behandeling")
-        self.assertEqual([m.to for m in mail.outbox], [["bram@example.org"]])
-
-    def test_status_en_bak_tegelijk_wijzigen(self):
-        v = self.voorstel()
-        self.als(self.anna)
-        r = self.post_formulier(v, naar_bak=str(self.anna.pk), status="afgewezen", bericht="Staat al zo in de wet.")
-        self.assertEqual(r.status_code, 302)
-        v.refresh_from_db()
-        self.assertEqual((v.eigenaar, v.status), (self.anna, VoorstelStatus.AFGEWEZEN))
-
-    def test_statuswijziging_zonder_bak_neemt_hem_in_de_eigen_bak(self):
-        v = self.voorstel()
-        self.als(self.bram)
-        self.post_formulier(v, status="verwerkt", bericht="Aangepast in versie 3.")
-        v.refresh_from_db()
-        self.assertEqual(v.eigenaar, self.bram)
+        self.assertEqual((v.eigenaar, v.status), (None, VoorstelStatus.NIEUW))
+        self.assertFalse(v.berichten.exists())
 
     def test_keuzelijst_bevat_alleen_redacteuren_van_de_omgeving(self):
         # Sinds 1.26.0 wijs je toe in de werkbak (de selectiebalk).

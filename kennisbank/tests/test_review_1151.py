@@ -69,33 +69,21 @@ class VerouderdFormulierTests(Basis):
         }
         return urlencode(data)
 
-    def test_alleen_een_bericht_versturen_laat_het_oppakken_van_een_collega_staan(self):
+    def test_een_oud_formulier_laat_het_oppakken_van_een_collega_staan(self):
+        # Ronde A: het oude formulier verwerkt voor een open voorstel niets meer (het gaat naar de editor).
         v = self.voorstel()
         geladen = {"status": v.status, "eigenaar": ""}  # Anna opent het scherm
         diensten.voorstel_naar_bak(v, self.bram, self.bram)  # Bram pakt het intussen op
         r = self.als(self.anna).post(
             wijzig_url(v),
-            self.formulier(geladen, bericht="We kijken ernaar"),
+            self.formulier(geladen, naar_bak="", bericht="We kijken ernaar"),
             content_type="application/x-www-form-urlencoded",
         )
-        self.assertEqual(r.status_code, 302, r.content[:400])
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("?voorstel=", r["Location"])
         v.refresh_from_db()
         self.assertEqual((v.eigenaar, v.status), (self.bram, VoorstelStatus.IN_BEHANDELING))
-        self.assertEqual(VoorstelBericht.objects.filter(voorstel=v).count(), 1)
-
-    def test_zelf_iets_veranderen_wat_een_collega_ook_veranderde_wordt_geweigerd(self):
-        v = self.voorstel()
-        geladen = {"status": v.status, "eigenaar": ""}
-        diensten.voorstel_naar_bak(v, self.bram, self.bram)
-        r = self.als(self.anna).post(
-            wijzig_url(v),
-            self.formulier(geladen, naar_bak=str(self.anna.pk)),
-            content_type="application/x-www-form-urlencoded",
-        )
-        self.assertEqual(r.status_code, 200)
-        self.assertIn("Een collega heeft dit voorstel gewijzigd", r.content.decode())
-        v.refresh_from_db()
-        self.assertEqual(v.eigenaar, self.bram)
+        self.assertEqual(VoorstelBericht.objects.filter(voorstel=v).count(), 0)
 
     def test_api_met_verwachte_status(self):
         v = self.voorstel()
@@ -125,23 +113,10 @@ class PrivacyTests(Basis):
         # De indiener ziet het gewoon.
         self.assertEqual(len(self.als(self.lies).get("/api/v1/voorstellen?lijst=mijn").json()), 1)
 
-    def test_verbergen_via_het_beheer(self):
+    def test_verbergen_via_de_lade(self):
         v = self.voorstel()
-        data = urlencode(
-            {
-                "geladen_status": v.status,
-                "geladen_eigenaar": "",
-                "status": v.status,
-                "naar_bak": "",
-                "verborgen": "on",
-                "berichten-TOTAL_FORMS": "0",
-                "berichten-INITIAL_FORMS": "0",
-                "berichten-MIN_NUM_FORMS": "0",
-                "berichten-MAX_NUM_FORMS": "1000",
-            }
-        )
-        r = self.als(self.anna).post(wijzig_url(v), data, content_type="application/x-www-form-urlencoded")
-        self.assertEqual(r.status_code, 302)
+        r = self.als(self.anna).post(f"/beheer/voorstel/{v.pk}/lade/", {"actie": "verbergen", "waarde": "1"})
+        self.assertEqual(r.status_code, 200)
         v.refresh_from_db()
         self.assertTrue(v.verborgen)
 

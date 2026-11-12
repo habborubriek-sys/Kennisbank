@@ -476,6 +476,7 @@ def werkplek(request):
             "persoonlijk": bak.startswith("u") and bak[1:].isdigit(),
             "nieuw_artikel_url": reverse("admin:kennisbank_artikel_add"),
             "nieuw_bericht_url": reverse("admin:kennisbank_bericht_add"),
+            "word_import_url": reverse("admin:kennisbank_artikel_importeren_word"),
             "url": werkplek_url,
         },
         "app_list": admin.site.get_app_list(request) if bak == "alles" else [],
@@ -594,13 +595,23 @@ def werkplek_selectie(request):
         if keuze == "terug":
             naar = None
         else:
-            naar = get_user_model().objects.filter(pk=keuze, is_active=True).first() if keuze.isdigit() else None
-            if naar is None:
+            if not keuze.isdigit():
                 messages.warning(request, "Kies eerst aan wie je de voorstellen toewijst.")
+                return redirect(werkplek_url(terug))
+            # Ronde A (review 1.27.0, R2 B3): alleen redacteuren van je eigen omgevingen. Anders een melding
+            # zonder naam, zodat je via deze balk geen namenlijst van alle gebruikers kunt opbouwen.
+            bekend = {
+                pk for lijst in redacteuren_per_omgeving(sorted(r.redactie_omgevingen)).values() for pk, _ in lijst
+            }
+            naar = (
+                get_user_model().objects.filter(pk=int(keuze), is_active=True).first() if int(keuze) in bekend else None
+            )
+            if naar is None:
+                messages.warning(request, "Deze collega kan deze voorstellen niet krijgen.")
                 return redirect(werkplek_url(terug))
         for v in voorstellen:
             try:
-                diensten.voorstel_naar_bak(v, request.user, naar)
+                diensten.voorstel_naar_bak(v, request.user, naar, verwacht_eigenaar=geladen.get(v.pk))
             except diensten.VoorstelFout as e:
                 fouten.append(f"'{v.artikel.titel}': {e}")
                 continue

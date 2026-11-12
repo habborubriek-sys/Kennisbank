@@ -17,7 +17,7 @@ Twee soorten handelingen:
 
 import re
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.db import transaction
 from django.http import Http404, JsonResponse
 from django.urls import reverse
@@ -56,6 +56,10 @@ def _item(v, gebruiker, andere):
         # De redactie ziet wie steunt (collega's zien alleen het aantal).
         "steuners": [st.naam for st in v.steun.select_related("gebruiker")],
         "eigenaar": (diensten.naam_van(v.eigenaar) if v.eigenaar_id else ""),
+        # Ronde A (M5): hoe het voorstel erbij lag toen de lade werd getekend. Gaat mee met elke handeling;
+        # is het intussen veranderd, dan weigert de server en toont de lade de nieuwe stand.
+        "geladen_eigenaar": v.eigenaar_id or 0,
+        "geladen_bericht": v.berichten.order_by("-pk").values_list("pk", flat=True).first() or 0,
         "van_mij": v.eigenaar_id == gebruiker.pk,
         "mee": v.in_conceptversie,
         "berichten": [
@@ -94,10 +98,27 @@ def _andere(artikel):
     ]
 
 
-def lade_gegevens(artikel, gebruiker, open_pk=None, op_slot=False) -> dict:
-    """Wat het bewerkscherm nodig heeft voor de lade (als JSON in de pagina)."""
+def lade_gegevens(artikel, gebruiker, open_pk=None, op_slot=False, post=None, akkoord=None) -> dict:
+    """Wat het bewerkscherm nodig heeft voor de lade (als JSON in de pagina).
+
+    `post`: het formulier kwam terug met een fout (ronde A, M6). Wat de redacteur bij Meenemen had
+    veranderd, staat dan als `mee_gewenst` bij het voorstel; de lade toont het als "nog niet opgeslagen".
+    `akkoord`: de voorstellen die meegenomen waren toen het laatste akkoord werd gegeven (ronde A, M7), of
+    None als er geen akkoord is.
+    """
     andere = _andere(artikel)
     voorstellen = [_item(v, gebruiker, andere) for v in _open_voorstellen(artikel)]
+    if post is not None and "kb_lade" in post:
+        in_lade = _ids(post.get("kb_lade"))
+        gewenst = _ids(post.get("kb_meenemen")) & in_lade
+        geladen = _ids(post.get("kb_mee_geladen")) & in_lade if "kb_mee_geladen" in post else None
+        for item in voorstellen:
+            if item["id"] not in in_lade:
+                continue
+            wil = item["id"] in gewenst
+            was = (item["id"] in geladen) if geladen is not None else item["mee"]
+            if wil != was:
+                item["mee_gewenst"] = wil
     open_id = None
     if open_pk and str(open_pk).isdigit() and any(v["id"] == int(open_pk) for v in voorstellen):
         open_id = int(open_pk)
@@ -105,6 +126,7 @@ def lade_gegevens(artikel, gebruiker, open_pk=None, op_slot=False) -> dict:
         "voorstellen": voorstellen,
         "open": open_id,
         "op_slot": op_slot,
+        "akkoord": sorted(akkoord) if akkoord is not None else None,
         "actie_url": reverse("beheer-voorstel-lade", args=[0]),
     }
 
@@ -116,33 +138,56 @@ def _ids(waarde: str) -> set:
     return {int(x) for x in (waarde or "").split(",") if x.strip().isdigit()}
 
 
-def meenemen_opslaan(request, artikel, *, spoed=False) -> list:
+def meenemen_opslaan(request, artikel, *, spoed=False, telt=True) -> list:
     """Verwerk de vinkjes *Meenemen in deze versie* na een geslaagde opslag.
 
     Alleen voor de voorstellen die in de lade stonden: een voorstel dat intussen is binnengekomen, raakt
-    het formulier niet. Gewoon opslaan of publiceren: `in_conceptversie` volgt het vinkje. Spoedcorrectie:
-    de aangevinkte voorstellen horen bij de correctie die nu wordt gepubliceerd; geeft hun ids terug (de
-    aanroeper zet het versienummer). Wie meeneemt, wordt eigenaar; de vorige eigenaar krijgt een e-mail.
+    het formulier niet. Wie meeneemt, wordt eigenaar; de vorige eigenaar krijgt een e-mail.
+
+    - **Conceptversie of gewone publicatie** (ronde A, M2): alleen wat deze redacteur zelf heeft veranderd
+      telt (`kb_mee_geladen` is de stand bij het laden). Heeft een collega hetzelfde voorstel intussen
+      anders gezet, dan wordt het overgeslagen en gemeld; een verouderd scherm draait zo niets terug.
+    - **Spoedcorrectie**: de aangevinkte voorstellen horen bij de correctie die nu wordt gepubliceerd;
+      geeft hun ids terug (de aanroeper zet het versienummer). Een voorstel dat in een conceptversie zit
+      die ter inzage ligt, kan niet (ronde A, M4).
+    - **telt=False** (kleine correctie, of geen inhoudelijke wijziging): er verandert niets. Geeft de ids
+      terug die de redacteur nieuw had aangevinkt, zodat de aanroeper kan zeggen dat ze niet meetellen.
     """
     if "kb_lade" not in request.POST:
         return []
     in_lade = _ids(request.POST.get("kb_lade"))
     mee = _ids(request.POST.get("kb_meenemen")) & in_lade
-    spoed_ids = []
+    geladen = _ids(request.POST.get("kb_mee_geladen")) & in_lade if "kb_mee_geladen" in request.POST else None
     model_admin = admin.site._registry.get(Verbetervoorstel)
-    for v in (
+    qs = (
         Verbetervoorstel.objects.select_for_update(of=("self",))
         .select_related("artikel", "eigenaar")
         .filter(artikel=artikel, status__in=OPEN, pk__in=in_lade)
-    ):
-        gewenst = v.pk in mee
+        .order_by("pk")
+    )
+    if not telt:
+        return [v.pk for v in qs if v.pk in mee and not (geladen is not None and v.pk in geladen)]
+    gevonden = set()
+    spoed_ids, overgeslagen = [], []
+    for v in qs:
+        gevonden.add(v.pk)
         if spoed:
-            if gewenst:
-                spoed_ids.append(v.pk)
-                _eigenaar_worden(request, v)
+            if v.pk not in mee:
+                continue
+            if diensten.voorstel_op_slot(v):
+                overgeslagen.append(f"'{titel_van(v.tekst)}' (meegenomen in de versie die ter inzage ligt)")
+                continue
+            spoed_ids.append(v.pk)
+            _eigenaar_worden(request, v)
+            if model_admin:
+                model_admin.log_change(request, v, "Meegenomen in een spoedcorrectie.")
             continue
-        if gewenst == v.in_conceptversie:
-            continue
+        gewenst = v.pk in mee
+        was = (v.pk in geladen) if geladen is not None else v.in_conceptversie
+        if gewenst == was:
+            continue  # niet door deze redacteur veranderd: laten zoals het is
+        if v.in_conceptversie == gewenst:
+            continue  # een collega deed intussen hetzelfde
         v.in_conceptversie = gewenst
         v.save(update_fields=["in_conceptversie"])
         if gewenst:
@@ -155,6 +200,14 @@ def meenemen_opslaan(request, artikel, *, spoed=False) -> list:
                 if gewenst
                 else "Niet meer meegenomen in de nieuwe versie.",
             )
+    # Aangevinkt, maar intussen afgehandeld (en dus niet meer open): zeg het (review 1.27.0, R1 B8).
+    weg = [pk for pk in mee if pk not in gevonden and (geladen is None or pk not in geladen or spoed)]
+    if weg:
+        overgeslagen.append(
+            f"{len(weg)} voorstel{'len' if len(weg) > 1 else ''} (intussen afgehandeld door een collega)"
+        )
+    if overgeslagen:
+        messages.warning(request, "Niet meegenomen: " + "; ".join(overgeslagen) + ".")
     return spoed_ids
 
 
@@ -183,11 +236,30 @@ def _fout(tekst, status=400):
     return JsonResponse({"fout": tekst}, status=status)
 
 
+def _intussen(request, v, actie):
+    """Is er sinds het tekenen van de lade iets veranderd wat deze handeling raakt? Dan de uitleg, anders None.
+
+    Hetzelfde als het oude behandelscherm deed (review functioneel analist punt 8): een bericht gaat niet
+    als een collega intussen ook schreef; afwijzen en dubbel niet als het voorstel intussen bij een ander
+    ligt. Zonder de velden (een oude pagina) wordt er niet vergeleken.
+    """
+    nieuw_bericht = request.POST.get("geladen_bericht")
+    if nieuw_bericht is not None and nieuw_bericht.isdigit():
+        nieuwe = v.berichten.filter(pk__gt=int(nieuw_bericht)).select_related("auteur")
+        if nieuwe.exists():
+            namen = " en ".join(sorted({b.naam for b in nieuwe}))
+            return f"{namen} stuurde intussen een bericht aan de indiener. Lees het eerst; er is niets verstuurd."
+    eigenaar = request.POST.get("geladen_eigenaar")
+    if actie in ("afwijzen", "dubbel") and eigenaar is not None and eigenaar.isdigit():
+        if int(eigenaar) != (v.eigenaar_id or 0):
+            waar = f"bij {diensten.naam_van(v.eigenaar)}" if v.eigenaar_id else "weer in de werkvoorraad"
+            return f"Dit voorstel ligt intussen {waar}. Kijk eerst wat er is gebeurd; er is niets verstuurd."
+    return None
+
+
 @require_POST
 def lade_actie(request, pk):
     """Eén handeling vanuit de lade. Antwoordt met het bijgewerkte voorstel (of `weg` als het is afgehandeld)."""
-    from . import review
-
     actie = request.POST.get("actie")
     tekst = (request.POST.get("tekst") or "").strip()
     if actie not in ("bericht", "notitie", "afwijzen", "dubbel", "verbergen"):
@@ -220,6 +292,10 @@ def lade_actie(request, pk):
             melding = "Notitie bewaard. Alleen redacteuren zien hem."
         elif not v.is_open:
             return _fout("Dit voorstel is intussen afgehandeld.", status=409)
+        elif (intussen := _intussen(request, v, actie)) is not None:
+            # Ronde A (M5): een collega deed intussen iets met dit voorstel. Niets versturen; de lade toont
+            # de nieuwe stand en je getypte tekst blijft staan.
+            return JsonResponse({"fout": intussen, "voorstel": _item(v, request.user, _andere(v.artikel))}, status=409)
         elif actie == "bericht":
             diensten.voorstelbericht_toevoegen(v, request.user, tekst, van_redactie=True)
             if v.eigenaar_id is None:  # een bericht uit de werkvoorraad: wie schrijft, pakt het op
@@ -228,12 +304,6 @@ def lade_actie(request, pk):
             aan = f" aan {diensten.naam_van(v.ingediend_door)}" if v.ingediend_door_id else ""
             melding = f"Bericht verstuurd{aan}."
         else:
-            if v.in_conceptversie and review.op_slot(v.artikel_id):
-                return _fout(
-                    "Dit voorstel is meegenomen in de versie die ter inzage ligt. "
-                    "Afwijzen kan pas als de review terug is.",
-                    status=409,
-                )
             dubbel = None
             if actie == "dubbel":
                 keuze = request.POST.get("dubbel_van") or ""
@@ -246,6 +316,12 @@ def lade_actie(request, pk):
                     return _fout("Kies van welk voorstel dit een dubbel is.")
             try:
                 diensten.voorstel_afhandelen(v, request.user, VoorstelStatus.AFGEWEZEN, tekst, dubbel_van=dubbel)
+            except diensten.VoorstelOpSlot:
+                return _fout(
+                    "Dit voorstel is meegenomen in de versie die ter inzage ligt. "
+                    "Afwijzen kan pas als de review terug is.",
+                    status=409,
+                )
             except diensten.VoorstelFout as e:
                 return _fout(str(e), status=409)
             model_admin.log_change(

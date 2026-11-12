@@ -7,6 +7,7 @@
 <link rel="icon" href="{% static 'kennisbank/favicon.svg' %}" type="image/svg+xml">
 <link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}">
 <link rel="stylesheet" href="{% static 'kennisbank/app.css' %}">
+<script src="{% static 'kennisbank/thema.js' %}"></script>
 <script src="{% static 'kennisbank/app.js' %}" defer></script>
 </head>
 <body class="{% if embed %}embed{% endif %}" data-embed="{{ embed|yesno:'1,0' }}" data-demo="{{ demo|yesno:'1,0' }}" data-zaaktype="{{ zaaktype }}" data-app-naam="{{ app_naam }}">
@@ -22,6 +23,7 @@
   <div class="topbtns">
     <button class="tb side-toggle on-accent" id="sideToggle" type="button" aria-controls="side" aria-expanded="false">Menu</button>
     <button class="toggle" id="onbToggle" type="button" aria-pressed="false" title="Toon extra uitleg voor nieuwe collega's"><span class="sw" aria-hidden="true"></span>Onboarding</button>
+    <button class="tb on-accent kb-thema" type="button" data-kb-thema aria-pressed="false" hidden><span class="kb-thema-icoon" aria-hidden="true">☾</span>Donker</button>
     <a class="tb on-accent werkplek-link" id="lnkReview" href="/review/" hidden>Review</a>
     <a class="tb on-accent werkplek-link" id="lnkWerkplek" href="/beheer/" hidden>Werkplek</a>
     <span class="user" id="user"></span>

@@ -1,5 +1,44 @@
 # Wijzigingen
 
+## 1.28.0 – 2026-11-13
+
+Ronde A na de onafhankelijke review van 1.27.0: de juiste stand en geen werkverlies (bouwlijst `bouwlijst-1.28.0-ronde-a.md`, met de besluiten van Alex).
+
+**Werk gaat niet meer verloren**
+- **Tekst in de lade blijft staan.** Wat je typt bij *Bericht* of *Interne notitie* verdween bij een tabwissel, bij meenemen of bij typen in het artikel. Nu niet meer, en weglopen met een bericht dat nog niet is verstuurd, geeft een waarschuwing.
+- **Venster "Verder gaan waar je gebleven was?"**: de focus staat op *Verder gaan*, niet op *Weggooien*. Weggooien vraagt eerst om bevestiging. Heeft een collega intussen opgeslagen, dan zegt het venster dat *Verder gaan* diens tekst vervangt. In alle vensters staat de focus nu op het eerste invoerveld of op de hoofdknop.
+- **Vinkjes bij Meenemen blijven staan** als opslaan mislukt, met "nog niet opgeslagen". De foutmelding bovenaan noemt het veld en waar het staat ("Kijk naar: Omgeving (in Eigenschappen, rechts)").
+- **Voorstel indienen op de site**: naast het venster klikken sluit het niet meer als je al iets hebt getypt, en wat je typte staat er weer als je het venster opnieuw opent.
+
+**De regels gelden overal**
+- "Een meegenomen voorstel niet afhandelen zolang de versie ter inzage ligt" staat nu in de dienstlaag: de lade, de API (409) en het oude beheerformulier moeten er allemaal langs.
+- **Het oude behandelscherm en het oude beheerformulier verwerken voor open voorstellen niets meer.** Een POST uit een oud tabblad gaat naar de editor; wat je had getypt, staat in de melding. Afgehandelde voorstellen kunnen daar nog een bericht of notitie krijgen.
+- **Een verouderd scherm draait het werk van een collega niet meer terug.** Bij opslaan telt alleen wat je zelf bij Meenemen veranderde (nieuw verborgen veld `kb_mee_geladen`). Je wordt niet meer ongevraagd eigenaar.
+- **De lade kijkt eerst wat er intussen gebeurde.** Stuurde een collega een bericht, of ligt het voorstel inmiddels bij een ander, dan wordt er niets verstuurd; de lade toont de nieuwe stand en je tekst blijft staan.
+
+**Voorstellen blijven niet meer hangen**
+- Een conceptversie gepubliceerd als **kleine correctie**, of **zonder inhoudelijke wijziging**: de meegenomen voorstellen gelden niet als verwerkt en staan weer open, met een melding.
+- **Spoedcorrectie**: een voorstel uit een conceptversie die ter inzage ligt, kan niet mee (vinkje uit, met uitleg). Een kleine correctie neemt ook bij een spoedcorrectie geen voorstellen mee. Meenemen bij een spoedcorrectie komt in het logboek.
+- Een afgewezen of dubbel voorstel is niet langer "meegenomen". Dubbel in een kring (A → B → C → A) kan niet meer.
+
+**Meegenomen, maar ook verwerkt?** (besluit Alex: waarschuwen, het akkoord blijft staan)
+- Neem je na een **akkoord** nog een voorstel mee, dan waarschuwen de lade en *Afronden*: de reviewer heeft het niet gezien. Daarvoor legt *Ter inzage* vast welke voorstellen er toen in zaten (migratie `0030`).
+- Staat de tekst van een meegenomen voorstel nog letterlijk in het artikel: "tekst nog ongewijzigd – al aangepast?". Is hij aangepast: "aangepast ✓" in plaats van de gele waarschuwing.
+
+**Privacy**
+- **Verborgen voorstellen ziet de reviewer niet meer** (alleen "1 voorstel is niet zichtbaar, omdat er persoonlijke gegevens in staan"). Drie keer onafhankelijk gevonden.
+- De selectiebalk in de werkbak wijst alleen toe aan redacteuren van je eigen omgevingen, zonder namen van anderen te tonen. *Onlangs afgerond* op de reviewpagina toont geen artikelen meer die naar een andere omgeving zijn verhuisd. De selectiebalk controleert de eigenaar opnieuw op het moment van opslaan.
+
+**Kleiner**
+- Heb je maar één omgeving, dan staat die bij een nieuw artikel, nieuwsbericht en Word-import al ingevuld.
+- **Licht en donker** (besluit Alex): het beheer is altijd licht. De site volgt het apparaat en heeft rechtsboven een knop **☾ Donker** om dat om te draaien; de keuze onthoudt de browser (`thema.js`, in de `<head>` zodat er geen flits is). Ook op de reviewpagina's. Contrast van de gele "gewijzigd"-balk in de donkere modus verbeterd (was 4,1:1).
+- **Artikel uit Word** staat als knop op de werkplek. De importpagina heeft de stijl van de werkplek (geen broodkruimel of zijbalk), en de melding na de import klopt weer ("kies Afronden" in plaats van "zet de status op Gepubliceerd").
+
+**Tests**
+- 49 nieuwe tests (`test_ronde_a_1280.py`), waaronder de vier gaten uit de mutatietest en formuliertests met de velden die de pagina echt verstuurt (conceptversie, spoedcorrectie, nieuwsbericht). Tests van het oude behandelscherm zijn omgezet naar de lade. Nu 594 tests.
+- Mutatietest herhaald: 28 bewust aangebrachte fouten, alle 28 betrapt.
+- In de browser nagelopen; axe op de site in de donkere modus: 0 fouten.
+
 ## 1.27.0 – 2026-11-12
 
 Verbetervoorstellen behandelen in de editor, stap 2.

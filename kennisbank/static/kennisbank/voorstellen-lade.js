@@ -42,7 +42,19 @@
     var tab = {};
     var info = {};
     var bewaard = {}, mee = {};
-    lijst.forEach(function (v) { bewaard[v.id] = spoed ? false : !!v.mee; mee[v.id] = bewaard[v.id]; });
+    // Ronde A (M6): kwam het formulier terug met een fout, dan zet de server bij `mee_gewenst` wat je bij
+    // Meenemen had veranderd. Dat staat dan weer zo, met "nog niet opgeslagen".
+    lijst.forEach(function (v) {
+      bewaard[v.id] = spoed ? false : !!v.mee;
+      mee[v.id] = typeof v.mee_gewenst === "boolean" ? v.mee_gewenst : bewaard[v.id];
+    });
+    // Ronde A (H1): wat je in een bericht of notitie typt, per voorstel en per tabblad. De lade wordt vaak
+    // opnieuw getekend; zonder dit was het vak daarna leeg.
+    var concept = {};
+    function conceptSleutel(v, soort) { return v.id + "-" + soort; }
+    function nietVerstuurd() {
+      return Object.keys(concept).filter(function (k) { return concept[k] && concept[k].trim(); }).length;
+    }
     var csrf = form && form.querySelector("input[name=csrfmiddlewaretoken]");
     var verzonden = false;
     if (form) form.addEventListener("submit", function () { verzonden = true; });
@@ -71,7 +83,27 @@
     function velden() {
       $("#kb-lade-ids").value = lijst.map(function (v) { return v.id; }).join(",");
       $("#kb-meenemen").value = lijst.filter(function (v) { return mee[v.id]; }).map(function (v) { return v.id; }).join(",");
+      // Ronde A (M2): de stand bij het laden. De server verwerkt alleen wat jij hebt veranderd.
+      var geladen = $("#kb-mee-geladen");
+      if (geladen) geladen.value = lijst.filter(function (v) { return bewaard[v.id]; }).map(function (v) { return v.id; }).join(",");
     }
+
+    // Ronde A (M7/M13): meegenomen, maar nog niet behandeld? Twee signalen, ook voor het venster Afronden.
+    function naAkkoord() {
+      if (!g.akkoord || spoed) return [];
+      return lijst.filter(function (v) { return mee[v.id] && g.akkoord.indexOf(v.id) < 0; });
+    }
+    function ongewijzigd() {
+      return lijst.filter(function (v) { return mee[v.id] && v.citaat && (info[v.id] || {}).gevonden; });
+    }
+    window.kbVoorstelWaarschuwingen = function () {
+      var r = [];
+      var na = naAkkoord(), ong = ongewijzigd();
+      if (na.length) r.push("Na het akkoord meegenomen: " + na.map(function (v) { return nr(v) + ". " + v.titel; }).join("; ") + ". De reviewer heeft " + (na.length === 1 ? "dit voorstel" : "deze voorstellen") + " niet gezien. Heb je het echt verwerkt?");
+      if (nietVerstuurd()) r.push("In de lade staat een bericht of notitie die je nog niet hebt verstuurd. Opslaan stuurt die niet mee; verstuur hem eerst in de lade.");
+      if (ong.length) r.push("Meegenomen, maar de tekst staat nog ongewijzigd in het artikel: " + ong.map(function (v) { return nr(v) + ". " + v.titel; }).join("; ") + ". Al aangepast?");
+      return r;
+    };
 
     function markeer() {
       var ed = window.kbInhoudEditor;
@@ -101,6 +133,8 @@
       m.textContent = "";
       if (opSlot) m.appendChild(el("div", "kb-lade-melding kb-lade-slot", "Ter inzage: je kunt nu niets meenemen. Een bericht sturen kan wel, en voorstellen die niet zijn meegenomen kun je afwijzen."));
       if (spoed) m.appendChild(el("div", "kb-lade-melding kb-lade-spoed", "Spoedcorrectie: wat je hier meeneemt, wordt afgehandeld als je deze correctie publiceert."));
+      var na = naAkkoord();
+      if (na.length) m.appendChild(el("div", "kb-lade-melding kb-lade-onbewaard", "Na het akkoord meegenomen: " + na.map(function (v) { return "voorstel " + nr(v); }).join(", ") + ". De reviewer heeft dat niet gezien; kijk of je het echt hebt verwerkt."));
       var o = aantalOnbewaard();
       if (o) m.appendChild(el("div", "kb-lade-melding kb-lade-onbewaard", o + (o === 1 ? " wijziging" : " wijzigingen") + " bij Meenemen nog niet opgeslagen. Sla op via Afronden; anders telt het niet en is het voorstel ook niet opgepakt."));
     }
@@ -128,7 +162,10 @@
       var blok = el("span", "kb-vk-titelblok");
       blok.appendChild(el("span", "kb-vk-titel", v.titel));
       var i = info[v.id] || {};
-      var sub = [v.citaat ? (i.gevonden ? (i.sectie || "begin van het artikel") : "tekst niet meer gevonden") : "hele artikel",
+      var plek = !v.citaat ? "hele artikel"
+        : mee[v.id] ? (i.gevonden ? "tekst nog ongewijzigd – al aangepast?" : "aangepast ✓")
+        : (i.gevonden ? (i.sectie || "begin van het artikel") : "tekst niet meer gevonden");
+      var sub = [plek,
         v.steun ? v.steun + " steun" : "", v.eigenaar ? "bij " + (v.van_mij ? "jou" : v.eigenaar) : ""].filter(Boolean).join(" · ");
       blok.appendChild(el("span", "kb-vk-sub", sub));
       rij.appendChild(blok);
@@ -152,8 +189,12 @@
       if (v.citaat) d.appendChild(el("div", "kb-vk-citaat", "“" + v.citaat + "”"));
       d.appendChild(el("div", "kb-vk-tekst", v.tekst));
       d.appendChild(el("div", "kb-vk-meta", [v.indiener || "Indiener onbekend", v.op, v.steun ? v.steun + (v.steun === 1 ? " collega steunt dit" : " collega's steunen dit") + (v.steuners && v.steuners.length ? ": " + v.steuners.join(", ") : "") : "nog geen steun"].join(" · ")));
-      if (v.citaat && !i.gevonden) d.appendChild(el("div", "kb-vk-weg", "Deze tekst staat niet meer letterlijk in het artikel."));
-      if (spoed && v.mee) d.appendChild(el("div", "kb-vk-let", "Dit voorstel is al meegenomen in de conceptversie."));
+      // Ronde A (M13): meegenomen en de tekst is aangepast = goed; meegenomen en de tekst staat er nog = vraag.
+      if (v.citaat && mee[v.id] && !i.gevonden) d.appendChild(el("div", "kb-vk-ok", "Aangepast ✓ De tekst van het voorstel staat niet meer letterlijk in het artikel."));
+      else if (v.citaat && mee[v.id] && i.gevonden) d.appendChild(el("div", "kb-vk-let", "Meegenomen, maar de tekst staat nog ongewijzigd in het artikel. Al aangepast?"));
+      else if (v.citaat && !i.gevonden) d.appendChild(el("div", "kb-vk-weg", "Deze tekst staat niet meer letterlijk in het artikel."));
+      var spoedSlot = spoed && v.mee && g.op_slot;
+      if (spoed && v.mee) d.appendChild(el("div", "kb-vk-let", spoedSlot ? "Dit voorstel is meegenomen in de conceptversie die ter inzage ligt. Je kunt het niet in deze spoedcorrectie meenemen; het hoort bij de review." : "Dit voorstel is al meegenomen in de conceptversie. Neem je het hier mee, dan geldt het als verwerkt in deze correctie."));
       if (v.verwerkt_in_versie) {
         var vw = el("div", "kb-vk-let", "Al verwerkt in versie " + v.verwerkt_in_versie + ", maar nog niet afgehandeld. ");
         var link = el("a", null, "Nu afhandelen");
@@ -163,11 +204,11 @@
       }
 
       // Meenemen
-      var lab = el("label", "kb-vk-mee" + (opSlot ? " kb-vk-mee-uit" : ""));
+      var lab = el("label", "kb-vk-mee" + (opSlot || spoedSlot ? " kb-vk-mee-uit" : ""));
       var vak = document.createElement("input");
       vak.type = "checkbox";
       vak.checked = !!mee[v.id];
-      vak.disabled = opSlot;
+      vak.disabled = opSlot || spoedSlot;
       lab.appendChild(vak);
       var tekst = el("span");
       tekst.appendChild(el("b", null, spoed ? "Meenemen in deze spoedcorrectie" : "Meenemen in deze versie"));
@@ -210,6 +251,9 @@
         vakB.appendChild(el("div", "kb-vk-vakkop", v.indiener ? "Gaat per e-mail naar " + v.indiener + " (de indiener)" : "Gaat naar de indiener"));
         v.berichten.forEach(function (b) { var x = el("div", "kb-vk-bericht", b.tekst); x.appendChild(el("small", null, b.naam + ", " + b.moment)); vakB.appendChild(x); });
         var taB = el("textarea");
+        var sB = conceptSleutel(v, "bericht");
+        taB.value = concept[sB] || "";
+        taB.addEventListener("input", function () { concept[sB] = taB.value; });
         taB.placeholder = "Laat " + voornaam + " weten hoe het ervoor staat. Een reactie terug is niet mogelijk; voor overleg gebruik je Teams of mail.";
         taB.setAttribute("aria-label", "Bericht aan " + (v.indiener || "de indiener"));
         vakB.appendChild(taB);
@@ -233,6 +277,9 @@
         vakN.appendChild(el("div", "kb-vk-vakkop", "Alleen redacteuren zien dit. Gaat nooit naar de indiener of de reviewer."));
         v.notities.forEach(function (n) { var x = el("div", "kb-vk-notitie", n.tekst); x.appendChild(el("small", null, n.naam + ", " + n.moment)); vakN.appendChild(x); });
         var taN = el("textarea");
+        var sN = conceptSleutel(v, "notitie");
+        taN.value = concept[sN] || "";
+        taN.addEventListener("input", function () { concept[sN] = taN.value; });
         taN.placeholder = "Notitie voor collega-redacteuren";
         taN.setAttribute("aria-label", "Interne notitie");
         vakN.appendChild(taN);
@@ -307,6 +354,9 @@
       data.append("tekst", tekst);
       if (dubbelVan) data.append("dubbel_van", dubbelVan);
       if (waarde) data.append("waarde", waarde);
+      // Ronde A (M5): hoe het voorstel erbij lag. Is dat intussen veranderd, dan weigert de server.
+      data.append("geladen_eigenaar", String(v.geladen_eigenaar || 0));
+      data.append("geladen_bericht", String(v.geladen_bericht || 0));
       fetch(g.actie_url.replace("/0/", "/" + v.id + "/"), {
         method: "POST",
         body: data,
@@ -315,7 +365,17 @@
       }).then(function (r) {
         return r.json().catch(function () { return { fout: "De server gaf een onverwacht antwoord (" + r.status + ")." }; });
       }).then(function (antw) {
-        if (antw.fout) { melding(antw.fout, true); return; }
+        if (antw.fout) {
+          if (antw.voorstel) {
+            // Intussen veranderd: toon de nieuwe stand. Je getypte tekst blijft staan (concept).
+            var j = lijst.indexOf(v);
+            if (j >= 0) { antw.voorstel._overgenomen = v._overgenomen; lijst[j] = antw.voorstel; }
+            teken();
+          }
+          melding(antw.fout, true);
+          return;
+        }
+        if (soort === "bericht" || soort === "notitie") delete concept[conceptSleutel(v, soort)];
         if (antw.weg) {
           lijst = lijst.filter(function (x) { return x.id !== v.id; });
           delete mee[v.id]; delete bewaard[v.id];
@@ -351,7 +411,7 @@
 
     // Weggaan met meenemen dat nog niet is opgeslagen.
     window.addEventListener("beforeunload", function (e) {
-      if (verzonden || !aantalOnbewaard()) return;
+      if (verzonden || (!aantalOnbewaard() && !nietVerstuurd())) return;
       e.preventDefault();
       e.returnValue = "";
     });

@@ -725,7 +725,8 @@ def voorstel_steun(request, pk):
     description=(
         "Naar *verwerkt* of *afgewezen* alleen met een `terugkoppeling` (anders 400): dat bericht krijgt de "
         "indiener. Een afgehandeld voorstel is definitief; een andere status geeft 409. Een terugkoppeling "
-        "sturen kan wel."
+        "sturen kan wel. Is het voorstel meegenomen in de versie die ter inzage ligt bij een reviewteam, dan "
+        "kan afhandelen pas na de review (409)."
     ),
     request=VoorstelBehandelSerializer,
     responses=VoorstelSerializer,
@@ -768,6 +769,8 @@ def voorstel(request, pk):
             # ook de collega uit wiens bak het kwam een e-mail krijgt. Die dienst plaatst het bericht zelf.
             try:
                 diensten.voorstel_afhandelen(v, request.user, nieuwe_status, tekst)
+            except diensten.VoorstelOpSlot as e:
+                return Response({"detail": str(e)}, status=status.HTTP_409_CONFLICT)
             except diensten.VoorstelFout as e:
                 return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
             v.refresh_from_db()

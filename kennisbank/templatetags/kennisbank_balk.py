@@ -35,4 +35,6 @@ def bovenbalk(context, actief="", titel=""):
         "naam": naam_van(gebruiker) if ingelogd else "",
         "uitlog_url": "/oidc/logout/" if settings.KB_AUTH_MODUS == "oidc" else "/uitloggen/",
         "csrf_token": context.get("csrf_token"),
+        # 1.28.0: de knop Licht/Donker staat op de site en de reviewpagina's, niet in het beheer (altijd licht).
+        "thema": actief != "werkplek",
     }

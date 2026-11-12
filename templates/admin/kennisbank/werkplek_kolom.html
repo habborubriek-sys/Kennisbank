@@ -1,6 +1,6 @@
 {% comment %}
   De linkerkolom van de werkplek, ook op het behandelscherm van een voorstel. Verwacht `w` met menu,
-  gekozen, is_alles, nieuw_artikel_url en nieuw_bericht_url.
+  gekozen, is_alles, nieuw_artikel_url, nieuw_bericht_url en word_import_url.
 {% endcomment %}
   <nav class="kb-bakkenkolom" aria-label="Werkbakken">
     <h2 class="kb-kolomkop">Werkvoorraad</h2>
@@ -33,6 +33,7 @@
     <div class="kb-kolomknoppen">
       <a class="button kb-knop" href="{{ w.nieuw_artikel_url }}">Nieuw artikel</a>
       <a class="button kb-knop" href="{{ w.nieuw_bericht_url }}">Nieuw bericht</a>
+      {% if w.word_import_url %}<a class="button kb-knop-word" href="{{ w.word_import_url }}">Artikel uit Word</a>{% endif %}
     </div>
     <ul class="kb-bakkenlijst kb-gescheiden">
       <li><a class="kb-bakregel{% if w.is_alles %} gekozen{% endif %}" href="{% url 'beheer-start' %}?bak=alles">Alle onderdelen</a></li>

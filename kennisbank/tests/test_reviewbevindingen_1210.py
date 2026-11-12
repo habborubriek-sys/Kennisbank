@@ -23,6 +23,7 @@ from kennisbank.models import (
     InzageStatus,
     ReviewOpmerking,
     Status,
+    Verbetervoorstel,
     VoorstelStatus,
 )
 from kennisbank.tests.test_kennisbank import beheerdata
@@ -156,6 +157,8 @@ class Bevindingen(ReviewBasis):
 
     def test_5_verbergen_zet_een_vaste_stand(self):
         v = self.voorstel(artikel=self.a, tekst="Er staat de naam van Kees in")
+        # Het oude scherm is sinds ronde A er alleen nog voor afgehandelde voorstellen.
+        diensten.voorstel_afhandelen(v, self.bram, VoorstelStatus.AFGEWEZEN, "Nee")
         url = f"/beheer/voorstel/{v.pk}/"
         self.als(self.bram).post(url, {"actie": "verbergen", "waarde": "1"})
         r = self.als(self.anna).post(url, {"actie": "verbergen", "waarde": "1"})  # oud scherm
@@ -166,13 +169,13 @@ class Bevindingen(ReviewBasis):
         v.refresh_from_db()
         self.assertFalse(v.verborgen)
 
-    def test_5b_meenemen_dubbelklik_draait_niets_terug(self):
+    def test_5b_meenemen_via_het_oude_scherm_kan_niet_meer(self):
+        # Ronde A (review 1.27.0, M1): meenemen gaat alleen nog via de lade (bij opslaan).
         v = self.voorstel(artikel=self.a)
-        url = f"/beheer/voorstel/{v.pk}/"
-        self.als(self.anna).post(url, {"actie": "meenemen", "waarde": "1"})
-        self.als(self.anna).post(url, {"actie": "meenemen", "waarde": "1"})
+        r = self.als(self.anna).post(f"/beheer/voorstel/{v.pk}/", {"actie": "meenemen", "waarde": "1"})
+        self.assertIn("?voorstel=", r["Location"])
         v.refresh_from_db()
-        self.assertTrue(v.in_conceptversie)
+        self.assertFalse(v.in_conceptversie)
 
     def test_5c_het_scherm_stuurt_de_stand_mee(self):
         # Sinds 1.26.0 vanuit de lade: de knop stuurt de gewenste stand, dus twee keer klikken draait niets terug.
@@ -248,7 +251,8 @@ class Bevindingen(ReviewBasis):
     def test_8_weggooien_zet_meenemen_uit(self):
         v = self.voorstel(artikel=self.a, tekst="Twee weken is te kort")
         self.maak_concept()
-        self.als(self.anna).post(f"/beheer/voorstel/{v.pk}/", {"actie": "meenemen", "waarde": "1"})
+        Verbetervoorstel.objects.filter(pk=v.pk).update(in_conceptversie=True)  # meegenomen (lade)
+        self.als(self.anna)
         self.client.post(f"/beheer/kennisbank/artikel/{self.a.pk}/conceptversie/weggooien/")
         self.assertFalse(Conceptversie.objects.exists())
         v.refresh_from_db()
@@ -266,7 +270,8 @@ class Bevindingen(ReviewBasis):
 
     def test_8b_een_kleine_correctie_neemt_geen_voorstellen_mee(self):
         v = self.voorstel(artikel=self.a)
-        self.als(self.anna).post(f"/beheer/voorstel/{v.pk}/", {"actie": "meenemen", "waarde": "1"})
+        Verbetervoorstel.objects.filter(pk=v.pk).update(in_conceptversie=True)  # meegenomen (lade)
+        self.als(self.anna)
         self.client.force_login(self.bram)
         self.post(self.url, beheerdata(self.a, titel="Rappel versturen.", kleine_correctie="on"), _save="1")
         v.refresh_from_db()

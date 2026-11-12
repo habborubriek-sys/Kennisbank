@@ -1,32 +1,38 @@
 {% extends "admin/base_site.html" %}
-{% load i18n admin_urls %}
-{% block breadcrumbs %}
-<div class="breadcrumbs">
-  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a> &rsaquo;
-  <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a> &rsaquo;
-  <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo; {{ title }}
-</div>
-{% endblock %}
+{% load i18n static %}
+{# 1.28.0 (ronde A, A22): in de stijl van de werkplek, bereikbaar met "Artikel uit Word" op de werkplek. #}
+{% block bodyclass %}{{ block.super }} kb-import-pagina{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block content_title %}{% endblock %}
 {% block content %}
-<div id="content-main">
-  <p>Upload een Word-document. De tekst wordt een <b>concept</b>-artikel; je komt daarna direct in het bewerkscherm.</p>
-  <ul>
-    <li>Alleen de <b>tekst en de opmaak</b> komen mee: vet, cursief, onderstreept, koppen, lijsten, tabellen en links. Afbeeldingen worden overgeslagen.</li>
-    <li>De <b>titel</b> wordt de bestandsnaam, tenzij je hieronder kiest voor de eerste kop uit het document. De <b>samenvatting</b> vul je zelf in.</li>
-    <li><b>Secties</b> en <b>onboarding-uitleg</b> maak je daarna in de editor: tekst selecteren en op <i>Sectie</i> of <i>Onboarding</i> klikken. Begint je selectie met een kop, dan wordt die de titel van de sectie.</li>
+<div id="content-main" class="kb-import">
+  <p class="kb-import-terug"><a href="{% url 'beheer-start' %}">← Werkplek</a></p>
+  <h1>Artikel uit Word</h1>
+  <p class="kb-import-uitleg">Kies een Word-document. De tekst wordt een nieuw artikel als <b>concept</b>: medewerkers zien nog niets. Je komt daarna meteen in de editor.</p>
+  <ul class="kb-import-lijst">
+    <li>De <b>tekst en de opmaak</b> komen mee: vet, cursief, onderstreept, koppen, lijsten, tabellen en links. Afbeeldingen niet.</li>
+    <li>De <b>titel</b> wordt de bestandsnaam, of de eerste kop als je dat hieronder kiest. De <b>samenvatting</b> vul je daarna zelf in.</li>
+    <li><b>Secties</b> en <b>uitleg voor nieuwe collega's</b> maak je in de editor: selecteer de tekst en kies <i>Sectie</i> of <i>Onboarding</i>. Begint je selectie met een kop, dan wordt die de titel van de sectie.</li>
   </ul>
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" class="kb-import-form" novalidate>
     {% csrf_token %}
-    <fieldset class="module aligned">
-      {% for field in form %}
-      <div class="form-row{% if field.errors %} errors{% endif %}">
-        {{ field.errors }}
-        <div class="flex-container">{{ field.label_tag }} {{ field }}</div>
-        {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
-      </div>
-      {% endfor %}
-    </fieldset>
-    <div class="submit-row"><input type="submit" class="default" value="Inlezen"></div>
+    {% if form.errors %}<p class="errornote" role="alert">Nog niet ingelezen. Kijk naar de melding bij {% for f in form %}{% if f.errors %}{% if not forloop.first %}, {% endif %}{{ f.label|lower }}{% endif %}{% endfor %}. Je keuzes staan nog goed; kies het bestand wel opnieuw, dat onthoudt de browser niet.</p>{% endif %}
+    {% for field in form %}
+    <div class="kb-import-veld{% if field.errors %} errors{% endif %}{% if field.field.widget.input_type == 'checkbox' %} kb-import-keuze{% endif %}">
+      {% if field.field.widget.input_type == 'checkbox' %}
+        <label>{{ field }} {{ field.label }}</label>
+      {% else %}
+        {{ field.label_tag }} {{ field }}
+      {% endif %}
+      {{ field.errors }}
+      {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+    </div>
+    {% endfor %}
+    <div class="kb-import-knoppen">
+      <a class="button" href="{% url 'beheer-start' %}">Annuleren</a>
+      <input type="submit" class="default" value="Inlezen">
+    </div>
   </form>
 </div>
 {% endblock %}

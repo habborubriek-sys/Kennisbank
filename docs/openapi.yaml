@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.27.0
+  version: 1.28.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -406,7 +406,9 @@ paths:
       operationId: v1_voorstellen_partial_update
       description: 'Naar *verwerkt* of *afgewezen* alleen met een `terugkoppeling`
         (anders 400): dat bericht krijgt de indiener. Een afgehandeld voorstel is
-        definitief; een andere status geeft 409. Een terugkoppeling sturen kan wel.'
+        definitief; een andere status geeft 409. Een terugkoppeling sturen kan wel.
+        Is het voorstel meegenomen in de versie die ter inzage ligt bij een reviewteam,
+        dan kan afhandelen pas na de review (409).'
       summary: Verbetervoorstel behandelen (redacteuren)
       parameters:
       - in: path

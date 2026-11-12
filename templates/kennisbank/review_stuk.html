@@ -18,12 +18,13 @@
     {% if gepubliceerd_gewijzigd %}<p class="rv-let-op"><b>Let op:</b> de gepubliceerde versie is aangepast nadat deze conceptversie begon
       (bijvoorbeeld een spoedcorrectie). Wat je hieronder als "weg" ziet, kan die correctie zijn; de redacteur neemt hem nog mee.</p>{% endif %}
     <p class="rv-samenvatting"><b>Samenvatting:</b> {{ samenvatting_verschil }}</p>
-    {% if voorstellen %}
+    {% if voorstellen or voorstellen_verborgen %}
     {# 1.27.0: waarom deze wijziging? De meegenomen verbetervoorstellen, zonder de naam van de indiener. #}
     <div class="rv-voorstellen">
       <h3>Waarom deze wijziging</h3>
-      <p class="rv-uitleg">Bij deze versie {% if voorstellen|length == 1 %}hoort een verbetervoorstel{% else %}horen {{ voorstellen|length }} verbetervoorstellen{% endif %} van collega's. Je ziet wat er werd voorgesteld, niet wie het indiende.</p>
-      <ul>{% for v in voorstellen %}<li>{% if v.citaat %}<q>{{ v.citaat|truncatechars:160 }}</q> — {% endif %}{{ v.tekst|linebreaksbr }}</li>{% endfor %}</ul>
+      {% if voorstellen %}<p class="rv-uitleg">Bij deze versie {% if voorstellen|length == 1 %}hoort een verbetervoorstel{% else %}horen {{ voorstellen|length }} verbetervoorstellen{% endif %} van collega's. Je ziet wat er werd voorgesteld, niet wie het indiende.</p>
+      <ul>{% for v in voorstellen %}<li>{% if v.citaat %}<q>{{ v.citaat|truncatechars:160 }}</q> — {% endif %}{{ v.tekst|linebreaksbr }}</li>{% endfor %}</ul>{% endif %}
+      {% if voorstellen_verborgen %}<p class="rv-uitleg">{% if voorstellen_verborgen == 1 %}1 voorstel is{% else %}{{ voorstellen_verborgen }} voorstellen zijn{% endif %} niet zichtbaar, omdat er persoonlijke gegevens in staan.</p>{% endif %}
     </div>
     {% endif %}
     <div class="rv-verschil">{{ verschil }}</div>

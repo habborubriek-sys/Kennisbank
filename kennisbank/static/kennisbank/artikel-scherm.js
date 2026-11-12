@@ -22,7 +22,22 @@
     var samen = form.elements.namedItem("samenvatting");
     // Fouten van het hele formulier staan boven het blad; zet ze in beeld.
     var fout = $(".errornote", form);
-    if (fout && fout.scrollIntoView) fout.scrollIntoView({ block: "center" });
+    if (fout) {
+      // Ronde A (review 1.27.0, M11): "Corrigeer de onderstaande fout" wees naar een veld dat in een paneel
+      // rechts kan staan. Noem het veld en de plek.
+      var gezien = {};
+      var plekken = $$('[aria-invalid="true"]', form).map(function (veld) {
+        var label = veld.id && $('label[for="' + veld.id + '"]', form);
+        var naam = (label ? label.textContent : veld.getAttribute("aria-label") || veld.name || "").replace(/[:*]\s*$/, "").trim();
+        var paneelEl = veld.closest(".kb-paneel");
+        var waar = paneelEl ? " (in " + (paneelEl.getAttribute("aria-label") || "het paneel") + ", rechts)" : "";
+        if (!naam || gezien[naam]) return "";
+        gezien[naam] = true;
+        return naam + waar;
+      }).filter(Boolean);
+      if (plekken.length) fout.textContent = "Nog niet opgeslagen. Kijk naar: " + plekken.join(", ") + ".";
+      if (fout.scrollIntoView) fout.scrollIntoView({ block: "center" });
+    }
 
     // --- Panelen -------------------------------------------------------------------------
     function paneel(naam) {

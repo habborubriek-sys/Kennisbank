@@ -16,7 +16,16 @@ from django.db.models import F, Max
 from django.utils import timezone
 
 from .diensten import _mail, laatste_stand, mail_na_commit, naam_van
-from .models import Conceptversie, Inzage, InzageStatus, ReviewOpmerking, Reviewteam, Systeemstand
+from .models import OPEN as OPEN_VOORSTEL
+from .models import (
+    Conceptversie,
+    Inzage,
+    InzageStatus,
+    ReviewOpmerking,
+    Reviewteam,
+    Systeemstand,
+    Verbetervoorstel,
+)
 
 
 class ReviewFout(Exception):
@@ -98,6 +107,21 @@ def stand(artikel):
     }
 
 
+def akkoord_voorstellen(artikel):
+    """De voorstellen die meegenomen waren toen de versie met akkoord ter inzage ging (ronde A, M7).
+
+    None als er nu geen geldig akkoord is. Een voorstel dat nu meegenomen is maar hier niet in staat, is
+    ná het akkoord meegenomen: de reviewer heeft het niet gezien. Daar waarschuwt het bewerkscherm voor.
+    """
+    st = stand(artikel)
+    if not st["label"]:
+        return None
+    ids = set()
+    for r in st["rijen"]:
+        ids.update(r.voorstellen or [])
+    return ids
+
+
 # --- Redactie ----------------------------------------------------------------------------------
 
 
@@ -122,9 +146,20 @@ def ter_inzage_geven(artikel, door, teams, geladen_stempel: str):
             raise ReviewFout("Kies een reviewteam van de omgeving van dit artikel.")
         ronde = (huidige(artikel.pk).aggregate(m=Max("ronde"))["m"] or 0) + 1
         nu = timezone.now()
+        meegenomen = sorted(
+            Verbetervoorstel.objects.filter(
+                artikel=artikel, in_conceptversie=True, status__in=OPEN_VOORSTEL
+            ).values_list("pk", flat=True)
+        )
         rijen = [
             Inzage(
-                artikel=artikel, team=t, ronde=ronde, concept_stempel=concept.stempel, gestart_door=door, gestart_op=nu
+                artikel=artikel,
+                team=t,
+                ronde=ronde,
+                concept_stempel=concept.stempel,
+                gestart_door=door,
+                gestart_op=nu,
+                voorstellen=meegenomen,
             )
             for t in teams
         ]

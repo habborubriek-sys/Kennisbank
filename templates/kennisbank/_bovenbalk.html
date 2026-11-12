@@ -2,6 +2,7 @@
   <div class="brand"><a href="/"><span class="mark" aria-hidden="true">K</span><span>{{ app_naam }}</span></a>{% if titel %}<span class="kb-top-titel">{{ titel }}</span>{% endif %}</div>
   {% if ingelogd %}
   <nav class="topbtns" aria-label="Hoofdmenu">
+    {% if thema %}<button class="tb on-accent kb-thema" type="button" data-kb-thema aria-pressed="false" hidden><span class="kb-thema-icoon" aria-hidden="true">☾</span>Donker</button>{% endif %}
     {% for k in knoppen %}<a class="tb on-accent" href="{{ k.url }}"{% if k.actief %} aria-current="page"{% endif %}>{{ k.tekst }}</a>{% endfor %}
     <form class="user" method="post" action="{{ uitlog_url }}">
       <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">

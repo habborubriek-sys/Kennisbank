@@ -58,7 +58,9 @@ def lijst(request):
         .order_by("gestart_op")
     )
     afgerond = list(
-        Inzage.objects.filter(team__in=teams)
+        # Ronde A (review 1.27.0, R2 B4): net als hierboven alleen artikelen die nog in de omgeving van het team
+        # staan. Anders toont de lijst de nieuwe titel van een artikel dat naar een andere omgeving verhuisde.
+        Inzage.objects.filter(team__in=teams, team__omgeving_id=F("artikel__omgeving_id"))
         .exclude(status=InzageStatus.TER_INZAGE)
         .select_related("artikel", "team", "reviewer")
         .order_by("-afgerond_op")[:60]
@@ -142,14 +144,19 @@ def stuk(request, pk):
             "aantal_gewijzigd": aantal,
             # 1.27.0: de verbetervoorstellen die in deze versie zijn meegenomen, als context. Alleen de tekst en
             # het citaat: niet wie het indiende, geen notities of berichten (besluit 6 van Alex).
+            # Ronde A (review 1.27.0, M8): een verborgen voorstel (bijvoorbeeld met een naam erin) blijft ook voor
+            # de reviewer verborgen; hij ziet alleen dat er een is.
             "voorstellen": [
                 {"citaat": cit, "tekst": tekst}
                 for cit, tekst in Verbetervoorstel.objects.filter(
-                    artikel=artikel, in_conceptversie=True, status__in=OPEN_VOORSTEL
+                    artikel=artikel, in_conceptversie=True, status__in=OPEN_VOORSTEL, verborgen=False
                 )
                 .order_by("ingediend_op", "pk")
                 .values_list("citaat", "tekst")
             ],
+            "voorstellen_verborgen": Verbetervoorstel.objects.filter(
+                artikel=artikel, in_conceptversie=True, status__in=OPEN_VOORSTEL, verborgen=True
+            ).count(),
             "nieuwe_tekst": schoon(v.get("inhoud", "")),
             "opmerkingen": opmerkingen,
             "opmerkingen_data": [

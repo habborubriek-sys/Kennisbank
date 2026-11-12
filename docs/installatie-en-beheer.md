@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.27.0 .
-docker push registry.example.nl/kennisbank:1.27.0
+docker build -t registry.example.nl/kennisbank:1.28.0 .
+docker push registry.example.nl/kennisbank:1.28.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -119,7 +119,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.27.0
+  registry.example.nl/kennisbank:1.28.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -141,6 +141,14 @@ De migraties lopen automatisch mee bij het starten (of via `migreer`). Maak voor
 zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens gebeurt; alleen de
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
+
+#### Naar 1.28.0 (vanaf 1.7.0 of later)
+
+Eén migratie: `0030_inzage_voorstellen` voegt bij elke inzage een lijst toe met de verbetervoorstellen die waren
+meegenomen toen de versie ter inzage ging. Voor lopende rondes vult de migratie die lijst met wat nu is
+meegenomen, zodat een bestaand akkoord geen valse waarschuwing geeft. Nieuw bestand: `kennisbank/static/kennisbank/thema.js`
+(licht of donker op de site). Het beheer laadt de donkere modus van Django niet meer. Oude tabbladen van het
+behandelscherm verwerken voor open voorstellen niets meer: ze sturen door naar de editor. Ctrl+F5 na de upgrade.
 
 #### Naar 1.27.0 (vanaf 1.7.0 of later)
 

@@ -48,6 +48,7 @@ body.kb-met-lade .kb-werkvlak { transition: margin .22s ease; }
 .kb-vk-citaat { font-style: italic; color: #5b6b7d; border-left: 3px solid #b9d0ea; padding-left: 8px; font-size: 13px; }
 .kb-vk-tekst { white-space: pre-line; }
 .kb-vk-meta { font-size: 12px; color: #5b6b7d; }
+.kb-vk-ok { font-size: 12px; color: #1d5b30; background: #e3f3e6; border-radius: 4px; padding: 3px 7px; align-self: flex-start; }
 .kb-vk-weg, .kb-vk-let { font-size: 12px; color: #8a5a00; background: #fff4d6; border-radius: 4px; padding: 3px 7px; align-self: flex-start; }
 .kb-vk-mee { display: flex; gap: 8px; align-items: center; background: #f4f7fb; border: 1px solid #d9e1ea; border-radius: 8px; padding: 8px 10px; cursor: pointer; font-size: 14px; }
 .kb-vk-mee input { width: 17px; height: 17px; margin: 0; }

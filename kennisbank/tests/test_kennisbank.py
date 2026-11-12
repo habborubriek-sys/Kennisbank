@@ -2533,6 +2533,9 @@ class VoorstelGesprekTests(Basis):
         self.assertContains(r, '"berichten": [{"tekst": "Opgepakt"')
 
     def test_een_bericht_via_de_inline_wordt_verstuurd(self):
+        # Sinds ronde A alleen nog voor afgehandelde voorstellen (open: de lade in de editor).
+        Verbetervoorstel.objects.filter(pk=self.v.pk).update(status=VoorstelStatus.VERWERKT)
+        self.v.refresh_from_db()
         c = self.als(self.redacteur)
         data = {
             "status": self.v.status,
@@ -2551,6 +2554,7 @@ class VoorstelGesprekTests(Basis):
     def test_een_bericht_overschrijft_niets_meer(self):
         """De terugkoppeling is afgeleid uit de berichten; er is geen tweede invoerveld dat hem wist."""
         diensten.voorstelbericht_toevoegen(self.v, self.redacteur, "Opgepakt", van_redactie=True, melden=False)
+        Verbetervoorstel.objects.filter(pk=self.v.pk).update(status=VoorstelStatus.VERWERKT)
         c = self.als(self.redacteur)
         data = {
             "status": VoorstelStatus.VERWERKT,

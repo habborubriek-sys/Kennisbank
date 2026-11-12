@@ -42,6 +42,17 @@ class Scherm(Basis):
         }
         return self.client.post(scherm(v), data)
 
+    def lade(self, v, actie, **velden):
+        """Sinds 1.26.0 behandel je een open voorstel in de lade van de editor (ronde A: alleen daar)."""
+        v.refresh_from_db()
+        data = {
+            "actie": actie,
+            "geladen_eigenaar": str(v.eigenaar_id or 0),
+            "geladen_bericht": str(v.berichten.order_by("-pk").values_list("pk", flat=True).first() or 0),
+            **velden,
+        }
+        return self.client.post(f"/beheer/voorstel/{v.pk}/lade/", data)
+
 
 class BehandelschermTests(Scherm):
     def test_scherm_toont_voorstel_gesprek_en_steun(self):
@@ -71,8 +82,8 @@ class BehandelschermTests(Scherm):
         v = self.voorstel()
         self.als(self.anna)
         with self.captureOnCommitCallbacks(execute=True):
-            r = self.post(v, "bericht", bericht="Opgepakt, we bellen je.")
-        self.assertEqual(r.status_code, 302)
+            r = self.lade(v, "bericht", tekst="Opgepakt, we bellen je.")
+        self.assertEqual(r.status_code, 200)
         self.assertEqual([b.tekst for b in v.berichten.all()], ["Opgepakt, we bellen je."])
         self.assertEqual([m.to for m in mail.outbox], [["lies@example.org"]])
         v.refresh_from_db()
@@ -80,29 +91,29 @@ class BehandelschermTests(Scherm):
 
     def test_leeg_bericht_verstuurt_niets(self):
         v = self.voorstel()
-        r = self.als(self.anna).post(scherm(v), {"actie": "bericht", "bericht": "  "})
-        self.assertEqual(r.status_code, 200)
+        r = self.als(self.anna) and self.lade(v, "bericht", tekst="  ")
+        self.assertEqual(r.status_code, 400)
         self.assertFalse(v.berichten.exists())
 
-    def test_verwerkt_alleen_met_bericht(self):
+    def test_oud_scherm_verwerkt_niets_meer_voor_een_open_voorstel(self):
+        # Ronde A (review 1.27.0, M1): een POST uit een oud tabblad gaat naar de editor; je tekst staat in de melding.
         v = self.voorstel()
         self.als(self.anna)
-        r = self.post(v, "verwerkt", bericht="")
-        self.assertEqual(r.status_code, 200)
+        r = self.post(v, "verwerkt", bericht="Aangepast in versie 2.")
+        self.assertEqual(r["Location"], f"/beheer/kennisbank/artikel/{v.artikel_id}/change/?voorstel={v.pk}")
         v.refresh_from_db()
-        self.assertEqual(v.status, VoorstelStatus.NIEUW)
-        r = self.post(v, "verwerkt", bericht="Aangepast in versie 2.", terug="algemeen")
-        self.assertEqual(r["Location"], "/beheer/?bak=algemeen")
-        v.refresh_from_db()
-        self.assertEqual((v.status, v.eigenaar, v.behandeld_door), (VoorstelStatus.VERWERKT, self.anna, self.anna))
-        self.assertEqual(v.terugkoppeling, "Aangepast in versie 2.")
+        self.assertEqual((v.status, v.eigenaar), (VoorstelStatus.NIEUW, None))
+        self.assertFalse(v.berichten.exists())
+        html = self.client.get(r["Location"]).content.decode()
+        self.assertIn("Er is niets verstuurd", html)
+        self.assertIn("Aangepast in versie 2.", html)
 
     @override_settings(KB_EMAIL_AAN=True)
     def test_afhandelen_uit_de_bak_van_een_collega_meldt_dat_aan_hem(self):
         v = diensten.voorstel_naar_bak(self.voorstel(), self.bram, self.bram)
         self.als(self.anna)
         with self.captureOnCommitCallbacks(execute=True):
-            self.post(v, "afwijzen", bericht="Staat al zo in de wet.")
+            self.lade(v, "afwijzen", tekst="Staat al zo in de wet.")
         aan_bram = [m for m in mail.outbox if m.to == ["bram@example.org"]]
         self.assertEqual(len(aan_bram), 1)
         self.assertIn("uit jouw bak", aan_bram[0].body)
@@ -112,8 +123,8 @@ class BehandelschermTests(Scherm):
         tweede = self.voorstel(tekst="Termijn is fout", door=self.piet)
         diensten.steun_geven(tweede, self.lies)
         self.als(self.anna)
-        r = self.post(tweede, "afwijzen", bericht="Dubbel; zie het andere voorstel.", dubbel_van=str(eerste.pk))
-        self.assertEqual(r.status_code, 302)
+        r = self.lade(tweede, "dubbel", tekst="Dubbel; zie het andere voorstel.", dubbel_van=str(eerste.pk))
+        self.assertEqual(r.status_code, 200)
         tweede.refresh_from_db()
         self.assertEqual((tweede.status, tweede.dubbel_van), (VoorstelStatus.AFGEWEZEN, eerste))
         self.assertEqual(Steun.objects.filter(voorstel=eerste).count(), 0)
@@ -126,41 +137,44 @@ class BehandelschermTests(Scherm):
         )
         ander = self.voorstel(artikel=zuid, door=self.zoe)
         v = self.voorstel()
-        r = self.als(self.anna).post(scherm(v), {"actie": "afwijzen", "bericht": "x", "dubbel_van": str(ander.pk)})
-        self.assertEqual(r.status_code, 404)
+        r = self.als(self.anna) and self.lade(v, "dubbel", tekst="x", dubbel_van=str(ander.pk))
+        self.assertEqual(r.status_code, 400)
         v.refresh_from_db()
         self.assertEqual(v.status, VoorstelStatus.NIEUW)
 
     def test_nieuw_bericht_van_een_collega_houdt_versturen_tegen(self):
+        # Ronde A (review 1.27.0, M5): de lade vergelijkt zoals het oude scherm deed.
         v = self.voorstel()
         self.als(self.anna)
-        geladen = {"geladen_bericht": "0", "geladen_status": v.status, "geladen_eigenaar": ""}
         diensten.voorstelbericht_toevoegen(v, self.bram, "Ik kijk ernaar.", van_redactie=True, melden=False)
-        r = self.client.post(scherm(v), {"actie": "afwijzen", "bericht": "Afgewezen, sorry.", **geladen})
-        self.assertEqual(r.status_code, 200)
-        html = r.content.decode()
-        self.assertIn("Er is niets verstuurd", html)
-        self.assertIn("Bram stuurde intussen een bericht", html)
-        self.assertIn("Afgewezen, sorry.", html, "de getypte tekst blijft staan")
+        r = self.client.post(
+            f"/beheer/voorstel/{v.pk}/lade/",
+            {"actie": "afwijzen", "tekst": "Afgewezen, sorry.", "geladen_bericht": "0", "geladen_eigenaar": "0"},
+        )
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("Bram stuurde intussen een bericht", r.json()["fout"])
+        self.assertIn("Ik kijk ernaar.", str(r.json()["voorstel"]["berichten"]), "de lade toont de nieuwe stand")
         v.refresh_from_db()
         self.assertEqual(v.status, VoorstelStatus.NIEUW)
         self.assertEqual(v.berichten.count(), 1)
 
-    def test_status_intussen_veranderd_houdt_afhandelen_tegen(self):
+    def test_eigenaar_intussen_veranderd_houdt_afhandelen_tegen(self):
         v = self.voorstel()
         self.als(self.anna)
-        Verbetervoorstel.objects.filter(pk=v.pk).update(status=VoorstelStatus.IN_BEHANDELING)
+        diensten.voorstel_naar_bak(v, self.bram, self.bram)
         r = self.client.post(
-            scherm(v), {"actie": "verwerkt", "bericht": "Klaar.", "geladen_status": "nieuw", "geladen_bericht": "0"}
+            f"/beheer/voorstel/{v.pk}/lade/",
+            {"actie": "afwijzen", "tekst": "Klaar.", "geladen_eigenaar": "0", "geladen_bericht": "0"},
         )
-        self.assertIn("Er is niets verstuurd", r.content.decode())
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("ligt intussen bij Bram", r.json()["fout"])
         v.refresh_from_db()
         self.assertEqual(v.status, VoorstelStatus.IN_BEHANDELING)
 
     def test_afgehandeld_blijft_afgehandeld(self):
         v = self.voorstel()
         self.als(self.anna)
-        self.post(v, "verwerkt", bericht="Klaar.")
+        diensten.voorstel_afhandelen(v, self.anna, VoorstelStatus.VERWERKT, "Klaar.")
         v.refresh_from_db()
         html = self.client.get(scherm(v)).content.decode()
         self.assertNotIn("Versturen en verwerkt", html)
@@ -173,7 +187,7 @@ class BehandelschermTests(Scherm):
     def test_interne_notitie_alleen_voor_de_redactie(self):
         v = self.voorstel()
         self.als(self.anna)
-        self.post(v, "notitie", notitie="Gebeld met Toezicht.")
+        self.lade(v, "notitie", tekst="Gebeld met Toezicht.")
         self.assertEqual(list(v.notities.values_list("tekst", flat=True)), ["Gebeld met Toezicht."])
         self.assertIn("Gebeld met Toezicht.", self.client.get(scherm(v), follow=True).content.decode())
         eigen = self.als(self.lies).get("/api/v1/voorstellen?lijst=mijn").content.decode()
@@ -192,10 +206,11 @@ class BehandelschermTests(Scherm):
 
     def test_verbergen_en_weer_tonen(self):
         v = self.voorstel()
-        self.als(self.anna).post(scherm(v), {"actie": "verbergen"})
+        self.als(self.anna)
+        self.lade(v, "verbergen", waarde="1")
         v.refresh_from_db()
         self.assertTrue(v.verborgen)
-        self.client.post(scherm(v), {"actie": "verbergen"})
+        self.lade(v, "verbergen", waarde="0")
         v.refresh_from_db()
         self.assertFalse(v.verborgen)
 

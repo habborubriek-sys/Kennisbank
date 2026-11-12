@@ -871,6 +871,40 @@ class VoorstelFout(Exception):
     """Iets wat met een voorstel niet kan, met een uitleg in gewoon Nederlands."""
 
 
+class VoorstelOpSlot(VoorstelFout):
+    """Het voorstel is meegenomen in de versie die ter inzage ligt; afhandelen kan pas na de review.
+
+    Ronde A (M1): deze regel stond alleen in de lade. Nu in de dienst, zodat elke weg erlangs moet: de
+    lade, de API en het oude beheerformulier.
+    """
+
+
+OP_SLOT_TEKST = (
+    "Dit voorstel is meegenomen in de versie die ter inzage ligt. Afhandelen kan pas als de review terug is."
+)
+
+
+def voorstel_op_slot(voorstel) -> bool:
+    """Is het voorstel meegenomen in een conceptversie die nu bij een reviewteam ligt?"""
+    if not voorstel.in_conceptversie:
+        return False
+    from . import review
+
+    return review.op_slot(voorstel.artikel_id)
+
+
+def _dubbel_kring(voorstel, dubbel_van) -> bool:
+    """Wordt het een kring als `voorstel` een dubbel van `dubbel_van` wordt? (A → B → C → A)"""
+    gezien = set()
+    pk = dubbel_van.pk
+    while pk and pk not in gezien:
+        if pk == voorstel.pk:
+            return True
+        gezien.add(pk)
+        pk = Verbetervoorstel.objects.filter(pk=pk).values_list("dubbel_van_id", flat=True).first()
+    return False
+
+
 def voorstel_beheer_url(voorstel) -> str:
     return f"{settings.KB_BASIS_URL}/beheer/voorstel/{voorstel.pk}/"
 
@@ -906,7 +940,10 @@ def _nog_geen_bericht(voorstel) -> bool:
 BAK_VELDEN = ["eigenaar", "eigenaar_sinds", "eigenaar_gezien_op"]
 
 
-def voorstel_naar_bak(voorstel, door, naar=None):
+_ONBEKEND = object()
+
+
+def voorstel_naar_bak(voorstel, door, naar=None, *, verwacht_eigenaar=_ONBEKEND):
     """Leg een voorstel in de bak van `naar`, of met naar=None terug in de gezamenlijke bak.
 
     - Oppakken (naar == door) en toewijzen (naar is een collega) zetten een nieuw voorstel op
@@ -915,13 +952,24 @@ def voorstel_naar_bak(voorstel, door, naar=None):
       gegaan; is dat wel gebeurd, dan blijft het 'In behandeling' (er ís al aan gewerkt).
     - Een afgehandeld voorstel blijft bij wie het afhandelde; dat is de geschiedenis van die bak.
 
+    Met `verwacht_eigenaar` (een gebruikers-id, of 0/None voor de werkvoorraad) wordt onder het slot
+    gecontroleerd of het voorstel nog ligt waar de aanroeper dacht (ronde A, selectiebalk). Zo niet, dan
+    VoorstelFout en verandert er niets.
+
     Geeft het bijgewerkte voorstel terug. Gooit VoorstelFout als het niet kan.
     """
     nu = timezone.now()
     with transaction.atomic():
-        v = Verbetervoorstel.objects.select_for_update().select_related("artikel").get(pk=voorstel.pk)
+        v = (
+            Verbetervoorstel.objects.select_for_update(of=("self",))
+            .select_related("artikel", "eigenaar")
+            .get(pk=voorstel.pk)
+        )
         if not v.is_open:
             raise VoorstelFout("Dit voorstel is al afgehandeld en blijft bij wie het afhandelde.")
+        if verwacht_eigenaar is not _ONBEKEND and (v.eigenaar_id or 0) != (verwacht_eigenaar or 0):
+            waar = f"bij {naam_van(v.eigenaar)}" if v.eigenaar_id else "weer in de werkvoorraad"
+            raise VoorstelFout(f"het ligt intussen {waar}; dat is overgeslagen.")
         if naar is None:
             if v.eigenaar_id is None:
                 return v
@@ -1033,6 +1081,8 @@ def voorstel_afhandelen(voorstel, door, status, tekst: str, *, dubbel_van=None):
         raise VoorstelFout("Onbekende eindstand.")
     if not voorstel.is_open:
         raise VoorstelFout("Dit voorstel is al afgehandeld. Dat is definitief; een bericht kan nog wel.")
+    if door is not None and voorstel_op_slot(voorstel):
+        raise VoorstelOpSlot(OP_SLOT_TEKST)
     tekst = (tekst or "").strip()
     if not tekst:
         raise VoorstelFout(
@@ -1044,17 +1094,21 @@ def voorstel_afhandelen(voorstel, door, status, tekst: str, *, dubbel_van=None):
         # Review 1.20.1, bevinding 10: dubbel kan alleen binnen hetzelfde artikel, en niet in een kring.
         if dubbel_van.pk == voorstel.pk or dubbel_van.artikel_id != voorstel.artikel_id:
             raise VoorstelFout("Kies een ander voorstel bij hetzelfde artikel.")
-        if dubbel_van.dubbel_van_id == voorstel.pk:
-            raise VoorstelFout("Dat voorstel is zelf al als dubbel van dit voorstel afgewezen.")
+        if _dubbel_kring(voorstel, dubbel_van):
+            raise VoorstelFout("Dat voorstel is zelf al (via via) als dubbel van dit voorstel afgewezen.")
     vorige = voorstel.eigenaar
     nu = timezone.now()
     voorstel.status = status
     voorstel.behandeld_door = door
     voorstel.behandeld_op = nu
     voorstel.dubbel_van = dubbel_van
+    # Ronde A (A11): afgehandeld = niet meer meegenomen in een conceptversie.
+    voorstel.in_conceptversie = False
     if door is not None:
         eigenaar_bij_statuswijziging(voorstel, door)
-    voorstel.save(update_fields=["status", "behandeld_door", "behandeld_op", "dubbel_van", *BAK_VELDEN])
+    voorstel.save(
+        update_fields=["status", "behandeld_door", "behandeld_op", "dubbel_van", "in_conceptversie", *BAK_VELDEN]
+    )
     voorstelbericht_toevoegen(voorstel, door, tekst, van_redactie=True)
     meld_vorige_eigenaar_afgehandeld(voorstel, vorige, door)
     return voorstel

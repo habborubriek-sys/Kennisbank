@@ -26,7 +26,7 @@
     {% elif kb_concept %}
     <span class="kb-pil">Conceptversie</span>
     {% if kb_balk_stand %}<span class="kb-stand kb-stand-{{ kb_balk_stand.soort }}">{{ kb_balk_stand.tekst }}</span>{% endif %}
-    <span class="kb-balk-meta">Medewerkers zien versie {{ original.versie }} · bijgewerkt door {{ kb_concept_bijgewerkt_door }}, {{ kb_concept.bijgewerkt_op|date:"j F H:i" }}</span>
+    <span class="kb-balk-meta">Medewerkers zien versie {{ original.versie }} · bijgewerkt door {{ kb_concept_bijgewerkt_door }}, {{ kb_concept.bijgewerkt_op|date:"j F H:i" }}</span><span id="kb-laatst-door" hidden>{{ kb_concept_bijgewerkt_door }}</span>
     {% elif original and original.versie %}
     <span class="kb-pil kb-pil-rustig">{{ original.get_status_display }}</span>
     {% if kb_balk_stand %}<span class="kb-stand kb-stand-{{ kb_balk_stand.soort }}">{{ kb_balk_stand.tekst }}</span>{% endif %}
@@ -111,6 +111,7 @@
 {{ kb_lade|json_script:"kb-lade-gegevens" }}
 <input type="hidden" name="kb_lade" id="kb-lade-ids" value="">
 <input type="hidden" name="kb_meenemen" id="kb-meenemen" value="">
+<input type="hidden" name="kb_mee_geladen" id="kb-mee-geladen" value="">
 <aside class="kb-lade" id="kb-lade" aria-label="Verbetervoorstellen" hidden>
   <div class="kb-lade-scroll">
     <div class="kb-lade-kop"><h2>Verbetervoorstellen</h2></div>

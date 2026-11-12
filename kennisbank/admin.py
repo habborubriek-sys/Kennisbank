@@ -60,6 +60,15 @@ from .rechten import rechten
 from .word_import import WordImportFout, lees_docx
 
 
+def enige_omgeving(request):
+    """De pk van de enige omgeving waarin deze gebruiker iets mag maken, of None als dat er meer (of geen) zijn."""
+    if request.user.is_superuser:
+        ids = list(Omgeving.objects.values_list("pk", flat=True)[:2])
+    else:
+        ids = sorted(rechten(request).redactie_omgevingen)
+    return ids[0] if len(ids) == 1 else None
+
+
 class RedactieRechtenMixin:
     """Beperkt toegang tot objecten in de omgevingen waar de gebruiker redacteur is."""
 
@@ -78,6 +87,15 @@ class RedactieRechtenMixin:
 
     def has_module_permission(self, request):
         return request.user.is_active and (request.user.is_superuser or bool(self._omgevingen(request)))
+
+    def get_changeform_initial_data(self, request):
+        """Ronde A (review 1.27.0, M11): heb je maar één omgeving, dan staat die bij iets nieuws al ingevuld."""
+        data = super().get_changeform_initial_data(request)
+        if self.omgeving_pad == "omgeving" and "omgeving" not in data:
+            enige = enige_omgeving(request)
+            if enige is not None:
+                data["omgeving"] = enige
+        return data
 
     def has_view_permission(self, request, obj=None):
         return self.has_module_permission(request)
@@ -885,6 +903,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             initial={
                 "kop_als_titel": profiel.import_kop_als_titel,
                 "tabelkoprij": profiel.import_tabelkoprij,
+                "omgeving": enige_omgeving(request),
             },
         )
         if not request.user.is_superuser:
@@ -917,8 +936,8 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 diensten.herbouw_secties(artikel)
                 messages.success(
                     request,
-                    f"'{gelezen.titel}' is ingelezen als concept. Pas de titel aan, vul de samenvatting in, "
-                    "maak secties en onboarding-uitleg in de editor, en zet de status op 'Gepubliceerd'.",
+                    f"'{gelezen.titel}' is ingelezen als concept; medewerkers zien nog niets. Vul de samenvatting "
+                    "in, controleer de titel en de secties, en kies Afronden als je klaar bent.",
                 )
                 for m in gelezen.meldingen:
                     messages.warning(request, m)
@@ -1017,7 +1036,12 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 from . import review as _review
 
                 extra["kb_lade"] = lade.lade_gegevens(
-                    obj, request.user, request.GET.get("voorstel"), op_slot=_review.op_slot(obj.pk)
+                    obj,
+                    request.user,
+                    request.GET.get("voorstel"),
+                    op_slot=_review.op_slot(obj.pk),
+                    post=request.POST if request.method == "POST" else None,
+                    akkoord=_review.akkoord_voorstellen(obj),
                 )
                 open_pk = extra["kb_lade"]["open"]
                 if open_pk:
@@ -1405,6 +1429,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             return
         super().save_related(request, form, formsets, change)
         review_regel = ""
+        had_concept = False
         spoed = getattr(form, "spoed", False)
         if spoed:
             # De conceptversie (en een lopende review) blijft zoals hij is; ook de kladversie, want daar
@@ -1416,6 +1441,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             # Hoe stond de review? Dat komt in de versiegeschiedenis (stap C).
             if form.instance.status == Status.GEPUBLICEERD:
                 concept = Conceptversie.objects.filter(artikel=form.instance).first()
+                had_concept = concept is not None
                 if concept is not None:
                     review_regel = review.samenvatting_bij_publiceren(
                         form.instance, gewijzigd_na_concept=diensten.wijkt_af_van_concept(concept, form.cleaned_data)
@@ -1425,16 +1451,15 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 diensten.concept_gepubliceerd(form.instance, request.user)
         diensten.claim_opheffen(form.instance, request.user)  # opgeslagen = niet meer aan het bewerken
         # Opgeslagen = de kladversie is afgehandeld. Bij een nieuw artikel was dat de kladversie
-        # "nieuw"; die hoort nu niet meer op het toevoegscherm terug te komen.
-        if not spoed:
+        # "nieuw"; die hoort nu niet meer op het toevoegscherm terug te komen. Niet bij een spoedcorrectie,
+        # ook niet als een collega de conceptversie intussen weggooide en dit een gewone publicatie werd
+        # (ronde A, review 1.27.0 R1 B8): het spoedscherm blijft van de kladversie af.
+        if not spoed and request.GET.get("spoed") != "1":
             diensten.klad_afsluiten(request.user, form.instance if change else None)
         form.instance.tags.set(
             [Tag.objects.get_or_create(naam=n)[0] for n in tags_uit_tekst(form.cleaned_data.get("tags_tekst", ""))]
         )
         diensten.herbouw_secties(form.instance)  # ook de zoekdocumenten, dus ná de tags
-        # 1.26.0: de vinkjes *Meenemen in deze versie* in de lade. Bij een spoedcorrectie horen ze bij de
-        # versie die nu wordt gepubliceerd (hieronder), anders volgen ze het gewone meenemen.
-        spoed_mee = lade.meenemen_opslaan(request, form.instance, spoed=spoed) if change else []
         versie = diensten.registreer_publicatie(
             form.instance,
             request.user,
@@ -1442,19 +1467,48 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             kleine_correctie=bool(form.cleaned_data.get("kleine_correctie")),
             review=review_regel,
         )
-        if versie and not spoed and not versie.kleine_correctie:
-            # Reviewpunt 11: voorstellen die in deze versie zijn meegenomen, krijgen het versienummer; na
-            # het opslaan vraagt de kennisbank of je ze wilt afhandelen (response_change).
-            meegenomen = Verbetervoorstel.objects.filter(
-                artikel=form.instance, in_conceptversie=True, status__in=OPEN_VOORSTEL
-            )
-            if meegenomen.update(in_conceptversie=False, verwerkt_in_versie=versie.versie):
-                request._kb_meegenomen = True
-        if versie and spoed and spoed_mee:
-            Verbetervoorstel.objects.filter(pk__in=spoed_mee, status__in=OPEN_VOORSTEL).update(
-                in_conceptversie=False, verwerkt_in_versie=versie.versie
-            )
-            request._kb_meegenomen = True
+        # Ronde A (review 1.27.0, M3/M4): voorstellen tellen alleen mee in een echte nieuwe versie. Een kleine
+        # correctie, of publiceren zonder inhoudelijke wijziging, verwerkt geen voorstellen; dat is één regel
+        # voor de gewone weg en de spoedcorrectie.
+        telt = bool(versie) and not versie.kleine_correctie
+        if change and form.instance.status == Status.GEPUBLICEERD:
+            # 1.26.0: de vinkjes *Meenemen in deze versie* in de lade. Bij een spoedcorrectie horen ze bij de
+            # versie die nu wordt gepubliceerd, anders volgen ze het gewone meenemen.
+            mee = lade.meenemen_opslaan(request, form.instance, spoed=spoed, telt=telt)
+            if spoed:
+                if telt and mee:
+                    Verbetervoorstel.objects.filter(pk__in=mee, status__in=OPEN_VOORSTEL).update(
+                        in_conceptversie=False, verwerkt_in_versie=versie.versie
+                    )
+                    request._kb_meegenomen = True
+                elif mee:
+                    waarom = "dit een kleine correctie was" if versie else "er geen inhoudelijke wijziging was"
+                    messages.warning(
+                        request,
+                        f"De aangevinkte voorstellen zijn niet meegenomen, omdat {waarom}. "
+                        "Ze staan nog open in de lade.",
+                    )
+            else:
+                meegenomen = Verbetervoorstel.objects.filter(
+                    artikel=form.instance, in_conceptversie=True, status__in=OPEN_VOORSTEL
+                )
+                if telt:
+                    # Reviewpunt 11: voorstellen die in deze versie zijn meegenomen, krijgen het
+                    # versienummer; na het opslaan vraagt de kennisbank of je ze wilt afhandelen.
+                    if meegenomen.update(in_conceptversie=False, verwerkt_in_versie=versie.versie):
+                        request._kb_meegenomen = True
+                else:
+                    # De conceptversie is weg (gepubliceerd); wat erin was meegenomen, hangt nergens meer aan.
+                    # Zonder conceptversie blijft "meegenomen" staan voor de volgende versie (bevinding 8b).
+                    n = (meegenomen.update(in_conceptversie=False) if had_concept else 0) + len(mee)
+                    if n:
+                        waarom = "dit een kleine correctie was" if versie else "er geen inhoudelijke wijziging was"
+                        messages.warning(
+                            request,
+                            f"{n} meegenomen voorstel{'len' if n > 1 else ''} "
+                            f"{'gelden' if n > 1 else 'geldt'} niet als verwerkt, omdat {waarom}. "
+                            f"{'Ze staan' if n > 1 else 'Het staat'} weer open in de lade.",
+                        )
         if versie:
             if versie.versie == 1:
                 messages.info(request, "Gepubliceerd als versie 1.")
@@ -1955,12 +2009,18 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     def change_view(self, request, object_id, form_url="", extra_context=None):
         # Behandelen gebeurt sinds 1.18.0 op het eigen behandelscherm (kennisbank/behandelen.py). Oude
         # links en bladwijzers komen daar uit; het formulier hier blijft voor bestaande koppelingen.
+        v = self.get_object(request, object_id)
         if request.method == "GET":
-            v = self.get_object(request, object_id)
             if v is not None:
                 from .behandelen import scherm_url
 
                 return redirect(scherm_url(v, request.GET.get("terug")))
+        elif v is not None and v.is_open and self.has_change_permission(request, v):
+            # Ronde A (review 1.27.0, M1): open voorstellen behandel je in de lade van de editor; dit oude
+            # formulier verwerkt voor hen niets meer (anders omzeilt het de regels van de lade).
+            from .behandelen import naar_editor
+
+            return naar_editor(request, v)
         return super().change_view(request, object_id, form_url, extra_context)
 
     def get_model_perms(self, request):
