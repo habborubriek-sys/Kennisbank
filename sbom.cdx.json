@@ -586,33 +586,12 @@
       "version": "6.12.0"
     },
     {
-      "bom-ref": "vendor-jodit",
-      "type": "library",
-      "name": "jodit",
-      "version": "4.18.12",
-      "purl": "pkg:npm/jodit@4.18.12",
-      "description": "Editor met Word-achtige opmaak in het beheerscherm",
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "website",
-          "url": "https://www.npmjs.com/package/jodit"
-        }
-      ]
-    },
-    {
       "bom-ref": "vendor-tiptap",
       "type": "library",
       "name": "tiptap",
       "version": "3.33.1",
       "purl": "pkg:npm/%40tiptap/core@3.33.1",
-      "description": "Editor van het bewerkscherm voor artikelen (secties, onboarding, tabellen); gebundeld met ProseMirror",
+      "description": "Editor van het bewerkscherm voor artikelen en nieuwsberichten (secties, onboarding, tabellen); gebundeld met ProseMirror",
       "licenses": [
         {
           "license": {
@@ -748,7 +727,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2026-11-12T00:14:36.366526+00:00",
+    "timestamp": "2026-11-12T00:39:58.808716+00:00",
     "tools": {
       "components": [
         {
@@ -852,7 +831,7 @@
       ]
     }
   },
-  "serialNumber": "urn:uuid:bea2d7e4-2993-49cb-b24c-0f9ed6703eb1",
+  "serialNumber": "urn:uuid:c27fbbc5-02f8-4ff5-a26a-1c42914c8372",
   "version": 1,
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",

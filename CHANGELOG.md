@@ -1,5 +1,15 @@
 # Wijzigingen
 
+## 1.23.0 – 2026-11-12
+
+Nieuwsberichten in hetzelfde scherm als artikelen (bouwlijst `bouwlijst-1.23.0-nieuwsberichten.md`, keuze van Alex: "Zelfde scherm als artikelen").
+
+- **Nieuwsbericht bewerken** gaat zoals een artikel: een balk bovenaan met *Opslaan* en *Eigenschappen*, het bericht als blad (titel en tekst), en omgeving, gekoppelde artikelen, status, vastpinnen en verloopdatum in het paneel Eigenschappen. Verwijderen staat onderaan dat paneel.
+- **Dezelfde editor** (Tiptap) met dezelfde werkbalk, zonder secties en onboarding.
+- **Jodit is uit het pakket**: de bestanden, de SBOM-regel en de oude code voor secties, tussenruimte en het volledig scherm zijn weg. IT heeft nog één editor om bij te houden.
+- Meldingen ("is opgeslagen") staan op beide schermen onder de balk in plaats van erboven.
+- Tests (nu 509); in de browser nagelopen.
+
 ## 1.22.0 – 2026-11-12
 
 Eén bewerkscherm voor artikelen: je bewerkt het artikel zoals medewerkers het zien (bouwlijst `bouwlijst-1.22.0-nieuw-bewerkscherm.md`, na het ontwerp en het prototype; Alex koos Tiptap als editor).

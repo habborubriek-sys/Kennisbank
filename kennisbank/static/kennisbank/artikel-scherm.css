@@ -245,3 +245,10 @@ body.kb-scherm #container { min-width: 0; }
   content: "Begin hier met de tekst. Met + tussen blokken of '+ Sectie' in de werkbalk maak je een uitklapbaar blok.";
   color: #8f9aa8; font-style: italic; pointer-events: none; position: absolute;
 }
+
+/* Nieuwsberichten (1.23.0): geen secties, dus een eigen uitleg in een leeg bericht. */
+.kb-ae-eenvoudig .kb-ae-inhoud > p:only-child:has(> br.ProseMirror-trailingBreak:only-child)::before { content: "Schrijf hier het bericht."; }
+.kb-paneel-weg { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid #e1e6ec; }
+/* Een editor buiten het bewerkscherm (bijvoorbeeld bij sjablonen): werkbalk boven het tekstvak. */
+.kb-ae-werkbalk-los { display: flex !important; position: static !important; border: 1px solid var(--kb-lijn, #d3d9e2); border-bottom: none; border-radius: 6px 6px 0 0; }
+.kb-ae-werkbalk-los + .kb-ae { border: 1px solid var(--kb-lijn, #d3d9e2); border-radius: 0 0 6px 6px; padding: 8px 12px; background: #fff; }

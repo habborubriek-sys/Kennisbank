@@ -1,353 +1,42 @@
-/* Opmaak-editor voor secties in het beheerscherm (Jodit, lokaal meegeleverd).
+/* Het beheerscherm: de editor koppelen, de kladversie, het zachte slot, de toelichting bij publiceren
+ * en het venster Afronden.
  *
- * - Werkbalk met de basisopmaak uit Word: koppen, vet, cursief, onderstreept, doorgehaald,
- *   lijsten, inspringen, link, tabel, citaat, opmaak wissen, ongedaan maken.
- * - Knop "Sectie": zet een kader (<section class="sectie">) om de geselecteerde alinea's, met een
- *   titelbalk (<h2 class="sectie-kop">) erboven. In de kennisbank wordt dat een in- en uitklapbare
- *   sectie. Staat de cursor al in een sectie, dan haalt de knop het kader weer weg.
- * - Knop "Onboarding": markeert de geselecteerde alinea's als uitleg voor nieuwe collega's
- *   (<div class="onboarding">). Nogmaals klikken haalt de markering weg.
- * - Plakken uit Word wordt opgeschoond. De server schoont daarna nog een keer op (inhoud.py).
+ * De editor zelf staat in artikel-editor.js (Tiptap, lokaal meegeleverd; sinds 1.22.0 voor artikelen,
+ * sinds 1.23.0 ook voor nieuwsberichten). Plakken uit Word wordt daar opgeschoond; de server schoont
+ * daarna nog een keer op (inhoud.py).
  */
 (function () {
   "use strict";
-  // Artikelen gebruiken sinds 1.22.0 de eigen editor (artikel-editor.js, Tiptap); Jodit alleen nog voor
-  // andere teksten, zoals nieuwsberichten. De rest van dit bestand (kladversie, slot, toelichting,
-  // Afronden) geldt voor allebei.
 
-  var ONB = "onboarding";
-  var SEC = "sectie";
-
-  function legeAlinea(doc) { var p = doc.createElement("p"); p.appendChild(doc.createElement("br")); return p; }
-
-  var KOP = "sectie-kop";
-
-  function sectieVan(node, root) {
-    var el = node.nodeType === 1 ? node : node.parentNode;
-    while (el && el !== root) { if (el.tagName === "SECTION" && el.classList.contains(SEC)) return el; el = el.parentNode; }
-    return null;
-  }
-
-  function sectieToggle(editor) {
-    var root = editor.editor, doc = root.ownerDocument, range = editor.s.range;
-    var bestaand = sectieVan(range.startContainer, root);
-    if (bestaand) {
-      // Kader weghalen: titel wordt een gewone kop, inhoud komt op het hoogste niveau.
-      var kop = bestaand.querySelector("h2." + KOP);
-      if (kop) { if (kop.textContent.trim()) { var h3 = doc.createElement("h3"); h3.textContent = kop.textContent.trim(); bestaand.replaceChild(h3, kop); } else bestaand.removeChild(kop); }
-      // De typ-ruimte rond het kader hoort bij het kader en gaat mee weg.
-      [bestaand.previousElementSibling, bestaand.nextElementSibling].forEach(function (n) { if (n && n.tagName === "P" && n.classList.contains(RUIMTE)) n.parentNode.removeChild(n); });
-      while (bestaand.firstChild) bestaand.parentNode.insertBefore(bestaand.firstChild, bestaand);
-      bestaand.parentNode.removeChild(bestaand);
-      ruimteRondSecties(editor);
-      editor.synchronizeValues();
-      return;
-    }
-    var start = blokVan(range.startContainer, root), eind = blokVan(range.endContainer, root);
-    if (!start) { alert("Selecteer eerst de tekst die in de sectie moet komen."); return; }
-    if (!eind) eind = start;
-    var top = function (b) { var t = b; while (t.parentNode !== root) t = t.parentNode; return t; };
-    var a = top(start), z = top(eind), blokken = [], n = a;
-    while (n) { blokken.push(n); if (n === z) break; n = n.nextSibling; }
-    var sec = doc.createElement("section"); sec.className = SEC;
-    var titel = doc.createElement("h2"); titel.className = KOP;
-    // Begint de selectie met een kop (zoals na een Word-import), dan nemen we die tekst over als
-    // sectietitel in plaats van hem als dubbele kop binnen het kader te laten staan. Dat scheelt per
-    // sectie twee handelingen en voorkomt kaders die voor de lezer "Sectie 1" heten omdat de titel
-    // nog leeg was. De knop zelf werkt onveranderd: er ontstaat alleen een sectie als jij erop drukt.
-    var kopblok = blokken.length && /^H[1-6]$/.test(blokken[0].tagName) && blokken[0].textContent.trim()
-      ? blokken.shift() : null;
-    if (kopblok) titel.textContent = kopblok.textContent.trim();
-    else titel.appendChild(doc.createElement("br"));
-    sec.appendChild(titel);
-    a.parentNode.insertBefore(sec, a);
-    if (kopblok) kopblok.parentNode.removeChild(kopblok);
-    if (!blokken.length) { var leeg = doc.createElement("p"); leeg.appendChild(doc.createElement("br")); sec.appendChild(leeg); }
-    blokken.forEach(function (b) {
-      if (b.tagName === "P" && b.classList.contains(RUIMTE)) { b.parentNode.removeChild(b); return; }  // typ-ruimte hoort niet in de sectie
-      if (b.tagName === "SECTION") { // een bestaande sectie in de selectie: opnemen zonder te nesten
-        var k = b.querySelector("h2." + KOP); if (k) { if (k.textContent.trim()) { var h = doc.createElement("h3"); h.textContent = k.textContent.trim(); b.replaceChild(h, k); } else b.removeChild(k); }
-        while (b.firstChild) sec.appendChild(b.firstChild); b.parentNode.removeChild(b);
-      } else sec.appendChild(b);
-    });
-    ruimteRondSecties(editor);
-    editor.s.setCursorIn(titel, true);
-    editor.synchronizeValues();
-  }
-
-  function blokVan(node, root) {
-    // Dichtstbijzijnde alinea-achtig element binnen de editor.
-    var el = node.nodeType === 1 ? node : node.parentNode;
-    while (el && el !== root) {
-      if (/^(P|H[1-6]|UL|OL|TABLE|BLOCKQUOTE|PRE|DIV|SECTION)$/.test(el.tagName) && el.parentNode === root) return el;
-      if (/^(P|H[1-6]|UL|OL|TABLE|BLOCKQUOTE|PRE|DIV)$/.test(el.tagName) && el.parentNode && el.parentNode.classList && (el.parentNode.classList.contains(ONB) || el.parentNode.classList.contains(SEC))) return el;
-      el = el.parentNode;
-    }
-    return null;
-  }
-
-  function onboardingToggle(editor) {
-    var root = editor.editor;
-    var range = editor.s.range;
-    var start = blokVan(range.startContainer, root);
-    var eind = blokVan(range.endContainer, root);
-    if (!start) { editor.alert ? editor.alert("Zet de cursor in een alinea en probeer het opnieuw.") : alert("Zet de cursor in een alinea."); return; }
-    if (!eind) eind = start;
-
-    var inOnb = start.parentNode.classList && start.parentNode.classList.contains(ONB);
-    if (inOnb) {
-      // Verwijderen: alle alinea's uit het blok weer op het hoogste niveau zetten.
-      var wrap = start.parentNode;
-      while (wrap.firstChild) wrap.parentNode.insertBefore(wrap.firstChild, wrap);
-      wrap.parentNode.removeChild(wrap);
-    } else {
-      // Toevoegen: alle top-level blokken van start t/m eind in één div zetten.
-      var top = function (b) { return (b.parentNode === root || (b.parentNode.classList && b.parentNode.classList.contains(SEC))) ? b : b.parentNode; };
-      var a = top(start), z = top(eind), blokken = [], n = a;
-      while (n) { blokken.push(n); if (n === z) break; n = n.nextSibling; }
-      var div = root.ownerDocument.createElement("div");
-      div.className = ONB;
-      a.parentNode.insertBefore(div, a);
-      blokken.forEach(function (b) {
-        if (b.classList && b.classList.contains(ONB)) { while (b.firstChild) div.appendChild(b.firstChild); b.parentNode.removeChild(b); }
-        else div.appendChild(b);
-      });
-    }
-    editor.synchronizeValues();
-  }
-
-  /* Typ-ruimte rond secties.
+  /* De editor (Tiptap, artikel-editor.js) op elk tekstvak met class "kb-editor".
    *
-   * Direct vóór en na elk sectiekader staat een gemarkeerde lege regel (<p class="tussenruimte">), zodat
-   * je ertussen kunt typen. Alleen die gemarkeerde regel wordt bij het opslaan weggelaten (inhoud.schoon);
-   * elke andere lege regel is bewust en blijft staan.
-   * - Typ je in de tussenruimte, dan wordt het een gewone alinea en komt er een nieuwe tussenruimte
-   *   tussen jouw tekst en de sectie.
-   * - Druk je op Enter in de tussenruimte, dan is de regel die niet meer tegen de sectie aan staat een
-   *   gewone (bewuste) lege regel; de tussenruimte zelf blijft tegen de sectie aan staan.
-   */
-  var RUIMTE = "tussenruimte";
-
-  function ruimteRondSecties(editor) {
-    var root = editor.editor, doc = root.ownerDocument, veranderd = false;
-    var isSectie = function (n) { return !!n && n.tagName === "SECTION" && n.classList.contains(SEC); };
-    var isRuimte = function (n) { return !!n && n.tagName === "P" && n.classList.contains(RUIMTE); };
-    var isLeeg = function (p) { return !p.textContent.replace(/ /g, " ").trim() && !p.querySelector("img,table,hr"); };
-    // 1. Gemarkeerde regels die tekst hebben gekregen of niet (meer) tegen een sectie aan staan: gewone alinea.
-    Array.prototype.slice.call(root.querySelectorAll("p." + RUIMTE)).forEach(function (p) {
-      var naast = p.parentNode === root && (isSectie(p.previousElementSibling) || isSectie(p.nextElementSibling));
-      if (!naast || !isLeeg(p)) { p.classList.remove(RUIMTE); if (!p.className) p.removeAttribute("class"); veranderd = true; }
-    });
-    // 2. Direct vóór en na elke sectie een tussenruimte.
-    Array.prototype.slice.call(root.querySelectorAll(":scope > section." + SEC)).forEach(function (sec) {
-      if (!isRuimte(sec.previousElementSibling)) { var voor = legeAlinea(doc); voor.className = RUIMTE; sec.parentNode.insertBefore(voor, sec); veranderd = true; }
-      if (!isRuimte(sec.nextElementSibling)) { var na = legeAlinea(doc); na.className = RUIMTE; sec.parentNode.insertBefore(na, sec.nextSibling); veranderd = true; }
-    });
-    return veranderd;
-  }
-
-  /* Volledig scherm: een laag over de pagina met links de editor en rechts het voorbeeld dat live meeloopt. */
-  var FRAME_URL = "/beheer/kennisbank/artikel/voorbeeld/";
-
-  function volledigScherm(editor) {
-    if (document.getElementById("kb-split")) return;
-    editor.synchronizeValues();
-    var form = editor.element.form || document.getElementById("artikel_form");
-    // Velden vóór het verhuizen opzoeken en onthouden; daarna staan titel en samenvatting buiten het formulier.
-    var velden = {};
-    ["titel", "samenvatting", "soort"].forEach(function (naam) { velden[naam] = form && form.querySelector('[name="' + naam + '"]'); });
-    var veld = function (naam) { return velden[naam]; };
-    var val = function (naam) { var el = veld(naam); return el ? el.value : ""; };
-    var container = editor.container, plek = document.createElement("div");
-    plek.className = "kb-split-plek"; plek.textContent = "De tekst wordt bewerkt in volledig scherm.";
-    container.parentNode.insertBefore(plek, container);
-
-    var laag = document.createElement("div"); laag.id = "kb-split";
-    laag.innerHTML =
-      '<div class="kb-split-balk"><strong>Volledig scherm</strong>' +
-      '<span class="kb-split-knoppen"><button type="button" class="button" id="kb-split-opslaan">Opslaan en doorgaan</button>' +
-      '<button type="button" class="button" id="kb-split-sluiten">Sluiten</button></span></div>' +
-      '<div class="kb-split-panelen"><div class="kb-split-links"><div class="kb-split-velden">' +
-      '<label>Titel<span class="kb-split-slot" data-veld="titel"></span></label>' +
-      '<label>Samenvatting<span class="kb-split-slot" data-veld="samenvatting"></span></label></div></div>' +
-      '<div class="kb-split-greep" title="Sleep om de verdeling te veranderen"></div>' +
-      '<div class="kb-split-rechts"><iframe title="Voorbeeld" src="' + FRAME_URL + '"></iframe></div></div>';
-    document.body.appendChild(laag);
-    document.body.classList.add("kb-split-open");
-
-    // Titel en samenvatting: de echte invoervelden verhuizen mee (en straks weer terug).
-    var verhuisd = [];
-    ["titel", "samenvatting"].forEach(function (naam) {
-      var el = veld(naam); if (!el) return;
-      var anker = document.createElement("span"); anker.className = "kb-split-anker"; el.parentNode.insertBefore(anker, el);
-      if (form.id) el.setAttribute("form", form.id);  // blijft bij het formulier horen, ook buiten het <form>
-      laag.querySelector('.kb-split-slot[data-veld="' + naam + '"]').appendChild(el);
-      verhuisd.push({ el: el, anker: anker });
-    });
-    laag.querySelector(".kb-split-links").appendChild(container);
-
-    // Sleepbalk
-    var panelen = laag.querySelector(".kb-split-panelen"), greep = laag.querySelector(".kb-split-greep");
-    var verdeling = 50;
-    try { verdeling = Number(localStorage.getItem("kb.split.verdeling")) || 50; } catch (e) {}
-    function zetVerdeling(pct) { verdeling = Math.max(25, Math.min(75, pct)); panelen.style.gridTemplateColumns = verdeling + "% 8px 1fr"; }
-    zetVerdeling(verdeling);
-    greep.addEventListener("pointerdown", function (e) {
-      e.preventDefault(); greep.setPointerCapture(e.pointerId); laag.classList.add("kb-split-sleept");
-      var beweeg = function (ev) { var r = panelen.getBoundingClientRect(); zetVerdeling(((ev.clientX - r.left) / r.width) * 100); };
-      var stop = function () { greep.removeEventListener("pointermove", beweeg); greep.removeEventListener("pointerup", stop); laag.classList.remove("kb-split-sleept"); try { localStorage.setItem("kb.split.verdeling", String(Math.round(verdeling))); } catch (e2) {} };
-      greep.addEventListener("pointermove", beweeg); greep.addEventListener("pointerup", stop);
-    });
-
-    var frame = laag.querySelector("iframe"), klaar = false, timer = null;
-    function stuur() {
-      if (!klaar) return;
-      editor.synchronizeValues();
-      // Stap D: opmerkingen van de review, als markeringen in het voorbeeld.
-      var opm = [];
-      try { var d = document.getElementById("kb-opmerkingen"); if (d) opm = JSON.parse(d.textContent); } catch (e) {}
-      frame.contentWindow.postMessage({ type: "kb-voorbeeld", titel: val("titel"), samenvatting: val("samenvatting"), soort: val("soort"), inhoud: editor.value, opmerkingen: opm }, location.origin);
-    }
-    function geplande() { clearTimeout(timer); timer = setTimeout(stuur, 250); }
-    function opKlaar(e) { if (e.origin === location.origin && e.data && e.data.type === "kb-voorbeeld-klaar") { klaar = true; stuur(); } }
-    window.addEventListener("message", opKlaar);
-    editor.events.on("change keyup input", geplande);
-    editor.editor.addEventListener("input", geplande);
-    verhuisd.forEach(function (v) { v.el.addEventListener("input", geplande); });
-
-    function sluiten() {
-      clearTimeout(timer);
-      window.removeEventListener("message", opKlaar);
-      editor.events.off("change keyup input", geplande);
-      editor.editor.removeEventListener("input", geplande);
-      verhuisd.forEach(function (v) { v.el.removeEventListener("input", geplande); v.el.removeAttribute("form"); v.anker.parentNode.insertBefore(v.el, v.anker); v.anker.parentNode.removeChild(v.anker); });
-      plek.parentNode.insertBefore(container, plek); plek.parentNode.removeChild(plek);
-      laag.parentNode.removeChild(laag);
-      document.body.classList.remove("kb-split-open");
-      document.removeEventListener("keydown", opEsc);
-    }
-    function opEsc(e) { if (e.key === "Escape") sluiten(); }
-    document.addEventListener("keydown", opEsc);
-    laag.querySelector("#kb-split-sluiten").addEventListener("click", sluiten);
-    laag.querySelector("#kb-split-opslaan").addEventListener("click", function () {
-      editor.synchronizeValues();
-      if (window.kbCodeVerlopen && window.kbCodeVerlopen()) {
-        window.kbMelding({
-          titel: "Opslaan lukt nu niet",
-          alineas: [
-            "Dit scherm is verlopen, waarschijnlijk doordat je in een ander tabblad opnieuw bent ingelogd.",
-            window.kbKladNu && window.kbKladNu()
-              ? "Je werk staat veilig in deze browser: ververs de pagina met Ctrl+F5 en kies daarna 'Verder gaan'."
-              : "Je tekst staat er nog: kopieer hem, ververs de pagina met Ctrl+F5 en plak hem terug.",
-          ],
-        });
-        return;
-      }
-      // Wordt er aan een conceptversie gewerkt, dan bewaart het volledige scherm de conceptversie;
-      // publiceren gebeurt bewust onderaan het gewone scherm, waar de toelichting staat.
-      var conceptKnop = form.querySelector('input[name="kb_conceptmodus"]') && form.querySelector('button[name="_conceptversie"]');
-      function bewaren() {
-        try { sessionStorage.setItem("kb.split.heropen", "1"); } catch (e) {}
-        var knop = conceptKnop || form.querySelector('input[name="_continue"]');
-        if (knop) knop.click(); else form.submit();
-      }
-      if (conceptKnop) { bewaren(); return; }
-      // De toelichting bij publiceren staat op het scherm eronder; vraag hem hier, anders mislukt
-      // het opslaan op een foutmelding die in het volledige scherm niet te zien is.
-      if (window.kbToelichtingNodig && window.kbToelichtingNodig(window.kbBeginwaarden || {})) {
-        window.kbVraagToelichting(null, bewaren);
-        return;
-      }
-      bewaren();
-    });
-    editor.s.focus();
-  }
-
-  var config = {
-    language: "nl",
-    enter: "p",
-    height: 560,
-    minHeight: 300,
-    toolbarAdaptive: false,
-    toolbarSticky: false,
-    statusbar: false,
-    showCharsCounter: false,
-    showWordsCounter: false,
-    showXPathInStatusbar: false,
-    askBeforePasteHTML: false,
-    askBeforePasteFromWord: false,
-    defaultActionOnPaste: "insert_clear_html",
-    processPasteHTML: true,
-    nl2brInPlainText: false,
-    sourceEditor: "area",
-    disablePlugins: ["about", "print", "file", "image", "video", "media", "source", "preview", "fullsize", "speech-recognize", "ai-assistant", "powered-by-jodit", "class-span", "font", "color", "symbols", "copy-format", "xpath", "stat"],
-    controls: {
-      paragraph: {
-        list: { p: "Alinea", h3: "Kop", h4: "Subkop", blockquote: "Citaat" }
-      }
-    },
-    buttons: [
-      "paragraph", "|", "bold", "italic", "underline", "strikethrough", "superscript", "|",
-      "ul", "ol", "outdent", "indent", "|", "link", "table", "hr", "|", "eraser", "undo", "redo", "|",
-      {
-        name: "volledigscherm",
-        tooltip: "Volledig scherm: links bewerken, rechts live het voorbeeld",
-        text: "Volledig scherm",
-        exec: volledigScherm
-      },
-      "|",
-      {
-        name: "sectie",
-        tooltip: "Sectie: zet een in- en uitklapbare sectie om de geselecteerde tekst (nogmaals klikken haalt het kader weg)",
-        text: "Sectie",
-        exec: sectieToggle
-      },
-      {
-        name: "onboarding",
-        tooltip: "Onboarding: markeer deze alinea('s) als uitleg voor nieuwe collega's",
-        text: "Onboarding",
-        exec: onboardingToggle
-      }
-    ],
-    cleanHTML: {
-      removeEmptyElements: true,
-      fillEmptyParagraph: false,
-      allowTags: {
-        p: { class: true }, br: true, strong: true, b: true, em: true, i: true, u: true, s: true, strike: true, sub: true, sup: true,
-        ul: true, ol: { start: true }, li: true, a: { href: true, title: true }, code: true, pre: true, blockquote: true,
-        h1: true, h2: { class: true }, h3: true, section: { class: true }, h4: true, h5: true, h6: true,
-        table: true, thead: true, tbody: true, tr: true, th: { colspan: true, rowspan: true, scope: true }, td: { colspan: true, rowspan: true },
-        hr: true, div: { class: true }, span: true
-      }
-    }
-  };
-
-  // Voor andere teksten dan de artikelinhoud (bijv. een nieuwsbericht): alleen de opmaakknoppen,
-  // zonder volledig scherm, secties en onboarding.
-  var configEenvoudig = Object.assign({}, config, {
-    buttons: config.buttons.slice(0, config.buttons.indexOf("redo") + 1)
-  });
-
+   * Op het bewerkscherm (artikel of nieuwsbericht) staat de werkbalk al in de pagina; anders komt hij
+   * boven het tekstvak. Nieuwsberichten krijgen geen knoppen voor secties en onboarding. */
   function init(textarea) {
-    if (textarea.dataset.kbEditor) return;
+    if (textarea.dataset.kbEditor || !window.KBArtikelEditor) return;
     textarea.dataset.kbEditor = "1";
-    if (textarea.name === "inhoud" && window.KBArtikelEditor && document.querySelector(".kb-balk")) {
-      inhoudEditor = window.KBArtikelEditor.maak(textarea, {
-        werkbalk: document.querySelector(".kb-ae-werkbalk-in"),
-        marge: document.getElementById("kb-marge"),
-      });
-      window.kbInhoudEditor = inhoudEditor;
-      return;
+    var artikel = textarea.name === "inhoud";
+    var balk = document.querySelector(".kb-ae-werkbalk-in");
+    if (!balk || balk.dataset.kbInGebruik) {
+      var los = document.createElement("div");
+      los.className = "kb-ae-werkbalk kb-ae-werkbalk-los";
+      balk = document.createElement("div");
+      balk.className = "kb-ae-werkbalk-in";
+      balk.setAttribute("role", "toolbar");
+      balk.setAttribute("aria-label", "Opmaak van de tekst");
+      los.appendChild(balk);
+      textarea.parentNode.insertBefore(los, textarea);
     }
-    if (!window.Jodit) return;
-    var editor = Jodit.make(textarea, textarea.name === "inhoud" ? config : configEenvoudig);
-    if (textarea.name === "inhoud") inhoudEditor = editor;  // voor de kladversie
-    ruimteRondSecties(editor);
-    editor.events.on("change", function () { if (ruimteRondSecties(editor)) editor.synchronizeValues(); });
-    // Na "Opslaan en doorgaan" vanuit het volledige scherm: dat scherm weer openen.
-    var heropen = false;
-    try { heropen = sessionStorage.getItem("kb.split.heropen") === "1"; sessionStorage.removeItem("kb.split.heropen"); } catch (e) {}
-    if (heropen && textarea.name === "inhoud") setTimeout(function () { volledigScherm(editor); }, 50);
+    balk.dataset.kbInGebruik = "1";
+    var editor = window.KBArtikelEditor.maak(textarea, {
+      werkbalk: balk,
+      marge: artikel ? document.getElementById("kb-marge") : null,
+      eenvoudig: !artikel,
+    });
+    if (artikel) {
+      inhoudEditor = editor;  // voor de kladversie en het slot
+      window.kbInhoudEditor = editor;
+    }
   }
 
   function initAll(scope) {
@@ -677,7 +366,7 @@
     document.addEventListener("click", function (e) {
       // Werkbalkknoppen (vet, lijst, sectie) en de pijltjes van clusters en zaaktypen veranderen
       // de inhoud zonder dat er getypt wordt.
-      if (e.target.closest && e.target.closest(".jodit-toolbar__box, .jodit-toolbar, .selector-chooser, .selector-chooseall, .selector-clearall")) heeftGewerkt = true;
+      if (e.target.closest && e.target.closest(".kb-ae-werkbalk, .kb-ae-menu, .selector-chooser, .selector-chooseall, .selector-clearall")) heeftGewerkt = true;
     }, true);
 
     /* --- bij openen: is er een kladversie? -------------------------------------------- */

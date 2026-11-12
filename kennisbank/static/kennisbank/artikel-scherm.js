@@ -17,27 +17,25 @@
   function $$(sel, ouder) { return Array.prototype.slice.call((ouder || document).querySelectorAll(sel)); }
 
   function opbouwen() {
-    var form = document.getElementById("artikel_form");
-    var balk = form && $(".kb-balk", form);
-    if (!balk) return;
+    var balk = $("form .kb-balk");
+    var form = balk && balk.closest("form");
+    if (!form) return;
     document.body.classList.add("kb-scherm");
 
     // --- Titel, samenvatting en tekst naar het blad -------------------------------------
     var titel = form.elements.namedItem("titel");
     var samen = form.elements.namedItem("samenvatting");
-    var inhoud = form.elements.namedItem("inhoud");
-    function verhuis(veld, naam) {
-      if (!veld) return;
-      var plek = $('[data-kb-plek="' + naam + '"]', form);
+    // Elk veld met een plek op het blad (titel, samenvatting, inhoud of tekst) gaat daarheen, met zijn foutmelding.
+    $$("[data-kb-plek]", form).forEach(function (plek) {
+      var veld = form.elements.namedItem(plek.dataset.kbPlek);
+      if (!veld || !veld.closest) return;
       var rij = veld.closest(".form-row");
       plek.appendChild(veld);
       if (rij) $$(".errorlist", rij).forEach(function (fout) { plek.appendChild(fout); });
-    }
-    verhuis(titel, "titel");
-    verhuis(samen, "samenvatting");
-    verhuis(inhoud, "inhoud");
+    });
     if (titel) {
-      titel.placeholder = "Titel: waar gaat dit artikel over?";
+      var titelPlek = titel.closest("[data-kb-plek]");
+      titel.placeholder = (titelPlek && titelPlek.dataset.kbUitleg) || "Titel: waar gaat dit artikel over?";
       titel.setAttribute("aria-label", "Titel");
     }
     if (samen) {
@@ -63,8 +61,10 @@
       $$(".inline-group", form).forEach(function (g) { gesch.appendChild(g); });
     }
 
-    // Foutmeldingen van het hele formulier boven het blad, zodat ze in beeld zijn.
+    // Meldingen ("is opgeslagen") en foutmeldingen van het hele formulier boven het blad, onder de balk.
     var werkvlak = $(".kb-werkvlak", form);
+    var meldingen = $(".messagelist");
+    if (meldingen) werkvlak.parentNode.insertBefore(meldingen, werkvlak);
     var fouten = $$(".errornote, ul.errorlist.nonfield", form).filter(function (e) { return !e.closest(".kb-paneel"); });
     if (fouten.length) {
       var vak = document.createElement("div");
@@ -84,6 +84,9 @@
       if (verder) { verder.classList.add("kb-balk-opslaan", "kb-balk-opslaan-2"); verder.value = "Opslaan en verder"; plek.appendChild(verder); }
       if (opslaan) { opslaan.classList.add("kb-balk-opslaan"); plek.appendChild(opslaan); }
     }
+    // Verwijderen (alleen waar dat mag, zoals bij nieuwsberichten): onderaan het paneel Eigenschappen.
+    var weg = $(".submit-row .deletelink", form);
+    if (weg && eig) { var p = document.createElement("p"); p.className = "kb-paneel-weg"; p.appendChild(weg); eig.appendChild(p); }
 
     // --- Panelen -------------------------------------------------------------------------
     function paneel(naam) {
@@ -117,11 +120,12 @@
     // Titel en samenvatting: Enter springt door, de samenvatting groeit mee.
     function groei() { if (!samen) return; samen.style.height = "auto"; samen.style.height = samen.scrollHeight + 2 + "px"; }
     if (samen) { samen.addEventListener("input", groei); window.addEventListener("resize", groei); setTimeout(groei, 0); }
-    if (titel) titel.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); if (samen) samen.focus(); } });
+    function naarTekst() { var t = $(".kb-blad .kb-ae-inhoud", form); if (t) t.focus(); }
+    if (titel) titel.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); if (samen) samen.focus(); else naarTekst(); } });
     if (samen) samen.addEventListener("keydown", function (e) {
       if (e.key !== "Enter") return;
       e.preventDefault();
-      if (window.kbInhoudEditor) window.kbInhoudEditor.focus();
+      naarTekst();
     });
 
     // Op slot (ter inzage): ook titel en samenvatting alleen-lezen.

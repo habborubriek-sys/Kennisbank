@@ -1,0 +1,36 @@
+{% extends "admin/change_form.html" %}
+{% comment %}
+  Bewerkscherm van een nieuwsbericht (1.23.0): hetzelfde soort scherm als bij artikelen
+  (artikel/change_form.html). artikel-scherm.js verhuist de velden naar het blad en het paneel.
+{% endcomment %}
+{% block form_top %}
+<header class="kb-balk" aria-label="Nieuwsbericht">
+  <a class="kb-balk-terug" href="{% url 'beheer-start' %}">← Werkplek</a>
+  <div class="kb-balk-titel">{% if original %}{{ original.titel }}{% else %}Nieuw nieuwsbericht{% endif %}</div>
+  <div class="kb-balk-sub">
+    <span class="kb-pil">Nieuwsbericht</span>
+    {% if original %}<span>{{ original.get_status_display }}{% if original.vastgepind %} · vastgepind{% endif %}{% if original.gepubliceerd_op %} · gepubliceerd {{ original.gepubliceerd_op|date:"j F Y" }}{% endif %}</span>
+    {% else %}<span>Nog niet opgeslagen</span>{% endif %}
+  </div>
+  <nav class="kb-balk-knoppen" aria-label="Panelen">
+    <button type="button" class="kb-bk" data-kb-paneel="eig">Eigenschappen</button>
+  </nav>
+  <div class="kb-balk-afronden"></div>
+</header>
+
+<div class="kb-ae-werkbalk"><div class="kb-ae-werkbalk-in" role="toolbar" aria-label="Opmaak van de tekst"></div></div>
+
+<div class="kb-werkvlak">
+  <div class="kb-blad kb-blad-bericht">
+    <span class="kb-blad-soort">Nieuws</span>
+    <div class="kb-vast" data-kb-plek="titel" data-kb-uitleg="Titel van het bericht: wat is er nieuw?"><span class="kb-vast-label">Titel · verplicht</span></div>
+    <div class="kb-blad-lijn"></div>
+    <div data-kb-plek="tekst"></div>
+  </div>
+</div>
+
+<aside class="kb-paneel" id="kb-p-eig" aria-label="Eigenschappen">
+  <div class="kb-paneel-kop"><h2>Eigenschappen</h2><button type="button" class="kb-paneel-sluit" aria-label="Sluiten">✕</button></div>
+  <p class="kb-paneel-uitleg">Waar het bericht verschijnt, waar het over gaat, en wanneer.</p>
+</aside>
+{% endblock %}

@@ -2,18 +2,6 @@
   "_uitleg": "Frontend-bibliotheken die met de applicatie worden meegeleverd (niet via pip). scripts/maak_sbom.py neemt ze op in de SBOM; een test controleert dat de versie hier klopt met het bestand.",
   "componenten": [
     {
-      "naam": "jodit",
-      "versie": "4.18.12",
-      "licentie": "MIT",
-      "purl": "pkg:npm/jodit@4.18.12",
-      "bestanden": [
-        "jodit/jodit.min.js",
-        "jodit/jodit.min.css"
-      ],
-      "doel": "Editor met Word-achtige opmaak in het beheerscherm",
-      "bron": "https://www.npmjs.com/package/jodit (map es2021/)"
-    },
-    {
       "naam": "tiptap",
       "versie": "3.33.1",
       "licentie": "MIT",
@@ -22,7 +10,7 @@
         "tiptap/tiptap.min.js",
         "tiptap/LICENSES.txt"
       ],
-      "doel": "Editor van het bewerkscherm voor artikelen (secties, onboarding, tabellen); gebundeld met ProseMirror",
+      "doel": "Editor van het bewerkscherm voor artikelen en nieuwsberichten (secties, onboarding, tabellen); gebundeld met ProseMirror",
       "bron": "https://www.npmjs.com/package/@tiptap/core (gebouwd met frontend/package.json en frontend/package-lock.json)"
     }
   ]

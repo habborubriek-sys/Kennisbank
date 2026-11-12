@@ -331,16 +331,20 @@ Onder **Nieuws** in de kennisbank staan mededelingen voor de medewerkers van jou
 
 Op de nieuwspagina zelf staan in de zijbalk de koppen van de laatste berichten, zodat een lange pagina te overzien blijft; klikken springt naar het bericht. De filters voor cluster, soort en onderwerp staan daar niet — dat zijn artikelfilters.
 
-Berichten maak je in het beheer onder **Nieuwsberichten** (of via *Nieuw bericht schrijven* op de nieuwspagina):
+Berichten maak je in het beheer onder **Nieuwsberichten** (of via *Nieuw bericht schrijven* op de nieuwspagina).
+Het scherm is hetzelfde als bij een artikel: een balk bovenaan met *Opslaan*, het bericht als blad, en de rest
+onder **Eigenschappen**.
 
-- **Titel** en **tekst**, met dezelfde opmaak als een artikel (vet, lijsten, links, tabellen).
+- **Titel** en **tekst**, op het blad. Dezelfde werkbalk als bij een artikel (vet, lijsten, links, tabellen,
+  ongedaan maken), maar zonder secties en onboarding.
+- Onder **Eigenschappen**:
 - **Omgeving**: het bericht is alleen zichtbaar voor medewerkers van die omgeving.
 - **Artikelen**: koppel de artikelen waar het bericht over gaat; die verschijnen als links onder het bericht.
 - **Status**: *Concept* (alleen zichtbaar in het beheer) of *Gepubliceerd*.
 - **Vastgepind**: blijft bovenaan staan, bijvoorbeeld "Nieuwe werkwijze per 1 januari".
 - **Verloopt op**: daarna zakt het bericht naar *Ouder nieuws* (inklapbaar onderaan); het blijft wel vindbaar. Leeg = geen einddatum.
 
-Een bericht kun je, anders dan een artikel, gewoon verwijderen. Nieuwsberichten gaan niet per e-mail; daarvoor is de nieuwspagina.
+Een bericht kun je, anders dan een artikel, gewoon verwijderen (onderaan het paneel Eigenschappen). Nieuwsberichten gaan niet per e-mail; daarvoor is de nieuwspagina.
 
 ## Je werkplek in het beheer
 

@@ -546,7 +546,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     ]
 
     class Media:
-        # Het bewerkscherm voor artikelen (1.22.0): Tiptap in plaats van Jodit, en de nieuwe indeling.
+        # Het bewerkscherm voor artikelen (1.22.0): de editor Tiptap en de nieuwe indeling.
         css = {"all": ["kennisbank/fonts.css", "kennisbank/beheer-editor.css", "kennisbank/artikel-scherm.css"]}
         js = [
             "kennisbank/vendor/tiptap/tiptap.min.js",
@@ -2028,8 +2028,14 @@ class BerichtAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     ]
 
     class Media:
-        css = {"all": ["kennisbank/vendor/jodit/jodit.min.css", "kennisbank/beheer-editor.css"]}
-        js = ["kennisbank/vendor/jodit/jodit.min.js", "kennisbank/beheer-editor.js"]
+        # Sinds 1.23.0 hetzelfde scherm en dezelfde editor als bij artikelen (zonder secties en onboarding).
+        css = {"all": ["kennisbank/fonts.css", "kennisbank/beheer-editor.css", "kennisbank/artikel-scherm.css"]}
+        js = [
+            "kennisbank/vendor/tiptap/tiptap.min.js",
+            "kennisbank/artikel-editor.js",
+            "kennisbank/artikel-scherm.js",
+            "kennisbank/beheer-editor.js",
+        ]
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "omgeving" and not request.user.is_superuser:

@@ -412,7 +412,7 @@
 
   /* --- De werkbalk ----------------------------------------------------------------------- */
 
-  function werkbalk(ed, plek) {
+  function werkbalk(ed, plek, eenvoudig) {
     var knoppen = [];
     function knop(tekst, label, doe, actief, extra) {
       var b = el("button", "kb-ae-knop" + (extra ? " " + extra : ""));
@@ -461,9 +461,11 @@
     knop("Tabel", "Tabel invoegen", function () { c().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); }, null, "kb-ae-tekst");
     knop("—", "Lijn", function () { c().setHorizontalRule().run(); });
     knop("⌫<small>opmaak</small>", "Opmaak wissen", function () { c().unsetAllMarks().clearNodes().run(); });
+    if (!eenvoudig) {
     scheid();
     knop("+ Sectie", "Sectie: om de geselecteerde tekst, of een nieuwe na de cursor", function () { sectieMaken(ed); }, null, "kb-ae-tekst kb-ae-sterk");
     knop("Onboarding", "Onboarding: alinea's alleen voor nieuwe collega's (nogmaals klikken haalt het weg)", function () { onboardingWissel(ed); }, "onboarding", "kb-ae-tekst kb-ae-sterk");
+    }
 
     // Alleen in een tabel: rijen en kolommen.
     var tabel = el("span", "kb-ae-tabelknoppen");
@@ -652,15 +654,17 @@
         Opmerkingen,
       ],
       editorProps: {
-        attributes: { class: "kb-ae-inhoud art", "aria-label": "Tekst van het artikel", role: "textbox", "aria-multiline": "true" },
+        attributes: { class: "kb-ae-inhoud art", "aria-label": opties.eenvoudig ? "Tekst" : "Tekst van het artikel", role: "textbox", "aria-multiline": "true" },
         transformPastedHTML: wordOpschonen,
       },
       onUpdate: function (p) { textarea.value = naarOpslag(p.editor.getHTML()); textarea.dispatchEvent(new Event("input", { bubbles: true })); },
     });
     textarea.value = naarOpslag(ed.getHTML());
 
-    if (opties.werkbalk) werkbalk(ed, opties.werkbalk);
-    invoegPlus(ed, wrapper);
+    if (opties.werkbalk) werkbalk(ed, opties.werkbalk, !!opties.eenvoudig);
+    // Nieuwsberichten: geen secties, dus ook geen + tussen blokken.
+    if (!opties.eenvoudig) invoegPlus(ed, wrapper);
+    else wrapper.classList.add("kb-ae-eenvoudig");
     var opm = opties.marge ? marge(ed, opties.marge) : null;
 
     return {

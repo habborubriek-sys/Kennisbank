@@ -524,11 +524,48 @@ class Bewerkscherm(ReviewBasis):
         ):
             self.assertIn(stuk, html)
 
-    def test_nieuwsbericht_houdt_jodit(self):
+    def test_nieuwsbericht_krijgt_hetzelfde_scherm_en_geen_jodit_meer(self):
+        # 1.23.0: Jodit is helemaal weg uit het pakket.
         self.client.force_login(self.anna)
         html = self.client.get("/beheer/kennisbank/bericht/add/").content.decode()
-        self.assertIn("jodit.min.js", html)
-        self.assertNotIn("tiptap.min.js", html)
+        self.assertIn("kennisbank/vendor/tiptap/tiptap.min.js", html)
+        self.assertNotIn("jodit", html.lower())
+        for stuk in (
+            'class="kb-balk"',
+            'data-kb-plek="titel"',
+            'data-kb-plek="tekst"',
+            'id="kb-p-eig"',
+            "Nieuw nieuwsbericht",
+        ):
+            self.assertIn(stuk, html)
+        self.assertNotIn("Bekijk als medewerker", html)
+
+    def test_jodit_is_uit_het_pakket(self):
+        import pathlib
+
+        static = pathlib.Path(__file__).resolve().parents[1] / "static/kennisbank"
+        self.assertFalse((static / "vendor/jodit").exists())
+        for js in ("beheer-editor.js", "artikel-editor.js", "artikel-scherm.js"):
+            self.assertNotIn("Jodit.make", (static / js).read_text())
+
+    def test_nieuwsbericht_opslaan_werkt_zoals_altijd(self):
+        from kennisbank.models import Bericht
+
+        self.client.force_login(self.anna)
+        r = self.client.post(
+            "/beheer/kennisbank/bericht/add/",
+            {
+                "titel": "Nieuw rooster",
+                "tekst": "<p>Vanaf maandag <strong>anders</strong>.</p><script>x</script>",
+                "omgeving": self.noord.pk,
+                "status": "concept",
+                "_save": "1",
+            },
+        )
+        self.assertEqual(r.status_code, 302, r.content[:500])
+        b = Bericht.objects.get(titel="Nieuw rooster")
+        self.assertIn("<strong>anders</strong>", b.tekst)
+        self.assertNotIn("<script>", b.tekst)
 
     def test_nieuw_artikel_krijgt_ook_het_scherm(self):
         self.client.force_login(self.anna)
