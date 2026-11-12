@@ -6,3 +6,4 @@ staticfiles
 .env
 *.sqlite3
 docs/schermafbeeldingen
+frontend

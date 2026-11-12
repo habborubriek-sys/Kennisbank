@@ -546,8 +546,14 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     ]
 
     class Media:
-        css = {"all": ["kennisbank/vendor/jodit/jodit.min.css", "kennisbank/beheer-editor.css"]}
-        js = ["kennisbank/vendor/jodit/jodit.min.js", "kennisbank/beheer-editor.js"]
+        # Het bewerkscherm voor artikelen (1.22.0): Tiptap in plaats van Jodit, en de nieuwe indeling.
+        css = {"all": ["kennisbank/fonts.css", "kennisbank/beheer-editor.css", "kennisbank/artikel-scherm.css"]}
+        js = [
+            "kennisbank/vendor/tiptap/tiptap.min.js",
+            "kennisbank/artikel-editor.js",
+            "kennisbank/artikel-scherm.js",
+            "kennisbank/beheer-editor.js",
+        ]
 
     def get_urls(self):
         eigen = [
@@ -996,6 +1002,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     voor = set(review.voorgevulde_teams(obj).values_list("pk", flat=True))
                     extra["kb_review"] = stand
                     extra["kb_terugroep_vraag"] = review.terugroep_vraag(stand)
+                    extra["kb_balk_stand"] = review.balk_stand(stand)
                     # Stap D: de opmerkingen voor het live voorbeeld in het volledig scherm.
                     extra["kb_opmerkingen"] = [
                         {

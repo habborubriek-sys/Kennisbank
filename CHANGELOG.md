@@ -1,5 +1,19 @@
 # Wijzigingen
 
+## 1.22.0 – 2026-11-12
+
+Eén bewerkscherm voor artikelen: je bewerkt het artikel zoals medewerkers het zien (bouwlijst `bouwlijst-1.22.0-nieuw-bewerkscherm.md`, na het ontwerp en het prototype; Alex koos Tiptap als editor).
+
+- **Eén scherm in plaats van twee.** Het splitscreen (volledig scherm met voorbeeld) verdwijnt. Bovenaan staat één balk: ← Werkplek, de titel, *Conceptversie · medewerkers zien versie n*, de stand van de review (*Ter inzage bij Team Water · ligt bij Wim*, *Teruggegeven · 2 opmerkingen*, *Akkoord*), de knoppen Opmerkingen, Bekijk als medewerker, Eigenschappen, Geschiedenis en Review, en Afronden.
+- **Nieuwe editor (Tiptap).** Een sectie is een kaart met een kop en tekst, zoals in de kennisbank, en kan niet meer half kapot of genest raken. Tussen twee blokken verschijnt een **+** om tekst of een sectie in te voegen. Elke sectie heeft een ⋯-menu: omhoog, omlaag, opheffen, verwijderen. Onboarding staat in het gele kader. Ongedaan maken en opnieuw werken over het hele artikel (Ctrl+Z, Ctrl+Y en knoppen). De "tussenruimte" met stippellijnen is weg.
+- **Titel en samenvatting** staan bovenaan het artikel, zijn altijd aanwezig en platte tekst, met uitleg als ze leeg zijn en een label als je erin klikt. Enter springt door naar het volgende veld.
+- **Opmerkingen van de review in de rechtermarge**, op de hoogte van de gemarkeerde tekst. Na teruggeven staan ze meteen aan. De markering zit niet in de tekst.
+- **Bekijk als medewerker**: het artikel met dichtgeklapte secties en de onboardingschakelaar, in een laag over het scherm.
+- **Panelen** rechts: Eigenschappen (soort, omgeving, clusters, tags, zaaktypen, nakijkdatum, status, publicatie), Geschiedenis (versies, meegenomen voorstellen) en Review (stand, opmerkingen, eerdere rondes, terugroepen).
+- **Niets veranderd** aan opslaan, controles, kladversie, slot, spoedcorrectie en Afronden, en aan het opgeslagen formaat: bestaande artikelen werken zonder omzetten.
+- Tiptap wordt meegeleverd (`vendor/tiptap/`, gebouwd in `frontend/` met vaste versies) en staat in de SBOM. Nieuwsberichten gebruiken nog Jodit.
+- Tests (nu 507); het hele scherm in de browser nagelopen: typen, + tussen blokken, sectiemenu, ongedaan maken, onboarding, tabel, opmerkingen, ter inzage (alleen lezen), spoedcorrectie, kladversie, afbreken, nieuw artikel, bekijk als medewerker.
+
 ## 1.21.0 – 2026-11-12
 
 Reparaties na de onafhankelijke review van alles sinds 1.15.0, en één knop *Afronden* (bouwlijst `bouwlijst-1.21.0-reviewbevindingen.md`, besluiten van Alex van 11 en 12 november).

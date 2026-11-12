@@ -6,9 +6,24 @@
       "versie": "4.18.12",
       "licentie": "MIT",
       "purl": "pkg:npm/jodit@4.18.12",
-      "bestanden": ["jodit/jodit.min.js", "jodit/jodit.min.css"],
+      "bestanden": [
+        "jodit/jodit.min.js",
+        "jodit/jodit.min.css"
+      ],
       "doel": "Editor met Word-achtige opmaak in het beheerscherm",
       "bron": "https://www.npmjs.com/package/jodit (map es2021/)"
+    },
+    {
+      "naam": "tiptap",
+      "versie": "3.33.1",
+      "licentie": "MIT",
+      "purl": "pkg:npm/%40tiptap/core@3.33.1",
+      "bestanden": [
+        "tiptap/tiptap.min.js",
+        "tiptap/LICENSES.txt"
+      ],
+      "doel": "Editor van het bewerkscherm voor artikelen (secties, onboarding, tabellen); gebundeld met ProseMirror",
+      "bron": "https://www.npmjs.com/package/@tiptap/core (gebouwd met frontend/package.json en frontend/package-lock.json)"
     }
   ]
 }

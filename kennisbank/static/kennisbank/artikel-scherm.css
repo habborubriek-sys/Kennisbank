@@ -1,0 +1,247 @@
+/* Het bewerkscherm voor artikelen (1.22.0): één balk bovenaan, het artikel zoals medewerkers het zien,
+ * panelen aan de rechterkant. Opmaak van de tekst volgt app.css (de kennisbank voor medewerkers). */
+
+body.kb-scherm {
+  --kb-blauw: #163a63;
+  --kb-blauw-2: #24507f;
+  --kb-geel: #f2c230;
+  --kb-lijn: #d3d9e2;
+  --kb-zacht: #5a6675;
+  --kb-onb: #fff4d6;
+  --kb-onb-lijn: #e2b94f;
+  --kb-balk-h: 64px;
+  background: #e7ecf2;
+}
+body.kb-scherm #header,
+body.kb-scherm .breadcrumbs,
+body.kb-scherm #nav-sidebar,
+body.kb-scherm #toggle-nav-sidebar,
+body.kb-scherm #content > h1,
+body.kb-scherm #content > h2,
+body.kb-scherm .object-tools,
+body.kb-scherm .kb-oud-verborgen { display: none !important; }
+body.kb-scherm .main { display: block; }
+body.kb-scherm #content { padding: 0; max-width: none; }
+body.kb-scherm #content-main { float: none; width: auto; }
+body.kb-scherm .messagelist { max-width: 900px; margin: 12px auto 0; }
+
+/* --- Bovenbalk ------------------------------------------------------------------------- */
+.kb-balk { display: none; }
+body.kb-scherm .kb-balk {
+  position: sticky; top: 0; z-index: 40; display: grid; align-items: center; gap: 6px 16px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "terug titel stand afronden" "terug sub knoppen knoppen";
+  background: var(--kb-blauw); color: #fff; border-bottom: 3px solid var(--kb-geel); padding: 10px 20px;
+  font-family: "Source Sans 3", system-ui, sans-serif;
+}
+.kb-balk-terug { grid-area: terug; align-self: center; }
+.kb-balk-titel { grid-area: titel; }
+.kb-balk-sub { grid-area: sub; }
+.kb-stand { grid-area: stand; justify-self: end; }
+.kb-balk-knoppen { grid-area: knoppen; justify-self: end; }
+.kb-balk-afronden { grid-area: afronden; justify-self: end; }
+@media (max-width: 1100px) {
+  body.kb-scherm .kb-balk { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "titel afronden" "sub sub" "stand stand" "knoppen knoppen" "terug terug"; }
+  .kb-stand, .kb-balk-knoppen { justify-self: start; }
+}
+.kb-balk a { color: #fff; }
+.kb-balk-terug { text-decoration: none; font-size: 14px; padding: 8px 10px; border: 1px solid #4a6b93; border-radius: 6px; white-space: nowrap; }
+.kb-balk-terug:hover { background: var(--kb-blauw-2); }
+.kb-balk-titel { min-width: 0; font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kb-balk-sub { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; font-size: 13px; color: #d6e1ee; }
+.kb-balk-sub button.kb-balk-link { background: none; border: none; padding: 0; color: #ffd7d7; text-decoration: underline; font: inherit; cursor: pointer; }
+.kb-pil { background: var(--kb-geel); color: #3a2c00; font-weight: 700; padding: 1px 8px; border-radius: 10px; }
+.kb-pil-spoed { background: #f9d4cf; color: #6e1a10; }
+.kb-stand { font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 14px; background: var(--kb-blauw-2); color: #fff; white-space: nowrap; }
+.kb-stand-inzage { background: #fbe3b0; color: #5a3d00; }
+.kb-stand-terug { background: #f9d4cf; color: #6e1a10; }
+.kb-stand-akkoord { background: #cfe9d6; color: #154a26; }
+.kb-balk-knoppen { display: flex; flex-wrap: wrap; gap: 8px; }
+.kb-bk { border: 1px solid #4a6b93; background: transparent; color: #fff; border-radius: 6px; padding: 6px 12px; font-size: 14px; cursor: pointer; font-family: inherit; }
+.kb-bk:hover { background: var(--kb-blauw-2); }
+.kb-bk.kb-aan { border-color: var(--kb-geel); background: var(--kb-blauw-2); }
+.kb-balk-afronden { display: flex; gap: 8px; align-items: center; }
+.kb-balk-afronden .kb-afronden-knop,
+.kb-balk-afronden .kb-balk-opslaan {
+  background: var(--kb-geel) !important; color: #2b2000 !important; border: none !important; border-radius: 6px !important;
+  padding: 11px 22px !important; font-weight: 700 !important; font-size: 14px !important; height: auto !important; cursor: pointer;
+}
+.kb-balk-afronden .kb-balk-opslaan-2 { background: transparent !important; color: #fff !important; border: 1px solid #4a6b93 !important; font-weight: 500 !important; }
+body.kb-scherm .kb-afrondenrij, body.kb-scherm .submit-row { display: none !important; }
+
+/* Meldingen onder de balk (spoedcorrectie, op slot, gepubliceerde versie gewijzigd). */
+.kb-banner { max-width: 900px; margin: 12px auto 0; border-radius: 8px; padding: 10px 14px; background: #fff4d6; color: #5a3d00; border: 1px solid #e8c870; }
+.kb-banner p { margin: 0; }
+.kb-banner p + p { margin-top: 6px; }
+.kb-banner-spoed { background: #fde8e5; border-color: #f0b4ab; color: #6e1a10; }
+
+/* --- Werkbalk van de editor ------------------------------------------------------------ */
+.kb-ae-werkbalk { display: none; }
+body.kb-scherm .kb-ae-werkbalk {
+  display: flex; justify-content: center; position: sticky; top: var(--kb-balk-h); z-index: 30;
+  background: #fff; border-bottom: 1px solid var(--kb-lijn);
+}
+.kb-ae-werkbalk-in { width: 100%; max-width: 900px; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 6px 10px; }
+.kb-ae-knop { min-width: 34px; height: 34px; border: none; background: none; border-radius: 6px; color: #3a4553; font-size: 15px; padding: 0 7px; cursor: pointer; font-family: inherit; }
+.kb-ae-knop small { font-size: 11px; margin-left: 2px; }
+.kb-ae-knop:hover:not(:disabled) { background: #eef1f5; }
+.kb-ae-knop:disabled { opacity: .35; cursor: default; }
+.kb-ae-knop.kb-ae-aan { background: #dfe8f4; color: var(--kb-blauw); }
+.kb-ae-tekst { font-size: 13px; font-weight: 600; color: var(--kb-blauw); }
+.kb-ae-sterk { font-weight: 700; }
+.kb-ae-scheid { width: 1px; height: 22px; background: var(--kb-lijn); margin: 0 6px; }
+.kb-ae-soort { height: 32px; border: 1px solid var(--kb-lijn); border-radius: 6px; padding: 0 6px; font: inherit; font-size: 13px; background: #fff; }
+.kb-ae-tabelknoppen { display: inline-flex; gap: 2px; padding-left: 8px; margin-left: 4px; border-left: 1px solid var(--kb-lijn); }
+.kb-ae-tabelknoppen[hidden] { display: none; }
+
+/* --- Het blad: titel, samenvatting, tekst ---------------------------------------------- */
+.kb-werkvlak { display: none; }
+body.kb-scherm .kb-werkvlak { display: flex; gap: 20px; align-items: flex-start; max-width: 900px; margin: 20px auto 80px; padding: 0 12px; }
+body.kb-scherm.kb-met-opm .kb-werkvlak { max-width: 1240px; }
+.kb-blad {
+  flex: 1 1 auto; min-width: 0; background: #fff; border: 1px solid var(--kb-lijn); border-radius: 12px; padding: 26px 34px 40px;
+  font-family: "Source Sans 3", system-ui, sans-serif; font-size: 16px; line-height: 1.55; color: #17212b;
+}
+.kb-blad-soort { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #154273; background: #dfe8f4; padding: 3px 8px; border-radius: 4px; }
+.kb-vast { position: relative; padding-top: 20px; }
+.kb-vast-label { position: absolute; left: 0; top: 0; font-size: 12px; font-weight: 600; color: var(--kb-blauw-2); background: #e3ebf5; border-radius: 4px; padding: 1px 6px; opacity: 0; transition: opacity .15s; pointer-events: none; white-space: nowrap; }
+.kb-vast:focus-within .kb-vast-label { opacity: 1; }
+body.kb-scherm .kb-blad input[name="titel"],
+body.kb-scherm .kb-blad textarea[name="samenvatting"] {
+  display: block; width: 100%; box-sizing: border-box; border: 1px solid transparent; border-radius: 6px; background: transparent;
+  padding: 2px 4px; margin: 0 -5px; resize: none; overflow: hidden; outline: none;
+}
+body.kb-scherm .kb-blad input[name="titel"] { font-family: "Source Serif 4", Georgia, serif; font-size: 30px; font-weight: 700; line-height: 1.25; color: #17212b; height: auto; }
+body.kb-scherm .kb-blad textarea[name="samenvatting"] { font-family: inherit; font-size: 17px; line-height: 1.5; color: #4a5565; min-height: 28px; }
+body.kb-scherm .kb-blad input[name="titel"]:hover, body.kb-scherm .kb-blad textarea[name="samenvatting"]:hover { border-color: #e1e6ec; }
+body.kb-scherm .kb-blad input[name="titel"]:focus, body.kb-scherm .kb-blad textarea[name="samenvatting"]:focus { border-color: #b8c6d8; background: #fafbfc; }
+body.kb-scherm .kb-blad input[name="titel"]::placeholder, body.kb-scherm .kb-blad textarea[name="samenvatting"]::placeholder { color: #8f9aa8; font-style: italic; font-weight: 400; }
+.kb-blad-lijn { border-top: 1px solid #e1e6ec; margin: 14px 0 8px; }
+.kb-blad .errorlist { margin: 4px 0 8px; }
+
+/* --- De editor ------------------------------------------------------------------------- */
+.kb-ae { position: relative; }
+.kb-ae-inhoud { outline: none; min-height: 160px; padding: 4px 0 8px; }
+.kb-ae-inhoud > * { margin-top: 0; }
+.kb-ae-inhoud p { margin: 0 0 10px; }
+.kb-ae-inhoud h3 { font-size: 1.15rem; margin: 18px 0 6px; }
+.kb-ae-inhoud h4 { font-size: 1rem; margin: 14px 0 4px; }
+.kb-ae-inhoud ul, .kb-ae-inhoud ol { margin: 0 0 10px; padding-left: 24px; }
+.kb-ae-inhoud li p { margin: 0 0 4px; }
+.kb-ae-inhoud blockquote { margin: 0 0 10px; padding: 6px 12px; border-left: 3px solid var(--kb-lijn); color: var(--kb-zacht); }
+.kb-ae-inhoud a { color: #154273; }
+.kb-ae-inhoud hr { border: none; border-top: 1px solid var(--kb-lijn); margin: 14px 0; }
+.kb-ae-inhoud table { border-collapse: collapse; margin: 0 0 12px; max-width: 100%; }
+.kb-ae-inhoud td, .kb-ae-inhoud th { border: 1px solid var(--kb-lijn); padding: 6px 10px; vertical-align: top; min-width: 60px; }
+.kb-ae-inhoud th { background: #f3f5f8; text-align: left; }
+.kb-ae-inhoud td p, .kb-ae-inhoud th p { margin: 0; }
+.kb-ae-inhoud .selectedCell { background: #dfe8f4; }
+.kb-ae-inhoud p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #8f9aa8; float: left; height: 0; pointer-events: none; }
+
+/* Sectie: een kaart zoals in de kennisbank, tijdens het bewerken altijd open. */
+.kb-ae-sectie { position: relative; border: 1px solid var(--kb-lijn); border-radius: 8px; background: #fff; margin: 0 0 12px; transition: box-shadow .15s, border-color .15s; }
+.kb-ae-sectie:focus-within { border-color: #7c9cc2; box-shadow: 0 0 0 3px #e3ebf5; }
+.kb-ae-pijl { position: absolute; left: 14px; top: 13px; color: var(--kb-zacht); font-size: 12px; user-select: none; }
+.kb-ae-smenu { position: absolute; right: 6px; top: 6px; width: 32px; height: 32px; border: none; background: none; border-radius: 6px; color: var(--kb-zacht); font-size: 18px; line-height: 1; cursor: pointer; opacity: .25; }
+.kb-ae-sectie:hover .kb-ae-smenu, .kb-ae-sectie:focus-within .kb-ae-smenu, .kb-ae-smenu:focus { opacity: 1; }
+.kb-ae-smenu:hover { background: #eef1f5; }
+.kb-ae-sectie-inhoud { padding: 0 16px 12px 34px; }
+.kb-ae-sectie-inhoud > h2.sectie-kop { font-size: 16.5px; font-weight: 600; margin: 0 30px 8px -6px; padding: 10px 6px 4px; line-height: 1.4; font-family: inherit; color: #17212b; }
+.kb-ae-sectie-inhoud > h2.sectie-kop:empty::before,
+.kb-ae-sectie-inhoud > h2.sectie-kop:has(> br:only-child)::before { content: "Kop van de sectie"; color: #8f9aa8; font-weight: 400; font-style: italic; }
+
+/* Onboarding: het gele kader dat nieuwe collega's zien. */
+.kb-ae-inhoud div.onboarding { background: var(--kb-onb); border-left: 3px solid var(--kb-onb-lijn); border-radius: 0 6px 6px 0; padding: 8px 12px; margin: 6px 0 10px; }
+.kb-ae-inhoud div.onboarding::before { content: "Voor nieuwe collega's"; display: block; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; font-weight: 700; color: #6b4e00; user-select: none; }
+.kb-ae-inhoud div.onboarding p:last-child { margin-bottom: 0; }
+
+/* De + tussen blokken. */
+.kb-ae-tussen { position: absolute; left: 0; right: 0; height: 24px; z-index: 5; pointer-events: none; }
+.kb-ae-tussen[hidden] { display: none; }
+.kb-ae-lijntje { position: absolute; left: 0; right: 0; top: 11px; height: 2px; background: #7c9cc2; opacity: .7; }
+.kb-ae-plus { pointer-events: auto; position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 26px; height: 26px; border-radius: 13px; border: 1px solid #7c9cc2; background: #fff; color: var(--kb-blauw); font-weight: 700; font-size: 16px; line-height: 22px; padding: 0; cursor: pointer; }
+.kb-ae-plus:hover, .kb-ae-plus:focus { background: var(--kb-blauw); color: #fff; }
+
+/* Menu's (sectiemenu en invoegen). */
+.kb-ae-menu { position: absolute; z-index: 60; background: #fff; border: 1px solid #c3cbd6; border-radius: 8px; box-shadow: 0 8px 24px rgba(15, 27, 45, .18); padding: 6px; display: flex; flex-direction: column; min-width: 210px; font-family: "Source Sans 3", system-ui, sans-serif; }
+.kb-ae-menuknop { border: none; background: none; text-align: left; padding: 8px 10px; border-radius: 6px; font-size: 14px; color: #17212b; cursor: pointer; font-family: inherit; }
+.kb-ae-menuknop small { display: block; color: var(--kb-zacht); font-size: 12px; }
+.kb-ae-menuknop:hover:not(:disabled), .kb-ae-menuknop:focus { background: #eef1f5; outline: none; }
+.kb-ae-menuknop:disabled { opacity: .4; cursor: default; }
+.kb-ae-menuknop.kb-ae-gevaar span { color: #a11b12; }
+
+/* Alleen lezen (ter inzage). */
+.kb-ae-alleen-lezen .kb-ae-inhoud { color: #4a5565; }
+.kb-ae-alleen-lezen .kb-ae-smenu, .kb-ae-alleen-lezen .kb-ae-tussen { display: none; }
+body.kb-op-slot .kb-blad { background: #fbfbfc; }
+
+/* --- Opmerkingen ----------------------------------------------------------------------- */
+.kb-ae-opm { background: #ffe58a; border-radius: 2px; }
+.kb-ae-opm.kb-ae-opm-actief { background: #ffc93c; }
+.kb-marge { display: none; position: relative; flex: 0 0 300px; align-self: stretch; }
+body.kb-met-opm .kb-marge { display: block; }
+.kb-ae-kaart { position: absolute; left: 0; right: 0; background: #fff; border: 1px solid #e8c870; border-radius: 8px; padding: 10px 12px; font: 13px/1.45 "Source Sans 3", system-ui, sans-serif; display: flex; gap: 8px; text-align: left; cursor: pointer; color: #17212b; transition: top .15s, box-shadow .15s; }
+.kb-ae-kaart:hover, .kb-ae-kaart.kb-ae-actief { box-shadow: 0 4px 14px rgba(15, 27, 45, .15); border-color: #d4a017; }
+.kb-ae-kaart::before { content: ""; position: absolute; left: -21px; top: 15px; width: 20px; border-top: 2px dotted #d4a017; }
+.kb-ae-kaart.kb-ae-alg::before { display: none; }
+.kb-ae-nr { flex: none; width: 22px; height: 22px; border-radius: 11px; background: var(--kb-geel); color: #2b2000; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.kb-ae-nr.kb-ae-alg { background: #d5dbe3; color: #17212b; }
+.kb-ae-kaarttekst { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kb-ae-wie { font-size: 12px; color: var(--kb-zacht); }
+.kb-ae-weg { color: #8a5a00; font-style: italic; }
+.kb-ae-opmtekst { white-space: pre-line; }
+
+/* --- Panelen --------------------------------------------------------------------------- */
+.kb-paneel { display: none; }
+body.kb-scherm .kb-paneel.kb-open {
+  display: flex; flex-direction: column; gap: 12px; position: fixed; top: calc(var(--kb-balk-h) + 8px); right: 8px; bottom: 8px; width: 430px; max-width: calc(100vw - 16px);
+  background: #fff; border: 1px solid #c3cbd6; border-radius: 10px; box-shadow: 0 8px 28px rgba(15, 27, 45, .22); overflow: auto; padding: 16px 18px; z-index: 35;
+}
+.kb-paneel-kop { display: flex; align-items: center; gap: 8px; }
+.kb-paneel-kop h2 { margin: 0; font-size: 18px; color: #17212b; background: none; padding: 0; text-transform: none; letter-spacing: 0; }
+.kb-paneel-sluit { margin-left: auto; border: 1px solid #c3cbd6; background: #fff; border-radius: 6px; width: 36px; height: 36px; font-size: 16px; cursor: pointer; }
+.kb-paneel-uitleg { margin: 0; color: var(--kb-zacht); font-size: 13px; }
+/* In het paneel: de velden onder elkaar in plaats van label links, veld rechts. */
+.kb-paneel fieldset.module { margin: 0; border: none; padding: 0; }
+.kb-paneel fieldset.module h2.fieldset-heading { background: none; color: #17212b; font-size: 14px; padding: 8px 0 4px; margin: 0; text-transform: none; letter-spacing: 0; border-bottom: 1px solid #e1e6ec; }
+.kb-paneel .form-row { padding: 8px 0; border: none; }
+.kb-paneel .form-row .flex-container { flex-direction: column; align-items: stretch; gap: 4px; }
+.kb-paneel .form-row .flex-container.checkbox-row { flex-direction: row; align-items: center; }
+.kb-paneel .aligned label { width: auto; padding: 0; float: none; }
+.kb-paneel .aligned .help, .kb-paneel .aligned div.help { margin-left: 0 !important; padding-left: 0 !important; }
+.kb-paneel input[type="text"], .kb-paneel select { width: 100% !important; box-sizing: border-box; }
+.kb-paneel .selector { width: 100% !important; float: none; }
+.kb-paneel .selector .selector-available, .kb-paneel .selector .selector-chosen { width: 100% !important; }
+.kb-paneel .inline-group { margin: 0; }
+.kb-paneel .inline-group h2 { background: none; color: #17212b; font-size: 14px; padding: 8px 0 4px; text-transform: none; letter-spacing: 0; }
+.kb-paneel .tabular td, .kb-paneel .tabular th { padding: 6px 4px; font-size: 13px; }
+.kb-paneel-review ul.kb-review-teams { padding-left: 18px; }
+
+/* --- Bekijk als medewerker ------------------------------------------------------------- */
+.kb-lees { position: fixed; inset: 0; z-index: 80; background: rgba(15, 27, 45, .55); display: flex; flex-direction: column; padding: 16px; }
+.kb-lees-balk { display: flex; align-items: center; gap: 12px; background: #1f4a7a; color: #fff; padding: 10px 16px; border-radius: 10px 10px 0 0; font-family: "Source Sans 3", system-ui, sans-serif; }
+.kb-lees-balk .kb-lees-tag { font-size: 11px; font-weight: 600; letter-spacing: .08em; border: 1px solid #fff; border-radius: 10px; padding: 1px 8px; }
+.kb-lees-balk button { margin-left: auto; border: 1px solid #fff; background: transparent; color: #fff; border-radius: 6px; padding: 7px 14px; cursor: pointer; font: inherit; }
+.kb-lees iframe { flex: 1; border: none; background: #f3f5f8; border-radius: 0 0 10px 10px; width: 100%; }
+
+@media (max-width: 900px) {
+  body.kb-scherm .kb-werkvlak { flex-direction: column; }
+  .kb-marge { flex-basis: auto; width: 100%; }
+  .kb-blad { padding: 18px 16px 26px; }
+}
+
+/* Beheeropmaak die anders door het scherm heen prikt. */
+body.kb-scherm .main > .content, body.kb-scherm .main.shifted > #nav-sidebar + .content, body.kb-scherm .main > #nav-sidebar + .content { max-width: 100% !important; flex: 1 1 auto; }
+body.kb-scherm #container { min-width: 0; }
+.kb-ae-inhoud li, .kb-ae-inhoud p, .kb-ae-inhoud td, .kb-ae-inhoud th, .kb-ae-inhoud blockquote { font-size: inherit; line-height: inherit; }
+.kb-ae-inhoud ul li { list-style-type: disc; padding: 0; }
+.kb-ae-inhoud ol li { list-style-type: decimal; padding: 0; }
+.kb-ae-inhoud h3, .kb-ae-inhoud h4 { color: #17212b; text-transform: none; letter-spacing: 0; background: none; padding: 0; }
+.kb-paneel fieldset.module h2, .kb-paneel .inline-group h2 { background: none !important; border: none !important; border-bottom: 1px solid #e1e6ec !important; color: #17212b !important; font-size: 14px !important; font-weight: 700; padding: 10px 0 4px !important; margin: 4px 0 0 !important; text-transform: none !important; letter-spacing: 0 !important; }
+.kb-paneel .inline-group { overflow-x: auto; }
+.kb-paneel .readonly { margin-left: 0 !important; padding-left: 0 !important; }
+/* Leeg artikel: uitleg in de eerste regel. */
+.kb-ae-inhoud > p:only-child:has(> br.ProseMirror-trailingBreak:only-child)::before {
+  content: "Begin hier met de tekst. Met + tussen blokken of '+ Sectie' in de werkbalk maak je een uitklapbaar blok.";
+  color: #8f9aa8; font-style: italic; pointer-events: none; position: absolute;
+}

@@ -11,7 +11,9 @@
  */
 (function () {
   "use strict";
-  if (!window.Jodit) return;
+  // Artikelen gebruiken sinds 1.22.0 de eigen editor (artikel-editor.js, Tiptap); Jodit alleen nog voor
+  // andere teksten, zoals nieuwsberichten. De rest van dit bestand (kladversie, slot, toelichting,
+  // Afronden) geldt voor allebei.
 
   var ONB = "onboarding";
   var SEC = "sectie";
@@ -329,6 +331,15 @@
   function init(textarea) {
     if (textarea.dataset.kbEditor) return;
     textarea.dataset.kbEditor = "1";
+    if (textarea.name === "inhoud" && window.KBArtikelEditor && document.querySelector(".kb-balk")) {
+      inhoudEditor = window.KBArtikelEditor.maak(textarea, {
+        werkbalk: document.querySelector(".kb-ae-werkbalk-in"),
+        marge: document.getElementById("kb-marge"),
+      });
+      window.kbInhoudEditor = inhoudEditor;
+      return;
+    }
+    if (!window.Jodit) return;
     var editor = Jodit.make(textarea, textarea.name === "inhoud" ? config : configEenvoudig);
     if (textarea.name === "inhoud") inhoudEditor = editor;  // voor de kladversie
     ruimteRondSecties(editor);
@@ -853,8 +864,8 @@
     if (!data || !form) return;
     var cfg;
     try { cfg = JSON.parse(data.textContent); } catch (e) { return; }
-    var rij = form.querySelector(".kb-afrondenrij");
-    var knop = rij && rij.querySelector(".kb-afronden-knop");
+    // De knop staat sinds 1.22.0 in de balk bovenaan (artikel-scherm.js verhuist hem); nog steeds in het formulier.
+    var knop = form.querySelector(".kb-afronden-knop");
     if (!knop) return;
     form.classList.add("kb-met-afronden");
 
@@ -1064,6 +1075,7 @@
     vensterTonen({ titel: opties.titel, alineas: opties.alineas, knoppen: [{ tekst: "Sluiten", primair: true }] });
   };
   window.kbToelichtingNodig = toelichtingNodig;
+  window.kbVenster = vensterTonen;
   window.kbVraagToelichting = vraagToelichting;
 
   /* Suggestielijst bij het tagveld: kijkt alleen naar het stukje achter de laatste komma. */

@@ -500,3 +500,72 @@ class Afronden(ReviewBasis):
         self.client.force_login(self.anna)
         html = self.client.get("/beheer/kennisbank/artikel/add/").content.decode()
         self.assertNotIn('id="kb-afronden"', html)
+
+
+class Bewerkscherm(ReviewBasis):
+    """1.22.0: het nieuwe bewerkscherm (bouwlijst-1.22.0-nieuw-bewerkscherm.md). De editor zelf is
+    JavaScript en is in de browser nagelopen; hier de server-kant: wat de pagina meekrijgt."""
+
+    def test_artikel_gebruikt_de_nieuwe_editor_en_geen_jodit(self):
+        self.maak_concept()
+        html = self.client.get(self.url).content.decode()
+        self.assertIn("kennisbank/vendor/tiptap/tiptap.min.js", html)
+        self.assertIn("kennisbank/artikel-editor.js", html)
+        self.assertIn("kennisbank/artikel-scherm.js", html)
+        self.assertNotIn("jodit.min.js", html)
+        for stuk in (
+            'class="kb-balk"',
+            'data-kb-plek="titel"',
+            'data-kb-plek="inhoud"',
+            'id="kb-p-eig"',
+            'id="kb-p-gesch"',
+            'id="kb-p-rev"',
+            "Bekijk als medewerker",
+        ):
+            self.assertIn(stuk, html)
+
+    def test_nieuwsbericht_houdt_jodit(self):
+        self.client.force_login(self.anna)
+        html = self.client.get("/beheer/kennisbank/bericht/add/").content.decode()
+        self.assertIn("jodit.min.js", html)
+        self.assertNotIn("tiptap.min.js", html)
+
+    def test_nieuw_artikel_krijgt_ook_het_scherm(self):
+        self.client.force_login(self.anna)
+        html = self.client.get("/beheer/kennisbank/artikel/add/").content.decode()
+        self.assertIn('class="kb-balk"', html)
+        self.assertIn("Nieuw artikel", html)
+        self.assertNotIn('id="kb-p-gesch"', html)  # nog geen geschiedenis
+
+    def test_balk_noemt_de_stand_van_de_review(self):
+        self.maak_concept()
+        self.assertIn("Review: nog niet ter inzage", self.client.get(self.url).content.decode())
+        self.ter_inzage()
+        self.assertIn("Ter inzage bij Team Water", self.client.get(self.url).content.decode())
+        i = Inzage.objects.get(artikel=self.a)
+        self.als(self.wim).post(f"/review/{i.pk}/", {"actie": "oppakken"})
+        self.client.force_login(self.anna)
+        self.assertIn("Ter inzage bij Team Water · ligt bij Wim", self.client.get(self.url).content.decode())
+        self.als(self.wim).post(f"/review/{i.pk}/", {"actie": "teruggeven", "tekst": "Klopt niet"})
+        self.client.force_login(self.anna)
+        self.assertIn("Teruggegeven door Team Water · 1 opmerking", self.client.get(self.url).content.decode())
+
+    def test_balk_akkoord_en_vervallen(self):
+        c = self.maak_concept()
+        self.ter_inzage()
+        i = Inzage.objects.get(artikel=self.a)
+        self.als(self.wim).post(f"/review/{i.pk}/", {"actie": "akkoord"})
+        self.client.force_login(self.anna)
+        self.assertIn("Akkoord: Team Water", self.client.get(self.url).content.decode())
+        self.post(
+            self.url,
+            beheerdata(self.a, inhoud="<p>Anders.</p>", wijzigingstoelichting="", geladen_concept=c.stempel),
+            _conceptversie="1",
+        )
+        self.assertIn("Akkoord vervallen: tekst gewijzigd", self.client.get(self.url).content.decode())
+
+    def test_balk_teruggeroepen(self):
+        self.maak_concept()
+        self.ter_inzage()
+        self.post(f"/beheer/kennisbank/artikel/{self.a.pk}/terugroepen/", {})
+        self.assertIn(">Teruggeroepen<", self.client.get(self.url).content.decode())

@@ -4,33 +4,45 @@ Als **redacteur** schrijf en onderhoud je de artikelen in jouw omgeving, behande
 
 ## Een artikel schrijven of wijzigen
 
+Het bewerkscherm (sinds 1.22.0) laat het artikel zien zoals medewerkers het lezen, en daarin typ je ook.
+
 1. Ga naar **Beheer** (link links onderin de kennisbank) → *Artikelen*, of klik in een artikel op **Bewerken**.
-2. Vul de **titel** en de **samenvatting** in (één of twee zinnen; staat bovenaan het artikel en in de lijst).
-3. Schrijf de **tekst** in de editor. De werkbalk werkt zoals in Word:
+2. **Bovenaan staat één balk** met ← Werkplek, de titel, de stand (bijvoorbeeld *Conceptversie, medewerkers zien
+   versie 3*) en de stand van de review. Daaronder staan de knoppen **Opmerkingen**, **Bekijk als medewerker**,
+   **Eigenschappen**, **Geschiedenis** en **Review**, en rechts **Afronden…** (bij een nieuw artikel: *Opslaan*).
+3. **Titel en samenvatting** staan bovenaan het artikel, op de plek waar de lezer ze ziet. Ze horen bij elk
+   artikel en kunnen niet weg. Zijn ze leeg, dan staat er grijze uitleg in; klik je erin, dan verschijnt een
+   label (*Titel · verplicht, maximaal 200 tekens*, *Samenvatting · verschijnt ook in de zoekresultaten en het
+   zaaksysteem, houd hem kort*). Het is platte tekst, zonder opmaak. **Enter** springt van de titel naar de
+   samenvatting en van de samenvatting naar de tekst.
+4. Schrijf de **tekst** eronder. De werkbalk:
 
    | Knop | Doet |
    |---|---|
-   | ¶ | Alinea, Kop, Subkop of Citaat |
+   | ↶ ↷ | Ongedaan maken en opnieuw, over het hele artikel (ook Ctrl+Z en Ctrl+Y) |
+   | Alinea / Kop / Subkop / Citaat | Soort alinea |
    | **B** *I* <u>U</u> ~~S~~ x² | Vet, cursief, onderstreept, doorgehaald, superscript |
-   | Lijsten, inspringen | Opsomming, genummerde lijst, inspringing |
-   | Link, tabel, lijn | Hyperlink, tabel invoegen, scheidingslijn |
-   | Gum | Opmaak van de selectie wissen |
-   | **Volledig scherm** | Links de editor, rechts live het voorbeeld zoals het artikel er gepubliceerd uitziet; met *Opslaan en doorgaan* en *Sluiten* (of Esc). Zie hieronder. |
-   | **Sectie** | Zet een in- en uitklapbare sectie om de geselecteerde tekst (zie hieronder) |
-   | **Onboarding** | Markeert de geselecteerde alinea's als uitleg voor nieuwe collega's (zie hieronder) |
+   | Lijsten | Opsomming, genummerde lijst |
+   | Link, Tabel, — | Hyperlink, tabel invoegen (in een tabel verschijnen knoppen voor rijen en kolommen), scheidingslijn |
+   | ⌫ opmaak | Opmaak van de selectie wissen |
+   | **+ Sectie** | Een sectie om de geselecteerde tekst, of een nieuwe lege sectie na de cursor (zie hieronder) |
+   | **Onboarding** | Markeert de alinea als uitleg voor nieuwe collega's (zie hieronder) |
 
    Plakken uit Word werkt: de opmaak wordt opgeschoond, vet/cursief/lijsten/tabellen blijven staan.
-4. Vul onder *Eigenschappen* en *Vindbaarheid* in: soort, omgeving, cluster(s), tags en zaaktypen.
+5. Onder **Eigenschappen** (paneel rechts): soort, omgeving, eigenaar, cluster(s), tags, zaaktypen, de
+   nakijkdatum en de **status**.
    - Geen cluster gekozen = het artikel geldt voor alle clusters.
    - **Tags** typ je gescheiden door komma's (bijv. `rappel, termijnen, brief`). Bestaande tags worden voorgesteld; nieuwe worden automatisch aangemaakt.
    - Zaaktypen bepalen bij welke zaken het artikel in het zaaksysteem verschijnt.
-5. Kies de **status**:
-   - *Concept*: alleen zichtbaar voor redacteuren.
-   - *Gepubliceerd*: zichtbaar voor iedereen in de omgeving.
-   - *Gearchiveerd*: niet meer zichtbaar; de versiegeschiedenis blijft bewaard.
-6. Vul bij een wijziging de **toelichting** in, bijvoorbeeld "Termijn tweede rappel aangepast van 2 naar 3 weken". Die is verplicht zodra een gepubliceerd artikel inhoudelijk wijzigt, want medewerkers krijgen precies deze zin te zien (zie hieronder).
+   - Status: *Concept* (alleen zichtbaar voor redacteuren), *Gepubliceerd* (zichtbaar voor iedereen in de
+     omgeving), *Gearchiveerd* (niet meer zichtbaar; de versiegeschiedenis blijft bewaard).
+6. Publiceer je een wijziging, dan vraagt een venster om de **toelichting**, bijvoorbeeld "Termijn tweede rappel
+   aangepast van 2 naar 3 weken". Die is verplicht zodra een gepubliceerd artikel inhoudelijk wijzigt, want
+   medewerkers krijgen precies deze zin te zien (zie hieronder).
+7. **Bekijk als medewerker** toont het artikel zoals een medewerker het ziet: secties dichtgeklapt, met de
+   schakelaar voor onboarding. Esc of *Terug naar bewerken* sluit het weer.
 
-Elke keer dat je een gepubliceerd artikel inhoudelijk wijzigt, ontstaat automatisch een nieuwe versie. Onderaan het artikel in het beheer zie je alle versies: wanneer, door wie en waarom. Oude versies zijn niet te wijzigen of te verwijderen. Achter elke regel staat **Tekst bekijken**: dat opent de tekst zoals die bij die versie is opgeslagen — dus zoals medewerkers hem toen zagen, niet de tekst van vandaag.
+Elke keer dat je een gepubliceerd artikel inhoudelijk wijzigt, ontstaat automatisch een nieuwe versie. Onder **Geschiedenis** zie je alle versies: wanneer, door wie en waarom. Oude versies zijn niet te wijzigen of te verwijderen. Achter elke regel staat **Tekst bekijken**: dat opent de tekst zoals die bij die versie is opgeslagen — dus zoals medewerkers hem toen zagen, niet de tekst van vandaag.
 
 **Een artikel voor het eerst publiceren** gaat langs een laatste controle. De publicatie wordt geweigerd als de titel een bestandsnaam of versie-aanduiding is (`werkinstructie DEFINITIEF.docx`), als de samenvatting leeg of nietszeggend is, of als er een sectie zonder titel in staat — die heet voor de lezer namelijk "Sectie 1". Je krijgt per geval te zien wat eraan moet gebeuren. Ontbreekt alleen een zaaktype of tag, dan volgt een waarschuwing en gaat de publicatie door: slecht vindbaar is soms de bedoeling. Een artikel dat al eens is gepubliceerd, wordt niet opnieuw gekeurd, zodat een typfout altijd te herstellen blijft.
 
@@ -50,10 +62,10 @@ Onder een gepubliceerd artikel staat één knop: **Afronden…**. Die opent een 
 
 Ligt de conceptversie ter inzage, dan biedt het venster alleen **Terugroepen** en **Afbreken**. Bij een
 spoedcorrectie alleen **Publiceren** en **Afbreken**. Een nieuw artikel dat nog nooit is gepubliceerd, sla je
-op zoals altijd, met de knoppen onderaan.
+op met *Opslaan* (of *Opslaan en verder*) rechtsboven in de balk.
 
-Is er een conceptversie, dan opent het artikel in het beheer met die conceptversie en staat er bovenaan een gele
-balk: wie hem begon, wie hem het laatst bijwerkte, en welke versie medewerkers nu zien. Daar kun je hem ook
+Is er een conceptversie, dan opent het artikel in het beheer met die conceptversie. De balk bovenaan zegt dat je
+in de conceptversie werkt, wie hem het laatst bijwerkte en welke versie medewerkers nu zien. Daar kun je hem ook
 **bekijken** zoals medewerkers hem straks zien, of **weggooien** (niet als hij ter inzage ligt: roep hem dan eerst
 terug). Gooi je hem weg, dan staan voorstellen die je had *meegenomen* weer op "niet meegenomen". Werk verder
 met *Afronden → Opslaan als concept*; wil je hem publiceren, kies dan *Afronden → Publiceren* en vul de
@@ -66,16 +78,14 @@ artikel heeft een nieuwe versie.
 - Er is per artikel **één conceptversie, voor de hele redactie**: een collega die het artikel opent, werkt in
   dezelfde conceptversie verder. Hebben jullie hem allebei open en slaat de ander eerst op, dan krijg je een
   melding en wordt jouw opslag geweigerd, net als bij het artikel zelf. Je werk staat dan nog in je kladversie.
-- In het **volledige scherm** slaat *Opslaan* de conceptversie op zolang je in een conceptversie werkt. Publiceren
-  doe je onderaan het gewone scherm, met *Afronden*.
 - Op je werkplek staan conceptversies onder **Concepten**, bovenaan, met het label *conceptversie*.
 - Een artikel dat nog nooit is gepubliceerd, heeft geen conceptversie nodig: het is zelf nog een concept.
 - **Spoedcorrectie.** Moet er iets dringends verbeterd worden in wat medewerkers nu zien (een fout
-  telefoonnummer, een verkeerde termijn) terwijl je aan een conceptversie werkt, kies dan in de gele balk
+  telefoonnummer, een verkeerde termijn) terwijl je aan een conceptversie werkt, kies dan in de balk bovenaan
   **Corrigeer de gepubliceerde versie**. Je bewerkt dan de gepubliceerde tekst en publiceert die met een
   toelichting; de conceptversie blijft ongewijzigd (en op slot als hij ter inzage ligt). De omgeving kun je bij
-  een spoedcorrectie niet wijzigen. Daarna meldt de gele
-  balk dat de gepubliceerde versie intussen is aangepast: **neem de correctie zelf mee in de conceptversie**,
+  een spoedcorrectie niet wijzigen. Daarna meldt een
+  balk boven het artikel dat de gepubliceerde versie intussen is aangepast: **neem de correctie zelf mee in de conceptversie**,
   anders draait publiceren hem terug. In de versiegeschiedenis staat "Spoedcorrectie".
 - Staat het reviewproces aan, dan kun je een conceptversie **ter inzage** geven aan een reviewteam; zie hieronder.
 
@@ -89,7 +99,7 @@ nodig om te publiceren: jij bent eindverantwoordelijk. Maar zolang een team aan 
    aan als dat nodig is (meer teams mag). Je wijziging wordt eerst opgeslagen, dus het team leest precies wat
    je op het scherm hebt.
 2. **Op slot.** De conceptversie staat daarna **op slot**: je kunt hem niet wijzigen, publiceren of weggooien
-   tot het team reageert. Wil je toch verder, kies dan **Terugroepen** (in de gele balk of via *Afronden*). Is het team er al mee bezig, dan vraagt de
+   tot het team reageert. Wil je toch verder, kies dan **Terugroepen** (in het paneel *Review* of via *Afronden*). Is het team er al mee bezig, dan vraagt de
    kennisbank eerst of je het zeker weet. Een reviewer die het had opgepakt, krijgt een e-mail. Wat hij al had
    opgemerkt, blijft bewaard en zie je als *voorlopig*: "mogelijk niet compleet".
 3. **Het team leest** in een eigen, eenvoudige leesweergave (`/review/`). Een reviewer ziet de nieuwe tekst met
@@ -97,14 +107,14 @@ nodig om te publiceren: jij bent eindverantwoordelijk. Maar zolang een team aan 
    Hij **selecteert een stuk tekst** en zet er een opmerking bij, of schrijft een algemene opmerking. De
    opmerkingen staan genummerd naast de tekst, met een gele markering in de tekst. Daarna **geeft hij het
    terug** of geeft hij **akkoord**. Reviewers bewerken niets en publiceren niets.
-4. **Teruggegeven?** Je krijgt een e-mail en ziet de opmerkingen in de gele balk, elk met de tekst waar hij
-   over ging. Opmerkingen zie je pas als het team heeft gereageerd. De conceptversie is weer vrij. Open
-   **Volledig scherm** in de editor: in het voorbeeld rechts staan de opmerkingen van de laatste ronde
-   bovenaan, en de tekst waar ze over gaan is geel gemarkeerd met een nummer. Klik op een opmerking om naar
-   de plek te gaan. Pas je die zin aan, dan verdwijnt de markering en staat bij de opmerking "tekst is
-   intussen gewijzigd", met het oorspronkelijke citaat erbij. Sla op en geef hem opnieuw ter inzage (een
-   nieuwe ronde; eerdere rondes blijven te zien in de gele balk).
-5. **Akkoord?** In de gele balk staat dan *Versie n akkoord bevonden door Team Water, datum*. Dit label zie je
+4. **Teruggegeven?** Je krijgt een e-mail. Open het artikel: de balk zegt *Teruggegeven door Team Water · 2
+   opmerkingen*, en de opmerkingen staan meteen **rechts in de marge, op de hoogte van de tekst waar ze over
+   gaan**. Die tekst is geel gemarkeerd; ga je met de muis over een opmerking, dan kleurt de markering feller.
+   Algemene opmerkingen staan bovenaan. De markering hoort niet bij de tekst en wordt nooit opgeslagen. Pas je
+   die zin aan, dan staat bij de opmerking "Tekst is intussen gewijzigd", met het oorspronkelijke citaat. De
+   knop **Opmerkingen** zet de marge aan en uit. Opmerkingen zie je pas als het team heeft gereageerd. Daarna:
+   *Afronden → Ter inzage aanbieden* voor een nieuwe ronde (eerdere rondes staan in het paneel **Review**).
+5. **Akkoord?** In het paneel **Review** staat dan *Versie n akkoord bevonden door Team Water, datum*, en de balk zegt *Akkoord: Team Water*. Dit label zie je
    alleen in het beheer. **Wijzig je daarna nog iets, dan vervalt het akkoord**; begin je te typen, dan
    waarschuwt een balk daarvoor. Opslaan zonder iets te veranderen laat het akkoord staan. Bij meer teams
    verschijnt het label pas als alle teams akkoord zijn; tot dan zie je per team de stand.
@@ -146,38 +156,30 @@ Wil je een wijziging breder aankondigen, vink dan **Ook als nieuwsbericht plaats
 
 **De link van een artikel** wordt bij het opslaan toegekend en heeft de vorm `/artikel/412/melding-registreren`. Het nummer is wat telt: dat verandert nooit, ook niet als je de titel aanpast of het artikel naar een andere omgeving verhuist. De naam erachter is alleen voor de leesbaarheid. Twee afdelingen kunnen dus gerust een artikel met dezelfde titel hebben.
 
-## Volledig scherm met live voorbeeld
-
-Klik in de werkbalk op **Volledig scherm**. Links staan de titel, de samenvatting en de editor; rechts zie je het artikel zoals lezers het zien: inklapbare secties, de onboarding-schakelaar, alles. Terwijl je typt loopt het voorbeeld mee. Sleep de balk in het midden om de editor breder of smaller te maken; die verdeling wordt onthouden. De pagina eronder is zolang vergrendeld.
-
-- **Opslaan en doorgaan** slaat het artikel op (met versie, als het gepubliceerd is) en opent het volledige scherm daarna meteen weer. Is een toelichting nodig omdat je een gepubliceerd artikel inhoudelijk hebt gewijzigd, dan vraagt het volledige scherm daar eerst om in een venstertje — het veld zelf staat op de pagina eronder, dus zonder dat venster zou het opslaan mislukken op een melding die je niet ziet.
-- **Sluiten** (of de Esc-toets) brengt je terug naar het gewone bewerkscherm, met je tekst erin; sluiten is niet opslaan.
-
 ## Secties
 
-Een artikel is één doorlopende tekst. Een **sectie** is een kader om een stuk van die tekst, dat de lezer in- en uit kan klappen:
+Een artikel is één doorlopende tekst. Een **sectie** is een kader om een stuk van die tekst, dat de lezer in- en
+uit kan klappen. In de editor ziet een sectie eruit als in de kennisbank: een kaart met een kop en tekst. Tijdens
+het bewerken staat hij altijd open.
 
-1. Selecteer de alinea's die samen een sectie moeten worden en klik op **Sectie** in de werkbalk.
-2. Er verschijnt een blauw kader om de tekst, met een donkerblauwe titelbalk erboven. De cursor staat in die balk: typ de titel van de sectie (de balk toont "Sectiekop titel" zolang hij leeg is).
-   Begint je selectie met een **kop** — na een Word-import is dat bijna altijd zo — dan wordt die kop meteen de titel van de sectie en verdwijnt hij uit de tekst, zodat de titel er niet twee keer staat.
-3. Tekst **buiten** een kader (ervoor, ertussen, erna) is in de kennisbank altijd zichtbaar. De volgorde is simpelweg de volgorde in de tekst.
-4. Een onboarding-blok dat binnen het kader valt, staat er zichtbaar iets ingesprongen in; zo zie je meteen of het bij de sectie hoort.
-5. Staat de cursor in een sectie en klik je nogmaals op **Sectie**, dan gaat het kader weg: de titel wordt een gewone kop en de tekst komt weer los te staan.
-
-Direct vóór en na elk kader zet de editor zelf een **tussenruimte**: een lege regel met een stippellijn en het grijze tekstje *tussenruimte, wordt niet opgeslagen*. Die is er alleen om te kunnen typen tussen of na kaders en verdwijnt bij het opslaan. Elke andere lege regel is bewust en blijft staan, ook voor de lezer: tussen gewone alinea's, vlak voor of na een kader, aan het begin of einde van een sectie.
-
-- Typ je in de tussenruimte, dan wordt het een gewone alinea en komt er een nieuwe tussenruimte tussen jouw tekst en het kader.
-- Druk je op Enter in de tussenruimte, dan krijg je een gewone lege regel die wél wordt opgeslagen.
-- Haal je een kader weg, dan verdwijnt de tussenruimte eromheen mee.
-
-Een sectie in een sectie kan niet; selecteer je tekst waar al een kader in zit, dan wordt dat opgenomen in het nieuwe kader. Gewone koppen (via ¶ → Kop of Subkop) zijn koppen *binnen* de tekst en maken geen sectie.
+- **Een nieuwe sectie:** ga met de muis **tussen twee blokken** staan. Er verschijnt een **+**; kies *Sectie* (of
+  *Tekst* voor een gewone alinea). Of klik op **+ Sectie** in de werkbalk: dan komt er een lege sectie na de
+  plek waar de cursor staat. Typ de kop; **Enter** in de kop springt naar de tekst eronder.
+- **Bestaande tekst in een sectie zetten:** selecteer de alinea's en klik op **+ Sectie**. Begint je selectie
+  met een **kop** (na een Word-import bijna altijd), dan wordt die kop de kop van de sectie.
+- **Het ⋯-menu** rechtsboven in elke sectie: **Omhoog**, **Omlaag**, **Opheffen** (de tekst blijft staan, de kop
+  wordt een gewone kop) en **Verwijderen**. Alles is met Ctrl+Z terug te draaien.
+- Tekst **buiten** een sectie (ervoor, ertussen, erna) is in de kennisbank altijd zichtbaar. De volgorde is de
+  volgorde in de tekst.
+- Een sectie in een sectie kan niet. Selecteer je tekst waar al een sectie in zit, dan gaat die op in de nieuwe.
+  Gewone koppen (Kop, Subkop) zijn koppen *binnen* de tekst en maken geen sectie.
 
 ## Onboarding-uitleg
 
 Nieuwe collega's hebben meer uitleg nodig dan ervaren collega's. Die extra uitleg zet je gewoon in de tekst en markeer je:
 
 1. Zet de cursor in de alinea (of selecteer meerdere alinea's) en klik op **Onboarding** in de werkbalk.
-2. De alinea's krijgen een geel kader "Voor nieuwe collega's". In de kennisbank zijn ze alleen zichtbaar als de lezer de schakelaar *Onboarding* aanzet.
+2. De alinea's krijgen een geel kader "Voor nieuwe collega's", zoals de lezer het ziet. In de kennisbank zijn ze alleen zichtbaar als de lezer de schakelaar *Onboarding* aanzet (probeer het met *Bekijk als medewerker*).
 3. Nogmaals klikken op **Onboarding** haalt de markering weer weg.
 
 Dit kan zo vaak als je wilt, ook in de inleiding, dus je kunt bij elke stap een verdieping geven. De assistent gebruikt de onboarding-uitleg ook, als extra context.
@@ -417,7 +419,7 @@ de volgende behandelaar moet weten ("gebeld met Toezicht, wacht op antwoord"), b
 vakantie. Bij het anonimiseren van een afgehandeld voorstel worden ze verwijderd.
 
 **Meenemen in de nieuwe versie.** Ga je een voorstel verwerken in het artikel, kies dan in het behandelscherm
-**Meenemen in de nieuwe versie** (meestal de conceptversie). In de gele balk van het artikel staat dan welke
+**Meenemen in de nieuwe versie** (meestal de conceptversie). In het paneel *Geschiedenis* van het artikel staat dan welke
 voorstellen erin zitten. Publiceer je het artikel, dan opent de kennisbank een scherm met per meegenomen
 voorstel een **voorgevuld bericht** ("We hebben het verwerkt in versie n …"). Pas het aan als je wilt en
 kies *Versturen en afhandelen*; laat je het vinkje weg, dan blijft het voorstel open met "Verwerkt in versie

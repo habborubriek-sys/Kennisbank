@@ -172,6 +172,31 @@ def terugroepen(artikel, door, reden: str = "") -> int:
     return len(rijen)
 
 
+def balk_stand(stand_) -> dict:
+    """Eén korte regel voor de balk van het bewerkscherm (1.22.0): hoe staat de review ervoor?"""
+    rijen = stand_["rijen"]
+    if not rijen:
+        return {"soort": "niet", "tekst": "Review: nog niet ter inzage"}
+    if stand_["op_slot"]:
+        bezig = [r for r in rijen if r.status == InzageStatus.TER_INZAGE]
+        teams = ", ".join(r.team.naam for r in bezig)
+        bij = [naam_van(r.reviewer) for r in bezig if r.reviewer_id]
+        return {
+            "soort": "inzage",
+            "tekst": f"Ter inzage bij {teams}" + (f" · ligt bij {', '.join(bij)}" if bij else ""),
+        }
+    if stand_["label"]:
+        return {"soort": "akkoord", "tekst": "Akkoord: " + ", ".join(sorted(r.team.naam for r in rijen))}
+    terug = [r for r in rijen if r.status == InzageStatus.TERUGGEGEVEN]
+    if terug:
+        n = sum(len(r.opmerkingen.all()) for r in terug)
+        teams = ", ".join(r.team.naam for r in terug)
+        return {"soort": "terug", "tekst": f"Teruggegeven door {teams} · {n} opmerking{'' if n == 1 else 'en'}"}
+    if any(getattr(r, "vervallen", False) for r in rijen):
+        return {"soort": "niet", "tekst": "Akkoord vervallen: tekst gewijzigd"}
+    return {"soort": "niet", "tekst": "Teruggeroepen"}
+
+
 def terugroep_vraag(stand_) -> str:
     """De bevestigingsvraag bij Terugroepen als een team er al mee bezig is ('' = niet nodig)."""
     bezig = []

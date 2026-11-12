@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.21.0 .
-docker push registry.example.nl/kennisbank:1.21.0
+docker build -t registry.example.nl/kennisbank:1.22.0 .
+docker push registry.example.nl/kennisbank:1.22.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -119,7 +119,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.21.0
+  registry.example.nl/kennisbank:1.22.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -141,6 +141,15 @@ De migraties lopen automatisch mee bij het starten (of via `migreer`). Maak voor
 zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens gebeurt; alleen de
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
+
+#### Naar 1.22.0 (vanaf 1.7.0 of later)
+
+Geen migraties. **Nieuw bewerkscherm voor artikelen** met een nieuwe editor (Tiptap, meegeleverd in
+`vendor/tiptap/`). Het opgeslagen formaat van artikelen verandert niet; bestaande artikelen hoeven niet
+omgezet te worden. Nieuwe statische bestanden (`artikel-editor.js`, `artikel-scherm.js`, `artikel-scherm.css`,
+`vendor/tiptap/`); `collectstatic` doet de container zelf. Laat gebruikers na de upgrade eenmalig **Ctrl+F5**
+doen. Nieuwsberichten gebruiken nog Jodit. De map `frontend/` is alleen nodig om de editor opnieuw te bouwen en
+gaat niet mee in de image.
 
 #### Naar 1.21.0 (vanaf 1.7.0 of later)
 
@@ -368,7 +377,7 @@ Terugdraaien naar een vorige versie doe je door de back-up uit stap 1 terug te z
 
 **Schalen.** De container is stateless: meer replica's of `KB_WORKERS` verhogen. De limiet op vragen aan de assistent wordt per worker bijgehouden. Bij veel replica's is die dus ruimer dan ingesteld; is dat een probleem, begrens dan ook op de ingress.
 
-**Afhankelijkheden.** Alle Python-pakketten staan vast in [requirements.txt](../requirements.txt). De CI-pipeline draait `pip-audit` op bekende kwetsbaarheden en maakt een SBOM (CycloneDX) met `python scripts/maak_sbom.py`; die bevat ook de meegeleverde browserbibliotheek (de editor Jodit, zie `kennisbank/static/kennisbank/vendor/componenten.json`). Jodit valt niet onder `pip-audit`; controleer bij elke release op [npm](https://www.npmjs.com/package/jodit) of er een nieuwere versie met beveiligingsfixes is en vervang dan `jodit.min.js`/`jodit.min.css` (map `es2021/` van het npm-pakket) en de versie in `componenten.json`. Django 5.2 is een LTS-versie met beveiligingsupdates tot april 2028.
+**Afhankelijkheden.** Alle Python-pakketten staan vast in [requirements.txt](../requirements.txt). De CI-pipeline draait `pip-audit` op bekende kwetsbaarheden en maakt een SBOM (CycloneDX) met `python scripts/maak_sbom.py`; die bevat ook de meegeleverde browserbibliotheken (de editors Tiptap en Jodit, zie `kennisbank/static/kennisbank/vendor/componenten.json`). Tiptap wordt gebouwd in `frontend/` (`npm ci && npm run bouw`, vaste versies in `package-lock.json`; zie `frontend/README.md`) en valt net als Jodit niet onder `pip-audit`: draai daar `npm audit` en kijk bij elke release of er een nieuwere versie is. Voor Jodit: controleer bij elke release op [npm](https://www.npmjs.com/package/jodit) of er een nieuwere versie met beveiligingsfixes is en vervang dan `jodit.min.js`/`jodit.min.css` (map `es2021/` van het npm-pakket) en de versie in `componenten.json`. Django 5.2 is een LTS-versie met beveiligingsupdates tot april 2028.
 
 ## Problemen oplossen
 

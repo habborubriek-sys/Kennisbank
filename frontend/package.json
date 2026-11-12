@@ -1,0 +1,20 @@
+{
+  "name": "kennisbank-frontend",
+  "private": true,
+  "description": "Bouwt de meegeleverde editor (Tiptap) voor het bewerkscherm. Het resultaat staat in kennisbank/static/kennisbank/vendor/tiptap/ en wordt meegecommit; deze map is alleen nodig om opnieuw te bouwen.",
+  "license": "EUPL-1.2",
+  "scripts": {
+    "bouw": "esbuild bundel.js --bundle --minify --format=iife --global-name=KBTiptap --target=es2019 --legal-comments=none \"--banner:js=/*! Tiptap (MIT) en ProseMirror (MIT), gebundeld voor de kennisbank. Version: 3.33.1. Licenties: LICENSES.txt. Opnieuw bouwen: cd frontend && npm ci && npm run bouw */\" --outfile=../kennisbank/static/kennisbank/vendor/tiptap/tiptap.min.js"
+  },
+  "dependencies": {
+    "@tiptap/core": "3.33.1",
+    "@tiptap/extension-subscript": "3.33.1",
+    "@tiptap/extension-superscript": "3.33.1",
+    "@tiptap/extension-table": "3.33.1",
+    "@tiptap/pm": "3.33.1",
+    "@tiptap/starter-kit": "3.33.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
