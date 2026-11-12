@@ -30,34 +30,36 @@ body.kb-scherm .errornote, body.kb-scherm #content-main form > div > ul.errorlis
 
 /* --- Bovenbalk ------------------------------------------------------------------------- */
 .kb-balk { display: none; }
-/* Drie regels (1.25.0): de titel; de labels (conceptversie, stand van de review) met klein de details; de knoppen,
- * met ← Werkplek links en Afronden als laatste rechts. Minder vaak gebruikte acties zitten onder Meer. */
+/* Eén blauwe regel (1.25.1, wens Alex): ← Werkplek, de titel, de knoppen en Afronden. Daaronder, na de gele lijn,
+ * een dunne lichte infobalk met de labels (conceptversie, stand van de review) en de details. Beide in één
+ * kop-element, zodat ze samen bovenaan blijven staan. */
 body.kb-scherm .kb-balk {
-  position: sticky; top: 0; z-index: 40; display: grid; align-items: center; gap: 6px 8px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-areas: "titel titel titel" "sub sub sub" "terug knoppen afronden";
-  background: var(--kb-blauw); color: #fff; border-bottom: 3px solid var(--kb-geel); padding: 10px 20px 12px;
+  position: sticky; top: 0; z-index: 40; display: grid; align-items: center; gap: 0 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "terug titel knoppen afronden" "sub sub sub sub";
+  background: var(--kb-blauw); color: #fff; padding: 8px 20px 0;
   font-family: "Source Sans 3", system-ui, sans-serif;
 }
 .kb-balk-terug { grid-area: terug; }
 .kb-balk-titel { grid-area: titel; }
 .kb-balk-sub { grid-area: sub; }
 .kb-balk-knoppen { grid-area: knoppen; justify-self: end; }
-.kb-balk-afronden { grid-area: afronden; justify-self: end; margin-left: 16px; }
-.kb-balk-terug, .kb-balk-knoppen, .kb-balk-afronden { margin-top: 4px; }
-@media (max-width: 1000px) {
-  body.kb-scherm .kb-balk { grid-template-areas: "titel titel titel" "sub sub sub" "knoppen knoppen knoppen" "terug . afronden"; }
+.kb-balk-afronden { grid-area: afronden; justify-self: end; margin-left: 4px; }
+@media (max-width: 1100px) {
+  body.kb-scherm .kb-balk { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "terug titel afronden" "knoppen knoppen knoppen" "sub sub sub"; row-gap: 8px; }
   .kb-balk-knoppen { justify-self: start; }
-  .kb-balk-afronden { margin-left: 0; }
 }
 .kb-balk a { color: #fff; }
 /* Alle knoppen in de balk even hoog: dezelfde rand, binnenruimte en letter. */
 .kb-balk-terug { text-decoration: none; font-size: 14px; line-height: 20px; padding: 6px 12px; border: 1px solid #4a6b93; border-radius: 6px; white-space: nowrap; justify-self: start; }
 .kb-balk-terug:hover { background: var(--kb-blauw-2); }
-.kb-balk-titel { min-width: 0; font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.kb-balk-sub { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 13px; color: #d6e1ee; }
-.kb-balk-meta { color: #b9c9dc; margin-left: 4px; }
-.kb-pil.kb-pil-rustig { background: rgba(255,255,255,.16); color: #fff; font-weight: 600; }
+.kb-balk-titel { min-width: 0; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* De infobalk: licht, klein, rustig. */
+.kb-balk-sub { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin: 8px -20px 0; padding: 4px 20px;
+  background: #f4f7fb; color: #3d4b5c; border-top: 3px solid var(--kb-geel); border-bottom: 1px solid var(--kb-lijn); font-size: 12px; line-height: 18px; }
+.kb-balk-meta { color: #5b6b7d; margin-left: 2px; }
+.kb-balk-sub .kb-pil, .kb-balk-sub .kb-stand { font-size: 12px; font-weight: 600; padding: 0 7px; border-radius: 9px; line-height: 18px; }
+.kb-pil.kb-pil-rustig { background: #e3eaf3; color: #154273; }
 .kb-balk-sub button.kb-balk-link { background: none; border: none; padding: 0; color: #ffd7d7; text-decoration: underline; font: inherit; cursor: pointer; }
 .kb-pil { background: var(--kb-geel); color: #3a2c00; font-weight: 700; padding: 1px 8px; border-radius: 10px; }
 .kb-pil-spoed { background: #f9d4cf; color: #6e1a10; }

@@ -7,10 +7,10 @@ Als **redacteur** schrijf en onderhoud je de artikelen in jouw omgeving, behande
 Het bewerkscherm (sinds 1.22.0) laat het artikel zien zoals medewerkers het lezen, en daarin typ je ook.
 
 1. Ga naar **Beheer** (link links onderin de kennisbank) → *Artikelen*, of klik in een artikel op **Bewerken**.
-2. **Bovenaan staat één balk** van drie regels. Eerst de titel. Dan de labels: *Conceptversie* en de stand van
-   de review (bijvoorbeeld *Teruggegeven door Team Water · 2 opmerkingen*), met klein erachter welke versie
-   medewerkers zien en wie het laatst iets deed. Op de onderste regel staat links **← Werkplek** en rechts de
-   knoppen **Opmerkingen**, **Bekijk als medewerker**, **Eigenschappen**, **Geschiedenis**, **Review** en
+2. **Bovenaan staat een blauwe balk** met links **← Werkplek** en de titel. Daaronder staat een dunne, lichte
+   infobalk met de labels: *Conceptversie* en de stand van de review (bijvoorbeeld *Teruggegeven door Team Water
+   · 2 opmerkingen*), met klein erachter welke versie medewerkers zien en wie het laatst iets deed. Rechts in de
+   blauwe balk staan de knoppen **Opmerkingen**, **Bekijk als medewerker**, **Eigenschappen**, **Geschiedenis**, **Review** en
    **Meer ▾**, met als laatste **Afronden…**. Onder *Meer* staan de acties die je minder vaak nodig hebt: de
    gepubliceerde versie bekijken, die versie met spoed corrigeren, en de conceptversie weggooien.
 3. **Titel en samenvatting** staan bovenaan het artikel, op de plek waar de lezer ze ziet. Ze horen bij elk

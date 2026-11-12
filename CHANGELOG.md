@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.25.1 – 2026-11-12
+
+- **Kleinere balk in het bewerkscherm** (wens Alex: "nog steeds te groot"). De blauwe balk is nu één regel: ← Werkplek, de titel, de knoppen en Afronden. De labels (Conceptversie, stand van de review) en de details staan eronder in een dunne, lichte infobalk met kleine letters. Geldt ook voor nieuwsberichten.
+
 ## 1.25.0 – 2026-11-12
 
 Eén uitstraling voor review, beheer en bewerkschermen (bouwlijst `bouwlijst-1.25.0-consistentie.md`, todo van Alex).
