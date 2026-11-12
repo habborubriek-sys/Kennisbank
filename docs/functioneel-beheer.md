@@ -7,10 +7,12 @@ Als **redacteur** schrijf en onderhoud je de artikelen in jouw omgeving, behande
 Het bewerkscherm (sinds 1.22.0) laat het artikel zien zoals medewerkers het lezen, en daarin typ je ook.
 
 1. Ga naar **Beheer** (link links onderin de kennisbank) → *Artikelen*, of klik in een artikel op **Bewerken**.
-2. **Bovenaan staat één balk** met de titel, de stand (bijvoorbeeld *Conceptversie, medewerkers zien
-   versie 3*) en rechts de stand van de review. Op de regel daaronder staat links **← Werkplek** en rechts de
-   knoppen **Opmerkingen**, **Bekijk als medewerker**, **Eigenschappen**, **Geschiedenis** en **Review**, met
-   als laatste **Afronden…** (bij een nieuw artikel: *Opslaan*).
+2. **Bovenaan staat één balk** van drie regels. Eerst de titel. Dan de labels: *Conceptversie* en de stand van
+   de review (bijvoorbeeld *Teruggegeven door Team Water · 2 opmerkingen*), met klein erachter welke versie
+   medewerkers zien en wie het laatst iets deed. Op de onderste regel staat links **← Werkplek** en rechts de
+   knoppen **Opmerkingen**, **Bekijk als medewerker**, **Eigenschappen**, **Geschiedenis**, **Review** en
+   **Meer ▾**, met als laatste **Afronden…**. Onder *Meer* staan de acties die je minder vaak nodig hebt: de
+   gepubliceerde versie bekijken, die versie met spoed corrigeren, en de conceptversie weggooien.
 3. **Titel en samenvatting** staan bovenaan het artikel, op de plek waar de lezer ze ziet. Ze horen bij elk
    artikel en kunnen niet weg. Zijn ze leeg, dan staat er grijze uitleg in; klik je erin, dan verschijnt een
    label (*Titel · verplicht, maximaal 200 tekens*, *Samenvatting · verschijnt ook in de zoekresultaten en het
@@ -62,13 +64,14 @@ Onder een gepubliceerd artikel staat één knop: **Afronden…**. Die opent een 
   (ook de kladversie van dit scherm); een opgeslagen conceptversie blijft gewoon staan.
 
 Ligt de conceptversie ter inzage, dan biedt het venster alleen **Terugroepen** en **Afbreken**. Bij een
-spoedcorrectie alleen **Publiceren** en **Afbreken**. Een nieuw artikel dat nog nooit is gepubliceerd, sla je
-op met *Opslaan* (of *Opslaan en verder*) rechtsboven in de balk.
+spoedcorrectie alleen **Publiceren** en **Afbreken**. Bij een nieuw artikel, of een artikel dat nog nooit is
+gepubliceerd, biedt het venster **Opslaan als concept** (medewerkers zien nog niets), **Publiceren** en
+**Afbreken**. Ter inzage geven kan bij zo'n artikel nog niet.
 
 Is er een conceptversie, dan opent het artikel in het beheer met die conceptversie. De balk bovenaan zegt dat je
-in de conceptversie werkt, wie hem het laatst bijwerkte en welke versie medewerkers nu zien. Daar kun je hem ook
-**bekijken** zoals medewerkers hem straks zien, of **weggooien** (niet als hij ter inzage ligt: roep hem dan eerst
-terug). Gooi je hem weg, dan staan voorstellen die je had *meegenomen* weer op "niet meegenomen". Werk verder
+in de conceptversie werkt, wie hem het laatst bijwerkte en welke versie medewerkers nu zien. Onder **Meer** kun
+je de gepubliceerde versie **bekijken**, of de conceptversie **weggooien** (niet als hij ter inzage ligt: roep hem
+dan eerst terug). Gooi je hem weg, dan staan voorstellen die je had *meegenomen* weer op "niet meegenomen". Werk verder
 met *Afronden → Opslaan als concept*; wil je hem publiceren, kies dan *Afronden → Publiceren* en vul de
 toelichting in. De conceptversie is daarna weg en het
 artikel heeft een nieuwe versie.
@@ -103,7 +106,7 @@ nodig om te publiceren: jij bent eindverantwoordelijk. Maar zolang een team aan 
    tot het team reageert. Wil je toch verder, kies dan **Terugroepen** (in het paneel *Review* of via *Afronden*). Is het team er al mee bezig, dan vraagt de
    kennisbank eerst of je het zeker weet. Een reviewer die het had opgepakt, krijgt een e-mail. Wat hij al had
    opgemerkt, blijft bewaard en zie je als *voorlopig*: "mogelijk niet compleet".
-3. **Het team leest** in een eigen, eenvoudige leesweergave (`/review/`). Een reviewer ziet de nieuwe tekst met
+3. **Het team leest** in een eigen, eenvoudige leesweergave: de knop **Review** bovenaan de kennisbank (`/review/`). Een reviewer ziet de nieuwe tekst met
    de wijzigingen gemarkeerd (zoals *wijzigingen bijhouden* in Word) en pakt het stuk op ("ligt bij Piet").
    Hij **selecteert een stuk tekst** en zet er een opmerking bij, of schrijft een algemene opmerking. De
    opmerkingen staan genummerd naast de tekst, met een gele markering in de tekst. Daarna **geeft hij het
@@ -333,8 +336,9 @@ Onder **Nieuws** in de kennisbank staan mededelingen voor de medewerkers van jou
 Op de nieuwspagina zelf staan in de zijbalk de koppen van de laatste berichten, zodat een lange pagina te overzien blijft; klikken springt naar het bericht. De filters voor cluster, soort en onderwerp staan daar niet — dat zijn artikelfilters.
 
 Berichten maak je in het beheer onder **Nieuwsberichten** (of via *Nieuw bericht schrijven* op de nieuwspagina).
-Het scherm is hetzelfde als bij een artikel: een balk bovenaan met *Opslaan*, het bericht als blad, en de rest
-onder **Eigenschappen**.
+Het scherm is hetzelfde als bij een artikel: een balk bovenaan met **Afronden…**, het bericht als blad, en de rest
+onder **Eigenschappen**. *Afronden* biedt **Opslaan als concept**, **Publiceren** en **Afbreken**; bij een bericht
+dat al gepubliceerd is **Opslaan** (meteen zichtbaar), **Terugzetten naar concept** en **Afbreken**.
 
 - **Titel** en **tekst**, op het blad. Dezelfde werkbalk als bij een artikel (vet, lijsten, links, tabellen,
   ongedaan maken), maar zonder secties en onboarding.

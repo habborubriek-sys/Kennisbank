@@ -549,7 +549,7 @@
    * in beeld. */
   function afronden() {
     var data = document.getElementById("kb-afronden");
-    var form = document.querySelector("#artikel_form");
+    var form = data && data.closest("form");
     if (!data || !form) return;
     var cfg;
     try { cfg = JSON.parse(data.textContent); } catch (e) { return; }
@@ -571,9 +571,10 @@
       vensterTonen({
         titel: "Afbreken zonder opslaan?",
         alineas: [
-          "Wat je sinds het laatste opslaan hebt veranderd, gaat verloren.",
-          cfg.concept ? "De conceptversie zoals die is opgeslagen, blijft gewoon staan." : "Medewerkers blijven de gepubliceerde versie zien.",
-        ],
+          cfg.nieuw ? "Wat je hebt geschreven, wordt niet bewaard." : "Wat je sinds het laatste opslaan hebt veranderd, gaat verloren.",
+          cfg.eenvoudig ? (cfg.nieuw ? "" : "Wat al was opgeslagen, blijft staan.")
+            : cfg.concept ? "De conceptversie zoals die is opgeslagen, blijft gewoon staan." : "Medewerkers blijven de gepubliceerde versie zien.",
+        ].filter(Boolean),
         knoppen: [
           { tekst: "Nee, verder werken" },
           {
@@ -638,9 +639,28 @@
       });
     }
 
+    // Nieuw of nog nooit gepubliceerd artikel, en nieuwsberichten (1.25.0): de status zetten en opslaan.
+    function opslaanMet(status) {
+      var st = veld("status");
+      if (st && status) st.value = status;
+      klik('input[name="_continue"]') || klik('input[name="_save"]');
+    }
+    function eenvoudigeKeuzes() {
+      if (cfg.gepubliceerd) return [
+        { tekst: "Opslaan", uitleg: "Medewerkers zien de wijziging meteen.", doen: function () { opslaanMet("gepubliceerd"); } },
+        { tekst: "Terugzetten naar concept", uitleg: "Medewerkers zien het niet meer, tot je opnieuw publiceert.", doen: function () { opslaanMet("concept"); } },
+      ];
+      return [
+        { tekst: "Opslaan als concept", uitleg: "Medewerkers zien nog niets. Je kunt later verder.", doen: function () { opslaanMet("concept"); } },
+        { tekst: "Publiceren", uitleg: "Alle medewerkers zien het meteen.", doen: function () { opslaanMet("gepubliceerd"); } },
+      ];
+    }
+
     knop.addEventListener("click", function () {
       var keuzes = [];
-      if (cfg.op_slot) {
+      if (cfg.eenvoudig) {
+        keuzes = eenvoudigeKeuzes();
+      } else if (cfg.op_slot) {
         keuzes.push({ tekst: "Terugroepen", uitleg: "Haal de conceptversie terug bij het reviewteam. Daarna kun je weer bewerken, publiceren of weggooien.", doen: function () { klik('button[name="_terugroepen"]'); } });
       } else {
         if (!cfg.spoed) {

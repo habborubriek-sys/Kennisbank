@@ -18,34 +18,47 @@
   Fouten van het hele formulier zet Django direct na dit blok, dus onder de balk.
 {% endcomment %}
 <header class="kb-balk" aria-label="Artikel">
-  <a class="kb-balk-terug" href="{% url 'beheer-start' %}">← Werkplek</a>
   <div class="kb-balk-titel">{% if original %}{{ original.titel }}{% else %}Nieuw artikel{% endif %}</div>
   <div class="kb-balk-sub">
-      {% if kb_spoed %}
-      <span class="kb-pil kb-pil-spoed">Spoedcorrectie</span><span>Je past versie {{ original.versie }} aan, wat medewerkers nu zien</span>
-      <a href="{{ kb_concept_url }}">Terug naar de conceptversie</a>
-      {% elif kb_concept %}
-      <span class="kb-pil">Conceptversie</span><span>Je bewerkt de conceptversie. Medewerkers zien nog versie {{ original.versie }}.</span>
-      <span>Bijgewerkt door {{ kb_concept_bijgewerkt_door }}, {{ kb_concept.bijgewerkt_op|date:"j F H:i" }}</span>
-      <a href="{{ kb_concept_bekijken }}" target="_blank" rel="noopener">Bekijken</a>
-      <a href="?spoed=1" title="Een kleine, dringende fout verbeteren in wat medewerkers nu zien, zonder de conceptversie te raken">Corrigeer de gepubliceerde versie</a>
-      {% if not kb_review.op_slot %}<button type="submit" class="kb-balk-link kb-concept-weg" name="_weggooien" formaction="{{ kb_concept_weggooien }}" formnovalidate
-        onclick="return confirm('De conceptversie weggooien? Het werk daarin is daarna weg; medewerkers blijven versie {{ original.versie }} zien.');">Conceptversie weggooien</button>{% endif %}
-      {% elif original and original.versie %}
-      <span>{{ original.get_status_display }} · versie {{ original.versie }}</span>
-      {% elif original %}
-      <span class="kb-pil">Nog niet gepubliceerd</span>
-      {% else %}
-      <span>Nog niet opgeslagen</span>
-      {% endif %}
+    {% if kb_spoed %}
+    <span class="kb-pil kb-pil-spoed">Spoedcorrectie</span>
+    <span class="kb-balk-meta">Je past versie {{ original.versie }} aan, wat medewerkers nu zien</span>
+    {% elif kb_concept %}
+    <span class="kb-pil">Conceptversie</span>
+    {% if kb_balk_stand %}<span class="kb-stand kb-stand-{{ kb_balk_stand.soort }}">{{ kb_balk_stand.tekst }}</span>{% endif %}
+    <span class="kb-balk-meta">Medewerkers zien versie {{ original.versie }} · bijgewerkt door {{ kb_concept_bijgewerkt_door }}, {{ kb_concept.bijgewerkt_op|date:"j F H:i" }}</span>
+    {% elif original and original.versie %}
+    <span class="kb-pil kb-pil-rustig">{{ original.get_status_display }}</span>
+    {% if kb_balk_stand %}<span class="kb-stand kb-stand-{{ kb_balk_stand.soort }}">{{ kb_balk_stand.tekst }}</span>{% endif %}
+    <span class="kb-balk-meta">Versie {{ original.versie }}</span>
+    {% elif original %}
+    <span class="kb-pil">Nog niet gepubliceerd</span>
+    {% else %}
+    <span class="kb-pil kb-pil-rustig">Nieuw</span><span class="kb-balk-meta">Nog niet opgeslagen</span>
+    {% endif %}
   </div>
-  {% if kb_balk_stand %}<span class="kb-stand kb-stand-{{ kb_balk_stand.soort }}">{{ kb_balk_stand.tekst }}</span>{% endif %}
+  <a class="kb-balk-terug" href="{% url 'beheer-start' %}">← Werkplek</a>
   <nav class="kb-balk-knoppen" aria-label="Panelen">
     {% if kb_opmerkingen %}<button type="button" class="kb-bk" data-kb-opm>Opmerkingen ({{ kb_opmerkingen|length }})</button>{% endif %}
     <button type="button" class="kb-bk" data-kb-lees>Bekijk als medewerker</button>
     <button type="button" class="kb-bk" data-kb-paneel="eig">Eigenschappen</button>
     {% if original %}<button type="button" class="kb-bk" data-kb-paneel="gesch">Geschiedenis</button>{% endif %}
     {% if kb_review_teams %}<button type="button" class="kb-bk" data-kb-paneel="rev">Review</button>{% endif %}
+    {% if kb_spoed or kb_concept %}
+    <details class="kb-meer">
+      <summary class="kb-bk">Meer <span aria-hidden="true">▾</span></summary>
+      <div class="kb-meer-menu">
+        {% if kb_spoed %}
+        <a href="{{ kb_concept_url }}">Terug naar de conceptversie</a>
+        {% else %}
+        <a href="{{ kb_concept_bekijken }}" target="_blank" rel="noopener">Bekijk de gepubliceerde versie</a>
+        <a href="?spoed=1">Corrigeer de gepubliceerde versie<small>Een kleine, dringende fout verbeteren in wat medewerkers nu zien, zonder de conceptversie te raken</small></a>
+        {% if not kb_review.op_slot %}<button type="submit" class="kb-meer-gevaar kb-concept-weg" name="_weggooien" formaction="{{ kb_concept_weggooien }}" formnovalidate
+          onclick="return confirm('De conceptversie weggooien? Het werk daarin is daarna weg; medewerkers blijven versie {{ original.versie }} zien.');">Conceptversie weggooien</button>{% endif %}
+        {% endif %}
+      </div>
+    </details>
+    {% endif %}
   </nav>
   <div class="kb-balk-afronden">
     {% if kb_afronden %}<button type="button" class="kb-afronden-knop">Afronden…</button>
@@ -168,7 +181,11 @@
 {% endif %}
 {% endblock %}
 
-{% block inline_field_sets %}{% endblock %}
+{% block inline_field_sets %}
+{# Bij een nieuw artikel is er geen paneel Geschiedenis, maar de (lege) versielijst moet wel mee met het formulier: #}
+{# zonder die regels weigert Django het opslaan (fout gevonden in 1.25.0). #}
+{% if not original %}<div hidden>{% for inline_admin_formset in inline_admin_formsets %}{% include inline_admin_formset.opts.template %}{% endfor %}</div>{% endif %}
+{% endblock %}
 {% block submit_buttons_bottom %}
 {% if kb_afronden %}
 {# Eén knop Afronden met een keuzevenster (bouwlijst 1.21.0, punt 1–5). De knoppen hieronder blijven bestaan: #}

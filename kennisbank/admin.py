@@ -32,6 +32,7 @@ from .models import (
     Artikel,
     ArtikelVersie,
     Bericht,
+    BerichtStatus,
     Cluster,
     Conceptversie,
     GroepLabel,
@@ -511,6 +512,26 @@ class WordImportForm(forms.Form):
         if f.size > 20 * 1024 * 1024:
             raise forms.ValidationError("Het bestand is groter dan 20 MB.")
         return f
+
+
+def _eenvoudig_afronden(context, obj, gepubliceerd, mag):
+    """Afronden voor een nieuw of nog nooit gepubliceerd artikel en voor nieuwsberichten (1.25.0): dezelfde knop als
+    bij een gepubliceerd artikel, met minder keuzes (opslaan als concept, publiceren, afbreken)."""
+    if context.get("kb_afronden") or not mag:
+        return
+    from .werkoverzicht import werkplek_url
+
+    context["kb_afronden"] = {
+        "eenvoudig": True,
+        "nieuw": obj is None or not obj.pk,
+        "gepubliceerd": gepubliceerd,
+        "spoed": False,
+        "op_slot": False,
+        "concept": False,
+        "teams": [],
+        "werkplek": werkplek_url(),
+        "akkoord": False,
+    }
 
 
 @admin.register(Artikel)
@@ -1071,6 +1092,13 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     "akkoord": bool(extra.get("kb_review", {}).get("label")),
                 }
         return super().change_view(request, object_id, form_url, extra)
+
+    def render_change_form(self, request, context, add=False, change=False, form_url="", obj=None):
+        # Nog nooit gepubliceerd (of nieuw): ook één knop Afronden (1.25.0).
+        if not self._kan_concept(obj):
+            mag = self.has_add_permission(request) if add else self.has_change_permission(request, obj)
+            _eenvoudig_afronden(context, obj, gepubliceerd=False, mag=mag)
+        return super().render_change_form(request, context, add=add, change=change, form_url=form_url, obj=obj)
 
     def save_model(self, request, obj, form, change):
         if getattr(form, "als_concept", False):
@@ -2055,6 +2083,11 @@ class BerichtAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             "kennisbank/artikel-scherm.js",
             "kennisbank/beheer-editor.js",
         ]
+
+    def render_change_form(self, request, context, add=False, change=False, form_url="", obj=None):
+        mag = self.has_add_permission(request) if add else self.has_change_permission(request, obj)
+        _eenvoudig_afronden(context, obj, gepubliceerd=bool(obj and obj.status == BerichtStatus.GEPUBLICEERD), mag=mag)
+        return super().render_change_form(request, context, add=add, change=change, form_url=form_url, obj=obj)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "omgeving" and not request.user.is_superuser:

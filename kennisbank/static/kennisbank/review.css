@@ -1,8 +1,5 @@
 /* Leesweergave voor reviewers (/review/, stap C). Bouwt op app.css. */
 .review-pagina .top{display:flex;align-items:center;gap:16px}
-.rv-nav{display:flex;gap:16px;margin-left:auto}
-.rv-nav a{color:inherit;text-decoration:none;font-weight:600}
-.rv-nav a:hover{text-decoration:underline}
 .rv-main{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
 .rv-main h1{margin:.2rem 0 .6rem}
 .rv-main h2{font-size:1.05rem;margin:1.4rem 0 .5rem}
@@ -42,3 +39,6 @@
 .rv-selectieknop{position:absolute;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .rv-citaat-vak{display:flex;gap:6px;align-items:flex-start;background:#fffbea;border:1px solid #e0c46a;border-radius:6px;padding:6px 8px;margin:0 0 8px}
 .rv-citaat-vak q{flex:1;font-style:italic}
+.rv-eerder{margin-top:6px;font-size:.85rem;color:var(--fg-muted)}
+.rv-eerder summary{cursor:pointer}
+.rv-eerder ul{margin:4px 0 0;padding-left:18px}

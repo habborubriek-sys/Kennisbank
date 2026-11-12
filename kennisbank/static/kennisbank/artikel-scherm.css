@@ -2,7 +2,7 @@
  * panelen aan de rechterkant. Opmaak van de tekst volgt app.css (de kennisbank voor medewerkers). */
 
 body.kb-scherm {
-  --kb-blauw: #163a63;
+  --kb-blauw: #154273;
   --kb-blauw-2: #24507f;
   --kb-geel: #f2c230;
   --kb-lijn: #d3d9e2;
@@ -30,25 +30,24 @@ body.kb-scherm .errornote, body.kb-scherm #content-main form > div > ul.errorlis
 
 /* --- Bovenbalk ------------------------------------------------------------------------- */
 .kb-balk { display: none; }
-/* Boven: titel met daaronder de stand van zaken, het reviewlabel rechts. Onder: ← Werkplek links, de panelen en
- * Afronden rechts, alles op één lijn en even hoog (1.24.0). */
+/* Drie regels (1.25.0): de titel; de labels (conceptversie, stand van de review) met klein de details; de knoppen,
+ * met ← Werkplek links en Afronden als laatste rechts. Minder vaak gebruikte acties zitten onder Meer. */
 body.kb-scherm .kb-balk {
-  position: sticky; top: 0; z-index: 40; display: grid; align-items: center; gap: 4px 8px;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  grid-template-areas: "titel titel stand stand" "sub sub sub sub" "terug . knoppen afronden";
-  background: var(--kb-blauw); color: #fff; border-bottom: 3px solid var(--kb-geel); padding: 10px 20px;
+  position: sticky; top: 0; z-index: 40; display: grid; align-items: center; gap: 6px 8px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "titel titel titel" "sub sub sub" "terug knoppen afronden";
+  background: var(--kb-blauw); color: #fff; border-bottom: 3px solid var(--kb-geel); padding: 10px 20px 12px;
   font-family: "Source Sans 3", system-ui, sans-serif;
 }
 .kb-balk-terug { grid-area: terug; }
 .kb-balk-titel { grid-area: titel; }
 .kb-balk-sub { grid-area: sub; }
-.kb-stand { grid-area: stand; justify-self: end; }
 .kb-balk-knoppen { grid-area: knoppen; justify-self: end; }
 .kb-balk-afronden { grid-area: afronden; justify-self: end; margin-left: 16px; }
-.kb-balk-terug, .kb-balk-knoppen, .kb-balk-afronden { margin-top: 6px; }
-@media (max-width: 1100px) {
-  body.kb-scherm .kb-balk { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "titel titel titel" "sub sub sub" "stand stand stand" "knoppen knoppen knoppen" "terug . afronden"; }
-  .kb-stand, .kb-balk-knoppen { justify-self: start; }
+.kb-balk-terug, .kb-balk-knoppen, .kb-balk-afronden { margin-top: 4px; }
+@media (max-width: 1000px) {
+  body.kb-scherm .kb-balk { grid-template-areas: "titel titel titel" "sub sub sub" "knoppen knoppen knoppen" "terug . afronden"; }
+  .kb-balk-knoppen { justify-self: start; }
   .kb-balk-afronden { margin-left: 0; }
 }
 .kb-balk a { color: #fff; }
@@ -56,15 +55,29 @@ body.kb-scherm .kb-balk {
 .kb-balk-terug { text-decoration: none; font-size: 14px; line-height: 20px; padding: 6px 12px; border: 1px solid #4a6b93; border-radius: 6px; white-space: nowrap; justify-self: start; }
 .kb-balk-terug:hover { background: var(--kb-blauw-2); }
 .kb-balk-titel { min-width: 0; font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.kb-balk-sub { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; font-size: 13px; color: #d6e1ee; }
+.kb-balk-sub { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 13px; color: #d6e1ee; }
+.kb-balk-meta { color: #b9c9dc; margin-left: 4px; }
+.kb-pil.kb-pil-rustig { background: rgba(255,255,255,.16); color: #fff; font-weight: 600; }
 .kb-balk-sub button.kb-balk-link { background: none; border: none; padding: 0; color: #ffd7d7; text-decoration: underline; font: inherit; cursor: pointer; }
 .kb-pil { background: var(--kb-geel); color: #3a2c00; font-weight: 700; padding: 1px 8px; border-radius: 10px; }
 .kb-pil-spoed { background: #f9d4cf; color: #6e1a10; }
-.kb-stand { font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 14px; background: var(--kb-blauw-2); color: #fff; white-space: nowrap; }
+.kb-stand { font-size: 13px; font-weight: 700; padding: 1px 8px; border-radius: 10px; background: var(--kb-blauw-2); color: #fff; white-space: nowrap; }
 .kb-stand-inzage { background: #fbe3b0; color: #5a3d00; }
 .kb-stand-terug { background: #f9d4cf; color: #6e1a10; }
 .kb-stand-akkoord { background: #cfe9d6; color: #154a26; }
-.kb-balk-knoppen { display: flex; flex-wrap: wrap; gap: 8px; }
+.kb-balk-knoppen { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+/* Meer ▾ */
+.kb-meer { position: relative; }
+.kb-meer > summary { list-style: none; display: inline-block; }
+.kb-meer > summary::-webkit-details-marker { display: none; }
+.kb-meer[open] > summary { border-color: var(--kb-geel); background: var(--kb-blauw-2); }
+.kb-meer-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; min-width: 280px; background: #fff; color: #17212b;
+  border: 1px solid var(--kb-lijn); border-radius: 8px; box-shadow: 0 8px 24px rgba(23,33,43,.18); padding: 6px; display: flex; flex-direction: column; }
+.kb-balk .kb-meer-menu a, .kb-meer-menu button { display: block; text-align: left; color: #17212b; text-decoration: none; padding: 8px 10px; border-radius: 6px;
+  background: none; border: none; font: inherit; font-size: 14px; cursor: pointer; }
+.kb-meer-menu small { display: block; color: var(--kb-zacht); font-size: 12px; margin-top: 2px; }
+.kb-balk .kb-meer-menu a:hover, .kb-meer-menu button:hover { background: #eef3f9; }
+.kb-meer-menu .kb-meer-gevaar { color: #a6192e; border-top: 1px solid #e1e6ec; border-radius: 0 0 6px 6px; margin-top: 4px; }
 .kb-bk { border: 1px solid #4a6b93; background: transparent; color: #fff; border-radius: 6px; padding: 6px 12px; font-size: 14px; line-height: 20px; cursor: pointer; font-family: inherit; }
 .kb-bk:hover { background: var(--kb-blauw-2); }
 .kb-bk.kb-aan { border-color: var(--kb-geel); background: var(--kb-blauw-2); }

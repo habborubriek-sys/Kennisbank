@@ -52,7 +52,7 @@
             {% if not r.van_mij %}
             <form method="post" action="{{ w.actie_url }}">{% csrf_token %}
               <input type="hidden" name="voorstel" value="{{ v.pk }}"><input type="hidden" name="geladen_eigenaar" value="{{ v.eigenaar_id|default:'' }}"><input type="hidden" name="terug" value="{{ w.gekozen }}">
-              <button type="submit" name="actie" value="oppakken" class="button default">{% if r.eigenaar %}Overnemen{% else %}Oppakken{% endif %}</button>
+              <button type="submit" name="actie" value="oppakken" class="button">{% if r.eigenaar %}Overnemen{% else %}Oppakken{% endif %}</button>
             </form>
             {% endif %}
             {% if r.eigenaar %}

@@ -1,5 +1,19 @@
 # Wijzigingen
 
+## 1.25.0 – 2026-11-12
+
+Eén uitstraling voor review, beheer en bewerkschermen (bouwlijst `bouwlijst-1.25.0-consistentie.md`, todo van Alex).
+
+- **Fout hersteld uit 1.24.0:** een *nieuw* artikel opslaan mislukte altijd met "Corrigeer de onderstaande fout". De (lege) versielijst ontbrak in het formulier. Er is nu een test die het formulier verstuurt zoals de browser dat doet.
+- **Review heet overal Review.** De reviewpagina heette "Ter inzage", de knop op de site "Review". "Ter inzage" is nu alleen nog de stand van een stuk.
+- **Eén bovenbalk** voor de site, de reviewpagina's en alle beheerpagina's: logo, omrande knoppen (Review, Werkplek, Naar de kennisbank; de pagina waar je bent staat wit), je naam en Uitloggen. De balk van Django ("Kennisbank – beheer", hoofdletterlinks) is weg.
+- **Eén knoppenstijl in het beheer:** de hoofdactie donkerblauw gevuld (Openen, Nieuw artikel), de rest omrand (Oppakken, Toewijzen, Verplaatsen, Zoeken). Ook *Artikel toevoegen* en *Importeren uit Word* boven de lijsten.
+- **Balk van het bewerkscherm met meer structuur:** titel; daaronder de labels (Conceptversie, stand van de review) met klein de details; daaronder de knoppen. *Bekijk de gepubliceerde versie*, *Corrigeer de gepubliceerde versie* en *Conceptversie weggooien* staan onder **Meer ▾**.
+- **Afronden ook bij een nieuw artikel en bij nieuwsberichten**, met de keuzes Opslaan als concept, Publiceren en Afbreken (bij een gepubliceerd bericht: Opslaan, Terugzetten naar concept, Afbreken).
+- Bij een nieuw artikel of bericht staat de cursor in de titel, niet meer op de eerste knop van de balk (die zag eruit alsof hij "aan" stond).
+- **Onlangs afgerond** op de reviewpagina: één regel per artikel met de laatste uitkomst; eerdere rondes inklapbaar.
+- Tests (nu 524); in de browser nagelopen.
+
 ## 1.24.1 – 2026-11-12
 
 - **Geen HTML-code meer te zien tijdens het laden** (melding van Alex: "nog steeds het oude scherm"). Heel even, voordat de editor klaar was, stond het tekstvak met de opgeslagen code in beeld. Dat vak blijft nu onzichtbaar tot de editor er is; de werkbalk houdt vast zijn hoogte, zodat er niets verspringt. Lukt het script niet, dan verschijnt het tekstvak na 3 seconden toch.

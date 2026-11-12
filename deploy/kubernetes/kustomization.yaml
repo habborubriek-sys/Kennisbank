@@ -17,4 +17,4 @@ resources:
 images:
   - name: kennisbank
     newName: registry.example.nl/kennisbank
-    newTag: "1.24.1"
+    newTag: "1.25.0"

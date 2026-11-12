@@ -19,14 +19,15 @@
   <div class="kb-balk-titel">{% if original %}{{ original.titel }}{% else %}Nieuw nieuwsbericht{% endif %}</div>
   <div class="kb-balk-sub">
     <span class="kb-pil">Nieuwsbericht</span>
-    {% if original %}<span>{{ original.get_status_display }}{% if original.vastgepind %} · vastgepind{% endif %}{% if original.gepubliceerd_op %} · gepubliceerd {{ original.gepubliceerd_op|date:"j F Y" }}{% endif %}</span>
-    {% else %}<span>Nog niet opgeslagen</span>{% endif %}
+    {% if original %}<span class="kb-balk-meta">{{ original.get_status_display }}{% if original.vastgepind %} · vastgepind{% endif %}{% if original.gepubliceerd_op %} · gepubliceerd {{ original.gepubliceerd_op|date:"j F Y" }}{% endif %}</span>
+    {% else %}<span class="kb-balk-meta">Nog niet opgeslagen</span>{% endif %}
   </div>
   <nav class="kb-balk-knoppen" aria-label="Panelen">
     <button type="button" class="kb-bk" data-kb-paneel="eig">Eigenschappen</button>
   </nav>
   <div class="kb-balk-afronden">
-    {% if add or has_change_permission %}
+    {% if kb_afronden %}<button type="button" class="kb-afronden-knop">Afronden…</button>
+    {% elif add or has_change_permission %}
     <input type="submit" name="_continue" value="Opslaan en verder" class="kb-balk-opslaan kb-balk-opslaan-2">
     <input type="submit" name="_save" value="Opslaan" class="kb-balk-opslaan">
     {% endif %}
@@ -64,4 +65,7 @@
 {% endwith %}
 {% endblock %}
 
-{% block submit_buttons_bottom %}{% endblock %}
+{% block submit_buttons_bottom %}
+{# Afronden (1.25.0): het venster drukt op de gewone knoppen hieronder (verborgen). #}
+{% if kb_afronden %}{{ kb_afronden|json_script:"kb-afronden" }}{{ block.super }}{% endif %}
+{% endblock %}

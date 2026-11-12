@@ -497,10 +497,12 @@ class Afronden(ReviewBasis):
         self.assertTrue(c["spoed"])
         self.assertFalse(c["op_slot"])
 
-    def test_5b_geen_afronden_bij_een_nieuw_artikel(self):
+    def test_5b_nieuw_artikel_krijgt_de_eenvoudige_afronden(self):
+        # Sinds 1.25.0 (wens Alex) ook bij een nieuw artikel één knop Afronden, met minder keuzes.
         self.client.force_login(self.anna)
         html = self.client.get("/beheer/kennisbank/artikel/add/").content.decode()
-        self.assertNotIn('id="kb-afronden"', html)
+        self.assertIn('id="kb-afronden"', html)
+        self.assertIn('"eenvoudig": true', html)
 
 
 class Bewerkscherm(ReviewBasis):
@@ -647,8 +649,8 @@ class GeenFlits(ReviewBasis):
         self.assertEqual(r.status_code, 200)
         html = r.content.decode()
         balk = html[html.index('<header class="kb-balk"') : html.index("</header>")]
-        self.assertIn('name="_save"', balk)
-        self.assertIn('name="_continue"', balk)
+        # Sinds 1.25.0 Afronden in de balk; de gewone knoppen staan één keer (verborgen) in het formulier.
+        self.assertIn("kb-afronden-knop", balk)
         self.assertEqual(html.count('name="_save"'), 1)
 
     def test_nieuwsbericht_op_het_blad(self):

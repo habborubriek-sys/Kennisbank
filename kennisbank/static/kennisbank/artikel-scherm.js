@@ -91,6 +91,24 @@
       if (lijst.length && !document.getElementById("kb-op-slot")) setTimeout(function () { opmKnop.click(); }, 0);
     }
 
+    // Bij een nieuw artikel of bericht zet Django de cursor op het eerste element van het formulier: dat is nu
+    // een knop in de balk, die er dan "aan" uitziet. Zet hem in de titel, daar begin je (1.25.0). Django laadt dat
+    // script met async, dus pas na "load" weten we zeker dat het klaar is.
+    function focusGoed() {
+      if (!balk.contains(document.activeElement)) return;
+      if (titel && !titel.value) titel.focus();
+      else document.activeElement.blur();
+    }
+    if (document.readyState === "complete") setTimeout(focusGoed, 0);
+    else window.addEventListener("load", focusGoed);
+
+    // --- Meer ▾: dicht bij een klik ernaast of Escape ------------------------------------
+    var meer = $(".kb-meer", balk);
+    if (meer) {
+      document.addEventListener("click", function (e) { if (meer.open && !meer.contains(e.target)) meer.open = false; });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape" && meer.open) { meer.open = false; $("summary", meer).focus(); } });
+    }
+
     // --- Bekijk als medewerker ----------------------------------------------------------
     var lees = $("[data-kb-lees]", balk);
     if (lees) lees.addEventListener("click", function () { bekijkAlsMedewerker(form); });

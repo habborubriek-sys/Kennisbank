@@ -67,7 +67,7 @@ class ConceptversieTests(Basis):
         self.concept_opslaan()
         r = self.als(self.bram).get(self.url)
         html = r.content.decode()
-        self.assertIn("Je bewerkt de conceptversie", html)
+        self.assertIn("Medewerkers zien versie", html)
         self.assertIn("Nieuwe tekst", r.context["adminform"].form.initial["inhoud"])
         self.assertIn("Medewerkers zien nog versie 1", html)
 
@@ -125,7 +125,7 @@ class ConceptversieTests(Basis):
         r = self.client.post(f"/beheer/kennisbank/artikel/{self.a.pk}/conceptversie/weggooien/")
         self.assertEqual(r.status_code, 302)
         self.assertFalse(Conceptversie.objects.filter(artikel=self.a).exists())
-        self.assertNotIn("Je bewerkt de conceptversie", self.client.get(self.url).content.decode())
+        self.assertNotIn("Medewerkers zien versie", self.client.get(self.url).content.decode())
 
     def test_bekijken_is_geschoond(self):
         # Opslaan schoont de tekst al; hier rechtstreeks een vervuilde conceptversie (zoals uit een oude

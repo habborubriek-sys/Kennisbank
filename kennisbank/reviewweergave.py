@@ -28,6 +28,21 @@ def _basis(request):
     return {"app_naam": settings.KB_APP_NAAM, "naam": naam_van(request.user)}
 
 
+def _per_artikel(inzages, hoeveel=10):
+    """Onlangs afgerond: één regel per artikel en team, met de laatste uitkomst; eerdere rondes eronder (1.25.0)."""
+    regels, per = [], {}
+    for i in inzages:
+        rij = {"i": i, "bij": naam_van(i.reviewer) if i.reviewer_id else ""}
+        sleutel = (i.artikel_id, i.team_id)
+        if sleutel in per:
+            per[sleutel]["eerder"].append(rij)
+        elif len(regels) < hoeveel:
+            rij["eerder"] = []
+            per[sleutel] = rij
+            regels.append(rij)
+    return regels
+
+
 @login_required
 def lijst(request):
     teams = list(review.teams_van(request.user).select_related("omgeving"))
@@ -45,7 +60,7 @@ def lijst(request):
         Inzage.objects.filter(team__in=teams)
         .exclude(status=InzageStatus.TER_INZAGE)
         .select_related("artikel", "team", "reviewer")
-        .order_by("-afgerond_op")[:15]
+        .order_by("-afgerond_op")[:60]
     )
     nu = timezone.now()
     rijen = [
@@ -75,7 +90,7 @@ def lijst(request):
             "balk": balk,
             # Review 1.20.1, bevinding 11: alleen welke stukken en met welke uitkomst; geen link meer naar de
             # tekst, want die is na de ronde weer van de redactie (en vaak al verder bewerkt).
-            "afgerond": [{"i": i, "bij": naam_van(i.reviewer) if i.reviewer_id else ""} for i in afgerond],
+            "afgerond": _per_artikel(afgerond),
         },
     )
 

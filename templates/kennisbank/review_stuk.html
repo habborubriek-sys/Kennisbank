@@ -1,7 +1,7 @@
 {% extends "kennisbank/review_basis.html" %}
 {% block titel %}{{ artikel.titel }}{% endblock %}
 {% block inhoud %}
-<p class="rv-terug"><a href="{% url 'review-lijst' %}">← Alles wat ter inzage ligt</a></p>
+<p class="rv-terug"><a href="{% url 'review-lijst' %}">← Terug naar Review</a></p>
 <h1>{{ titel_verschil }}</h1>
 <div class="rv-statusbalk" role="status">
   <span>{{ i.team.naam }}</span>

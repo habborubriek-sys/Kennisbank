@@ -1,7 +1,7 @@
 {% extends "kennisbank/review_basis.html" %}
-{% block titel %}Ter inzage{% endblock %}
+{% block titel %}Review{% endblock %}
 {% block inhoud %}
-<h1>Ter inzage</h1>
+<h1>Review</h1>
 {% if not teams %}
   <p class="rv-uitleg">Je zit nog in geen reviewteam. Een beheerder koppelt reviewteams aan een groep; vraag procesmanagement
     als je denkt dat je erin hoort.</p>
@@ -33,7 +33,10 @@
   <ul class="rv-lijst rv-afgerond">
     {% for r in afgerond %}
     <li class="rv-item"><span class="rv-titel">{{ r.i.artikel.titel }}</span>
-      <span class="rv-meta">{{ r.i.team.naam }} · {{ r.i.get_status_display|lower }}{% if r.bij %} door {{ r.bij }}{% endif %} op {{ r.i.afgerond_op|date:"j F" }}</span></li>
+      <span class="rv-meta">{{ r.i.team.naam }} · {{ r.i.get_status_display|lower }}{% if r.bij %} door {{ r.bij }}{% endif %} op {{ r.i.afgerond_op|date:"j F" }}</span>
+      {% if r.eerder %}<details class="rv-eerder"><summary>Eerdere rondes ({{ r.eerder|length }})</summary>
+        <ul>{% for e in r.eerder %}<li>{{ e.i.get_status_display|lower }}{% if e.bij %} door {{ e.bij }}{% endif %} op {{ e.i.afgerond_op|date:"j F" }}</li>{% endfor %}</ul>
+      </details>{% endif %}</li>
     {% endfor %}
   </ul>
   {% endif %}
