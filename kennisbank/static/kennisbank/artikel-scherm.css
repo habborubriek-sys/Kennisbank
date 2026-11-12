@@ -262,3 +262,13 @@ body.kb-scherm #container { min-width: 0; }
 /* Een editor buiten het bewerkscherm (bijvoorbeeld bij sjablonen): werkbalk boven het tekstvak. */
 .kb-ae-werkbalk-los { display: flex !important; position: static !important; border: 1px solid var(--kb-lijn, #d3d9e2); border-bottom: none; border-radius: 6px 6px 0 0; }
 .kb-ae-werkbalk-los + .kb-ae { border: 1px solid var(--kb-lijn, #d3d9e2); border-radius: 0 0 6px 6px; padding: 8px 12px; background: #fff; }
+
+/* Tot de editor er is (een fractie van een seconde), staat het tekstvak met de opgeslagen HTML-code al in de
+ * pagina. Dat vak tonen we niet: anders zie je even "code" in plaats van het artikel (melding Alex, 1.24.1).
+ * De editor zet het vak zelf op hidden. Lukt het script niet, dan verschijnt het vak na 3 seconden toch, zodat
+ * je altijd kunt bewerken. De werkbalk houdt vast zijn hoogte, zodat er niets verspringt. */
+@keyframes kb-toon { to { visibility: visible; } }
+body.kb-scherm [data-kb-plek] > textarea.kb-editor:not([hidden]) {
+  visibility: hidden; min-height: 240px; animation: kb-toon 0s 3s forwards;
+}
+body.kb-scherm .kb-ae-werkbalk-in { min-height: 46px; box-sizing: border-box; }

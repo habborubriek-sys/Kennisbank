@@ -1,5 +1,9 @@
 # Wijzigingen
 
+## 1.24.1 – 2026-11-12
+
+- **Geen HTML-code meer te zien tijdens het laden** (melding van Alex: "nog steeds het oude scherm"). Heel even, voordat de editor klaar was, stond het tekstvak met de opgeslagen code in beeld. Dat vak blijft nu onzichtbaar tot de editor er is; de werkbalk houdt vast zijn hoogte, zodat er niets verspringt. Lukt het script niet, dan verschijnt het tekstvak na 3 seconden toch.
+
 ## 1.24.0 – 2026-11-12
 
 Het bewerkscherm zonder "oud scherm" eronder, en een nettere balk (bouwlijst `bouwlijst-1.24.0-scherm-server.md`, verzoek van Alex).

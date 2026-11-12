@@ -1,6 +1,6 @@
 [project]
 name = "kennisbank"
-version = "1.24.0"
+version = "1.24.1"
 description = "Kennisbank voor werkinstructies, werkafspraken en processen, met assistent en koppeling met het zaaksysteem"
 license = "EUPL-1.2"
 requires-python = ">=3.12"
