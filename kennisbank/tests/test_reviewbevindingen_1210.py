@@ -5,6 +5,7 @@ het proefscript van de reviewer: wat daar mis bleek te gaan, mag hier niet meer 
 """
 
 import datetime
+import re
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -609,9 +610,68 @@ class Bewerkscherm(ReviewBasis):
 
 
 class GeenFlits(ReviewBasis):
-    def test_scherm_start_verborgen_tot_het_script_klaar_is(self):
-        # 1.23.1: de pagina begint met kb-bezig (verborgen), anders zie je eerst het oude formulier.
+    """1.24.0: de server zet elk veld meteen op zijn plek; er is geen oud formulier dat eerst verschijnt."""
+
+    def plek(self, html, naam):
+        m = re.search(rf'data-kb-plek="{naam}".*?</div>', html, re.S)
+        self.assertIsNotNone(m, naam)
+        return m.group(0)
+
+    def test_velden_staan_meteen_op_het_blad(self):
         self.maak_concept()
-        for url in (self.url, "/beheer/kennisbank/bericht/add/"):
-            html = self.client.get(url).content.decode()
-            self.assertRegex(html, r'<body class="[^"]*kb-scherm kb-bezig')
+        html = self.client.get(self.url).content.decode()
+        self.assertNotIn("kb-bezig", html)
+        self.assertIn('name="titel"', self.plek(html, "titel"))
+        self.assertIn('name="samenvatting"', self.plek(html, "samenvatting"))
+        self.assertIn('name="inhoud"', self.plek(html, "inhoud"))
+        # Het veld staat er één keer, niet ook nog in een oude groep.
+        self.assertEqual(html.count('name="titel"'), 1)
+        self.assertEqual(html.count('name="inhoud"'), 1)
+        # Eigenschappen in hun paneel, versie en geschiedenis in het paneel Geschiedenis.
+        eig = html[html.index('id="kb-p-eig"') : html.index('id="kb-p-gesch"')]
+        self.assertIn('name="soort"', eig)
+        self.assertNotIn("field-versie", eig)
+        gesch = html[html.index('id="kb-p-gesch"') :]
+        self.assertIn("field-versie", gesch)
+        # Geen kop, kruimelpad of zijmenu van Django meer.
+        self.assertNotIn('id="header"', html)
+        self.assertNotIn('class="breadcrumbs"', html)
+        # Afronden staat in de balk, één keer.
+        balk = html[html.index('<header class="kb-balk"') : html.index("</header>")]
+        self.assertIn("kb-afronden-knop", balk)
+        self.assertEqual(html.count('class="kb-afronden-knop"'), 1)
+
+    def test_nieuw_artikel_opslaan_in_de_balk(self):
+        self.client.force_login(self.anna)
+        r = self.client.get("/beheer/kennisbank/artikel/add/")
+        self.assertEqual(r.status_code, 200)
+        html = r.content.decode()
+        balk = html[html.index('<header class="kb-balk"') : html.index("</header>")]
+        self.assertIn('name="_save"', balk)
+        self.assertIn('name="_continue"', balk)
+        self.assertEqual(html.count('name="_save"'), 1)
+
+    def test_nieuwsbericht_op_het_blad(self):
+        self.client.force_login(self.anna)
+        html = self.client.get("/beheer/kennisbank/bericht/add/").content.decode()
+        self.assertNotIn("kb-bezig", html)
+        self.assertIn('name="titel"', self.plek(html, "titel"))
+        self.assertIn('name="tekst"', self.plek(html, "tekst"))
+        self.assertIn('placeholder="Titel van het bericht: wat is er nieuw?"', html)
+        eig = html[html.index('id="kb-p-eig"') :]
+        self.assertIn('name="omgeving"', eig)
+        self.assertEqual(html.count('name="_save"'), 1)
+
+    def test_melding_onder_de_balk(self):
+        self.maak_concept()
+        html = self.client.get(self.url).content.decode()  # na opslaan: "opgeslagen als conceptversie"
+        self.assertEqual(html.count('class="messagelist"'), 1)
+        self.assertGreater(html.index('class="messagelist"'), html.index("</header>"))
+
+    def test_melding_en_fout_onder_de_balk(self):
+        self.client.force_login(self.anna)
+        r = self.post(self.url, beheerdata(self.a, titel=""))
+        self.assertEqual(r.status_code, 200)
+        html = r.content.decode()
+        balk_eind = html.index("</header>")
+        self.assertGreater(html.index("errornote"), balk_eind)

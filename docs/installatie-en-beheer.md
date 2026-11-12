@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.23.1 .
-docker push registry.example.nl/kennisbank:1.23.1
+docker build -t registry.example.nl/kennisbank:1.24.0 .
+docker push registry.example.nl/kennisbank:1.24.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -119,7 +119,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.23.1
+  registry.example.nl/kennisbank:1.24.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -141,6 +141,11 @@ De migraties lopen automatisch mee bij het starten (of via `migreer`). Maak voor
 zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens gebeurt; alleen de
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
+
+#### Naar 1.24.0 (vanaf 1.7.0 of later)
+
+Geen migraties. Het bewerkscherm van artikelen en nieuwsberichten wordt nu helemaal door de server opgebouwd
+(templates, stijlbestand en script gewijzigd). Ctrl+F5 na de upgrade.
 
 #### Naar 1.23.1 (vanaf 1.7.0 of later)
 

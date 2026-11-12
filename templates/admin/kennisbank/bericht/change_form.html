@@ -1,9 +1,18 @@
 {% extends "admin/change_form.html" %}
-{% block bodyclass %}{{ block.super }} kb-scherm kb-bezig{% endblock %}
+{% load admin_urls %}
+{% block bodyclass %}{{ block.super }} kb-scherm{% endblock %}
 {% comment %}
   Bewerkscherm van een nieuwsbericht (1.23.0): hetzelfde soort scherm als bij artikelen
-  (artikel/change_form.html). artikel-scherm.js verhuist de velden naar het blad en het paneel.
+  (artikel/change_form.html). Sinds 1.24.0 zet de server elk veld meteen op zijn plek.
 {% endcomment %}
+{% block header %}{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block messages %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block content_subtitle %}{% endblock %}
+{% block object-tools %}{% endblock %}
+
 {% block form_top %}
 <header class="kb-balk" aria-label="Nieuwsbericht">
   <a class="kb-balk-terug" href="{% url 'beheer-start' %}">← Werkplek</a>
@@ -16,22 +25,43 @@
   <nav class="kb-balk-knoppen" aria-label="Panelen">
     <button type="button" class="kb-bk" data-kb-paneel="eig">Eigenschappen</button>
   </nav>
-  <div class="kb-balk-afronden"></div>
+  <div class="kb-balk-afronden">
+    {% if add or has_change_permission %}
+    <input type="submit" name="_continue" value="Opslaan en verder" class="kb-balk-opslaan kb-balk-opslaan-2">
+    <input type="submit" name="_save" value="Opslaan" class="kb-balk-opslaan">
+    {% endif %}
+  </div>
 </header>
+{% if messages %}<ul class="messagelist">{% for message in messages %}<li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message|capfirst }}</li>{% endfor %}</ul>{% endif %}
+{% endblock %}
 
+{% block field_sets %}
+{% with f=adminform.form %}
+{% if "tekst" not in f.fields %}
+{% for fieldset in adminform %}{% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}{% endfor %}
+{% else %}
+{% for veld in f.hidden_fields %}{{ veld }}{% endfor %}
 <div class="kb-ae-werkbalk"><div class="kb-ae-werkbalk-in" role="toolbar" aria-label="Opmaak van de tekst"></div></div>
 
 <div class="kb-werkvlak">
   <div class="kb-blad kb-blad-bericht">
     <span class="kb-blad-soort">Nieuws</span>
-    <div class="kb-vast" data-kb-plek="titel" data-kb-uitleg="Titel van het bericht: wat is er nieuw?"><span class="kb-vast-label">Titel · verplicht</span></div>
+    <div class="kb-vast" data-kb-plek="titel"><span class="kb-vast-label">Titel · verplicht</span>{{ f.titel }}{{ f.titel.errors }}</div>
     <div class="kb-blad-lijn"></div>
-    <div data-kb-plek="tekst"></div>
+    <div data-kb-plek="tekst">{{ f.tekst }}{{ f.tekst.errors }}</div>
   </div>
 </div>
 
 <aside class="kb-paneel" id="kb-p-eig" aria-label="Eigenschappen">
   <div class="kb-paneel-kop"><h2>Eigenschappen</h2><button type="button" class="kb-paneel-sluit" aria-label="Sluiten">✕</button></div>
   <p class="kb-paneel-uitleg">Waar het bericht verschijnt, waar het over gaat, en wanneer.</p>
+  {% for fieldset in adminform %}{% if not forloop.first %}{% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}{% endif %}{% endfor %}
+  {% if original and has_delete_permission %}
+  <p class="kb-paneel-weg"><a href="{% url opts|admin_urlname:'delete' original.pk|admin_urlquote %}" class="deletelink">Verwijderen</a></p>
+  {% endif %}
 </aside>
+{% endif %}
+{% endwith %}
 {% endblock %}
+
+{% block submit_buttons_bottom %}{% endblock %}

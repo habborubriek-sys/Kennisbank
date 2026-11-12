@@ -1,5 +1,15 @@
 # Wijzigingen
 
+## 1.24.0 – 2026-11-12
+
+Het bewerkscherm zonder "oud scherm" eronder, en een nettere balk (bouwlijst `bouwlijst-1.24.0-scherm-server.md`, verzoek van Alex).
+
+- **De server bouwt het scherm meteen goed op.** Titel, samenvatting en tekst staan direct op het blad, de overige velden in Eigenschappen, versies in Geschiedenis. Er wordt niets meer verhuisd na het laden, dus er is geen flits en geen verborgen wachttijd meer (de oplossing van 1.23.1 is vervallen). Geldt voor artikelen en nieuwsberichten.
+- **Balk netter uitgelijnd.** Boven: de titel met de stand eronder, rechts het reviewlabel. Daaronder één regel: links **← Werkplek**, rechts de panelen en als laatste **Afronden…**, alle knoppen even hoog. Afronden is kleiner en staat met wat extra ruimte naast de andere knoppen.
+- Meldingen ("is opgeslagen") en foutmeldingen staan onder de balk, in een rode kader bij fouten.
+- Wie een artikel alleen mag bekijken, ziet de gewone weergave.
+- Tests (nu 514); in de browser nagelopen.
+
 ## 1.23.1 – 2026-11-12
 
 - **Geen flits meer van het oude formulier** bij het openen van een artikel of nieuwsbericht (melding van Alex). Het scherm blijft onzichtbaar tot de velden op hun plek staan; dat duurt meestal minder dan een halve seconde. Lukt het script niet, dan verschijnt het formulier na 3 seconden toch.

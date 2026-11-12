@@ -1,13 +1,21 @@
 {% extends "admin/change_form.html" %}
-{% block bodyclass %}{{ block.super }} kb-scherm kb-bezig{% endblock %}
+{% block bodyclass %}{{ block.super }} kb-scherm{% endblock %}
 {% comment %}
   Bewerkscherm van een artikel, met de conceptversie (kennisbank/admin.py, ArtikelAdmin).
 {% endcomment %}
+{% block header %}{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block messages %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block content_subtitle %}{% endblock %}
+{% block object-tools %}{% endblock %}
+
 {% block form_top %}
 {% comment %}
-  Het bewerkscherm (1.22.0): één balk bovenaan, het artikel zoals medewerkers het zien, panelen rechts.
-  artikel-scherm.js verhuist de velden van het formulier naar hun plek (blad, Eigenschappen, Geschiedenis);
-  alles blijft binnen het <form>, dus opslaan werkt zoals altijd. Zonder JavaScript staat alles onder elkaar.
+  Het bewerkscherm (1.22.0; sinds 1.24.0 helemaal door de server opgebouwd): één balk bovenaan, het artikel
+  zoals medewerkers het zien, panelen rechts. Elk veld staat meteen op zijn plek; er wordt niets verhuisd.
+  Fouten van het hele formulier zet Django direct na dit blok, dus onder de balk.
 {% endcomment %}
 <header class="kb-balk" aria-label="Artikel">
   <a class="kb-balk-terug" href="{% url 'beheer-start' %}">← Werkplek</a>
@@ -39,8 +47,15 @@
     {% if original %}<button type="button" class="kb-bk" data-kb-paneel="gesch">Geschiedenis</button>{% endif %}
     {% if kb_review_teams %}<button type="button" class="kb-bk" data-kb-paneel="rev">Review</button>{% endif %}
   </nav>
-  <div class="kb-balk-afronden"></div>
+  <div class="kb-balk-afronden">
+    {% if kb_afronden %}<button type="button" class="kb-afronden-knop">Afronden…</button>
+    {% elif add or has_change_permission %}
+    <input type="submit" name="_continue" value="Opslaan en verder" class="kb-balk-opslaan kb-balk-opslaan-2">
+    <input type="submit" name="_save" value="Opslaan" class="kb-balk-opslaan">
+    {% endif %}
+  </div>
 </header>
+{% if messages %}<ul class="messagelist">{% for message in messages %}<li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message|capfirst }}</li>{% endfor %}</ul>{% endif %}
 {% if kb_spoed %}<input type="hidden" id="kb-spoed" name="kb_spoed" value="1">{% endif %}
 {% if kb_concept %}<input type="hidden" name="kb_conceptmodus" value="1">{% endif %}
 {% if kb_concept_collegas %}<input type="hidden" id="kb-concept-collegas" value="{{ kb_concept_collegas }}">{% endif %}
@@ -67,22 +82,34 @@
 </div>
 {% endif %}
 
+{% endblock %}
+
+{% block field_sets %}
+{% with f=adminform.form %}
+{% if "inhoud" not in f.fields %}
+{# Alleen bekijken (geen recht om te wijzigen): de gewone weergave van Django. #}
+{% for fieldset in adminform %}{% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}{% endfor %}
+{% else %}
+{% for veld in f.hidden_fields %}{{ veld }}{% endfor %}
 <div class="kb-ae-werkbalk"><div class="kb-ae-werkbalk-in" role="toolbar" aria-label="Opmaak van de tekst"></div></div>
 
 <div class="kb-werkvlak">
   <div class="kb-blad">
     <span class="kb-blad-soort" data-kb-soort>{% if original %}{{ original.get_soort_display }}{% else %}Werkinstructie{% endif %}</span>
-    <div class="kb-vast" data-kb-plek="titel"><span class="kb-vast-label">Titel · verplicht, maximaal 200 tekens</span></div>
-    <div class="kb-vast" data-kb-plek="samenvatting"><span class="kb-vast-label">Samenvatting · verschijnt ook in de zoekresultaten en het zaaksysteem, houd hem kort</span></div>
+    <div class="kb-vast" data-kb-plek="titel"><span class="kb-vast-label">Titel · verplicht, maximaal 200 tekens</span>{{ f.titel }}{{ f.titel.errors }}</div>
+    <div class="kb-vast" data-kb-plek="samenvatting"><span class="kb-vast-label">Samenvatting · verschijnt ook in de zoekresultaten en het zaaksysteem, houd hem kort</span>{{ f.samenvatting }}{{ f.samenvatting.errors }}</div>
     <div class="kb-blad-lijn"></div>
-    <div data-kb-plek="inhoud"></div>
+    <div data-kb-plek="inhoud">{{ f.inhoud }}{{ f.inhoud.errors }}</div>
   </div>
   <aside class="kb-marge" id="kb-marge" aria-label="Opmerkingen van het reviewteam"></aside>
 </div>
+{% endif %}
+{% endwith %}
 
 <aside class="kb-paneel" id="kb-p-eig" aria-label="Eigenschappen">
   <div class="kb-paneel-kop"><h2>Eigenschappen</h2><button type="button" class="kb-paneel-sluit" aria-label="Sluiten">✕</button></div>
   <p class="kb-paneel-uitleg">{% if kb_concept %}Horen bij de conceptversie: ze gaan pas live als je publiceert.{% else %}Soort, plek in de kennisbank, vindbaarheid en status.{% endif %}</p>
+  {% for fieldset in adminform %}{% if not forloop.first and fieldset.name != "Versie" %}{% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}{% endif %}{% endfor %}
 </aside>
 
 {% if original %}
@@ -94,6 +121,8 @@
     <ul>{% for m in kb_meegenomen %}<li><a href="{{ m.url }}">{{ m.titel }}</a></li>{% endfor %}</ul>
   </div>
   {% endif %}
+  {% for fieldset in adminform %}{% if fieldset.name == "Versie" %}{% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}{% endif %}{% endfor %}
+  {% for inline_admin_formset in inline_admin_formsets %}{% include inline_admin_formset.opts.template %}{% endfor %}
   <p class="kb-paneel-uitleg"><a href="{% url 'admin:kennisbank_artikel_history' original.pk %}">Alle wijzigingen in het beheer</a></p>
 </aside>
 {% endif %}
@@ -138,6 +167,8 @@
 </aside>
 {% endif %}
 {% endblock %}
+
+{% block inline_field_sets %}{% endblock %}
 {% block submit_buttons_bottom %}
 {% if kb_afronden %}
 {# Eén knop Afronden met een keuzevenster (bouwlijst 1.21.0, punt 1–5). De knoppen hieronder blijven bestaan: #}
@@ -145,9 +176,6 @@
 {{ kb_afronden|json_script:"kb-afronden" }}
 <input type="hidden" name="kb_daarna_ter_inzage" id="kb-daarna-ter-inzage" value="">
 <span id="kb-afronden-teams" hidden></span>
-<div class="submit-row kb-afrondenrij">
-  <button type="button" class="button default kb-afronden-knop">Afronden…</button>
-</div>
 {% endif %}
 {% if kb_kan_concept and not kb_review.op_slot and not kb_spoed %}
 <div class="submit-row kb-conceptrij">
@@ -155,5 +183,7 @@
   <span class="kb-concepthint">{% if kb_concept %}Publiceren zet de conceptversie live voor alle medewerkers.{% else %}Publiceren zet je wijziging meteen live voor alle medewerkers.{% endif %}</span>
 </div>
 {% endif %}
-{{ block.super }}
+{# De gewone knoppenrij (verborgen) alleen voor Afronden: het venster drukt op Publiceren daarin. Anders staan #}
+{# Opslaan en Opslaan en verder al in de balk. #}
+{% if kb_afronden %}{{ block.super }}{% endif %}
 {% endblock %}

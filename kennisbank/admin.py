@@ -241,6 +241,20 @@ class ArtikelForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Het bewerkscherm (1.24.0) toont titel en samenvatting op het blad, zonder label: uitleg in het veld.
+        if "titel" in self.fields:
+            self.fields["titel"].widget.attrs.update(
+                {"placeholder": "Titel: waar gaat dit artikel over?", "aria-label": "Titel"}
+            )
+        if "samenvatting" in self.fields:
+            self.fields["samenvatting"].widget.attrs.update(
+                {
+                    "placeholder": "Samenvatting: in één of twee zinnen wat een medewerker hier vindt. Deze zin "
+                    "verschijnt ook in de zoekresultaten en in het zaaksysteem.",
+                    "aria-label": "Samenvatting",
+                    "rows": 1,
+                }
+            )
         if self.spoed and "omgeving" in self.fields:
             self.fields["omgeving"].disabled = True  # bevinding 2: spoed verhuist niets
             self.fields["omgeving"].help_text = "Bij een spoedcorrectie blijft de omgeving zoals hij is."
@@ -538,11 +552,11 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     "wijzigingstoelichting",
                     "kleine_correctie",
                     "nieuwsbericht",
-                    "versie",
-                    "gepubliceerd_op",
                 ]
             },
         ),
+        # Eigen groep, zodat het bewerkscherm hem in het paneel Geschiedenis zet (1.24.0).
+        ("Versie", {"fields": ["versie", "gepubliceerd_op"]}),
     ]
 
     class Media:
@@ -2007,7 +2021,12 @@ class BerichtForm(forms.ModelForm):
     class Meta:
         model = Bericht
         fields = ["titel", "tekst", "omgeving", "artikelen", "status", "vastgepind", "verloopt_op"]
-        widgets = {"tekst": forms.Textarea(attrs={"class": "kb-editor", "rows": 12})}
+        widgets = {
+            "titel": forms.TextInput(
+                attrs={"placeholder": "Titel van het bericht: wat is er nieuw?", "aria-label": "Titel"}
+            ),
+            "tekst": forms.Textarea(attrs={"class": "kb-editor", "rows": 12}),
+        }
 
 
 @admin.register(Bericht)

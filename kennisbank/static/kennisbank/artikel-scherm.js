@@ -1,13 +1,9 @@
-/* De indeling van het bewerkscherm voor artikelen (1.22.0).
+/* Het gedrag van het bewerkscherm voor artikelen en nieuwsberichten (1.22.0).
  *
- * De server levert het gewone beheerformulier, plus (in change_form.html) een balk, een leeg blad en
- * lege panelen. Dit script verhuist de velden naar hun plek: titel, samenvatting en tekst naar het blad,
- * de overige velden naar het paneel Eigenschappen, de versiegeschiedenis naar Geschiedenis. Alles blijft
- * binnen het <form>, dus opslaan, de controles op de server en de kladversie werken zoals altijd.
- * Werkt JavaScript niet, dan staat alles gewoon onder elkaar.
- *
- * Draait vóór beheer-editor.js (volgorde in ArtikelAdmin.Media), zodat de editor op zijn nieuwe plek
- * wordt gemaakt.
+ * Sinds 1.24.0 bouwt de server het scherm helemaal op (change_form.html): elk veld staat meteen op zijn plek,
+ * er wordt niets verhuisd en er is geen "oud scherm" meer. Dit script doet alleen nog het gedrag: panelen
+ * open en dicht, Enter van titel naar samenvatting naar tekst, de samenvatting die meegroeit, de opmerkingen
+ * van het reviewteam in de marge en "Bekijk als medewerker".
  */
 (function () {
   "use strict";
@@ -22,71 +18,11 @@
     if (!form) return;
     document.body.classList.add("kb-scherm");
 
-    // --- Titel, samenvatting en tekst naar het blad -------------------------------------
     var titel = form.elements.namedItem("titel");
     var samen = form.elements.namedItem("samenvatting");
-    // Elk veld met een plek op het blad (titel, samenvatting, inhoud of tekst) gaat daarheen, met zijn foutmelding.
-    $$("[data-kb-plek]", form).forEach(function (plek) {
-      var veld = form.elements.namedItem(plek.dataset.kbPlek);
-      if (!veld || !veld.closest) return;
-      var rij = veld.closest(".form-row");
-      plek.appendChild(veld);
-      if (rij) $$(".errorlist", rij).forEach(function (fout) { plek.appendChild(fout); });
-    });
-    if (titel) {
-      var titelPlek = titel.closest("[data-kb-plek]");
-      titel.placeholder = (titelPlek && titelPlek.dataset.kbUitleg) || "Titel: waar gaat dit artikel over?";
-      titel.setAttribute("aria-label", "Titel");
-    }
-    if (samen) {
-      samen.placeholder = "Samenvatting: in één of twee zinnen wat een medewerker hier vindt. Deze zin verschijnt ook in de zoekresultaten en in het zaaksysteem.";
-      samen.setAttribute("aria-label", "Samenvatting");
-      samen.rows = 1;
-    }
-    // De eerste groep velden houdt alleen nog de verborgen stempels over: uit beeld.
-    $$("fieldset.module", form).forEach(function (fs) {
-      if (fs.closest(".inline-group") || fs.closest(".kb-paneel")) return;
-      var zichtbaar = $$(".form-row", fs).filter(function (r) { return !r.classList.contains("hidden") && r.querySelector("input:not([type=hidden]), select, textarea, .readonly"); });
-      if (!zichtbaar.length) fs.classList.add("kb-oud-verborgen");
-    });
-
-    // --- Overige velden naar Eigenschappen, versies naar Geschiedenis --------------------
-    var eig = $("#kb-p-eig", form), gesch = $("#kb-p-gesch", form);
-    $$("fieldset.module", form).forEach(function (fs) {
-      if (fs.closest(".inline-group") || fs.closest(".kb-paneel") || fs.classList.contains("kb-oud-verborgen")) return;
-      eig.appendChild(fs);
-    });
-    if (gesch) {
-      $$(".form-row.field-versie, .form-row.field-gepubliceerd_op", eig).forEach(function (r) { gesch.appendChild(r); });
-      $$(".inline-group", form).forEach(function (g) { gesch.appendChild(g); });
-    }
-
-    // Meldingen ("is opgeslagen") en foutmeldingen van het hele formulier boven het blad, onder de balk.
-    var werkvlak = $(".kb-werkvlak", form);
-    var meldingen = $(".messagelist");
-    if (meldingen) werkvlak.parentNode.insertBefore(meldingen, werkvlak);
-    var fouten = $$(".errornote, ul.errorlist.nonfield", form).filter(function (e) { return !e.closest(".kb-paneel"); });
-    if (fouten.length) {
-      var vak = document.createElement("div");
-      vak.className = "kb-banner kb-banner-spoed";
-      fouten.forEach(function (f) { vak.appendChild(f); });
-      werkvlak.parentNode.insertBefore(vak, werkvlak);
-    }
-
-    // --- Knoppen naar de balk ------------------------------------------------------------
-    var plek = $(".kb-balk-afronden", balk);
-    var afr = $(".kb-afronden-knop", form);
-    if (afr) plek.appendChild(afr);
-    else {
-      // Nieuw of nog niet gepubliceerd artikel: de gewone opslagknoppen.
-      var opslaan = $('.submit-row input[name="_save"]', form);
-      var verder = $('.submit-row input[name="_continue"]', form);
-      if (verder) { verder.classList.add("kb-balk-opslaan", "kb-balk-opslaan-2"); verder.value = "Opslaan en verder"; plek.appendChild(verder); }
-      if (opslaan) { opslaan.classList.add("kb-balk-opslaan"); plek.appendChild(opslaan); }
-    }
-    // Verwijderen (alleen waar dat mag, zoals bij nieuwsberichten): onderaan het paneel Eigenschappen.
-    var weg = $(".submit-row .deletelink", form);
-    if (weg && eig) { var p = document.createElement("p"); p.className = "kb-paneel-weg"; p.appendChild(weg); eig.appendChild(p); }
+    // Fouten van het hele formulier staan boven het blad; zet ze in beeld.
+    var fout = $(".errornote", form);
+    if (fout && fout.scrollIntoView) fout.scrollIntoView({ block: "center" });
 
     // --- Panelen -------------------------------------------------------------------------
     function paneel(naam) {
@@ -158,9 +94,6 @@
     // --- Bekijk als medewerker ----------------------------------------------------------
     var lees = $("[data-kb-lees]", balk);
     if (lees) lees.addEventListener("click", function () { bekijkAlsMedewerker(form); });
-
-    // Alles staat op zijn plek; de editor wordt in dezelfde ronde gemaakt (beheer-editor.js). Daarna zichtbaar.
-    setTimeout(function () { document.body.classList.remove("kb-bezig"); }, 0);
   }
 
   function bekijkAlsMedewerker(form) {

@@ -7,9 +7,10 @@ Als **redacteur** schrijf en onderhoud je de artikelen in jouw omgeving, behande
 Het bewerkscherm (sinds 1.22.0) laat het artikel zien zoals medewerkers het lezen, en daarin typ je ook.
 
 1. Ga naar **Beheer** (link links onderin de kennisbank) → *Artikelen*, of klik in een artikel op **Bewerken**.
-2. **Bovenaan staat één balk** met ← Werkplek, de titel, de stand (bijvoorbeeld *Conceptversie, medewerkers zien
-   versie 3*) en de stand van de review. Daaronder staan de knoppen **Opmerkingen**, **Bekijk als medewerker**,
-   **Eigenschappen**, **Geschiedenis** en **Review**, en rechts **Afronden…** (bij een nieuw artikel: *Opslaan*).
+2. **Bovenaan staat één balk** met de titel, de stand (bijvoorbeeld *Conceptversie, medewerkers zien
+   versie 3*) en rechts de stand van de review. Op de regel daaronder staat links **← Werkplek** en rechts de
+   knoppen **Opmerkingen**, **Bekijk als medewerker**, **Eigenschappen**, **Geschiedenis** en **Review**, met
+   als laatste **Afronden…** (bij een nieuw artikel: *Opslaan*).
 3. **Titel en samenvatting** staan bovenaan het artikel, op de plek waar de lezer ze ziet. Ze horen bij elk
    artikel en kunnen niet weg. Zijn ze leeg, dan staat er grijze uitleg in; klik je erin, dan verschijnt een
    label (*Titel · verplicht, maximaal 200 tekens*, *Samenvatting · verschijnt ook in de zoekresultaten en het
