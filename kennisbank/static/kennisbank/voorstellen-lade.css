@@ -96,7 +96,9 @@ sup.kb-ae-vsnr-actief { box-shadow: 0 0 0 3px #b9d4f3; }
 /* Ronde B (1.29.0): toegankelijkheid. */
 .kb-sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .kb-lade-kop { display: flex; align-items: center; gap: 8px; }
-.kb-lade-kop h2:focus { outline: 2px solid #154273; outline-offset: 2px; }
+/* 1.31.3: geen rand om de kop. Hij krijgt de focus als de lade opent (voor de schermlezer), maar is geen knop
+   en staat niet in de Tab-volgorde; met een rand leek het er wel een. */
+.kb-lade-kop h2:focus { outline: none; }
 .kb-lade-sluit { margin-left: auto; border: 1px solid #c3cbd6; background: #fff; border-radius: 6px; width: 32px; height: 32px; font-size: 15px; cursor: pointer; color: #17212b; }
 .kb-vk-toon { align-self: flex-start; background: none; border: none; padding: 0; color: #154273; text-decoration: underline; font: inherit; font-size: 13px; cursor: pointer; }
 .kb-vk-tab[aria-pressed="true"] { text-decoration: none; }
@@ -123,4 +125,7 @@ sup.kb-ae-vsnr-actief { box-shadow: 0 0 0 3px #b9d4f3; }
 /* 1.29.1: steun als korte lijst, de rest uitklapbaar. */
 .kb-vk-steuners { margin: 2px 0 0; padding-left: 18px; font-size: 12px; color: #4a5565; }
 .kb-vk-steuners li { margin: 0; }
-.kb-vk-steun-meer summary { font-size: 12px; color: #154273; cursor: pointer; text-decoration: underline; margin-left: 4px; }
+/* 1.31.3: één regel "[naam] en [n] anderen steunen dit voorstel"; klikken klapt de namen uit. */
+.kb-vk-steun { font-size: 12px; color: #4a5565; }
+.kb-vk-steun-knop { background: none; border: none; padding: 0; color: #154273; text-decoration: underline; font: inherit; font-size: 12px; cursor: pointer; text-align: left; }
+.kb-vk-steun-knop:focus-visible { outline: 2px solid #154273; outline-offset: 2px; }

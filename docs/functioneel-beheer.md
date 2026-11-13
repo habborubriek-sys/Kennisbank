@@ -449,7 +449,8 @@ blauwe tabblad dat uit de linkerrand steekt (met het aantal open voorstellen bij
   hem weer. Vensters, panelen en *Bekijk als medewerker* sluiten met Escape. Zie ook
   [toegankelijkheid](toegankelijkheid.md).
 - **Klik op een voorstel** om het uit te klappen: de tekst, wie het indiende (alleen de redactie ziet dat),
-  wanneer, en wie het steunt.
+  wanneer, en wie het steunt. De steun staat als één regel: "[naam] en [n] anderen steunen dit voorstel". Klik
+  erop voor de lijst met namen; *Minder tonen* klapt hem weer in.
 
 **Meenemen in deze versie.** Ga je het voorstel verwerken, vink dan *Meenemen in deze versie* aan. **Dat telt
 pas als je opslaat** (*Afronden → Opslaan als concept*, *Ter inzage geven* of *Publiceren*). Ga je weg
@@ -505,7 +506,7 @@ verwisselt:
 **Afhandelen zonder nieuwe versie** kan ook in de lade. Er zijn drie knoppen; alle drie vragen een afsluitend
 bericht aan de indiener.
 
-- **Afhandelen als verwerkt…** (sinds 1.31.2): voor een voorstel waarvan de tekst al is aangepast in de versie
+- **Afhandelen** (sinds 1.31.2; afhandelen als verwerkt): voor een voorstel waarvan de tekst al is aangepast in de versie
   die medewerkers nu zien. Bijvoorbeeld omdat een collega het al heeft aangepast, of omdat je het bij het
   publiceren niet had aangevinkt. Het venster heeft een voorgevuld bedankbericht ("We hebben het verwerkt in
   versie n …"). Het voorstel krijgt de status *Verwerkt* met dat versienummer; de indiener krijgt een melding en
@@ -515,8 +516,8 @@ bericht aan de indiener.
   - Heb je de tekst wel aangepast maar nog niet gepubliceerd? Vink dan *Meenemen in deze versie* aan en
     publiceer; deze knop is daar niet voor.
   - De knop werkt niet bij een artikel dat niet gepubliceerd is.
-- **Afwijzen…**: je neemt het voorstel niet over.
-- **Dubbel…**: kies het andere voorstel bij hetzelfde artikel. Voorstellen worden niet samengevoegd en de
+- **Afwijzen**: je neemt het voorstel niet over.
+- **Ontdubbelen**: het voorstel is dubbel; kies het andere voorstel bij hetzelfde artikel. Voorstellen worden niet samengevoegd en de
   steun gaat niet mee.
 
 Is het voorstel meegenomen in een versie die ter inzage ligt, dan werken deze knoppen niet tot de review terug
@@ -588,8 +589,8 @@ Werken met een voorstel gaat zo:
    **interne notitie** (beide in de lade).
 3. **Verwerk het**: pas de tekst aan, vink *Meenemen in deze versie* aan en publiceer (met of zonder review).
    Daarna handel je het af met het voorgevulde bericht. Is de tekst al eerder aangepast en gepubliceerd, kies
-   dan **Afhandelen als verwerkt…** in de lade. Neem je het niet over, kies dan **Afwijzen…** of
-   **Dubbel…**. Dat legt ook vast wie het heeft afgehandeld en wanneer.
+   dan **Afhandelen** in de lade. Neem je het niet over, kies dan **Afwijzen** of
+   **Ontdubbelen**. Dat legt ook vast wie het heeft afgehandeld en wanneer.
 
 Het filter *Indiener heeft als laatste geschreven* is er voor voorstellen uit een oudere installatie,
 waarin terugschrijven nog kon.

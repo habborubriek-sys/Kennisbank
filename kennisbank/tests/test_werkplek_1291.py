@@ -56,5 +56,8 @@ class Lade(Basis):
         self.assertIn("Kies Afronden om op te slaan", js)
         self.assertIn('"✉ Bericht"', js)
         self.assertNotIn("taB.placeholder", js)
-        self.assertIn('"En nog " + (v.steuners.length - 5) + " meer"', js)
+        # 1.31.3: de steun is één regel die uitklapt (was: vijf namen en "En nog n meer").
+        self.assertNotIn('"En nog "', js)
+        self.assertIn('" steunen dit voorstel"', js)
+        self.assertIn('"Minder tonen"', js)
         self.assertNotIn('"tekst nog ongewijzigd – al aangepast?"', js)

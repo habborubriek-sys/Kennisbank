@@ -1,5 +1,18 @@
 # Wijzigingen
 
+## 1.31.3 – 2026-11-13
+
+Feedback van Alex op de lade: de knoppen waren te lang en werden afgekapt, *Dubbel…* stond lichtgrijs, de titel had een rand alsof het een knop was, en de lijst met steuners was te lang.
+
+- De drie knoppen in het blok *Afhandelen zonder nieuwe versie* heten nu **Afhandelen**, **Afwijzen** en **Ontdubbelen** (was *Afhandelen als verwerkt…*, *Afwijzen…* en *Dubbel…*). Ze passen naast elkaar in de lade. De vensters erachter zijn niet veranderd.
+- **Ontdubbelen** staat niet meer grijs als er geen ander voorstel bij het artikel is; dat oogde alsof de knop niet werkte. Je kunt er nu altijd op klikken; is er geen ander voorstel, dan legt een venster dat uit.
+- De knoppen staan alleen nog uit (grijs) als het voorstel is meegenomen in een versie die ter inzage ligt, met de uitleg eronder. *Afhandelen* staat ook uit bij een artikel dat niet gepubliceerd is.
+- De titel *Open verbetervoorstellen* boven de lade heeft geen rand meer. Die verscheen als de lade openging (de titel krijgt dan de focus, voor de schermlezer) en liet de titel op een knop lijken. De focus gaat er nog steeds heen; de titel staat niet in de Tab-volgorde.
+- **Steun korter**: in plaats van een lijst met de eerste vijf namen staat er één regel, "[naam] en [n] anderen steunen dit voorstel". Klik je erop, dan klapt de lijst met alle namen uit; *Minder tonen* klapt hem weer in. Bij één steuner staat er alleen "[naam] steunt dit voorstel". Het aantal staat niet meer ook nog in de regel erboven.
+- `docs/functioneel-beheer.md` en `docs/nvda-testscript.md` gebruiken de nieuwe namen.
+- Geen wijziging aan de server-regels; 674 tests. Geen migratie.
+- Met Playwright nagelopen: de drie knoppen op één regel en niet afgekapt (1440, 1280 en 1024 px), Ontdubbelen zonder ander voorstel, de titel zonder rand, en de steun in- en uitklappen met het toetsenbord. axe op de lade: 0 overtredingen.
+
 ## 1.31.2 – 2026-11-13
 
 Melding van Alex (bouwlijst `bouwlijst-1.31.2-kleine-correctie-en-afhandelen.md`): een tikfout gepubliceerd als kleine correctie, met het voorstel aangevinkt bij *Meenemen*. Het scherm *Meegenomen voorstellen afhandelen* kwam niet.

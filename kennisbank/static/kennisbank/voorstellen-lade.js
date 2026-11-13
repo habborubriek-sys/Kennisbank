@@ -42,6 +42,7 @@
     var tab = {};
     var info = {};
     var bewaard = {}, mee = {};
+    var steunOpen = {};  // 1.31.3: per voorstel of de lijst met steuners is uitgeklapt
     // Ronde A (M6): kwam het formulier terug met een fout, dan zet de server bij `mee_gewenst` wat je bij
     // Meenemen had veranderd. Dat staat dan weer zo, met "nog niet opgeslagen".
     lijst.forEach(function (v) {
@@ -226,22 +227,28 @@
       var d = el("div", "kb-vk-detail");
       if (v.citaat) d.appendChild(el("div", "kb-vk-citaat", "“" + v.citaat + "”"));
       d.appendChild(el("div", "kb-vk-tekst", v.tekst));
-      d.appendChild(el("div", "kb-vk-meta", [v.indiener || "Indiener onbekend", v.op, v.steun ? v.steun + (v.steun === 1 ? " collega steunt dit" : " collega's steunen dit") : "nog geen steun"].join(" · ")));
-      // 1.29.1 (wens Alex): de eerste vijf namen als korte lijst, de rest uitklapbaar.
-      if (v.steuners && v.steuners.length) {
-        var steunLijst = el("ul", "kb-vk-steuners");
-        v.steuners.slice(0, 5).forEach(function (n) { steunLijst.appendChild(el("li", null, n)); });
-        d.appendChild(steunLijst);
-        if (v.steuners.length > 5) {
-          var meer = el("details", "kb-vk-steun-meer");
-          var sm = el("summary", null, "En nog " + (v.steuners.length - 5) + " meer");
-          sm.setAttribute("data-kb-focus", "steun-" + v.id);
-          meer.appendChild(sm);
-          var rest = el("ul", "kb-vk-steuners");
-          v.steuners.slice(5).forEach(function (n) { rest.appendChild(el("li", null, n)); });
-          meer.appendChild(rest);
-          d.appendChild(meer);
+      // 1.31.3 (wens Alex): de steun als één korte regel, "[naam] en [n] anderen steunen dit voorstel". Klik je
+      // erop, dan klapt de lijst met namen uit, met "Minder tonen" om hem weer in te klappen.
+      var namen = v.steuners || [];
+      d.appendChild(el("div", "kb-vk-meta", [v.indiener || "Indiener onbekend", v.op, namen.length ? "" : (v.steun ? v.steun + (v.steun === 1 ? " collega steunt dit" : " collega's steunen dit") : "nog geen steun")].filter(Boolean).join(" · ")));
+      if (namen.length === 1) {
+        d.appendChild(el("div", "kb-vk-steun", namen[0] + " steunt dit voorstel"));
+      } else if (namen.length > 1) {
+        var rest = namen.length - 1;
+        var steun = el("div", "kb-vk-steun");
+        var sk = el("button", "kb-vk-steun-knop", steunOpen[v.id] ? "Minder tonen" : namen[0] + " en " + rest + (rest === 1 ? " ander" : " anderen") + " steunen dit voorstel");
+        sk.type = "button";
+        sk.setAttribute("data-kb-focus", "steun-" + v.id);
+        sk.setAttribute("aria-expanded", steunOpen[v.id] ? "true" : "false");
+        sk.addEventListener("click", function () { steunOpen[v.id] = !steunOpen[v.id]; teken(); });
+        if (steunOpen[v.id]) {
+          steun.appendChild(el("div", "kb-vk-steun-kop", namen.length + " collega's steunen dit voorstel:"));
+          var steunLijst = el("ul", "kb-vk-steuners");
+          namen.forEach(function (n) { steunLijst.appendChild(el("li", null, n)); });
+          steun.appendChild(steunLijst);
         }
+        steun.appendChild(sk);
+        d.appendChild(steun);
       }
       // Ronde B (M19): naar het citaat in de tekst, ook met het toetsenbord.
       if (v.citaat && i.gevonden && window.kbInhoudEditor && window.kbInhoudEditor.naarVoorstel) {
@@ -362,17 +369,25 @@
       var af = el("div", "kb-vk-af");
       af.appendChild(el("h3", null, "Afhandelen zonder nieuwe versie"));
       var kn = el("div", "kb-vk-knoppen");
-      var vwk = el("button", "button", "Afhandelen als verwerkt…"); vwk.type = "button"; vwk.disabled = !magAf || !v.verwerkt_versie;
+      var vwk = el("button", "button", "Afhandelen"); vwk.type = "button"; vwk.disabled = !magAf || !v.verwerkt_versie;
       vwk.setAttribute("data-kb-focus", "vwk-" + v.id);
-      vwk.title = "Voor een voorstel waarvan de tekst al is aangepast in de versie die medewerkers nu zien.";
+      vwk.title = "Afhandelen als verwerkt: voor een voorstel waarvan de tekst al is aangepast in de versie die medewerkers nu zien.";
       vwk.addEventListener("click", function () { verwerkt(v); });
       kn.appendChild(vwk);
-      var afw = el("button", "button kb-gevaar", "Afwijzen…"); afw.type = "button"; afw.disabled = !magAf;
-      var dub = el("button", "button", "Dubbel…"); dub.type = "button"; dub.disabled = !magAf || !v.andere.length;
+      var afw = el("button", "button kb-gevaar", "Afwijzen"); afw.type = "button"; afw.disabled = !magAf;
+      var dub = el("button", "button", "Ontdubbelen"); dub.type = "button"; dub.disabled = !magAf;
       afw.setAttribute("data-kb-focus", "afw-" + v.id);
       dub.setAttribute("data-kb-focus", "dub-" + v.id);
       afw.addEventListener("click", function () { afsluiten(v, "afwijzen"); });
-      dub.addEventListener("click", function () { afsluiten(v, "dubbel"); });
+      // 1.31.3: de knop staat niet meer grijs als er geen ander voorstel is (dat oogde als kapot); hij legt het dan uit.
+      dub.addEventListener("click", function () {
+        if (v.andere.length) { afsluiten(v, "dubbel"); return; }
+        venster({
+          titel: "Geen ander voorstel bij dit artikel",
+          alineas: ["Ontdubbelen kan als hetzelfde al in een ander voorstel bij dit artikel staat. Dit is het enige voorstel bij dit artikel."],
+          knoppen: [{ tekst: "Sluiten", primair: true, focus: true }],
+        });
+      });
       kn.appendChild(afw); kn.appendChild(dub);
       af.appendChild(kn);
       // Verbergen voor collega's (onder "Alle voorstellen"), bijvoorbeeld als er een naam in staat.

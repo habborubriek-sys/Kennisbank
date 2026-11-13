@@ -59,10 +59,10 @@ Open hiervoor een voorstel uit de werkbak.
 17. Druk op *Versturen aan …*.
     - *Verwacht:* je hoort de titel van het venster en de tekst van je bericht, en Tab blijft in het venster.
     - Escape sluit het venster, en de focus staat weer op *Versturen aan …*.
-18. Kies *Afwijzen…*.
+18. Kies *Afwijzen*.
     - *Verwacht:* je hoort de titel "Voorstel afwijzen" en de uitleg, en het tekstvak heeft een naam.
     - Breek af met Escape.
-    - Kies daarna *Afhandelen als verwerkt…* (sinds 1.31.2). *Verwacht:* staat de geciteerde tekst nog in het
+    - Kies daarna *Afhandelen* (sinds 1.31.2). *Verwacht:* staat de geciteerde tekst nog in het
       artikel, dan hoor je eerst "De tekst staat nog in het artikel" en staat de focus op *Annuleren*. Anders hoor
       je "Afhandelen als verwerkt" en sta je in het tekstvak met het voorgevulde bericht. Breek af met Escape.
 19. Druk op *Toon in de tekst* en lees de tekst.

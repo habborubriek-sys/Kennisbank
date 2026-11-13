@@ -125,7 +125,7 @@ def _open_voorstellen(artikel):
 
 
 def _andere(artikel):
-    """Voor *Dubbel…*: de andere voorstellen bij dit artikel (ook afgehandelde)."""
+    """Voor *Ontdubbelen*: de andere voorstellen bij dit artikel (ook afgehandelde)."""
     return [
         {"id": pk, "label": f"{titel_van(tekst)} ({dict(VoorstelStatus.choices).get(st, st).lower()})"}
         for pk, tekst, st in Verbetervoorstel.objects.filter(artikel=artikel)
@@ -355,7 +355,7 @@ def lade_actie(request, pk):
                 return JsonResponse(
                     {
                         "fout": "De geciteerde tekst staat nog letterlijk in de gepubliceerde versie. "
-                        "Kies opnieuw Afhandelen als verwerkt en bevestig dat het voorstel toch is verwerkt. "
+                        "Kies opnieuw Afhandelen en bevestig dat het voorstel toch is verwerkt. "
                         "Er is niets verstuurd.",
                         "voorstel": _item(v, request.user, _andere(v.artikel)),
                     },
