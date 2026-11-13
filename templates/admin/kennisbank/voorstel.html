@@ -2,7 +2,9 @@
 {% comment %}
   Het behandelscherm van een verbetervoorstel (kennisbank/behandelen.py). Links de kolom van de werkplek.
 {% endcomment %}
+{% load static %}
 {% block bodyclass %}{{ block.super }} kb-werkplek-pagina{% endblock %}
+{% block extrahead %}{{ block.super }}<script src="{% static 'kennisbank/werkplek.js' %}" defer></script>{% endblock %}
 {% block nav-breadcrumbs %}{% endblock %}
 {% block nav-sidebar %}{% endblock %}
 {% block content_title %}{% endblock %}

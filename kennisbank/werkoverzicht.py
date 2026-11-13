@@ -213,9 +213,17 @@ def _menu(request, omgevingen, namen_omgeving):
                 "oud": lopend.filter(status=InzageStatus.TERUGGEGEVEN).values("artikel_id").distinct().count(),
             },
         )
+    # 1.29.1 (wens Alex): je eigen bak staat altijd in beeld; de collega's zijn in- en uitklapbaar.
+    eigen = [p for p in personen if p["ik"]]
+    collegas = [p for p in personen if not p["ik"]]
     return {
         "bakken": bakken,
         "personen": personen,
+        "eigen": eigen,
+        "collegas": collegas,
+        "collegas_aantal": sum(p["aantal"] for p in collegas),
+        "collegas_oud": sum(p["oud"] for p in collegas),
+        "collega_sleutels": [p["sleutel"] for p in collegas],
         "overig": [
             {"sleutel": "afgehandeld", "naam": "Afgehandeld", "aantal": afgehandeld},
         ],

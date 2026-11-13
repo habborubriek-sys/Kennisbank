@@ -1,0 +1,3 @@
+{# Eén procesmanager in de linkerkolom van de werkplek (werkplek_kolom.html). #}
+      <li><a class="kb-bakregel{% if p.ik %} kb-ik{% endif %}{% if w.gekozen == p.sleutel %} gekozen{% endif %}" href="{% url 'beheer-start' %}?bak={{ p.sleutel }}"{% if w.gekozen == p.sleutel %} aria-current="page"{% endif %}>
+        <span>{{ p.naam }}{% if p.ik %} <span class="kb-jij">(jij)</span>{% endif %}{% if p.nieuw %} <b class="kb-nieuw">· {{ p.nieuw }} nieuw</b>{% endif %}</span><span class="kb-aantal{% if p.oud %} vol oud{% endif %}"{% if p.oud %} title="{{ p.oud }} ligt al meer dan {{ w.lang_dagen }} dagen"{% endif %}>{{ p.aantal }}{% if p.oud %}<span class="visually-hidden">, waarvan {{ p.oud }} al meer dan {{ w.lang_dagen }} dagen</span>{% endif %}</span></a></li>

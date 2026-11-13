@@ -24,7 +24,6 @@ html:root .button.default:hover, html:root input[type=submit].default:hover, htm
 .kb-bakkenkolom{border-right:1px solid var(--hairline-color);background:var(--darkened-bg);padding:16px 12px 24px}
 .kb-kolomkop{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--body-quiet-color);margin:14px 8px 6px;font-weight:700;background:none;padding:0}
 .kb-kolomkop:first-child{margin-top:0}
-.kb-kolomsub{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--body-quiet-color);margin:12px 8px 4px;font-weight:600}
 .kb-bakkenlijst{list-style:none;margin:0;padding:0}
 .kb-bakkenlijst li{list-style:none;padding:0;margin:0}
 .kb-gescheiden{border-top:1px solid var(--hairline-color);margin-top:10px;padding-top:10px}
@@ -40,9 +39,11 @@ a.kb-bakregel.gekozen .kb-nieuw{color:#ffd23f}
 .kb-aantal{font-variant-numeric:tabular-nums;color:var(--body-quiet-color);min-width:1.5em;text-align:right}
 .kb-aantal.vol{color:var(--body-fg);font-weight:700}
 .kb-aantal.oud{color:#a6192e}
-.kb-kolomknoppen{display:flex;flex-direction:column;gap:6px;margin:16px 8px 0}
+.kb-kolomknoppen{display:flex;flex-direction:column;gap:6px;margin:0 8px 14px}
+.kb-kolomknoppen-rij{display:flex;gap:6px}
+.kb-kolomknoppen-rij a.button{flex:1;padding:7px 6px;font-size:.88rem;white-space:nowrap}
 a.button.kb-knop,a.button.kb-knop-word{display:block;text-align:center;padding:8px 12px;border-radius:6px}
-a.button.kb-knop-word{background:#fff;color:#154273}
+a.button.kb-knop-word{background:#fff;color:#154273;padding:6px 12px;font-size:.88rem}
 .kb-inhoud{padding:20px 32px 40px;max-width:1000px}
 .kb-inhoud h1{margin:0 0 4px;font-size:1.5rem}
 .kb-uitleg{color:var(--body-quiet-color);margin:0 0 16px}
@@ -227,3 +228,12 @@ table.kb-bak{width:100%}
 .kb-import-knoppen{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
 .kb-import-knoppen .button,.kb-import-knoppen input{padding:8px 16px}
 .kb-selectie-teller{font-size:.85rem;font-weight:600;color:#154273}
+
+/* 1.29.1: collega's in- en uitklapbaar; je eigen bak blijft altijd in beeld. */
+.kb-collegas{margin:0}
+.kb-collegas > summary.kb-bakregel{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 10px;border-radius:6px;cursor:pointer;list-style:none;font-size:.92rem;color:var(--body-fg)}
+.kb-collegas > summary::-webkit-details-marker{display:none}
+.kb-collegas > summary > span:first-child::before{content:"▸";display:inline-block;width:1em;color:var(--body-quiet-color)}
+.kb-collegas[open] > summary > span:first-child::before{content:"▾"}
+.kb-collegas > summary:hover{background:var(--selected-row)}
+.kb-collegas .kb-bakkenlijst{margin-left:12px}

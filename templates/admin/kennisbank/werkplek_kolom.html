@@ -3,6 +3,14 @@
   gekozen, is_alles, nieuw_artikel_url, nieuw_bericht_url en word_import_url.
 {% endcomment %}
   <nav class="kb-bakkenkolom" aria-label="Werkbakken">
+    {# 1.29.1 (wens Alex): de knoppen bovenaan, zodat ze in beeld blijven als de lijst langer wordt. #}
+    <div class="kb-kolomknoppen">
+      <div class="kb-kolomknoppen-rij">
+        <a class="button kb-knop" href="{{ w.nieuw_artikel_url }}">Nieuw artikel</a>
+        <a class="button kb-knop" href="{{ w.nieuw_bericht_url }}">Nieuw bericht</a>
+      </div>
+      {% if w.word_import_url %}<a class="button kb-knop-word" href="{{ w.word_import_url }}">Artikel uit Word</a>{% endif %}
+    </div>
     <h2 class="kb-kolomkop">Werkvoorraad</h2>
     <ul class="kb-bakkenlijst">
       {% for b in w.menu.bakken %}
@@ -10,13 +18,20 @@
         <span>{{ b.naam }}</span><span class="kb-aantal{% if b.aantal %} vol{% endif %}{% if b.oud %} oud{% endif %}"{% if b.oud %} title="{{ b.oud }} ligt al meer dan {{ w.lang_dagen }} dagen"{% endif %}>{{ b.aantal }}{% if b.oud %}<span class="visually-hidden">, waarvan {{ b.oud }} al meer dan {{ w.lang_dagen }} dagen</span>{% endif %}</span></a></li>
       {% endfor %}
     </ul>
-    <h3 class="kb-kolomsub">Procesmanagers</h3>
+    <h2 class="kb-kolomkop">Procesmanagers</h2>
     <ul class="kb-bakkenlijst">
-      {% for p in w.menu.personen %}
-      <li><a class="kb-bakregel{% if p.ik %} kb-ik{% endif %}{% if w.gekozen == p.sleutel %} gekozen{% endif %}" href="{% url 'beheer-start' %}?bak={{ p.sleutel }}"{% if w.gekozen == p.sleutel %} aria-current="page"{% endif %}>
-        <span>{{ p.naam }}{% if p.ik %} <span class="kb-jij">(jij)</span>{% endif %}{% if p.nieuw %} <b class="kb-nieuw">· {{ p.nieuw }} nieuw</b>{% endif %}</span><span class="kb-aantal{% if p.oud %} vol oud{% endif %}"{% if p.oud %} title="{{ p.oud }} ligt al meer dan {{ w.lang_dagen }} dagen"{% endif %}>{{ p.aantal }}{% if p.oud %}<span class="visually-hidden">, waarvan {{ p.oud }} al meer dan {{ w.lang_dagen }} dagen</span>{% endif %}</span></a></li>
-      {% endfor %}
+      {% for p in w.menu.eigen %}{% include "admin/kennisbank/werkplek_persoon.html" %}{% endfor %}
     </ul>
+    {% if w.menu.collegas %}
+    {% with geforceerd=w.menu.collegas_oud %}
+    <details class="kb-collegas" id="kb-collegas"{% if geforceerd or w.gekozen in w.menu.collega_sleutels %} open data-kb-vast="1"{% endif %}>
+      <summary class="kb-bakregel"><span>Collega's ({{ w.menu.collegas|length }})</span><span class="kb-aantal{% if w.menu.collegas_aantal %} vol{% endif %}{% if w.menu.collegas_oud %} oud{% endif %}">{{ w.menu.collegas_aantal }}<span class="visually-hidden"> voorstellen{% if w.menu.collegas_oud %}, waarvan {{ w.menu.collegas_oud }} al meer dan {{ w.lang_dagen }} dagen{% endif %}</span></span></summary>
+      <ul class="kb-bakkenlijst">
+        {% for p in w.menu.collegas %}{% include "admin/kennisbank/werkplek_persoon.html" %}{% endfor %}
+      </ul>
+    </details>
+    {% endwith %}
+    {% endif %}
     <ul class="kb-bakkenlijst kb-gescheiden">
       {% for b in w.menu.overig %}
       <li><a class="kb-bakregel{% if w.gekozen == b.sleutel %} gekozen{% endif %}" href="{% url 'beheer-start' %}?bak={{ b.sleutel }}"{% if w.gekozen == b.sleutel %} aria-current="page"{% endif %}>
@@ -30,11 +45,6 @@
         <span>{{ b.naam }}{% if b.oud %} <b class="kb-nieuw">· {{ b.oud }} terug</b>{% endif %}</span><span class="kb-aantal">{{ b.aantal }}</span></a></li>
       {% endfor %}
     </ul>
-    <div class="kb-kolomknoppen">
-      <a class="button kb-knop" href="{{ w.nieuw_artikel_url }}">Nieuw artikel</a>
-      <a class="button kb-knop" href="{{ w.nieuw_bericht_url }}">Nieuw bericht</a>
-      {% if w.word_import_url %}<a class="button kb-knop-word" href="{{ w.word_import_url }}">Artikel uit Word</a>{% endif %}
-    </div>
     <ul class="kb-bakkenlijst kb-gescheiden">
       <li><a class="kb-bakregel{% if w.is_alles %} gekozen{% endif %}" href="{% url 'beheer-start' %}?bak=alles">Alle onderdelen</a></li>
     </ul>

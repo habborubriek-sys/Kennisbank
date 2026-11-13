@@ -2,7 +2,7 @@
 publiccodeYmlVersion: "0.4"
 name: Kennisbank
 url: https://example.nl/kennisbank.git   # aanpassen bij publicatie
-softwareVersion: "1.29.0"
+softwareVersion: "1.29.1"
 releaseDate: "2026-11-13"
 platforms: [web]
 categories: [knowledge-management, document-management]

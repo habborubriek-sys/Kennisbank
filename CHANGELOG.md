@@ -1,5 +1,22 @@
 # Wijzigingen
 
+## 1.29.1 – 2026-11-13
+
+Werkplek en lade na feedback van Alex (bouwlijst `bouwlijst-1.29.1-werkplek-en-lade.md`).
+
+**Werkplek**
+- *Procesmanagers* heeft dezelfde kop als *Werkvoorraad* en *Artikelen*.
+- *Nieuw artikel*, *Nieuw bericht* en *Artikel uit Word* staan bovenaan de kolom. Zo blijven ze in beeld, ook als de lijst langer wordt.
+- **Je eigen bak staat altijd in beeld.** De collega's staan onder **Collega's (n)**, dat je kunt in- en uitklappen. De browser onthoudt of de lijst open of dicht stond. Hij klapt vanzelf open als je in de bak van een collega kijkt of als er bij een collega iets te lang ligt.
+
+**Lade**
+- De titel is **Open verbetervoorstellen**. De uitlegzin eronder is weg.
+- Zakelijker meldingen, bijvoorbeeld: "1 wijziging bij Meenemen is nog niet opgeslagen. Kies Afronden om op te slaan. Pas dan wordt het voorstel meegenomen en aan jou toegewezen."
+- Geen voorbeeldtekst meer in de vakken *Bericht* en *Notitie*. De knoppen heten **✉ Bericht** en **🔒 Notitie**, zodat er niets meer wordt afgekapt.
+- **Steun:** de eerste vijf namen als korte lijst, en de rest onder "En nog n meer".
+- **De regel onder de titel** noemt alleen de sectie, de steun en bij wie het voorstel ligt. Of de tekst al is aangepast, staat in het uitgeklapte voorstel. Titel en regel worden niet meer afgekapt.
+- 6 nieuwe tests; nu 613. axe op de werkplek en de lade: 0 overtredingen.
+
 ## 1.29.0 – 2026-11-13
 
 Ronde B na de onafhankelijke review van 1.27.0: toegankelijkheid (bouwlijst `bouwlijst-1.29.0-ronde-b.md`). Doel: het redactie- en reviewdeel haalt WCAG 2.1 AA, ook voor wie met het toetsenbord of een schermlezer werkt.
