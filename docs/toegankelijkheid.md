@@ -2,34 +2,109 @@
 
 Doel: **WCAG 2.1 niveau AA**, de norm uit het Besluit digitale toegankelijkheid overheid (EN 301 549).
 
-## Geautomatiseerde test
+Bijgewerkt bij **versie 1.29.0** (13 november 2026), na de onafhankelijke toegankelijkheidsreview van 1.27.0.
 
-Getest met axe-core 4.10 (regels `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) in Chromium, op de draaiende container, bij oplevering van versie 1.2.0:
+## Geautomatiseerde meting
+
+Gemeten met axe-core 4.10 (regels `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) in Chromium, met
+`scripts/browsertests/axe.js`, op versie 1.29.0 met de demo-inhoud.
 
 | Scherm | Licht | Donker |
 |---|---|---|
-| Inloggen | geen overtredingen | – |
-| Artikellijst | geen overtredingen | geen overtredingen |
-| Artikel met onboarding-uitleg open | geen overtredingen | geen overtredingen |
-| Assistent met antwoord | geen overtredingen | geen overtredingen |
-| Venster verbetervoorstel | geen overtredingen | geen overtredingen |
-| Verbetervoorstellen (redacteur) | geen overtredingen | geen overtredingen |
-| Statistieken | geen overtredingen | geen overtredingen |
-| Ingebed bij zaaktype | geen overtredingen | geen overtredingen |
-| Artikel op telefoonformaat (390 px) | geen overtredingen | – |
-| Artikel met tabel en koppen uit Word | geen overtredingen | geen overtredingen |
+| Site: start | geen overtredingen | geen overtredingen |
+| Site: artikel | geen overtredingen | geen overtredingen |
+| Site: zoeken | geen overtredingen | geen overtredingen |
+| Site: venster verbetervoorstel | geen overtredingen | geen overtredingen |
+| Review: lijst | geen overtredingen | geen overtredingen |
+| Review: stuk met opmerking in de tekst | geen overtredingen | geen overtredingen |
+| Beheer: werkplek | geen overtredingen | – (beheer is altijd licht) |
+| Beheer: werkbak | geen overtredingen | – |
+| Beheer: artikellijst | geen overtredingen | – |
+| Beheer: Artikel uit Word | geen overtredingen | – |
+| Beheer: nieuw artikel | geen overtredingen | – |
+| Beheer: nieuw nieuwsbericht | geen overtredingen | – |
+| Beheer: bewerkscherm | geen overtredingen | – |
+| Beheer: bewerkscherm met open lade en open voorstel | geen overtredingen | – |
+| Beheer: venster Afronden | geen overtredingen | – |
+| Beheer: paneel Eigenschappen | geen overtredingen | – |
 
-Bij de eerste meting faalden twee kleuren uit het prototype op contrast (groen voor "proces" en oranje voor "in behandeling"). Die zijn aangepast naar een contrast van minimaal 4,5:1.
+Een geautomatiseerde test vindt ongeveer een derde van de mogelijke problemen. Daarom is ook het
+toetsenbordgedrag nagelopen (hieronder) en is er een script voor een handmatige test met een schermlezer.
 
-## Ingebouwd
+## Met het toetsenbord nagelopen (Playwright, Chromium)
+
+- **Vensters in het beheer** (Afronden, Versturen, Afwijzen, Dubbel, Link, Overnemen, de kladversie):
+  - het zijn echte dialogen (`<dialog>` met `showModal`), met een titel;
+  - Tab blijft in het venster;
+  - Escape sluit het;
+  - daarna staat de focus weer op de knop waar je vandaan kwam.
+- **Panelen** (Eigenschappen, Geschiedenis, Review):
+  - de knop zegt open of dicht (`aria-expanded`);
+  - openen zet de focus op de kop van het paneel;
+  - Escape of ✕ zet hem terug op de knop.
+- **Bekijk als medewerker**: een dialoog. Escape werkt ook vanuit het voorbeeld, en daarna staat de focus
+  weer op de knop.
+- **De lade met verbetervoorstellen:**
+  - het tabblad staat vóór de lade;
+  - een dichte lade is niet bereikbaar (`inert`);
+  - openen zet de focus in de lade, Escape sluit hem;
+  - na elke handeling (voorstel openen, meenemen, bericht of notitie) blijft de focus op hetzelfde element;
+  - meldingen gaan via één vaste live-regio;
+  - *Bericht* en *Notitie* zijn knoppen met `aria-pressed`;
+  - *Toon in de tekst* zet de cursor op het citaat.
+- **De werkbalk van de editor** is één Tab-stop. Met de pijltjes, Home en End ga je van knop naar knop.
+  Knoppen die aan of uit staan, hebben `aria-pressed`.
+- **Het sectiemenu (⋯ en +)** werkt met de pijltjes. Escape of Tab sluit het en zet de focus terug.
+- **Reviewpagina:**
+  - de knop *Opmerking bij deze tekst* verschijnt ook na een selectie met Shift+pijltjes;
+  - je kunt de tekst ook typen of plakken ("Bij een bepaald stuk tekst?");
+  - elke opmerking heeft een knop *Ga naar opmerking n in de tekst*.
+- **Werkbak:**
+  - het vinkje noemt het voorstel en het artikel;
+  - de stip "nog niet geopend" en het rode aantal hebben een tekst voor de schermlezer;
+  - de balk zegt hoeveel je hebt aangevinkt.
+
+## Markeringen in de tekst
+
+- **Verbetervoorstel:** blauw, met een **stippellijn** eronder en een **rond** nummer.
+- **Opmerking van de review:** groen, met een **doorgetrokken lijn** eronder en een **vierkant** nummer.
+- **Uitleg voor nieuwe collega's:** geel.
+
+Behalve de kleur verschilt ook de vorm (WCAG 1.4.1, ook voor kleurenblinden). De nummers zijn voor het oog
+(`aria-hidden`). De schermlezer hoort "begin verbetervoorstel 2" en "einde verbetervoorstel 2", of "begin
+opmerking 1 van de review" en "einde opmerking 1", in plaats van een los getal midden in de zin. Alle nummers
+hebben een contrast van minstens 4,5:1.
+
+Op de reviewpagina tonen *ingevoegd* en *verwijderd* niet alleen kleur: ingevoegde tekst is onderstreept,
+verwijderde tekst doorgehaald (`<ins>`/`<del>`).
+
+## Ingebouwd op de site
 
 - Semantische opbouw: kop, navigatie, `main`, koppen per niveau; skip-link "Naar de inhoud".
-- Volledig met het toetsenbord te bedienen; zichtbare focus; `/` springt naar zoeken, `Esc` sluit vensters.
-- Inklapbare secties met native `<details>`/`<summary>`, dus correct aangekondigd door schermlezers.
+- Met het toetsenbord te bedienen; zichtbare focus; `/` springt naar zoeken; `Esc` sluit vensters.
+- Inklapbare secties met native `<details>`/`<summary>`.
 - Statusmeldingen (toasts, zoekresultaten, antwoorden van de assistent) via `aria-live`.
 - Schakelaars met `aria-pressed`; menu en assistent met `aria-expanded`.
-- Werkt bij 400% zoom en op 320 px breedte zonder horizontaal scrollen; respecteert `prefers-reduced-motion` en donkere modus.
+- Werkt bij 400% zoom en op 320 px breedte. Het bewerkscherm doet dat ook, met de lade over de volle breedte.
+- **Licht of donker:** standaard volgt de site het apparaat. Met de knop **☾ Donker** draai je dat om. Het
+  beheer is altijd licht.
+- Respecteert `prefers-reduced-motion`.
+
+## Wat nog niet is getoetst
+
+- **Een echte schermlezer** (NVDA of JAWS) op Windows, en Firefox en Edge. Gebruik daarvoor
+  [het NVDA-testscript](nvda-testscript.md).
+- **Windows Hoog contrast** (forced colors). Waarschijnlijk vallen de achtergrondkleuren van markeringen,
+  pillen en het lade-tabblad dan weg; de lijnen onder de markeringen blijven.
+- **Een citaat kiezen op de site met het toetsenbord.** In leestekst kun je zonder cursornavigatie (F7) niet
+  selecteren. Er is een weg zonder citaat (*dien een verbetervoorstel in*).
+- De volledige standaardlijsten en -formulieren van Django (gebruikers, groepen). Bekend punt: links in het
+  kruimelpad van die standaardpagina's zijn alleen door kleur te onderscheiden (axe `link-in-text-block`); dat
+  zit in Django zelf.
+- Tekstafstand (1.4.12), spraakbesturing en tablets.
 
 ## Nog te doen door de organisatie
 
-Een geautomatiseerde test vindt ongeveer een derde van de mogelijke problemen. Laat vóór livegang een handmatige toets uitvoeren (met schermlezer en toetsenbord) en publiceer de toegankelijkheidsverklaring via het register van DigiToegankelijk. Het beheerscherm (`/beheer/`) is het standaard Django-beheer en valt onder dezelfde toets. Bekend punt daar: links in het kruimelpad zijn alleen door kleur te onderscheiden (axe `link-in-text-block`); dat zit in Django zelf. De editor (Tiptap) heeft een werkbalk met echte knoppen en labels, de tekst is een tekstvak met `role="textbox"`; de + tussen blokken is alleen met de muis te bereiken, maar *+ Sectie* in de werkbalk doet hetzelfde met het toetsenbord. Nieuwsberichten gebruiken dezelfde editor. Hij is niet apart met een schermlezer getoetst.
+Laat vóór livegang een handmatige toets uitvoeren met schermlezer en toetsenbord
+([testscript](nvda-testscript.md)). Publiceer daarna de toegankelijkheidsverklaring via het register van
+DigiToegankelijk.

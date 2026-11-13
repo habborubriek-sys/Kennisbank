@@ -65,11 +65,27 @@
     document.body.classList.add("kb-met-lade");
     var open = !!actief || sessionStorageLees() === "open";
     zetOpen(open);
-    lip.addEventListener("click", function () { zetOpen(!document.body.classList.contains("kb-lade-open")); });
+    // Ronde B (M17): openen met het tabblad zet de focus in de lade; Escape in de lade sluit hem weer.
+    lip.addEventListener("click", function () {
+      var aan = !document.body.classList.contains("kb-lade-open");
+      zetOpen(aan);
+      if (aan) { var kop = $(".kb-lade-kop h2", lade); if (kop) { kop.tabIndex = -1; kop.focus(); } }
+    });
+    lade.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape" || document.querySelector("dialog[open]")) return;
+      e.stopPropagation();
+      zetOpen(false);
+      lip.focus();
+    });
+    var sluitKnop = $(".kb-lade-sluit", lade);
+    if (sluitKnop) sluitKnop.addEventListener("click", function () { zetOpen(false); lip.focus(); });
 
     function sessionStorageLees() { try { return sessionStorage.getItem("kb-lade"); } catch (e) { return null; } }
     function zetOpen(aan) {
       document.body.classList.toggle("kb-lade-open", aan);
+      // Een dichte lade is ook voor Tab en de schermlezer dicht (review 1.27.0, M17).
+      lade.inert = !aan;
+      if (!aan) lade.setAttribute("aria-hidden", "true"); else lade.removeAttribute("aria-hidden");
       lip.setAttribute("aria-expanded", aan ? "true" : "false");
       $(".kb-lip-pijl", lip).textContent = aan ? "◀" : "▶";
       try { sessionStorage.setItem("kb-lade", aan ? "open" : "dicht"); } catch (e) { /* geen opslag: niet erg */ }
@@ -128,9 +144,15 @@
       sub.appendChild(span);
     }
 
+    var vorigeOnbewaard = 0;
     function meldingen() {
       var m = $("#kb-lade-meldingen");
       m.textContent = "";
+      var nuOnbewaard = aantalOnbewaard();
+      if (nuOnbewaard !== vorigeOnbewaard) {
+        if (nuOnbewaard) zeg(nuOnbewaard + (nuOnbewaard === 1 ? " wijziging" : " wijzigingen") + " bij Meenemen nog niet opgeslagen.");
+        vorigeOnbewaard = nuOnbewaard;
+      }
       if (opSlot) m.appendChild(el("div", "kb-lade-melding kb-lade-slot", "Ter inzage: je kunt nu niets meenemen. Een bericht sturen kan wel, en voorstellen die niet zijn meegenomen kun je afwijzen."));
       if (spoed) m.appendChild(el("div", "kb-lade-melding kb-lade-spoed", "Spoedcorrectie: wat je hier meeneemt, wordt afgehandeld als je deze correctie publiceert."));
       var na = naAkkoord();
@@ -139,7 +161,21 @@
       if (o) m.appendChild(el("div", "kb-lade-melding kb-lade-onbewaard", o + (o === 1 ? " wijziging" : " wijzigingen") + " bij Meenemen nog niet opgeslagen. Sla op via Afronden; anders telt het niet en is het voorstel ook niet opgepakt."));
     }
 
+    // Ronde B (M17): de lade wordt na elke handeling opnieuw getekend. Onthoud waar de focus stond en zet hem
+    // daarna terug; is dat element weg (bijvoorbeeld na afwijzen), dan op de kop van de lade.
+    var naTeken = null;
     function teken() {
+      var a = document.activeElement;
+      var sleutel = naTeken || (a && lade.contains(a) ? a.getAttribute("data-kb-focus") : null);
+      var hadFocus = !!naTeken || (a && lade.contains(a));
+      naTeken = null;
+      tekenNu();
+      if (!hadFocus) return;
+      var doel = sleutel && lade.querySelector('[data-kb-focus="' + sleutel + '"]');
+      if (!doel) { doel = $(".kb-lade-kop h2", lade); if (doel) doel.tabIndex = -1; }
+      if (doel) doel.focus();
+    }
+    function tekenNu() {
       velden();
       markeer();
       $("#kb-lip-teller").textContent = String(lijst.length);
@@ -157,6 +193,7 @@
       var rij = el("div", "kb-vk-rij");
       rij.setAttribute("role", "button");
       rij.tabIndex = 0;
+      rij.setAttribute("data-kb-focus", "rij-" + v.id);
       rij.setAttribute("aria-expanded", isOpen ? "true" : "false");
       rij.appendChild(el("span", "kb-vk-nr", String(nr(v))));
       var blok = el("span", "kb-vk-titelblok");
@@ -189,6 +226,14 @@
       if (v.citaat) d.appendChild(el("div", "kb-vk-citaat", "“" + v.citaat + "”"));
       d.appendChild(el("div", "kb-vk-tekst", v.tekst));
       d.appendChild(el("div", "kb-vk-meta", [v.indiener || "Indiener onbekend", v.op, v.steun ? v.steun + (v.steun === 1 ? " collega steunt dit" : " collega's steunen dit") + (v.steuners && v.steuners.length ? ": " + v.steuners.join(", ") : "") : "nog geen steun"].join(" · ")));
+      // Ronde B (M19): naar het citaat in de tekst, ook met het toetsenbord.
+      if (v.citaat && i.gevonden && window.kbInhoudEditor && window.kbInhoudEditor.naarVoorstel) {
+        var toon = el("button", "kb-vk-toon", "Toon in de tekst");
+        toon.type = "button";
+        toon.setAttribute("data-kb-focus", "toon-" + v.id);
+        toon.addEventListener("click", function () { window.kbInhoudEditor.naarVoorstel(v.id, true); });
+        d.appendChild(toon);
+      }
       // Ronde A (M13): meegenomen en de tekst is aangepast = goed; meegenomen en de tekst staat er nog = vraag.
       if (v.citaat && mee[v.id] && !i.gevonden) d.appendChild(el("div", "kb-vk-ok", "Aangepast ✓ De tekst van het voorstel staat niet meer letterlijk in het artikel."));
       else if (v.citaat && mee[v.id] && i.gevonden) d.appendChild(el("div", "kb-vk-let", "Meegenomen, maar de tekst staat nog ongewijzigd in het artikel. Al aangepast?"));
@@ -209,6 +254,7 @@
       vak.type = "checkbox";
       vak.checked = !!mee[v.id];
       vak.disabled = opSlot || spoedSlot;
+      vak.setAttribute("data-kb-focus", "mee-" + v.id);
       lab.appendChild(vak);
       var tekst = el("span");
       tekst.appendChild(el("b", null, spoed ? "Meenemen in deze spoedcorrectie" : "Meenemen in deze versie"));
@@ -235,13 +281,15 @@
       // Bericht of notitie: twee tabbladen, één tegelijk zichtbaar.
       var welk = tab[v.id] || "bericht";
       var voornaam = (v.indiener || "de indiener").split(" ")[0];
+      // Ronde B (L1): twee knoppen met aria-pressed in plaats van een half tabbladpatroon.
       var tabs = el("div", "kb-vk-tabs");
-      tabs.setAttribute("role", "tablist");
+      tabs.setAttribute("role", "group");
+      tabs.setAttribute("aria-label", "Bericht of interne notitie");
       [["bericht", "✉ Bericht aan " + voornaam], ["notitie", "🔒 Interne notitie"]].forEach(function (t) {
         var b = el("button", "kb-vk-tab kb-vk-tab-" + t[0] + (welk === t[0] ? " kb-vk-tab-aan" : ""), t[1]);
         b.type = "button";
-        b.setAttribute("role", "tab");
-        b.setAttribute("aria-selected", welk === t[0] ? "true" : "false");
+        b.setAttribute("aria-pressed", welk === t[0] ? "true" : "false");
+        b.setAttribute("data-kb-focus", "tab-" + v.id + "-" + t[0]);
         b.addEventListener("click", function () { tab[v.id] = t[0]; teken(); });
         tabs.appendChild(b);
       });
@@ -253,12 +301,14 @@
         var taB = el("textarea");
         var sB = conceptSleutel(v, "bericht");
         taB.value = concept[sB] || "";
+        taB.setAttribute("data-kb-focus", "ta-" + v.id + "-bericht");
         taB.addEventListener("input", function () { concept[sB] = taB.value; });
         taB.placeholder = "Laat " + voornaam + " weten hoe het ervoor staat. Een reactie terug is niet mogelijk; voor overleg gebruik je Teams of mail.";
         taB.setAttribute("aria-label", "Bericht aan " + (v.indiener || "de indiener"));
         vakB.appendChild(taB);
         var stuur = el("button", "button default", "Versturen aan " + voornaam + "…");
         stuur.type = "button";
+        stuur.setAttribute("data-kb-focus", "stuur-" + v.id);
         stuur.addEventListener("click", function () {
           var t = taB.value.trim();
           if (!t) { taB.focus(); return; }
@@ -279,12 +329,14 @@
         var taN = el("textarea");
         var sN = conceptSleutel(v, "notitie");
         taN.value = concept[sN] || "";
+        taN.setAttribute("data-kb-focus", "ta-" + v.id + "-notitie");
         taN.addEventListener("input", function () { concept[sN] = taN.value; });
         taN.placeholder = "Notitie voor collega-redacteuren";
         taN.setAttribute("aria-label", "Interne notitie");
         vakN.appendChild(taN);
         var bewaar = el("button", "button", "Notitie bewaren");
         bewaar.type = "button";
+        bewaar.setAttribute("data-kb-focus", "bewaar-" + v.id);
         bewaar.addEventListener("click", function () { var t = taN.value.trim(); if (t) actie(v, "notitie", t); else taN.focus(); });
         var r2 = el("div", "kb-vk-knoppen"); r2.appendChild(bewaar); vakN.appendChild(r2);
         d.appendChild(vakN);
@@ -297,6 +349,8 @@
       var kn = el("div", "kb-vk-knoppen");
       var afw = el("button", "button kb-gevaar", "Afwijzen…"); afw.type = "button"; afw.disabled = !magAf;
       var dub = el("button", "button", "Dubbel…"); dub.type = "button"; dub.disabled = !magAf || !v.andere.length;
+      afw.setAttribute("data-kb-focus", "afw-" + v.id);
+      dub.setAttribute("data-kb-focus", "dub-" + v.id);
       afw.addEventListener("click", function () { afsluiten(v, "afwijzen"); });
       dub.addEventListener("click", function () { afsluiten(v, "dubbel"); });
       kn.appendChild(afw); kn.appendChild(dub);
@@ -304,6 +358,7 @@
       // Verbergen voor collega's (onder "Alle voorstellen"), bijvoorbeeld als er een naam in staat.
       var verberg = el("button", "kb-vk-verberg", v.verborgen ? "Weer tonen aan collega's" : "Verbergen voor collega's");
       verberg.type = "button";
+      verberg.setAttribute("data-kb-focus", "verberg-" + v.id);
       verberg.title = "Collega's zien het voorstel dan niet meer onder Alle voorstellen en kunnen het niet steunen. De indiener ziet het gewoon.";
       verberg.addEventListener("click", function () { actie(v, "verbergen", "", "", v.verborgen ? "0" : "1"); });
       af.appendChild(verberg);
@@ -349,6 +404,8 @@
     }
 
     function actie(v, soort, tekst, dubbelVan, waarde) {
+      // Na het antwoord tekent de lade opnieuw: zet de focus dan terug op de knop van deze handeling.
+      var focusNa = { bericht: "stuur-", notitie: "bewaar-", verbergen: "verberg-", afwijzen: "rij-", dubbel: "rij-" }[soort] + v.id;
       var data = new FormData();
       data.append("actie", soort);
       data.append("tekst", tekst);
@@ -365,6 +422,7 @@
       }).then(function (r) {
         return r.json().catch(function () { return { fout: "De server gaf een onverwacht antwoord (" + r.status + ")." }; });
       }).then(function (antw) {
+        naTeken = focusNa;
         if (antw.fout) {
           if (antw.voorstel) {
             // Intussen veranderd: toon de nieuwe stand. Je getypte tekst blijft staan (concept).
@@ -391,11 +449,20 @@
       }).catch(function () { melding("Geen verbinding met de server. Er is niets verstuurd.", true); });
     }
 
+    // Eén vaste live-regio (ronde B, M23): de schermlezer leest meldingen voor die erin komen.
+    function zeg(tekst) {
+      var live = document.getElementById("kb-lade-live");
+      if (!live || !tekst) return;
+      live.textContent = "";
+      setTimeout(function () { live.textContent = tekst; }, 60);
+    }
+
     function melding(tekst, fout) {
       if (!tekst) return;
       var m = el("div", "kb-lade-toast" + (fout ? " kb-lade-toast-fout" : ""), tekst);
-      m.setAttribute("role", fout ? "alert" : "status");
+      m.setAttribute("aria-hidden", "true"); // voorgelezen via de vaste live-regio
       document.body.appendChild(m);
+      zeg(tekst);
       setTimeout(function () { m.remove(); }, fout ? 7000 : 4000);
     }
 
@@ -407,6 +474,8 @@
       teken();
       var kaartEl = document.querySelector(".kb-vk-open");
       if (kaartEl) kaartEl.scrollIntoView({ block: "nearest" });
+      var rijEl = kaartEl && kaartEl.querySelector(".kb-vk-rij");
+      if (rijEl) rijEl.focus();
     };
 
     // Weggaan met meenemen dat nog niet is opgeslagen.

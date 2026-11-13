@@ -24,8 +24,10 @@
   if (!tekst || !veld || !vak) return;
   var knop = document.createElement("button");
   knop.type = "button"; knop.className = "tb primary rv-selectieknop"; knop.textContent = "Opmerking bij deze tekst";
-  knop.hidden = true; document.body.appendChild(knop);
+  // Ronde B (M20): direct na de tekst in de volgorde, zodat Tab hem na een selectie met het toetsenbord vindt.
+  knop.hidden = true; tekst.parentNode.insertBefore(knop, tekst.nextSibling);
   var gekozen = "";
+  var zelf = document.getElementById("rv-citaat-invoer");
 
   function geselecteerd() {
     var sel = window.getSelection();
@@ -34,24 +36,38 @@
     if (!tekst.contains(r.commonAncestorContainer)) return "";
     // Weggehaalde tekst (<del>) en de nummers van markeringen horen niet bij het citaat.
     var kopie = document.createElement("div"); kopie.appendChild(r.cloneContents());
-    kopie.querySelectorAll("del, .kb-opm-nr").forEach(function (n) { n.remove(); });
+    kopie.querySelectorAll("del, .kb-opm-nr, .kb-sr").forEach(function (n) { n.remove(); });
     return window.KbOpmerkingen ? window.KbOpmerkingen.normaal(kopie.textContent).slice(0, 1000) : "";
   }
 
-  document.addEventListener("mouseup", function () {
+  function bijSelectie() {
     setTimeout(function () {
       gekozen = geselecteerd();
       if (!gekozen) { knop.hidden = true; return; }
       var rect = window.getSelection().getRangeAt(0).getBoundingClientRect();
-      knop.style.top = (window.scrollY + rect.bottom + 6) + "px";
-      knop.style.left = (window.scrollX + rect.left) + "px";
+      var ouder = knop.offsetParent || document.body;
+      var o = ouder.getBoundingClientRect();
+      knop.style.top = (rect.bottom - o.top + ouder.scrollTop + 6) + "px";
+      knop.style.left = (rect.left - o.left + ouder.scrollLeft) + "px";
       knop.hidden = false;
     }, 10);
+  }
+  document.addEventListener("mouseup", bijSelectie);
+  // Ook met het toetsenbord (Shift + pijltjes): de site deed dat al, de reviewpagina nog niet.
+  document.addEventListener("keyup", function (e) {
+    if (e.shiftKey || /^(Arrow|Home|End)/.test(e.key)) bijSelectie();
   });
+  function zetCitaat(t) {
+    veld.value = t;
+    toonTekst.textContent = t;
+    vak.hidden = !t;
+    if (zelf && zelf.value !== t) zelf.value = t;
+  }
+  if (zelf) zelf.addEventListener("input", function () { var t = zelf.value.trim(); veld.value = t; toonTekst.textContent = t; vak.hidden = !t; });
   knop.addEventListener("mousedown", function (e) { e.preventDefault(); });
   knop.addEventListener("click", function () {
-    veld.value = gekozen; toonTekst.textContent = gekozen; vak.hidden = false; knop.hidden = true;
+    zetCitaat(gekozen); knop.hidden = true;
     if (invoer) invoer.focus();
   });
-  if (wis) wis.addEventListener("click", function () { veld.value = ""; vak.hidden = true; });
+  if (wis) wis.addEventListener("click", function () { zetCitaat(""); if (invoer) invoer.focus(); });
 })();

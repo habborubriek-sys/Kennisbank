@@ -60,15 +60,30 @@
 
   function veld(naam) { return document.querySelector('[name="' + naam + '"]'); }
 
+  var vensterNr = 0;
+  /* Een vraag of keuze in het beheer (Afronden, Versturen, Afwijzen, Link, kladversie, …).
+   *
+   * Sinds 1.29.0 (ronde B, review 1.27.0 H3) een echte <dialog> met showModal(): de schermlezer leest de titel
+   * en de uitleg voor, Tab blijft in het venster, de pagina erachter is niet bereikbaar, Escape sluit het
+   * (als Annuleren) en daarna staat de focus weer op wat je had aangeklikt. */
   function vensterTonen(opties) {
-    var laag = document.createElement("div");
+    var nr = ++vensterNr;
+    var terug = document.activeElement;
+    var laag = document.createElement("dialog");
     laag.className = "kb-venster-laag";
+    laag.setAttribute("aria-labelledby", "kb-venster-titel-" + nr);
     var vak = document.createElement("div");
     vak.className = "kb-venster";
     var titel = document.createElement("h2");
+    titel.id = "kb-venster-titel-" + nr;
     titel.textContent = opties.titel;
     vak.appendChild(titel);
-    (opties.alineas || []).forEach(function (t) { var p = document.createElement("p"); p.textContent = t; vak.appendChild(p); });
+    (opties.alineas || []).forEach(function (t, i) {
+      var p = document.createElement("p");
+      p.textContent = t;
+      if (i === 0) { p.id = "kb-venster-uitleg-" + nr; laag.setAttribute("aria-describedby", p.id); }
+      vak.appendChild(p);
+    });
     if (opties.inhoud) vak.appendChild(opties.inhoud);
     var rij = document.createElement("div");
     rij.className = "kb-venster-knoppen";
@@ -83,7 +98,20 @@
     vak.appendChild(rij);
     laag.appendChild(vak);
     document.body.appendChild(laag);
-    function sluit() { if (laag.parentNode) laag.parentNode.removeChild(laag); }
+    var dicht = false;
+    function sluit() {
+      if (dicht) return;
+      dicht = true;
+      if (laag.open && laag.close) laag.close();
+      if (laag.parentNode) laag.parentNode.removeChild(laag);
+      // Terug naar waar je was, als dat er nog is en er niet intussen een ander venster openging.
+      if (terug && terug.focus && document.contains(terug) && !document.querySelector("dialog.kb-venster-laag[open]")) {
+        try { terug.focus(); } catch (e) { /* niet erg */ }
+      }
+    }
+    // Escape = Annuleren: niets doen, venster dicht.
+    laag.addEventListener("cancel", function (e) { e.preventDefault(); sluit(); });
+    if (laag.showModal) laag.showModal(); else laag.setAttribute("open", "");
     // Ronde A (review 1.27.0, H2): de focus op het eerste invoerveld, anders op de knop die `focus` heeft of de
     // hoofdknop. Niet op de eerste knop: dat was bij de kladversie *Weggooien*, en dan gooide Enter je werk weg.
     var knoppen = vak.querySelectorAll(".kb-venster-knoppen button");

@@ -135,13 +135,27 @@
     return gevonden;
   }
 
+  function srWidget(tekst) {
+    return function () {
+      var s = document.createElement("span");
+      s.className = "kb-sr";
+      s.setAttribute("contenteditable", "false");
+      s.textContent = " " + tekst + " ";
+      return s;
+    };
+  }
+
   function opmDecoraties(doc, lijst) {
     var deco = [];
     (lijst || []).forEach(function (o) {
       if (!o.citaat) return;
       var r = vind(doc, o.citaat);
       o._plek = r;
-      if (r) deco.push(T.Decoration.inline(r.from, r.to, { class: "kb-ae-opm", "data-nr": String(o.nr) }));
+      if (!r) return;
+      deco.push(T.Decoration.inline(r.from, r.to, { class: "kb-ae-opm", "data-nr": String(o.nr) }));
+      // Ronde B (M19): de schermlezer hoort waar de opmerking begint en eindigt; het oog ziet groen met een lijn.
+      deco.push(T.Decoration.widget(r.from, srWidget("begin opmerking " + o.nr + " van de review"), { side: -1, key: "opmb" + o.nr, ignoreSelection: true }));
+      deco.push(T.Decoration.widget(r.to, srWidget("einde opmerking " + o.nr), { side: 1, key: "opme" + o.nr, ignoreSelection: true }));
     });
     return T.DecorationSet.create(doc, deco);
   }
@@ -180,14 +194,24 @@
       v._plek = r;
       if (!r) return;
       deco.push(T.Decoration.inline(r.from, r.to, { class: "kb-ae-vs" + (v.actief ? " kb-ae-vs-actief" : ""), "data-vs": String(v.id) }));
+      // Ronde B (M19): het nummer is voor het oog (aria-hidden); de schermlezer hoort "begin/einde verbetervoorstel n"
+      // in plaats van een los getal midden in de zin.
+      deco.push(T.Decoration.widget(r.from, srWidget("begin verbetervoorstel " + v.nr), { side: -1, key: "vsb" + v.id + "-" + v.nr, ignoreSelection: true }));
       deco.push(T.Decoration.widget(r.to, function () {
+        var w = document.createElement("span");
+        w.setAttribute("contenteditable", "false");
         var s = document.createElement("sup");
         s.className = "kb-ae-vsnr" + (v.actief ? " kb-ae-vsnr-actief" : "");
         s.textContent = String(v.nr);
         s.setAttribute("data-vs", String(v.id));
-        s.setAttribute("contenteditable", "false");
+        s.setAttribute("aria-hidden", "true");
         s.title = "Verbetervoorstel " + v.nr;
-        return s;
+        w.appendChild(s);
+        var e = document.createElement("span");
+        e.className = "kb-sr";
+        e.textContent = " einde verbetervoorstel " + v.nr + " ";
+        w.appendChild(e);
+        return w;
       }, { side: 1, key: "vs" + v.id + "-" + v.nr + (v.actief ? "a" : ""), ignoreSelection: true }));
     });
     return T.DecorationSet.create(doc, deco);
@@ -254,10 +278,22 @@
     return null;
   }
 
-  var openMenu = null;
-  function sluitMenu() { if (openMenu) { openMenu.remove(); openMenu = null; } }
+  var openMenu = null, menuAnker = null;
+  function sluitMenu(terug) {
+    if (!openMenu) return;
+    openMenu.remove();
+    openMenu = null;
+    if (terug && menuAnker && document.contains(menuAnker)) menuAnker.focus();
+  }
   document.addEventListener("mousedown", function (e) { if (openMenu && !openMenu.contains(e.target)) sluitMenu(); });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") sluitMenu(); });
+  // Ronde B (L3): Escape en Tab sluiten het menu en zetten de focus terug op de knop ⋯ of +.
+  document.addEventListener("keydown", function (e) {
+    if (!openMenu) return;
+    if (e.key === "Escape" || (e.key === "Tab" && openMenu.contains(document.activeElement))) {
+      e.preventDefault();
+      sluitMenu(true);
+    }
+  });
 
   function toonMenu(anker, items) {
     sluitMenu();
@@ -275,6 +311,16 @@
       b.addEventListener("click", function () { sluitMenu(); it.doe(); });
       m.appendChild(b);
     });
+    // Pijltjes (en Home/End) door de menuknoppen.
+    m.addEventListener("keydown", function (e) {
+      var lijst = Array.prototype.slice.call(m.querySelectorAll("button:not([disabled])"));
+      var i = lijst.indexOf(document.activeElement);
+      var naar = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: lijst.length - 1 }[e.key];
+      if (naar === undefined || !lijst.length) return;
+      e.preventDefault();
+      lijst[(naar + lijst.length) % lijst.length].focus();
+    });
+    menuAnker = anker;
     document.body.appendChild(m);
     var r = anker.getBoundingClientRect();
     var links = Math.max(8, Math.min(window.innerWidth - m.offsetWidth - 8, r.left + window.scrollX - m.offsetWidth / 2 + r.width / 2));
@@ -522,10 +568,10 @@
     knop("<i>I</i>", "Cursief (Ctrl+I)", function () { c().toggleItalic().run(); }, "italic");
     knop("<u>U</u>", "Onderstrepen (Ctrl+U)", function () { c().toggleUnderline().run(); }, "underline");
     knop("<s>S</s>", "Doorhalen", function () { c().toggleStrike().run(); }, "strike");
-    knop("x<sup>2</sup>", "Superscript", function () { c().toggleSuperscript().run(); }, "superscript");
+    knop("x<sup>2</sup>", "x2 superscript", function () { c().toggleSuperscript().run(); }, "superscript");
     scheid();
     knop("•≡", "Opsomming", function () { c().toggleBulletList().run(); }, "bulletList");
-    knop("1.≡", "Genummerde lijst", function () { c().toggleOrderedList().run(); }, "orderedList");
+    knop("1.≡", "1. Genummerde lijst", function () { c().toggleOrderedList().run(); }, "orderedList");
     scheid();
     knop("Link", "Link", function () { linkVragen(ed); }, "link", "kb-ae-tekst");
     knop("Tabel", "Tabel invoegen", function () { c().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); }, null, "kb-ae-tekst");
@@ -556,9 +602,42 @@
     tk("− kolom", "Kolom weg", function () { c().deleteColumn().run(); });
     tk("Tabel weg", "Hele tabel weg", function () { c().deleteTable().run(); });
 
+    // Ronde B (L2): de werkbalk is één Tab-stop; met de pijltjes (en Home/End) ga je van knop naar knop.
+    function bedienbaar() {
+      return Array.prototype.filter.call(plek.querySelectorAll("button, select"), function (x) {
+        return !x.disabled && !x.closest("[hidden]");
+      });
+    }
+    function rover() {
+      var lijst = bedienbaar();
+      var huidig = lijst.filter(function (x) { return x.tabIndex === 0; })[0] || lijst[0];
+      Array.prototype.forEach.call(plek.querySelectorAll("button, select"), function (x) { x.tabIndex = -1; });
+      if (huidig) huidig.tabIndex = 0;
+    }
+    plek.addEventListener("keydown", function (e) {
+      var lijst = bedienbaar(), i = lijst.indexOf(document.activeElement);
+      if (i < 0) return;
+      var naar = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: lijst.length - 1 }[e.key];
+      if (naar === undefined) return;
+      e.preventDefault();
+      naar = (naar + lijst.length) % lijst.length;
+      lijst.forEach(function (x) { x.tabIndex = -1; });
+      lijst[naar].tabIndex = 0;
+      lijst[naar].focus();
+    });
+    plek.addEventListener("focusin", function (e) {
+      if (!plek.contains(e.target) || e.target.tabIndex === 0) return;
+      Array.prototype.forEach.call(plek.querySelectorAll("button, select"), function (x) { x.tabIndex = -1; });
+      e.target.tabIndex = 0;
+    });
+
     function bijwerken() {
       knoppen.forEach(function (k) {
-        if (k.actief) k.b.classList.toggle("kb-ae-aan", ed.isActive(k.actief));
+        if (k.actief) {
+          var aan = ed.isActive(k.actief);
+          k.b.classList.toggle("kb-ae-aan", aan);
+          k.b.setAttribute("aria-pressed", aan ? "true" : "false");
+        }
         k.b.disabled = !ed.isEditable;
       });
       plek.querySelector(".kb-ae-undo").disabled = !ed.isEditable || !ed.can().undo();
@@ -566,6 +645,7 @@
       soort.disabled = !ed.isEditable;
       soort.value = ed.isActive("heading", { level: 3 }) ? "h3" : ed.isActive("heading", { level: 4 }) ? "h4" : ed.isActive("blockquote") ? "q" : "p";
       tabel.hidden = !ed.isActive("table");
+      rover();
     }
     ed.on("transaction", bijwerken);
     bijwerken();
@@ -757,10 +837,12 @@
         });
         return info;
       },
-      naarVoorstel: function (id) {
+      // Met focus=true (knop "Toon in de tekst", ronde B) komt de cursor op het citaat te staan, geselecteerd.
+      naarVoorstel: function (id, focus) {
         var st = vsSleutel.getState(ed.state);
         var v = (st.lijst || []).filter(function (x) { return x.id === id; })[0];
         if (!v || !v._plek) return false;
+        if (focus) ed.chain().focus().setTextSelection({ from: v._plek.from, to: v._plek.to }).run();
         var dom = ed.view.domAtPos(v._plek.from);
         var node = dom.node.nodeType === 1 ? dom.node : dom.node.parentElement;
         if (node && node.scrollIntoView) node.scrollIntoView({ block: "center", behavior: "smooth" });

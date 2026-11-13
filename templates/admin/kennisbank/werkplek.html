@@ -2,7 +2,9 @@
 {% comment %}
   De werkplek van een redacteur (kennisbank/werkoverzicht.py): links de werkbakken, rechts de inhoud.
 {% endcomment %}
+{% load static %}
 {% block bodyclass %}{{ block.super }} kb-werkplek-pagina{% endblock %}
+{% block extrahead %}{{ block.super }}<script src="{% static 'kennisbank/werkplek.js' %}" defer></script>{% endblock %}
 {% block nav-breadcrumbs %}{% endblock %}
 {% block nav-sidebar %}{% endblock %}
 {% block content_title %}{% endblock %}
@@ -37,7 +39,8 @@
       {% if not af %}
       <form method="post" action="{{ w.selectie_url }}" id="kb-selectie" class="kb-selectiebalk">{% csrf_token %}
         <input type="hidden" name="terug" value="{{ w.gekozen }}">
-        <span class="kb-selectie-uitleg">Vink voorstellen aan om ze toe te wijzen of te verplaatsen.</span>
+        <span class="kb-selectie-uitleg" id="kb-selectie-uitleg">Vink voorstellen aan om ze toe te wijzen of te verplaatsen.</span>
+        <span class="kb-selectie-teller" id="kb-selectie-teller" role="status" aria-live="polite"></span>
         <label class="visually-hidden" for="kb-sel-naar">Toewijzen aan</label>
         <select name="naar" id="kb-sel-naar"><option value="">Toewijzen aan…</option>
           {% for pk, naam in sel.collegas %}<option value="{{ pk }}">{% if pk == sel.ik %}Mijzelf ({{ naam }}){% else %}{{ naam }}{% endif %}</option>{% endfor %}
@@ -63,8 +66,8 @@
         <tbody>
         {% for r in w.inhoud.rijen %}{% with v=r.v %}
           <tr class="kb-bak-rij{% if r.nog_niet_geopend %} kb-bak-nieuw{% endif %}">
-            {% if not af %}<td class="kb-bak-vink"><input type="checkbox" name="voorstel" value="{{ v.pk }}-{{ v.eigenaar_id|default:0 }}" form="kb-selectie" aria-label="Selecteer het voorstel bij {{ v.artikel.titel }}"></td>{% endif %}
-            <td class="kb-bak-stip">{% if r.nog_niet_geopend %}<span class="kb-stip" title="Nog niet geopend"></span>{% endif %}</td>
+            {% if not af %}<td class="kb-bak-vink"><input type="checkbox" name="voorstel" value="{{ v.pk }}-{{ v.eigenaar_id|default:0 }}" form="kb-selectie" aria-label="Selecteer: {{ r.titel }} (bij {{ v.artikel.titel }})"></td>{% endif %}
+            <td class="kb-bak-stip">{% if r.nog_niet_geopend %}<span class="kb-stip" title="Nog niet geopend" aria-hidden="true"></span><span class="visually-hidden">Nog niet geopend</span>{% endif %}</td>
             <td><a class="kb-bak-link" href="{{ r.url }}">{{ v.artikel.titel }}</a></td>
             <td class="kb-bak-snip">{{ r.titel }}</td>
             {% if not af and not w.persoonlijk %}<td>{% if r.eigenaar %}{% if r.van_mij %}jij{% else %}{{ r.eigenaar }}{% endif %}{% else %}—{% endif %}</td>{% endif %}

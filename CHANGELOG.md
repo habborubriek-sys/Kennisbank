@@ -1,5 +1,47 @@
 # Wijzigingen
 
+## 1.29.0 – 2026-11-13
+
+Ronde B na de onafhankelijke review van 1.27.0: toegankelijkheid (bouwlijst `bouwlijst-1.29.0-ronde-b.md`). Doel: het redactie- en reviewdeel haalt WCAG 2.1 AA, ook voor wie met het toetsenbord of een schermlezer werkt.
+
+**Kleuren van de markeringen** (besluit Alex)
+- Een **verbetervoorstel is blauw**, een **opmerking van de review is groen**. Geel is er alleen nog voor "Voor nieuwe collega's".
+- Ook zonder kleur is het verschil te zien: een voorstel heeft een stippellijn en een rond nummer, een opmerking een doorgetrokken lijn en een vierkant nummer. Het groene nummer heeft een contrast van 6,5:1 (was 3,3:1 bij het oranje).
+- Dit geldt overal: in de editor, de marge, de reviewpagina, *Bekijk als medewerker* en de legenda.
+
+**Vensters en panelen**
+- Alle vensters in het beheer zijn echte dialogen: Afronden, Versturen, Afwijzen, Dubbel, Link, Overnemen en de kladversie. De schermlezer leest de titel en de uitleg voor, Tab blijft in het venster, Escape sluit het, en daarna staat de focus weer waar je was.
+- **Panelen** (Eigenschappen, Geschiedenis, Review): openen zet de focus in het paneel, sluiten zet hem terug op de knop. De knoppen zeggen of het paneel open of dicht is.
+- **Bekijk als medewerker**: Escape werkt ook vanuit het voorbeeld. Tab kan niet meer onzichtbaar de tekst in, en na sluiten staat de focus weer op de knop.
+
+**De lade**
+- Na elke handeling blijft de focus waar je was (voorstel openen, meenemen, bericht of notitie).
+- Een dichte lade is ook voor Tab en de schermlezer dicht. Het tabblad staat vóór de lade, openen zet de focus erin, en Escape of ✕ sluit de lade.
+- Meldingen ("nog niet opgeslagen", "Bericht verstuurd") worden voorgelezen.
+- *Bericht* en *Interne notitie* zijn knoppen met "ingedrukt".
+- Nieuw: **Toon in de tekst** zet de cursor op het citaat.
+- Op een smal scherm of bij 400% zoom vult de lade het hele scherm. De meldingen bovenaan schuiven mee opzij.
+
+**In de tekst**
+- De schermlezer leest een nummer niet meer als getal in de zin, maar hoort "begin verbetervoorstel 2 … einde verbetervoorstel 2" of "begin opmerking 1 van de review".
+
+**Reviewpagina**
+- Een opmerking bij een stuk tekst kan ook zonder muis: na een selectie met Shift+pijltjes, of door de tekst te typen of te plakken.
+- Elke opmerking heeft een knop *Ga naar opmerking n in de tekst*.
+
+**Kleiner**
+- De werkbalk van de editor is één Tab-stop; met de pijltjes ga je van knop naar knop. De namen van *x²* en *1.≡* kloppen met wat je ziet, en aan/uit-knoppen zeggen hun stand.
+- Het sectiemenu (⋯ en +) werkt met de pijltjes. Escape en Tab zetten de focus terug.
+- **Werkbak:** het vinkje noemt het voorstel, de stip en het rode aantal hebben een tekst voor de schermlezer, en de balk telt hoeveel voorstellen je hebt aangevinkt (`werkplek.js`).
+- Geen dode verwijzingen meer naar hulpteksten. Dat gold ook voor de vinkjes bij Clusters, een fout in Django.
+- Meer contrast voor de focusrand van titel en samenvatting, de tekstvakken in de lade, de grijze datums in de beheerlijst, en het blok *Waarom deze wijziging* op de reviewpagina in donker.
+
+**Documentatie en tests**
+- `docs/toegankelijkheid.md` is opnieuw opgezet, met de meting van nu en wat nog niet getoetst is.
+- Nieuw: `docs/nvda-testscript.md` (32 stappen met verwachtingen) voor een handmatige test met een schermlezer.
+- Nieuw: `scripts/browsertests/axe.js` meet 20 schermen met axe: 0 overtredingen. Het toetsenbordgedrag is met Playwright nagelopen.
+- 13 nieuwe tests (`test_ronde_b_1290.py`); nu 607.
+
 ## 1.28.0 – 2026-11-13
 
 Ronde A na de onafhankelijke review van 1.27.0: de juiste stand en geen werkverlies (bouwlijst `bouwlijst-1.28.0-ronde-a.md`, met de besluiten van Alex).

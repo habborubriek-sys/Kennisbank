@@ -19,7 +19,7 @@
     var uit = [], walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: function (n) {
         for (var p = n.parentNode; p && p !== root; p = p.parentNode) {
-          if (p.nodeName === "DEL" || (p.classList && p.classList.contains("kb-opm-nr"))) return NodeFilter.FILTER_REJECT;
+          if (p.nodeName === "DEL" || (p.classList && (p.classList.contains("kb-opm-nr") || p.classList.contains("kb-sr")))) return NodeFilter.FILTER_REJECT;
         }
         return NodeFilter.FILTER_ACCEPT;
       }
@@ -62,15 +62,19 @@
       eerste = m;
     }
     var sup = document.createElement("sup"); sup.className = "kb-opm-nr"; sup.textContent = String(nr);
-    sup.setAttribute("aria-label", "opmerking " + nr);
+    sup.setAttribute("aria-hidden", "true");
     eerste.insertBefore(sup, eerste.firstChild);
+    // Ronde B (M19/M20): de schermlezer hoort "opmerking n" in plaats van een los getal in de zin.
+    var sr = document.createElement("span"); sr.className = "kb-sr"; sr.textContent = "opmerking " + nr + ": ";
+    eerste.insertBefore(sr, eerste.firstChild);
     return eerste;
   }
 
   // Een element zichtbaar maken (dichte <details> openen) en ernaartoe scrollen.
-  function toon(el) {
+  function toon(el, focus) {
     for (var p = el.parentNode; p; p = p.parentNode) if (p.nodeName === "DETAILS") p.open = true;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (focus) { if (!el.hasAttribute("tabindex")) el.tabIndex = -1; el.focus({ preventScroll: true }); }
     el.classList.add("kb-opm-flits");
     setTimeout(function () { el.classList.remove("kb-opm-flits"); }, 1200);
   }
@@ -98,10 +102,13 @@
       if (o.voorlopig) li.appendChild(regel("voorlopig: teruggeroepen terwijl het team nog bezig was", "kb-opm-status kb-opm-voorlopig"));
       li.appendChild(regel(o.tekst, "kb-opm-tekst"));
       if (mark) {
-        li.tabIndex = 0; li.classList.add("kb-opm-klikbaar");
-        var ga = function () { toon(mark); };
-        li.addEventListener("click", ga);
-        li.addEventListener("keydown", function (e) { if (e.key === "Enter") ga(); });
+        // Ronde B (M20): een echte knop, ook voor toetsenbord en schermlezer; de focus gaat naar de markering.
+        li.classList.add("kb-opm-klikbaar");
+        var gaKnop = document.createElement("button");
+        gaKnop.type = "button"; gaKnop.className = "kb-opm-ga"; gaKnop.textContent = "Ga naar opmerking " + o.nr + " in de tekst";
+        gaKnop.addEventListener("click", function (e) { e.stopPropagation(); toon(mark, true); });
+        li.appendChild(gaKnop);
+        li.addEventListener("click", function () { toon(mark); });
         mark.addEventListener("click", function () { toon(li); });
       }
       lijst.appendChild(li);

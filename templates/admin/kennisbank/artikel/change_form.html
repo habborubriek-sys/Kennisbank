@@ -41,9 +41,9 @@
   <nav class="kb-balk-knoppen" aria-label="Panelen">
     {% if kb_opmerkingen %}<button type="button" class="kb-bk" data-kb-opm>Opmerkingen ({{ kb_opmerkingen|length }})</button>{% endif %}
     <button type="button" class="kb-bk" data-kb-lees>Bekijk als medewerker</button>
-    <button type="button" class="kb-bk" data-kb-paneel="eig">Eigenschappen</button>
-    {% if original %}<button type="button" class="kb-bk" data-kb-paneel="gesch">Geschiedenis</button>{% endif %}
-    {% if kb_review_teams %}<button type="button" class="kb-bk" data-kb-paneel="rev">Review</button>{% endif %}
+    <button type="button" class="kb-bk" data-kb-paneel="eig" aria-expanded="false" aria-controls="kb-p-eig">Eigenschappen</button>
+    {% if original %}<button type="button" class="kb-bk" data-kb-paneel="gesch" aria-expanded="false" aria-controls="kb-p-gesch">Geschiedenis</button>{% endif %}
+    {% if kb_review_teams %}<button type="button" class="kb-bk" data-kb-paneel="rev" aria-expanded="false" aria-controls="kb-p-rev">Review</button>{% endif %}
     {% if kb_spoed or kb_concept %}
     <details class="kb-meer">
       <summary class="kb-bk">Meer <span aria-hidden="true">▾</span></summary>
@@ -112,23 +112,24 @@
 <input type="hidden" name="kb_lade" id="kb-lade-ids" value="">
 <input type="hidden" name="kb_meenemen" id="kb-meenemen" value="">
 <input type="hidden" name="kb_mee_geladen" id="kb-mee-geladen" value="">
+<button type="button" class="kb-lip" id="kb-lip" aria-controls="kb-lade" aria-expanded="false" hidden title="Verbetervoorstellen"><span class="kb-lip-pijl" aria-hidden="true">▶</span><span class="kb-lip-teller" id="kb-lip-teller">0</span><span class="kb-lip-tekst">Voorstellen</span></button>
 <aside class="kb-lade" id="kb-lade" aria-label="Verbetervoorstellen" hidden>
   <div class="kb-lade-scroll">
-    <div class="kb-lade-kop"><h2>Verbetervoorstellen</h2></div>
+    <div class="kb-lade-kop"><h2>Verbetervoorstellen</h2><button type="button" class="kb-lade-sluit" aria-label="Lade sluiten">✕</button></div>
     <p class="kb-lade-uitleg">Open voorstellen bij dit artikel. Klik op een voorstel om het te lezen en te behandelen.{% if not kb_spoed %} Meenemen telt pas als je opslaat.{% endif %}</p>
     <div id="kb-lade-meldingen"></div>
     <div id="kb-lade-lijst"></div>
   </div>
 </aside>
-<button type="button" class="kb-lip" id="kb-lip" aria-controls="kb-lade" aria-expanded="false" hidden title="Verbetervoorstellen"><span class="kb-lip-pijl" aria-hidden="true">▶</span><span class="kb-lip-teller" id="kb-lip-teller">0</span><span class="kb-lip-tekst">Voorstellen</span></button>
+<div id="kb-lade-live" class="kb-sr" role="status" aria-live="polite"></div>
 {% endif %}
 <div class="kb-werkvlak">
   <div class="kb-blad">
     <span class="kb-blad-soort" data-kb-soort>{% if original %}{{ original.get_soort_display }}{% else %}Werkinstructie{% endif %}</span>
     <div class="kb-vast" data-kb-plek="titel"><span class="kb-vast-label">Titel · verplicht, maximaal 200 tekens</span>{{ f.titel }}{{ f.titel.errors }}</div>
-    <div class="kb-vast" data-kb-plek="samenvatting"><span class="kb-vast-label">Samenvatting · verschijnt ook in de zoekresultaten en het zaaksysteem, houd hem kort</span>{{ f.samenvatting }}{{ f.samenvatting.errors }}</div>
+    <div class="kb-vast" data-kb-plek="samenvatting"><span class="kb-vast-label">Samenvatting · verschijnt ook in de zoekresultaten en het zaaksysteem, houd hem kort</span>{{ f.samenvatting }}{% if f.samenvatting.help_text %}<span class="kb-sr" id="{{ f.samenvatting.id_for_label }}_helptext">{{ f.samenvatting.help_text }}</span>{% endif %}{{ f.samenvatting.errors }}</div>
     <div class="kb-blad-lijn"></div>
-    <div data-kb-plek="inhoud">{{ f.inhoud }}{{ f.inhoud.errors }}</div>
+    <div data-kb-plek="inhoud">{{ f.inhoud }}{% if f.inhoud.help_text %}<span class="kb-sr" id="{{ f.inhoud.id_for_label }}_helptext">{{ f.inhoud.help_text }}</span>{% endif %}{{ f.inhoud.errors }}</div>
   </div>
   <aside class="kb-marge" id="kb-marge" aria-label="Opmerkingen van het reviewteam"></aside>
 </div>
@@ -136,14 +137,14 @@
 {% endwith %}
 
 <aside class="kb-paneel" id="kb-p-eig" aria-label="Eigenschappen">
-  <div class="kb-paneel-kop"><h2>Eigenschappen</h2><button type="button" class="kb-paneel-sluit" aria-label="Sluiten">✕</button></div>
+  <div class="kb-paneel-kop"><h2>Eigenschappen</h2><button type="button" class="kb-paneel-sluit" aria-label="Eigenschappen sluiten">✕</button></div>
   <p class="kb-paneel-uitleg">{% if kb_concept %}Horen bij de conceptversie: ze gaan pas live als je publiceert.{% else %}Soort, plek in de kennisbank, vindbaarheid en status.{% endif %}</p>
   {% for fieldset in adminform %}{% if not forloop.first and fieldset.name != "Versie" %}{% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}{% endif %}{% endfor %}
 </aside>
 
 {% if original %}
 <aside class="kb-paneel" id="kb-p-gesch" aria-label="Geschiedenis">
-  <div class="kb-paneel-kop"><h2>Geschiedenis</h2><button type="button" class="kb-paneel-sluit" aria-label="Sluiten">✕</button></div>
+  <div class="kb-paneel-kop"><h2>Geschiedenis</h2><button type="button" class="kb-paneel-sluit" aria-label="Geschiedenis sluiten">✕</button></div>
   {% if kb_meegenomen %}
   <div class="kb-meegenomen">
     <p><strong>Meegenomen verbetervoorstellen ({{ kb_meegenomen|length }}).</strong> Na publiceren vraagt de kennisbank of je ze wilt afhandelen.</p>
@@ -158,7 +159,7 @@
 
 {% if kb_review_teams %}
 <aside class="kb-paneel kb-paneel-review" id="kb-p-rev" aria-label="Review">
-  <div class="kb-paneel-kop"><h2>Review</h2><button type="button" class="kb-paneel-sluit" aria-label="Sluiten">✕</button></div>
+  <div class="kb-paneel-kop"><h2>Review</h2><button type="button" class="kb-paneel-sluit" aria-label="Review sluiten">✕</button></div>
   <div class="kb-review">
     {% if kb_review.label %}<p class="kb-review-label">✓ {{ kb_review.label }}</p>{% endif %}
     {% if kb_review.rijen %}

@@ -127,7 +127,7 @@ a.button.kb-openen{margin-left:auto}
 .kb-behandel-zij textarea + .button{margin-top:6px}
 
 /* Review in de gele balk (stap C) */
-.kb-review{border-top:1px solid #e0c46a;margin-top:10px;padding-top:8px}
+.kb-review{border-top:1px solid #8cc79e;margin-top:10px;padding-top:8px}
 .kb-review h3{margin:0 0 6px;font-size:.95rem;background:none;color:inherit;padding:0}
 .kb-review-label{font-weight:700;color:#1e6b34}
 .kb-review-teams{margin:0 0 8px;padding-left:18px}
@@ -135,8 +135,8 @@ a.button.kb-openen{margin-left:auto}
 .kb-review-teruggegeven{color:#a6192e}
 .kb-review-vervallen{color:#7a5200}
 .kb-review-opmerkingen{list-style:none;margin:4px 0 6px;padding:0}
-.kb-review-opmerkingen li{background:#fff;border:1px solid #e0c46a;border-radius:6px;padding:6px 10px;margin:4px 0;color:#222}
-.kb-review .wie{display:block;font-size:.8rem;color:#6b5a1e}
+.kb-review-opmerkingen li{background:#fff;border:1px solid #8cc79e;border-radius:6px;padding:6px 10px;margin:4px 0;color:#222}
+.kb-review .wie{display:block;font-size:.8rem;color:#1d5b30}
 .kb-review-keuze{border:0;padding:0;margin:4px 0 8px;display:flex;flex-wrap:wrap;gap:4px 16px}
 .kb-review-keuze legend{font-weight:600;padding:0;margin-bottom:4px}
 .kb-review-eerder{margin-top:8px}
@@ -158,7 +158,7 @@ div.kb-meegenomen ul{margin:4px 0 0;padding-left:18px}
 .kb-afhandel-vink{display:block;margin:6px 0}
 .kb-afhandel-label{display:block;font-weight:600;margin:6px 0 4px}
 .kb-afhandelen .button{padding:7px 14px}
-.kb-review-citaat{display:block;font-style:italic;color:#555;border-left:3px solid #e0c46a;padding-left:6px;margin:2px 0}
+.kb-review-citaat{display:block;font-style:italic;color:#555;border-left:3px solid #8cc79e;padding-left:6px;margin:2px 0}
 .kb-review-voorlopig{display:block;font-size:.85rem;color:#7a5200;font-style:italic}
 
 /* Eén knop Afronden (1.21.0): de losse knoppen blijven bestaan, maar uit beeld. */
@@ -226,3 +226,4 @@ table.kb-bak{width:100%}
 .kb-import-veld.errors select,.kb-import-veld.errors input[type=file]{outline:2px solid #ba2121;outline-offset:2px}
 .kb-import-knoppen{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
 .kb-import-knoppen .button,.kb-import-knoppen input{padding:8px 16px}
+.kb-selectie-teller{font-size:.85rem;font-weight:600;color:#154273}

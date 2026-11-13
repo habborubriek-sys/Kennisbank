@@ -81,4 +81,10 @@
     render(e.data);
   });
   if (window.parent !== window) window.parent.postMessage({ type: "kb-voorbeeld-klaar" }, location.origin);
+  // 1.29.0: Escape in het voorbeeld sluit "Bekijk als medewerker" (de toets komt anders niet bij de pagina).
+  if (window.parent !== window) {
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") window.parent.postMessage({ type: "kb-voorbeeld-esc" }, location.origin);
+    });
+  }
 })();

@@ -51,6 +51,11 @@
       <input type="hidden" name="citaat" id="rv-citaat" value="">
       <div class="rv-citaat-vak" id="rv-citaat-vak" hidden><span>Bij:</span> <q id="rv-citaat-tekst"></q>
         <button type="button" class="tb" id="rv-citaat-wis" aria-label="Citaat weghalen">×</button></div>
+      {# 1.29.0 (ronde B, M20): zonder muis selecteren is lastig; daarom ook een weg via typen of plakken. #}
+      <details class="rv-citaat-zelf" id="rv-citaat-zelf"><summary>Bij een bepaald stuk tekst? Typ of plak het hier</summary>
+        <label for="rv-citaat-invoer" class="rv-uitleg">Een paar woorden uit de tekst hiernaast, precies zoals ze er staan</label>
+        <input type="text" id="rv-citaat-invoer" maxlength="1000" autocomplete="off">
+      </details>
       <label for="rv-tekst">Opmerking</label>
       <textarea id="rv-tekst" name="tekst" rows="5" maxlength="4000" placeholder="Bijvoorbeeld: in stap 3 klopt de termijn niet; dat is 6 weken."></textarea>
       <div class="rv-knoppen">

@@ -40,7 +40,10 @@
     }
 
     // --- Panelen -------------------------------------------------------------------------
-    function paneel(naam) {
+    // Sinds 1.29.0 (ronde B, review 1.27.0 M18): openen zet de focus in het paneel, sluiten (✕ of Escape) zet
+    // hem terug op de knop in de balk.
+    function paneel(naam, focus) {
+      var wasOpen = $(".kb-paneel.kb-open", form);
       $$(".kb-paneel", form).forEach(function (p) {
         p.classList.toggle("kb-open", p.id === "kb-p-" + naam && !p.classList.contains("kb-open"));
       });
@@ -50,13 +53,25 @@
         b.classList.toggle("kb-aan", open);
         b.setAttribute("aria-expanded", open ? "true" : "false");
       });
+      if (focus === false) return;
+      var nu = $(".kb-paneel.kb-open", form);
+      if (nu && nu !== wasOpen) {
+        var kop = $(".kb-paneel-kop h2", nu);
+        if (kop) { kop.tabIndex = -1; kop.focus(); }
+      } else if (!nu && wasOpen) {
+        var knop = $('[data-kb-paneel="' + wasOpen.id.replace("kb-p-", "") + '"]', balk);
+        if (knop) knop.focus();
+      }
     }
     $$("[data-kb-paneel]", balk).forEach(function (b) { b.addEventListener("click", function () { paneel(b.dataset.kbPaneel); }); });
     $$(".kb-paneel-sluit", form).forEach(function (b) { b.addEventListener("click", function () { paneel(""); }); });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$(".kb-venster-laag") && !$(".kb-lees")) paneel(""); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape" || document.querySelector("dialog[open]") || $(".kb-lees")) return;
+      if ($(".kb-paneel.kb-open", form)) paneel("");
+    });
     // Een fout in een veld van een paneel: dat paneel meteen open.
     var metFout = $$(".kb-paneel", form).filter(function (p) { return $(".errorlist li", p); })[0];
-    if (metFout) paneel(metFout.id.replace("kb-p-", ""));
+    if (metFout) paneel(metFout.id.replace("kb-p-", ""), false);
 
     // --- Kleine dingen -------------------------------------------------------------------
     var soortVeld = form.elements.namedItem("soort"), soortLabel = $("[data-kb-soort]", form);
@@ -121,6 +136,12 @@
     if (document.readyState === "complete") setTimeout(focusGoed, 0);
     else window.addEventListener("load", focusGoed);
 
+    // Ronde B: de keuzelijst voor zaaktypen van Django zet aria-label op een <span> zonder rol (axe:
+    // aria-prohibited-attr). Geef die icoontjes de rol "img", dan klopt het label.
+    function iconenRol() { $$(".search-label-icon[aria-label]", form).forEach(function (s) { s.setAttribute("role", "img"); }); }
+    if (document.readyState === "complete") setTimeout(iconenRol, 0);
+    else window.addEventListener("load", function () { setTimeout(iconenRol, 0); });
+
     // --- Meer ▾: dicht bij een klik ernaast of Escape ------------------------------------
     var meer = $(".kb-meer", balk);
     if (meer) {
@@ -133,12 +154,14 @@
     if (lees) lees.addEventListener("click", function () { bekijkAlsMedewerker(form); });
   }
 
+  // Sinds 1.29.0 (ronde B, M18) een <dialog>: Tab blijft in het voorbeeld (niet onzichtbaar de tekst in),
+  // Escape werkt ook als de focus in het voorbeeld staat, en daarna staat de focus weer op de knop.
   function bekijkAlsMedewerker(form) {
     if (window.kbInhoudEditor) window.kbInhoudEditor.synchronizeValues();
+    var terug = document.activeElement;
     var waarde = function (n) { var e = form.elements.namedItem(n); return e ? e.value : ""; };
-    var laag = document.createElement("div");
+    var laag = document.createElement("dialog");
     laag.className = "kb-lees";
-    laag.setAttribute("role", "dialog");
     laag.setAttribute("aria-label", "Zo ziet een medewerker het artikel");
     var kop = document.createElement("div");
     kop.className = "kb-lees-balk";
@@ -159,22 +182,28 @@
     laag.appendChild(kop);
     laag.appendChild(frame);
     document.body.appendChild(laag);
-    function opKlaar(e) {
-      if (e.origin !== location.origin || !e.data || e.data.type !== "kb-voorbeeld-klaar") return;
+    function opBericht(e) {
+      if (e.origin !== location.origin || !e.data) return;
+      if (e.data.type === "kb-voorbeeld-esc") { dicht(); return; }
+      if (e.data.type !== "kb-voorbeeld-klaar") return;
       frame.contentWindow.postMessage(
         { type: "kb-voorbeeld", titel: waarde("titel"), samenvatting: waarde("samenvatting"), soort: waarde("soort"), inhoud: waarde("inhoud"), opmerkingen: [] },
         location.origin
       );
     }
+    var weg = false;
     function dicht() {
-      window.removeEventListener("message", opKlaar);
-      document.removeEventListener("keydown", opEsc);
+      if (weg) return;
+      weg = true;
+      window.removeEventListener("message", opBericht);
+      if (laag.open && laag.close) laag.close();
       laag.remove();
+      if (terug && terug.focus) terug.focus();
     }
-    function opEsc(e) { if (e.key === "Escape") dicht(); }
-    window.addEventListener("message", opKlaar);
-    document.addEventListener("keydown", opEsc);
+    window.addEventListener("message", opBericht);
+    laag.addEventListener("cancel", function (e) { e.preventDefault(); dicht(); });
     sluit.addEventListener("click", dicht);
+    if (laag.showModal) laag.showModal(); else laag.setAttribute("open", "");
     sluit.focus();
   }
 

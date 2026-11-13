@@ -111,11 +111,13 @@ nodig om te publiceren: jij bent eindverantwoordelijk. Maar zolang een team aan 
    wijziging**: wat er werd voorgesteld, niet wie het indiende, en zonder je notities of berichten. Een reviewer ziet de nieuwe tekst met
    de wijzigingen gemarkeerd (zoals *wijzigingen bijhouden* in Word) en pakt het stuk op ("ligt bij Piet").
    Hij **selecteert een stuk tekst** en zet er een opmerking bij, of schrijft een algemene opmerking. De
-   opmerkingen staan genummerd naast de tekst, met een gele markering in de tekst. Daarna **geeft hij het
+   opmerkingen staan genummerd naast de tekst, met een groene markering in de tekst.
+   Lukt selecteren niet (bijvoorbeeld zonder muis), dan kan hij het stuk tekst ook typen of plakken. Daarna **geeft hij het
    terug** of geeft hij **akkoord**. Reviewers bewerken niets en publiceren niets.
 4. **Teruggegeven?** Je krijgt een e-mail. Open het artikel: de balk zegt *Teruggegeven door Team Water · 2
    opmerkingen*, en de opmerkingen staan meteen **rechts in de marge, op de hoogte van de tekst waar ze over
-   gaan**. Die tekst is geel gemarkeerd; ga je met de muis over een opmerking, dan kleurt de markering feller.
+   gaan**. Die tekst is groen gemarkeerd met een doorgetrokken lijn eronder en een vierkant nummer; ga je met
+   de muis over een opmerking, dan kleurt de markering feller.
    Algemene opmerkingen staan bovenaan. De markering hoort niet bij de tekst en wordt nooit opgeslagen. Pas je
    die zin aan, dan staat bij de opmerking "Tekst is intussen gewijzigd", met het oorspronkelijke citaat. De
    knop **Opmerkingen** zet de marge aan en uit. Opmerkingen zie je pas als het team heeft gereageerd. Daarna:
@@ -421,9 +423,13 @@ blauwe tabblad dat uit de linkerrand steekt (met het aantal open voorstellen bij
 - **Elk open voorstel bij dit artikel** staat in de lade als één regel met een **nummer** en een **titel** (de
   eerste zin van het voorstel), daaronder in welke sectie het speelt, de steun en bij wie het ligt.
 - **In de tekst** staat de tekst die de indiener selecteerde **blauw** met een stippellijn, met hetzelfde
-  **ronde nummer** erachter. Klik op het nummer om het voorstel in de lade te openen. Opmerkingen van een
-  reviewteam blijven **geel** met een **vierkant** nummer, in de marge rechts. Staat de tekst er niet meer
-  letterlijk in, dan zegt de lade dat.
+  **ronde nummer** erachter. Klik op het nummer, of op *Toon in de tekst* in de lade, om tussen voorstel en
+  tekst te wisselen. Opmerkingen van een reviewteam zijn **groen** met een **doorgetrokken lijn** en een
+  **vierkant** nummer, in de marge rechts (besluit van Alex, 1.29.0: voorstel blauw, review groen; het geel is
+  alleen voor "Voor nieuwe collega's"). Staat de tekst er niet meer letterlijk in, dan zegt de lade dat.
+- **Met het toetsenbord** (1.29.0): het tabblad *Voorstellen* opent de lade en zet de focus erin; Escape sluit
+  hem weer. Vensters, panelen en *Bekijk als medewerker* sluiten met Escape. Zie ook
+  [toegankelijkheid](toegankelijkheid.md).
 - **Klik op een voorstel** om het uit te klappen: de tekst, wie het indiende (alleen de redactie ziet dat),
   wanneer, en wie het steunt.
 

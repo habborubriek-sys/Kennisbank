@@ -60,6 +60,17 @@ from .rechten import rechten
 from .word_import import WordImportFout, lees_docx
 
 
+class Vinkjes(forms.CheckboxSelectMultiple):
+    """Vinkjes met een id voor de groep, zodat de hulptekst eronder ook een id krijgt.
+
+    Django geeft elk vinkje `aria-describedby="id_<veld>_helptext"`, maar zet dat id alleen op de hulptekst als
+    het veld een id voor het label heeft; bij vinkjes is dat leeg. Dan wees de verwijzing naar niets (ronde B).
+    """
+
+    def id_for_label(self, id_, index=None):
+        return id_ if index is None else super().id_for_label(id_, index)
+
+
 def enige_omgeving(request):
     """De pk van de enige omgeving waarin deze gebruiker iets mag maken, of None als dat er meer (of geen) zijn."""
     if request.user.is_superuser:
@@ -972,11 +983,11 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
     def nakijken(self, obj):
         """De herzieningsdatum, met kleur zodra hij in zicht komt of verstreken is."""
         if not obj.herzien_voor:
-            return format_html('<span style="color:#888">—</span>')
+            return format_html('<span style="color:var(--body-quiet-color)">—</span>')
         dagen = (obj.herzien_voor - timezone.localdate()).days
         datum = date_format(obj.herzien_voor, "j M Y")
         if obj.status != Status.GEPUBLICEERD:
-            return format_html('<span style="color:#888">{}</span>', datum)
+            return format_html('<span style="color:var(--body-quiet-color)">{}</span>', datum)
         if dagen < 0:
             return format_html('<b style="color:#a6192e">{} · {} dagen te laat</b>', datum, -dagen)
         if dagen <= HERZIENING_BINNENKORT:
@@ -990,7 +1001,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         if db_field.name == "clusters":
-            kwargs["widget"] = forms.CheckboxSelectMultiple
+            kwargs["widget"] = Vinkjes
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
     # --- Conceptversie ------------------------------------------------------------------
@@ -2267,7 +2278,7 @@ class ReviewteamAdmin(admin.ModelAdmin):
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         if db_field.name == "clusters":
-            kwargs["widget"] = forms.CheckboxSelectMultiple
+            kwargs["widget"] = Vinkjes
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
     @admin.display(description="Clusters (voorgevuld)")
@@ -2640,7 +2651,9 @@ class KladversieAdmin(admin.ModelAdmin):
     def titel_kolom(self, obj):
         if obj.artikel_id:
             return obj.titel
-        return format_html('{} <span style="color:#888">(nieuw, nog nooit opgeslagen)</span>', obj.titel)
+        return format_html(
+            '{} <span style="color:var(--body-quiet-color)">(nieuw, nog nooit opgeslagen)</span>', obj.titel
+        )
 
     @admin.display(description="Van")
     def schrijver(self, obj):
