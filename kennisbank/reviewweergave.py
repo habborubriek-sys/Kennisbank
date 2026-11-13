@@ -8,8 +8,9 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import F
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -122,19 +123,7 @@ def stuk(request, pk):
     v = concept.velden or {}
     verschil, aantal = verschil_html(artikel.inhoud, v.get("inhoud", ""))
     van_mij = inzage.reviewer_id == request.user.pk
-    opmerkingen = [
-        {
-            "id": o.pk,
-            "naam": naam_van(o.auteur) if o.auteur_id else "Reviewer",
-            "moment": o.moment,
-            "tekst": o.tekst,
-            "citaat": o.citaat,
-            "bewerkt": o.bewerkt_op is not None,
-            # 1.30.0 (M16): je eigen opmerking kun je in deze ronde nog aanpassen of weghalen.
-            "eigen": o.auteur_id == request.user.pk and van_mij,
-        }
-        for o in inzage.opmerkingen.select_related("auteur")
-    ]
+    opmerkingen = _opmerkingen(inzage, request.user)
     nieuwe_platte_tekst = _plat(v.get("inhoud", ""))
     return render(
         request,
@@ -234,17 +223,57 @@ def voorbeeld(request, pk):
     )
 
 
+def _opmerkingen(inzage, gebruiker):
+    van_mij = inzage.reviewer_id == gebruiker.pk
+    return [
+        {
+            "id": o.pk,
+            "naam": naam_van(o.auteur) if o.auteur_id else "Reviewer",
+            "moment": o.moment,
+            "tekst": o.tekst,
+            "citaat": o.citaat,
+            "bewerkt": o.bewerkt_op is not None,
+            # 1.30.0 (M16): je eigen opmerking kun je in deze ronde nog aanpassen of weghalen.
+            "eigen": o.auteur_id == gebruiker.pk and van_mij,
+        }
+        for o in inzage.opmerkingen.select_related("auteur")
+    ]
+
+
+#: 1.31.1: plaatsen, wijzigen en weghalen zonder de pagina opnieuw te laden (review.js stuurt deze kop mee).
+SNEL = {"opmerking", "opmerking_wijzigen", "opmerking_weghalen"}
+
+
+def _snel_antwoord(request, inzage, melding):
+    """De nieuwe lijst kaartjes, zodat review.js ze op hun plek zet zonder dat de pagina opnieuw laadt."""
+    opmerkingen = _opmerkingen(inzage, request.user)
+    html = render_to_string(
+        "kennisbank/_review_kaarten.html",
+        {
+            "opmerkingen": opmerkingen,
+            "open": inzage.status == InzageStatus.TER_INZAGE,
+            "van_mij": inzage.reviewer_id == request.user.pk,
+        },
+        request=request,
+    )
+    return JsonResponse({"ok": True, "melding": melding, "kaarten": html, "aantal": len(opmerkingen)})
+
+
 def _actie(request, pk):
     actie = request.POST.get("actie")
     tekst = request.POST.get("tekst", "")
     citaat = request.POST.get("citaat", "")
+    snel = actie in SNEL and request.headers.get("X-Kb-Snel") == "1"
     with transaction.atomic():
         inzage = review._inzage_voor(request.user, pk, slot=True)
         if inzage is None:
             if not _ooit_van_mijn_team(request.user, pk):
                 raise Http404
             # Review 1.20.1, bevinding 7: een nette melding in plaats van "pagina niet gevonden", met de tekst.
-            messages.warning(request, "Dit stuk ligt niet meer ter inzage bij je team." + _niet_bewaard(tekst))
+            melding = "Dit stuk ligt niet meer ter inzage bij je team."
+            if snel:  # het script laat de getypte tekst gewoon in het vak staan
+                return JsonResponse({"ok": False, "melding": melding + " Je tekst staat nog in het vak."}, status=409)
+            messages.warning(request, melding + _niet_bewaard(tekst))
             return redirect("review-lijst")
         try:
             if actie == "oppakken":
@@ -262,17 +291,19 @@ def _actie(request, pk):
                     return redirect("review-stuk", pk=pk)
                 review.oppakken(inzage, request.user)
                 messages.success(request, f"Je hebt dit opgepakt. Het staat nu bij jou in {inzage.team.naam}.")
-            elif actie == "opmerking":
-                review.opmerking_toevoegen(inzage, request.user, tekst, citaat)
-                messages.success(
-                    request, "Opmerking toegevoegd. De redacteur ziet hem als je teruggeeft of akkoord geeft."
-                )
-            elif actie == "opmerking_wijzigen":
-                review.opmerking_wijzigen(inzage, request.user, request.POST.get("opmerking"), tekst)
-                messages.success(request, "Opmerking aangepast.")
-            elif actie == "opmerking_weghalen":
-                review.opmerking_weghalen(inzage, request.user, request.POST.get("opmerking"))
-                messages.success(request, "Opmerking weggehaald.")
+            elif actie in SNEL:
+                if actie == "opmerking":
+                    review.opmerking_toevoegen(inzage, request.user, tekst, citaat)
+                    melding = "Opmerking geplaatst. De redacteur ziet hem als je teruggeeft of akkoord geeft."
+                elif actie == "opmerking_wijzigen":
+                    review.opmerking_wijzigen(inzage, request.user, request.POST.get("opmerking"), tekst)
+                    melding = "Opmerking aangepast."
+                else:
+                    review.opmerking_weghalen(inzage, request.user, request.POST.get("opmerking"))
+                    melding = "Opmerking weggehaald."
+                if snel:
+                    return _snel_antwoord(request, inzage, melding)
+                messages.success(request, melding)
             elif actie == "teruggeven":
                 review.teruggeven(inzage, request.user, tekst, citaat)
                 messages.success(request, "Teruggegeven aan de redacteur, met je opmerkingen.")
@@ -284,6 +315,10 @@ def _actie(request, pk):
             else:
                 raise Http404
         except review.ReviewFout as e:
+            if snel:
+                if inzage.status == InzageStatus.TER_INZAGE:
+                    return JsonResponse({"ok": False, "melding": str(e)})
+                return JsonResponse({"ok": False, "melding": str(e) + " Je tekst staat nog in het vak."}, status=409)
             if inzage.status != InzageStatus.TER_INZAGE:
                 messages.warning(request, str(e) + _niet_bewaard(tekst))
                 return redirect("review-lijst")

@@ -9,6 +9,7 @@
   "use strict";
   var SLEUTEL = "kb-weergave";
   var root = document.documentElement;
+  root.classList.add("kb-js"); // 1.31.1: CSS weet dan al vóór het tekenen dat er JavaScript is
 
   function lees() { try { return localStorage.getItem(SLEUTEL); } catch (e) { return null; } }
   function bewaar(w) { try { localStorage.setItem(SLEUTEL, w); } catch (e) { /* privévenster: alleen deze pagina */ } }

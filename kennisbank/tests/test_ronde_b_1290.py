@@ -112,9 +112,10 @@ class Scripts(LadeBasis):
         self.assertIn('"x2 superscript"', js)
         self.assertIn('"1. Genummerde lijst"', js)
 
-    def test_opmerking_van_de_review_is_groen_met_een_lijn(self):
+    def test_opmerking_van_de_review_is_paars_met_een_lijn(self):
+        # 1.31.1 (besluit Alex): paars in plaats van groen; groen is weer voor nieuwe tekst.
         css = statisch("artikel-scherm.css")
-        self.assertRegex(css, r"\.kb-ae-opm \{ background: #dcf1e2; border-bottom: 2px solid #1d6b3a;")
-        self.assertIn("background: #1d6b3a; color: #fff", css)
+        self.assertRegex(css, r"\.kb-ae-opm \{ background: #efe4f7; border-bottom: 2px solid #6b2d8f;")
+        self.assertIn("background: #6b2d8f; color: #fff", css)
         self.assertNotIn("#b58500", statisch("opmerkingen.css"))
-        self.assertIn("border-bottom:2px solid #1d6b3a", statisch("opmerkingen.css"))
+        self.assertIn("border-bottom:2px solid #6b2d8f", statisch("opmerkingen.css"))

@@ -79,36 +79,53 @@
     li.querySelector(".rv-vs-tekst").appendChild(knop);
   });
 
-  /* --- Opmerkingen: groen in de tekst, kaart in de marge ---------------------------------------------- */
-  var kaarten = kaartenLijst ? Array.prototype.slice.call(kaartenLijst.querySelectorAll(".rv-kaart")) : [];
-  var plek = {};
-  kaarten.forEach(function (k) {
-    var nr = k.getAttribute("data-nr"), citaat = k.getAttribute("data-citaat");
-    if (!citaat) return;
-    var m = K.markeer(tekst, citaat, nr);
-    if (!m) {
-      var s = document.createElement("span"); s.className = "rv-kaart-wie"; s.textContent = "Tekst niet meer gevonden.";
-      k.querySelector(".rv-kaart-inhoud").appendChild(s);
-      return;
-    }
-    plek[nr] = m;
-    var marks = tekst.querySelectorAll('mark.kb-opm[data-nr="' + nr + '"]');
-    function actief(aan) {
-      k.classList.toggle("rv-actief", aan);
-      marks.forEach(function (x) { x.classList.toggle("kb-opm-actief", aan); });
-    }
-    k.addEventListener("mouseenter", function () { actief(true); });
-    k.addEventListener("mouseleave", function () { actief(false); });
-    k.addEventListener("focusin", function () { actief(true); });
-    k.addEventListener("focusout", function () { actief(false); });
-    marks.forEach(function (x) {
-      x.addEventListener("click", function () { naar(k, false); });
-      x.addEventListener("mouseenter", function () { actief(true); });
-      x.addEventListener("mouseleave", function () { actief(false); });
+  /* --- Opmerkingen: paars in de tekst, kaart in de marge --------------------------------------------- */
+  var kaarten = [], plek = {};
+  // Markeringen van opmerkingen weghalen (na plaatsen, wijzigen of weghalen worden ze opnieuw gezet).
+  function ontmarkeer() {
+    tekst.querySelectorAll("mark.kb-opm").forEach(function (m) {
+      Array.prototype.slice.call(m.children).forEach(function (c) {
+        if (c.classList.contains("kb-opm-nr") || (c.classList.contains("kb-sr") && /^opmerking /.test(c.textContent))) c.remove();
+      });
+      while (m.firstChild) m.parentNode.insertBefore(m.firstChild, m);
+      m.remove();
     });
-    var toon = k.querySelector(".rv-toon");
-    if (toon) { toon.hidden = false; toon.addEventListener("click", function () { naar(m, true); }); }
-  });
+    tekst.normalize();
+  }
+  function koppelKaarten() {
+    ontmarkeer();
+    kaartenLijst = document.getElementById("rv-kaarten");
+    kaarten = kaartenLijst ? Array.prototype.slice.call(kaartenLijst.querySelectorAll(".rv-kaart")) : [];
+    plek = {};
+    kaarten.forEach(function (k) {
+      var nr = k.getAttribute("data-nr"), citaat = k.getAttribute("data-citaat");
+      if (!citaat) return;
+      var m = K.markeer(tekst, citaat, nr);
+      if (!m) {
+        var s = document.createElement("span"); s.className = "rv-kaart-wie"; s.textContent = "Tekst niet meer gevonden.";
+        k.querySelector(".rv-kaart-inhoud").appendChild(s);
+        return;
+      }
+      plek[nr] = m;
+      var marks = tekst.querySelectorAll('mark.kb-opm[data-nr="' + nr + '"]');
+      function actief(aan) {
+        k.classList.toggle("rv-actief", aan);
+        marks.forEach(function (x) { x.classList.toggle("kb-opm-actief", aan); });
+      }
+      k.addEventListener("mouseenter", function () { actief(true); });
+      k.addEventListener("mouseleave", function () { actief(false); });
+      k.addEventListener("focusin", function () { actief(true); });
+      k.addEventListener("focusout", function () { actief(false); });
+      marks.forEach(function (x) {
+        x.addEventListener("click", function () { naar(k, false); });
+        x.addEventListener("mouseenter", function () { actief(true); });
+        x.addEventListener("mouseleave", function () { actief(false); });
+      });
+      var toon = k.querySelector(".rv-toon");
+      if (toon) { toon.hidden = false; toon.addEventListener("click", function () { naar(m, true); }); }
+    });
+  }
+  koppelKaarten();
 
   /* --- De marge indelen: elke kaart op de hoogte van zijn tekst, zonder overlap ----------------------- */
   var breed = window.matchMedia ? window.matchMedia("(min-width: 1101px)") : { matches: true };
@@ -123,6 +140,7 @@
     if (!zweeft) {
       items.forEach(function (k) { k.style.top = ""; });
       marge.style.minHeight = "";
+      marge.classList.add("rv-klaar");
       return;
     }
     var mtop = marge.getBoundingClientRect().top;
@@ -145,11 +163,13 @@
       onder = top + x.k.offsetHeight + 10;
     });
     marge.style.minHeight = onder + "px";
+    marge.classList.add("rv-klaar");
   }
   window.addEventListener("resize", straks);
   if (breed.addEventListener) breed.addEventListener("change", straks);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(straks);
-  document.querySelectorAll("details").forEach(function (d) { d.addEventListener("toggle", straks); });
+  // toggle borrelt niet op; met capture vangen we ook de Wijzigen-knoppen van later geplaatste kaartjes.
+  document.addEventListener("toggle", straks, true);
 
   /* --- Nieuwe opmerking ------------------------------------------------------------------------------- */
   var veld = document.getElementById("rv-citaat"), vak = document.getElementById("rv-citaat-vak");
@@ -254,25 +274,87 @@
     d.querySelectorAll("[data-rv-sluit]").forEach(function (b) { b.addEventListener("click", function () { dicht(d); }); });
   });
 
-  // Weghalen: eerst vragen.
+  /* --- Plaatsen, wijzigen en weghalen zonder de pagina te herladen (1.31.1) ----------------------------- */
+  var live = document.getElementById("rv-live");
+  function meld(t) { if (live) { live.textContent = ""; setTimeout(function () { live.textContent = t; }, 30); } }
+  function toonFout(form, t) {
+    var p = form.querySelector(".rv-fout");
+    if (!p) { p = document.createElement("p"); p.className = "rv-fout"; p.setAttribute("role", "alert"); form.appendChild(p); }
+    p.textContent = t;
+    straks();
+  }
+  function snel(form, actie, knop, klaar) {
+    var fd = new FormData(form);
+    fd.set("actie", actie);
+    if (knop) knop.disabled = true;
+    var oud = form.querySelector(".rv-fout"); if (oud) oud.remove();
+    fetch(form.getAttribute("action") || window.location.pathname, {
+      method: "POST", body: fd, credentials: "same-origin", headers: { "X-Kb-Snel": "1" },
+    }).then(function (r) {
+      return r.json().catch(function () { return { ok: false, melding: "Er ging iets mis. Probeer het opnieuw." }; });
+    }, function () {
+      return { ok: false, melding: "Geen verbinding. Je tekst staat nog in het vak; probeer het zo opnieuw." };
+    }).then(function (d) {
+      if (knop) knop.disabled = false;
+      if (!d.ok) { toonFout(form, d.melding); meld(d.melding); return; }
+      var tijdelijk = document.createElement("div");
+      tijdelijk.innerHTML = d.kaarten.trim();
+      var lijst = tijdelijk.firstElementChild;
+      var oudLijst = document.getElementById("rv-kaarten");
+      oudLijst.parentNode.replaceChild(lijst, oudLijst);
+      var aantal = document.getElementById("rv-opm-aantal");
+      if (aantal) aantal.textContent = d.aantal ? "(" + d.aantal + ")" : "";
+      var leeg = document.getElementById("rv-opm-leeg");
+      if (leeg) leeg.hidden = d.aantal > 0;
+      koppelKaarten();
+      indelen();
+      meld(d.melding);
+      if (klaar) klaar();
+    });
+  }
+  function focusKaart(k) {
+    if (!k) { if (algKnop) algKnop.focus(); return; }
+    k.tabIndex = -1;
+    k.focus({ preventScroll: true });
+    if (!breed.matches) k.scrollIntoView({ behavior: "smooth", block: "center" });
+    flits(k);
+  }
+  function kaartVan(id) {
+    var inp = document.querySelector('#rv-kaarten input[name="opmerking"][value="' + id + '"]');
+    return inp ? inp.closest(".rv-kaart") : null;
+  }
+  if (nieuw && magReageren) nieuw.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!invoer.value.trim()) { toonFout(nieuw, "Schrijf eerst je opmerking."); invoer.focus(); return; }
+    snel(nieuw, "opmerking", nieuw.querySelector("button[value=opmerking]"), function () {
+      invoer.value = ""; zetCitaat("");
+      nieuw.hidden = true;
+      indelen();
+      focusKaart(kaarten[kaarten.length - 1]);
+    });
+  });
   var wegVenster = document.getElementById("rv-weg"), wegJa = document.getElementById("rv-weg-ja"), wegForm = null;
-  document.querySelectorAll(".rv-weg-form").forEach(function (f) {
-    f.addEventListener("submit", function (e) {
-      if (!wegVenster || f.dataset.bevestigd === "1") return;
+  if (marge) marge.addEventListener("submit", function (e) {
+    var f = e.target;
+    if (f.classList.contains("rv-wijzig-form")) {
+      e.preventDefault();
+      var id = f.querySelector('input[name="opmerking"]').value;
+      snel(f, "opmerking_wijzigen", f.querySelector("button[type=submit]"), function () { focusKaart(kaartVan(id)); });
+    } else if (f.classList.contains("rv-weg-form") && wegVenster) {
       e.preventDefault();
       wegForm = f;
       document.getElementById("rv-weg-titel").textContent = "Opmerking " + f.getAttribute("data-nr") + " weghalen?";
       venster(wegVenster, f.querySelector("button"));
       // De focus op Annuleren: Enter haalt dan niet per ongeluk iets weg.
       wegVenster.querySelector("[data-rv-sluit]").focus();
-    });
+    }
   });
   if (wegJa) wegJa.addEventListener("click", function () {
     if (!wegForm) return;
-    wegForm.dataset.bevestigd = "1";
-    var b = wegForm.querySelector("button[name=actie]");
-    if (wegForm.requestSubmit) wegForm.requestSubmit(b);
-    else { var h = document.createElement("input"); h.type = "hidden"; h.name = "actie"; h.value = b.value; wegForm.appendChild(h); wegForm.submit(); }
+    var f = wegForm; wegForm = null;
+    terugFocus.delete(wegVenster);
+    dicht(wegVenster);
+    snel(f, "opmerking_weghalen", wegJa, function () { focusKaart(null); });
   });
 
   // Afronden…
@@ -286,6 +368,10 @@
       afrOpen.hidden = !nogOpen;
       if (nogOpen) { afrTekst.value = invoer.value; afrCitaat.value = veld.value; }
       fout.hidden = true;
+      var n = kaarten.length;
+      document.getElementById("rv-afronden-stand").textContent = n
+        ? "Je team heeft " + n + (n === 1 ? " opmerking" : " opmerkingen") + " geplaatst. De redacteur ziet ze zodra je afrondt."
+        : "Er zijn nog geen opmerkingen geplaatst.";
       venster(afr, afrKnop);
       afrTekst.focus();
     });

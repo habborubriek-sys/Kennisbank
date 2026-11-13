@@ -201,25 +201,25 @@ body.kb-scherm .kb-blad input[name="titel"]::placeholder, body.kb-scherm .kb-bla
 body.kb-op-slot .kb-blad { background: #fbfbfc; }
 
 /* --- Opmerkingen ----------------------------------------------------------------------- */
-/* 1.29.0 (besluit Alex): opmerkingen van de review zijn groen, verbetervoorstellen blauw. Niet alleen kleur
+/* 1.29.0 (besluit Alex): opmerkingen van de review zijn paars (1.31.1; eerst groen), verbetervoorstellen blauw. Niet alleen kleur
  * (WCAG 1.4.1): een doorgetrokken onderlijn en een vierkant nummer, tegenover de stippellijn en het ronde nummer
  * van een voorstel. */
-.kb-ae-opm { background: #dcf1e2; border-bottom: 2px solid #1d6b3a; border-radius: 2px; }
-.kb-ae-opm.kb-ae-opm-actief { background: #b4e0c1; }
-/* 1.30.0 (review 1.27.0, M12): opmerking en verbetervoorstel op dezelfde tekst. Allebei zichtbaar: groen vlak met
- * de groene doorgetrokken lijn, en daaronder de blauwe stippellijn van het voorstel. */
+.kb-ae-opm { background: #efe4f7; border-bottom: 2px solid #6b2d8f; border-radius: 2px; }
+.kb-ae-opm.kb-ae-opm-actief { background: #dcc5ee; }
+/* 1.30.0 (review 1.27.0, M12): opmerking en verbetervoorstel op dezelfde tekst. Allebei zichtbaar: paars vlak met
+ * de paarse doorgetrokken lijn, en daaronder de blauwe stippellijn van het voorstel. */
 .kb-ae-opm.kb-ae-vs, .kb-ae-opm .kb-ae-vs, .kb-ae-vs .kb-ae-opm {
-  background: #dcf1e2; border-bottom: 2px dotted #2a5a92; box-shadow: inset 0 -4px 0 -2px #1d6b3a; padding-bottom: 1px;
+  background: #efe4f7; border-bottom: 2px dotted #2a5a92; box-shadow: inset 0 -4px 0 -2px #6b2d8f; padding-bottom: 1px;
 }
 .kb-ae-opm.kb-ae-vs.kb-ae-vs-actief, .kb-ae-opm .kb-ae-vs.kb-ae-vs-actief, .kb-ae-vs.kb-ae-vs-actief .kb-ae-opm { background: #b9d4f3; }
 .kb-marge { display: none; position: relative; flex: 0 0 300px; align-self: stretch; }
 body.kb-met-opm .kb-marge { display: block; }
-.kb-ae-kaart { position: absolute; left: 0; right: 0; background: #fff; border: 1px solid #8cc79e; border-radius: 8px; padding: 10px 12px; font: 13px/1.45 "Source Sans 3", system-ui, sans-serif; display: flex; gap: 8px; text-align: left; cursor: pointer; color: #17212b; transition: top .15s, box-shadow .15s; }
-.kb-ae-kaart:hover, .kb-ae-kaart.kb-ae-actief { box-shadow: 0 4px 14px rgba(15, 27, 45, .15); border-color: #1d6b3a; }
-.kb-ae-kaart::before { content: ""; position: absolute; left: -21px; top: 15px; width: 20px; border-top: 2px solid #1d6b3a; }
+.kb-ae-kaart { position: absolute; left: 0; right: 0; background: #fff; border: 1px solid #c6a3df; border-radius: 8px; padding: 10px 12px; font: 13px/1.45 "Source Sans 3", system-ui, sans-serif; display: flex; gap: 8px; text-align: left; cursor: pointer; color: #17212b; transition: top .15s, box-shadow .15s; }
+.kb-ae-kaart:hover, .kb-ae-kaart.kb-ae-actief { box-shadow: 0 4px 14px rgba(15, 27, 45, .15); border-color: #6b2d8f; }
+.kb-ae-kaart::before { content: ""; position: absolute; left: -21px; top: 15px; width: 20px; border-top: 2px solid #6b2d8f; }
 .kb-ae-kaart.kb-ae-alg::before { display: none; }
-.kb-ae-nr { flex: none; min-width: 22px; height: 22px; padding: 0 4px; border-radius: 4px; background: #1d6b3a; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
-/* Vierkant en groen: zo verschillen opmerkingen van de review van de ronde blauwe nummers van verbetervoorstellen (1.26.0). */
+.kb-ae-nr { flex: none; min-width: 22px; height: 22px; padding: 0 4px; border-radius: 4px; background: #6b2d8f; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+/* Vierkant en paars: zo verschillen opmerkingen van de review van de ronde blauwe nummers van verbetervoorstellen (1.26.0). */
 .kb-ae-nr.kb-ae-alg { background: #d5dbe3; color: #17212b; }
 .kb-ae-kaarttekst { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .kb-ae-wie { font-size: 12px; color: var(--kb-zacht); }

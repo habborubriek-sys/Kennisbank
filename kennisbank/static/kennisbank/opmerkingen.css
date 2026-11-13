@@ -1,19 +1,19 @@
 /* Markeringen en lijst van opmerkingen bij tekst (stap D): reviewer en live voorbeeld. */
-mark.kb-opm{background:#dcf1e2;border-bottom:2px solid #1d6b3a;color:#17212b;padding:0 1px;border-radius:2px;cursor:pointer}
-mark.kb-opm.kb-opm-flits,.kb-opm-item.kb-opm-flits{outline:3px solid #1d6b3a;outline-offset:2px}
-.kb-opm-nr{display:inline-block;min-width:1.2em;margin-right:2px;padding:0 4px;border-radius:3px;background:#1d6b3a;color:#fff;font-size:.7em;font-weight:700;text-align:center;line-height:1.4;vertical-align:super}
+mark.kb-opm{background:#efe4f7;border-bottom:2px solid #6b2d8f;color:#17212b;padding:0 1px;border-radius:2px;cursor:pointer}
+mark.kb-opm.kb-opm-flits,.kb-opm-item.kb-opm-flits{outline:3px solid #6b2d8f;outline-offset:2px}
+.kb-opm-nr{display:inline-block;min-width:1.2em;margin-right:2px;padding:0 4px;border-radius:3px;background:#6b2d8f;color:#fff;font-size:.7em;font-weight:700;text-align:center;line-height:1.4;vertical-align:super}
 .kb-opm-lijst{list-style:none;margin:0 0 12px;padding:0}
-.kb-opm-item{border:1px solid #8cc79e;background:#f1faf3;border-radius:6px;padding:8px 10px;margin:0 0 6px;display:flex;flex-direction:column;gap:3px;color:#222}
+.kb-opm-item{border:1px solid #c6a3df;background:#f8f2fc;border-radius:6px;padding:8px 10px;margin:0 0 6px;display:flex;flex-direction:column;gap:3px;color:#222}
 .kb-opm-klikbaar{cursor:pointer}
-.kb-opm-klikbaar:hover{border-color:#1d6b3a}
-.kb-opm-wie{font-size:.8rem;color:#1d5b30;font-weight:600}
-.kb-opm-citaat{font-style:italic;color:#444;border-left:3px solid #8cc79e;padding-left:6px;display:block}
-.kb-opm-status{font-size:.78rem;color:#1d5b30}
+.kb-opm-klikbaar:hover{border-color:#6b2d8f}
+.kb-opm-wie{font-size:.8rem;color:#55226f;font-weight:600}
+.kb-opm-citaat{font-style:italic;color:#444;border-left:3px solid #c6a3df;padding-left:6px;display:block}
+.kb-opm-status{font-size:.78rem;color:#55226f}
 .kb-opm-weg{background:#f6f6f6;border-color:#ddd}
 .kb-opm-weg .kb-opm-citaat{text-decoration:line-through;text-decoration-color:#bbb}
 .kb-opm-tekst{white-space:pre-wrap}
-.kb-opm-paneel{border:1px solid #8cc79e;background:#f1faf3;border-radius:8px;padding:8px 12px;margin:0 0 14px}
+.kb-opm-paneel{border:1px solid #c6a3df;background:#f8f2fc;border-radius:8px;padding:8px 12px;margin:0 0 14px}
 .kb-opm-paneel summary{cursor:pointer;font-weight:600}
-.kb-opm-uitleg{font-size:.82rem;color:#1d5b30;margin:.3rem 0 .5rem}
+.kb-opm-uitleg{font-size:.82rem;color:#55226f;margin:.3rem 0 .5rem}
 .kb-opm-voorlopig{font-style:italic}
 .kb-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

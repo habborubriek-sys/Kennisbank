@@ -1,5 +1,22 @@
 # Wijzigingen
 
+## 1.31.1 – 2026-11-13
+
+Feedback van Alex op 1.30.0 (bouwlijst `bouwlijst-1.31.1-paars-en-opmerking-opslaan.md`).
+
+**Kleuren (besluit Alex)**
+- **Opmerkingen van de review zijn paars**, overal: in de editor (markering en kaartjes in de marge), op de reviewpagina, in het voorbeeld en in de legenda's.
+- Op de reviewpagina zijn ook de knoppen en links bij de opmerkingen paars, zodat het één geheel is. Weghalen blijft rood.
+- In de verschilweergave is **nieuwe tekst weer groen** onderstreept; weggehaalde tekst blijft rood doorgestreept, zoals in Word.
+- Voorstellen blijven blauw. Opmerking en voorstel verschillen ook in vorm: een doorgetrokken lijn met een vierkant nummer, tegenover een stippellijn met een rond nummer.
+
+**Opmerkingen op de reviewpagina**
+- **Plaatsen, wijzigen en weghalen gebeurt zonder dat de pagina opnieuw laadt.** Het kaartje staat meteen op zijn plek, en de focus gaat ernaartoe. De schermlezer leest de melding voor.
+- Gaat het mis (bijvoorbeeld omdat het stuk intussen is teruggeroepen), dan blijft je tekst in het vak staan en zie je de melding erbij.
+- Bij het laden verschijnen de kaartjes pas als ze op hun plek staan, en niet eerst bovenaan.
+- De voorbeeldtekst in het opmerkingenvak is weg.
+- Zonder JavaScript werkt alles nog zoals eerst.
+
 ## 1.31.0 – 2026-11-13
 
 Ronde C na de onafhankelijke review van 1.27.0: schermen en teksten (bouwlijst

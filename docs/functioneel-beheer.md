@@ -113,9 +113,10 @@ nodig om te publiceren: jij bent eindverantwoordelijk. Maar zolang een team aan 
    - Heb je verbetervoorstellen meegenomen in deze versie, dan ziet het team die bovenaan onder **Waarom deze
      wijziging**, genummerd, en in de tekst **blauw** met een rond nummer, net als bij jou in de editor. Het
      team ziet wat er werd voorgesteld, niet wie het indiende, en niets van je notities of berichten.
-   - Nieuwe tekst is **vet en lichtgrijs** met een donkere streep, weggehaalde tekst **rood doorgestreept**
-     (zoals *wijzigingen bijhouden* in Word). Met **Wijzigingen tonen** zet de reviewer dat uit en leest hij
-     de tekst zoals hij wordt. Groen is alleen voor opmerkingen.
+   - Nieuwe tekst is **groen onderstreept**, weggehaalde tekst **rood doorgestreept** (zoals *wijzigingen
+     bijhouden* in Word). Met **Wijzigingen tonen** zet de reviewer dat uit en leest hij de tekst zoals hij
+     wordt. Opmerkingen zijn **paars**, en ook de knoppen bij de opmerkingen. Plaatsen, wijzigen en weghalen
+     gebeurt zonder dat de pagina opnieuw laadt.
    - Een reviewer **pakt het stuk eerst op** ("ligt bij Piet"); daarvoor kan hij alleen meelezen.
    - Hij **selecteert een stuk tekst** en kiest **Opmerking**: het kaartje opent in de marge, op de hoogte van
      die tekst. Of hij kiest **+ Algemene opmerking**. Lukt selecteren niet (bijvoorbeeld zonder muis), dan
@@ -131,7 +132,7 @@ nodig om te publiceren: jij bent eindverantwoordelijk. Maar zolang een team aan 
    Reviewers bewerken niets en publiceren niets.
 4. **Teruggegeven?** Je krijgt een e-mail. Open het artikel: de balk zegt *Teruggegeven door Team Water · 2
    opmerkingen*, en de opmerkingen staan meteen **rechts in de marge, op de hoogte van de tekst waar ze over
-   gaan**. Die tekst is groen gemarkeerd met een doorgetrokken lijn eronder en een vierkant nummer; ga je met
+   gaan**. Die tekst is paars gemarkeerd met een doorgetrokken lijn eronder en een vierkant nummer; ga je met
    de muis over een opmerking, dan kleurt de markering feller.
    Algemene opmerkingen staan bovenaan. De markering hoort niet bij de tekst en wordt nooit opgeslagen. Pas je
    die zin aan, dan staat bij de opmerking "Tekst is intussen gewijzigd", met het oorspronkelijke citaat. De
@@ -441,8 +442,8 @@ blauwe tabblad dat uit de linkerrand steekt (met het aantal open voorstellen bij
   eerste zin van het voorstel), daaronder in welke sectie het speelt, de steun en bij wie het ligt.
 - **In de tekst** staat de tekst die de indiener selecteerde **blauw** met een stippellijn, met hetzelfde
   **ronde nummer** erachter. Klik op het nummer, of op *Toon in de tekst* in de lade, om tussen voorstel en
-  tekst te wisselen. Opmerkingen van een reviewteam zijn **groen** met een **doorgetrokken lijn** en een
-  **vierkant** nummer, in de marge rechts (besluit van Alex, 1.29.0: voorstel blauw, review groen; het geel is
+  tekst te wisselen. Opmerkingen van een reviewteam zijn **paars** met een **doorgetrokken lijn** en een
+  **vierkant** nummer, in de marge rechts (besluit van Alex: voorstel blauw, review paars sinds 1.31.1; het geel is
   alleen voor "Voor nieuwe collega's"). Staat de tekst er niet meer letterlijk in, dan zegt de lade dat.
 - **Met het toetsenbord** (1.29.0): het tabblad *Voorstellen* opent de lade en zet de focus erin; Escape sluit
   hem weer. Vensters, panelen en *Bekijk als medewerker* sluiten met Escape. Zie ook

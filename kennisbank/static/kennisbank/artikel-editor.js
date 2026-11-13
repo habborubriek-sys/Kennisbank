@@ -153,7 +153,7 @@
       o._plek = r;
       if (!r) return;
       deco.push(T.Decoration.inline(r.from, r.to, { class: "kb-ae-opm", "data-nr": String(o.nr) }));
-      // Ronde B (M19): de schermlezer hoort waar de opmerking begint en eindigt; het oog ziet groen met een lijn.
+      // Ronde B (M19): de schermlezer hoort waar de opmerking begint en eindigt; het oog ziet paars met een lijn.
       deco.push(T.Decoration.widget(r.from, srWidget("begin opmerking " + o.nr + " van de review"), { side: -1, key: "opmb" + o.nr, ignoreSelection: true }));
       deco.push(T.Decoration.widget(r.to, srWidget("einde opmerking " + o.nr), { side: 1, key: "opme" + o.nr, ignoreSelection: true }));
     });

@@ -73,10 +73,11 @@
 
   <aside class="rv-marge" id="rv-marge" aria-labelledby="rv-marge-kop">
     <div class="rv-marge-kopregel">
-      <h2 id="rv-marge-kop">Opmerkingen{% if opmerkingen %} ({{ opmerkingen|length }}){% endif %}</h2>
+      <h2 id="rv-marge-kop">Opmerkingen <span id="rv-opm-aantal">{% if opmerkingen %}({{ opmerkingen|length }}){% endif %}</span></h2>
       {% if open and van_mij %}<button type="button" class="rv-link" id="rv-alg-knop" hidden>+ Algemene opmerking</button>{% endif %}
     </div>
-    {% if not opmerkingen %}<p class="rv-leeg" id="rv-opm-leeg">{% if open and van_mij %}Nog geen opmerkingen. Selecteer tekst om er een opmerking bij te zetten.{% else %}Nog geen opmerkingen.{% endif %}</p>{% endif %}
+    <p class="rv-leeg" id="rv-opm-leeg"{% if opmerkingen %} hidden{% endif %}>{% if open and van_mij %}Nog geen opmerkingen. Selecteer tekst om er een opmerking bij te zetten.{% else %}Nog geen opmerkingen.{% endif %}</p>
+    <p class="kb-sr" id="rv-live" role="status" aria-live="polite"></p>
 
     {% if open and van_mij %}
     {# Een nieuwe opmerking. Zonder JavaScript staat dit vak altijd open; met JavaScript verschijnt het bij de geselecteerde tekst. #}
@@ -91,7 +92,7 @@
         <input type="text" id="rv-citaat-invoer" maxlength="1000" autocomplete="off">
       </details>
       <label for="rv-tekst" class="kb-sr">Opmerking</label>
-      <textarea id="rv-tekst" name="tekst" rows="4" maxlength="4000" placeholder="Bijvoorbeeld: hier klopt de termijn niet; dat is 6 weken."></textarea>
+      <textarea id="rv-tekst" name="tekst" rows="4" maxlength="4000"></textarea>
       <div class="rv-knoppen">
         <button class="rv-knop rv-knop-hoofd" type="submit" name="actie" value="opmerking">Plaatsen</button>
         <button class="rv-knop" type="button" id="rv-nieuw-annuleer" hidden>Annuleren</button>
@@ -99,35 +100,7 @@
     </form>
     {% endif %}
 
-    {% if opmerkingen %}
-    <ol class="rv-kaarten" id="rv-kaarten">
-      {% for o in opmerkingen %}
-      <li class="rv-kaart{% if not o.citaat %} rv-kaart-alg{% endif %}" id="rv-opm-{{ forloop.counter }}" data-nr="{{ forloop.counter }}"{% if o.citaat %} data-citaat="{{ o.citaat }}"{% endif %}>
-        <span class="rv-kaart-nr" aria-hidden="true">{{ forloop.counter }}</span>
-        <div class="rv-kaart-inhoud">
-          <span class="rv-kaart-wie"><span class="kb-sr">Opmerking {{ forloop.counter }}, </span>{{ o.naam }} · {{ o.moment|date:"j F H:i" }}{% if o.bewerkt %} · bewerkt{% endif %}{% if not o.citaat %} · algemeen{% endif %}</span>
-          {% if o.citaat %}<q class="rv-kaart-citaat">{{ o.citaat }}</q>{% endif %}
-          <p class="rv-kaart-tekst">{{ o.tekst|linebreaksbr }}</p>
-          <div class="rv-kaart-acties">
-            {% if o.citaat %}<button type="button" class="rv-link rv-toon" hidden>Toon in de tekst</button>{% endif %}
-            {% if o.eigen and open and van_mij %}
-            {# 1.30.0 (M16, besluit Alex): je eigen opmerking aanpassen of weghalen, zolang het stuk in deze ronde ter inzage ligt. #}
-            <details class="rv-wijzig"><summary class="rv-link">Wijzigen</summary>
-              <form method="post" class="rv-wijzig-form">{% csrf_token %}<input type="hidden" name="opmerking" value="{{ o.id }}">
-                <label for="rv-wijzig-{{ o.id }}" class="kb-sr">Opmerking {{ forloop.counter }} aanpassen</label>
-                <textarea id="rv-wijzig-{{ o.id }}" name="tekst" rows="4" maxlength="4000" required>{{ o.tekst }}</textarea>
-                <div class="rv-knoppen"><button class="rv-knop rv-knop-hoofd" type="submit" name="actie" value="opmerking_wijzigen">Opslaan</button></div>
-              </form>
-            </details>
-            <form method="post" class="rv-weg-form" data-nr="{{ forloop.counter }}">{% csrf_token %}<input type="hidden" name="opmerking" value="{{ o.id }}">
-              <button class="rv-link rv-gevaar" type="submit" name="actie" value="opmerking_weghalen">Weghalen</button></form>
-            {% endif %}
-          </div>
-        </div>
-      </li>
-      {% endfor %}
-    </ol>
-    {% endif %}
+    {% include "kennisbank/_review_kaarten.html" %}
 
     {% if open and van_mij %}
     {# Zonder JavaScript: de knoppen gewoon onder de opmerkingen. Met JavaScript gaat dit via Afronden… in de balk. #}

@@ -1,5 +1,5 @@
 /* Verbetervoorstellen in het bewerkscherm: de lade links met een uitstekend tabblad (1.26.0).
- * Voorstellen zijn blauw (stippellijn, rond nummer); opmerkingen van de review groen (doorgetrokken lijn, vierkant). */
+ * Voorstellen zijn blauw (stippellijn, rond nummer); opmerkingen van de review paars (doorgetrokken lijn, vierkant). */
 body.kb-scherm { --kb-lade-b: 380px; --kb-lade-top: calc(var(--kb-balk-h, 64px) + var(--kb-werkbalk-h, 48px)); }
 .kb-lade { position: fixed; left: 0; top: var(--kb-lade-top); bottom: 0; width: var(--kb-lade-b); z-index: 35;
   background: #fff; border-right: 1px solid #d9e1ea; box-shadow: 2px 0 10px rgba(23,33,43,.06);
@@ -86,7 +86,7 @@ sup.kb-ae-vsnr-actief { box-shadow: 0 0 0 3px #b9d4f3; }
 .kb-legenda { display: inline-flex; gap: 10px; color: #5b6b7d; }
 .kb-legenda i { display: inline-block; width: 16px; height: 9px; border-radius: 2px; vertical-align: middle; margin-right: 3px; }
 .kb-leg-vs { background: #e3eefb; border-bottom: 2px dotted #2a5a92; }
-.kb-leg-opm { background: #dcf1e2; border-bottom: 2px solid #1d6b3a; }
+.kb-leg-opm { background: #efe4f7; border-bottom: 2px solid #6b2d8f; }
 /* Korte melding na een handeling */
 .kb-lade-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #17212b; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 200; max-width: 90vw; }
 .kb-lade-toast-fout { background: #a6192e; }

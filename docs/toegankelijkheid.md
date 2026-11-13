@@ -73,7 +73,7 @@ toetsenbordgedrag nagelopen (hieronder) en is er een script voor een handmatige 
 ## Markeringen in de tekst
 
 - **Verbetervoorstel:** blauw, met een **stippellijn** eronder en een **rond** nummer.
-- **Opmerking van de review:** groen, met een **doorgetrokken lijn** eronder en een **vierkant** nummer.
+- **Opmerking van de review:** paars (sinds 1.31.1), met een **doorgetrokken lijn** eronder en een **vierkant** nummer.
 - **Uitleg voor nieuwe collega's:** geel.
 
 Behalve de kleur verschilt ook de vorm (WCAG 1.4.1, ook voor kleurenblinden). De nummers zijn voor het oog
@@ -82,9 +82,10 @@ opmerking 1 van de review" en "einde opmerking 1", in plaats van een los getal m
 hebben een contrast van minstens 4,5:1.
 
 Op de reviewpagina tonen *ingevoegd* en *verwijderd* niet alleen kleur: ingevoegde tekst is vet met een
-donkere streep eronder, verwijderde tekst doorgehaald (`<ins>`/`<del>`). Sinds 1.30.0 is ingevoegde tekst
-lichtgrijs in plaats van groen, zodat groen alleen voor opmerkingen is. Opmerking en voorstel op dezelfde tekst
-zijn allebei zichtbaar: het groene vlak met de groene lijn, en daaronder de blauwe stippellijn.
+donkere streep eronder, verwijderde tekst doorgehaald (`<ins>`/`<del>`). Sinds 1.31.1 zijn opmerkingen van de review
+paars (doorgetrokken lijn, vierkant nummer) en voorstellen blauw (stippellijn, rond nummer); ingevoegde tekst is
+groen onderstreept. Opmerking en voorstel op dezelfde tekst zijn allebei zichtbaar. Na plaatsen, wijzigen of
+weghalen van een opmerking leest een live-regio de melding voor en gaat de focus naar het kaartje.
 
 ## Ingebouwd op de site
 
