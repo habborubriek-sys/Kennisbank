@@ -13,6 +13,10 @@ Twee soorten handelingen:
   gepubliceerd (besluit 5).
 - **Bericht, notitie, afwijzen, dubbel** staan los van het artikel en gaan meteen (`lade_actie`, JSON).
   Een voorstel dat is meegenomen in een versie die ter inzage ligt, kun je niet afwijzen (besluit 5).
+- **Afhandelen als verwerkt** (1.31.2, K2) is voor een voorstel waarvan de tekst al in een gepubliceerde
+  versie is aangepast, bijvoorbeeld door een collega of in een eerdere correctie. Het krijgt het nummer van
+  de versie die medewerkers nu zien en loopt door dezelfde dienst als het scherm na publiceren. Staat de
+  geciteerde tekst nog letterlijk in de gepubliceerde versie, dan moet de redacteur het eerst bevestigen.
 """
 
 import re
@@ -26,7 +30,7 @@ from django.utils.formats import date_format
 from django.views.decorators.http import require_POST
 
 from . import diensten
-from .models import OPEN, Verbetervoorstel, VoorstelStatus
+from .models import OPEN, Status, Verbetervoorstel, VoorstelStatus
 from .rechten import rechten
 
 #: Zo lang mag de titel in de lijst zijn (de eerste zin van het voorstel, ingekort).
@@ -44,8 +48,40 @@ def _moment(m) -> str:
     return date_format(timezone.localtime(m), "j F Y H:i") if m else ""
 
 
+def verwerkt_versie(v) -> int:
+    """In welke gepubliceerde versie is dit voorstel verwerkt als je het nu als verwerkt afhandelt? 0 = kan niet.
+
+    Is het al meegenomen in een gepubliceerde versie (het scherm na publiceren is overgeslagen), dan dat
+    nummer; anders de versie die medewerkers nu zien. Een artikel dat niet gepubliceerd is, heeft er geen.
+    """
+    artikel = v.artikel
+    if artikel.status != Status.GEPUBLICEERD or not artikel.versie:
+        return 0
+    return v.verwerkt_in_versie or artikel.versie
+
+
+def citaat_gepubliceerd(v) -> bool:
+    """Staat de geciteerde tekst nog letterlijk in de versie die medewerkers nu zien? (Niet: in de conceptversie.)"""
+    from .behandelen import citaat_in_context
+
+    return bool(v.citaat) and citaat_in_context(v.artikel.inhoud, v.citaat)[1]
+
+
+def verwerkt_bericht(v, versie: int) -> str:
+    """Het voorgevulde bedankbericht, gelijk aan dat op het scherm na publiceren."""
+    return (
+        f"Dank je wel voor je verbetervoorstel. We hebben het verwerkt in versie {versie} "
+        f"van '{v.artikel.titel}', die nu voor iedereen te zien is."
+    )
+
+
 def _item(v, gebruiker, andere):
+    versie = verwerkt_versie(v)
     return {
+        # 1.31.2 (K2): *Afhandelen als verwerkt*. 0 = kan niet (het artikel is niet gepubliceerd).
+        "verwerkt_versie": versie,
+        "verwerkt_bericht": verwerkt_bericht(v, versie) if versie else "",
+        "citaat_gepubliceerd": bool(versie) and citaat_gepubliceerd(v),
         "id": v.pk,
         "titel": titel_van(v.tekst),
         "citaat": v.citaat or "",
@@ -83,7 +119,7 @@ def _item(v, gebruiker, andere):
 def _open_voorstellen(artikel):
     return (
         Verbetervoorstel.objects.filter(artikel=artikel, status__in=OPEN)
-        .select_related("ingediend_door", "eigenaar")
+        .select_related("ingediend_door", "eigenaar", "artikel")
         .order_by("ingediend_op", "pk")
     )
 
@@ -150,7 +186,7 @@ def meenemen_opslaan(request, artikel, *, spoed=False, telt=True) -> list:
     - **Spoedcorrectie**: de aangevinkte voorstellen horen bij de correctie die nu wordt gepubliceerd;
       geeft hun ids terug (de aanroeper zet het versienummer). Een voorstel dat in een conceptversie zit
       die ter inzage ligt, kan niet (ronde A, M4).
-    - **telt=False** (kleine correctie, of geen inhoudelijke wijziging): er verandert niets. Geeft de ids
+    - **telt=False** (geen inhoudelijke wijziging, dus geen nieuwe versie): er verandert niets. Geeft de ids
       terug die de redacteur nieuw had aangevinkt, zodat de aanroeper kan zeggen dat ze niet meetellen.
     """
     if "kb_lade" not in request.POST:
@@ -240,8 +276,8 @@ def _intussen(request, v, actie):
     """Is er sinds het tekenen van de lade iets veranderd wat deze handeling raakt? Dan de uitleg, anders None.
 
     Hetzelfde als het oude behandelscherm deed (review functioneel analist punt 8): een bericht gaat niet
-    als een collega intussen ook schreef; afwijzen en dubbel niet als het voorstel intussen bij een ander
-    ligt. Zonder de velden (een oude pagina) wordt er niet vergeleken.
+    als een collega intussen ook schreef; afwijzen, dubbel en verwerkt niet als het voorstel intussen bij
+    een ander ligt. Zonder de velden (een oude pagina) wordt er niet vergeleken.
     """
     nieuw_bericht = request.POST.get("geladen_bericht")
     if nieuw_bericht is not None and nieuw_bericht.isdigit():
@@ -250,7 +286,7 @@ def _intussen(request, v, actie):
             namen = " en ".join(sorted({b.naam for b in nieuwe}))
             return f"{namen} stuurde intussen een bericht aan de indiener. Lees het eerst; er is niets verstuurd."
     eigenaar = request.POST.get("geladen_eigenaar")
-    if actie in ("afwijzen", "dubbel") and eigenaar is not None and eigenaar.isdigit():
+    if actie in ("afwijzen", "dubbel", "verwerkt") and eigenaar is not None and eigenaar.isdigit():
         if int(eigenaar) != (v.eigenaar_id or 0):
             waar = f"bij {diensten.naam_van(v.eigenaar)}" if v.eigenaar_id else "weer in de werkvoorraad"
             return f"Dit voorstel ligt intussen {waar}. Kijk eerst wat er is gebeurd; er is niets verstuurd."
@@ -262,7 +298,7 @@ def lade_actie(request, pk):
     """Eén handeling vanuit de lade. Antwoordt met het bijgewerkte voorstel (of `weg` als het is afgehandeld)."""
     actie = request.POST.get("actie")
     tekst = (request.POST.get("tekst") or "").strip()
-    if actie not in ("bericht", "notitie", "afwijzen", "dubbel", "verbergen"):
+    if actie not in ("bericht", "notitie", "afwijzen", "dubbel", "verbergen", "verwerkt"):
         return _fout("Onbekende handeling.")
     if not tekst and actie != "verbergen":
         return _fout("Schrijf eerst je tekst." if actie == "notitie" else "Schrijf eerst je bericht aan de indiener.")
@@ -303,6 +339,38 @@ def lade_actie(request, pk):
             model_admin.log_change(request, v, "Bericht aan de indiener verstuurd.")
             aan = f" aan {diensten.naam_van(v.ingediend_door)}" if v.ingediend_door_id else ""
             melding = f"Bericht verstuurd{aan}."
+        elif actie == "verwerkt":
+            # 1.31.2 (K2): de tekst is al aangepast in een gepubliceerde versie.
+            versie = verwerkt_versie(v)
+            if not versie:
+                return _fout(
+                    "Dit artikel is niet gepubliceerd. Afhandelen als verwerkt kan pas als de aangepaste tekst "
+                    "voor medewerkers te zien is.",
+                    status=409,
+                )
+            if diensten.voorstel_op_slot(v):
+                return _fout(diensten.OP_SLOT_TEKST, status=409)
+            if citaat_gepubliceerd(v) and request.POST.get("zeker") != "1":
+                # De lade vraagt dit zelf al; dit is voor als de tekst intussen is veranderd. Niets versturen.
+                return JsonResponse(
+                    {
+                        "fout": "De geciteerde tekst staat nog letterlijk in de gepubliceerde versie. "
+                        "Kies opnieuw Afhandelen als verwerkt en bevestig dat het voorstel toch is verwerkt. "
+                        "Er is niets verstuurd.",
+                        "voorstel": _item(v, request.user, _andere(v.artikel)),
+                    },
+                    status=409,
+                )
+            try:
+                diensten.voorstel_afhandelen(v, request.user, VoorstelStatus.VERWERKT, tekst)
+            except diensten.VoorstelFout as e:
+                return _fout(str(e), status=409)
+            v.verwerkt_in_versie = versie
+            v.save(update_fields=["verwerkt_in_versie"])
+            model_admin.log_change(request, v, f"Verwerkt in versie {versie} (afgehandeld vanuit de lade).")
+            aan = f"; {diensten.naam_van(v.ingediend_door)} krijgt je bericht" if v.ingediend_door_id else ""
+            melding = f"Afgehandeld als verwerkt in versie {versie}{aan}. Het staat nu onder Afgehandeld."
+            return JsonResponse({"weg": True, "melding": melding})
         else:
             dubbel = None
             if actie == "dubbel":

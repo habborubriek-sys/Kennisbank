@@ -1,5 +1,30 @@
 # Wijzigingen
 
+## 1.31.2 – 2026-11-13
+
+Melding van Alex (bouwlijst `bouwlijst-1.31.2-kleine-correctie-en-afhandelen.md`): een tikfout gepubliceerd als kleine correctie, met het voorstel aangevinkt bij *Meenemen*. Het scherm *Meegenomen voorstellen afhandelen* kwam niet.
+
+**Een kleine correctie neemt voorstellen mee (K1)**
+- Aangevinkte voorstellen gelden als verwerkt in de nieuwe versie, ook als die een **kleine correctie** is. Na het publiceren volgt het afhandelscherm met het voorgevulde bericht. Dat geldt voor de gewone weg en voor de spoedcorrectie.
+- "Kleine correctie" betekent alleen nog: geen melding en geen favorietenmail voor medewerkers. Dat is niet veranderd.
+- Publiceren **zonder inhoudelijke wijziging** (er komt geen nieuwe versie) telt nog steeds niet mee; de melding daarover blijft.
+- Dit draait een keuze uit 1.28.0 terug (ronde A, M3). Een voorstel over een tikfout is juist een kleine correctie.
+
+**Afhandelen als verwerkt, in de lade (K2)**
+- Nieuwe knop **Afhandelen als verwerkt…**, naast *Afwijzen…* en *Dubbel…*. Voor een voorstel waarvan de tekst al is aangepast in de versie die medewerkers nu zien, bijvoorbeeld via een kleine correctie van vóór deze versie, of door een collega.
+- Het venster heeft hetzelfde voorgevulde bedankbericht als het scherm na publiceren ("verwerkt in versie n"). Het voorstel krijgt de status *Verwerkt* met het versienummer; de indiener krijgt een melding en een e-mail. Het loopt door dezelfde dienst als het afhandelscherm.
+- Staat de geciteerde tekst nog letterlijk in de gepubliceerde versie, dan vraagt de kennisbank eerst of je het zeker weet. De focus staat dan op *Annuleren*. De server controleert dit ook zelf.
+- De knop werkt niet als het voorstel is meegenomen in een versie die ter inzage ligt, en niet bij een artikel dat niet gepubliceerd is.
+- Deed een collega intussen iets met het voorstel, dan verstuurt de lade niets (409), net als bij de andere handelingen.
+- Het blok heet nu **Afhandelen zonder nieuwe versie** (was *Afhandelen zonder wijziging*).
+
+**Tests en documentatie**
+- 21 nieuwe tests (`test_kleine_correctie_1312.py`) en één in `test_ronde_a_1280.py`; drie bestaande tests legden het oude gedrag vast en zijn omgezet. Nu 674 tests.
+- Mutatiecheck: 9 bewust aangebrachte fouten in de nieuwe code, alle 9 betrapt (één test is daarvoor aangescherpt).
+- Met Playwright nagelopen: de knop met het toetsenbord, beide vensters (focus, Escape, Enter), afhandelen, en publiceren als kleine correctie tot en met het afhandelscherm. axe op de lade, de twee vensters en het afhandelscherm: 0 overtredingen.
+- `docs/functioneel-beheer.md` bijgewerkt; `docs/nvda-testscript.md` heeft een stap voor de nieuwe knop.
+- Geen migratie.
+
 ## 1.31.1 – 2026-11-13
 
 Feedback van Alex op 1.30.0 (bouwlijst `bouwlijst-1.31.1-paars-en-opmerking-opslaan.md`).

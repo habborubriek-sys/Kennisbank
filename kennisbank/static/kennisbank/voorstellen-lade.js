@@ -5,8 +5,8 @@
  * rond nummer, en houdt twee verborgen velden bij die met het formulier meegaan: welke voorstellen in de
  * lade stonden (kb_lade) en welke zijn aangevinkt (kb_meenemen). Meenemen telt dus pas bij opslaan.
  *
- * Bericht aan de indiener, interne notitie, afwijzen en dubbel gaan meteen naar de server (los van het
- * artikel). Bericht en notitie staan in twee tabbladen, nooit tegelijk in beeld; versturen vraagt een
+ * Bericht aan de indiener, interne notitie, afwijzen, dubbel en afhandelen als verwerkt (1.31.2) gaan meteen
+ * naar de server (los van het artikel). Bericht en notitie staan in twee tabbladen, nooit tegelijk in beeld; versturen vraagt een
  * bevestiging (opmerking van Alex: "dicht op elkaar, fout is snel gemaakt").
  */
 (function () {
@@ -357,11 +357,16 @@
         d.appendChild(vakN);
       }
 
-      // Afhandelen zonder wijziging
+      // Afhandelen zonder nieuwe versie (1.31.2, K2: ook als verwerkt, als de tekst al eerder is aangepast).
       var magAf = !(opSlot && bewaard[v.id]);
       var af = el("div", "kb-vk-af");
-      af.appendChild(el("h3", null, "Afhandelen zonder wijziging"));
+      af.appendChild(el("h3", null, "Afhandelen zonder nieuwe versie"));
       var kn = el("div", "kb-vk-knoppen");
+      var vwk = el("button", "button", "Afhandelen als verwerkt…"); vwk.type = "button"; vwk.disabled = !magAf || !v.verwerkt_versie;
+      vwk.setAttribute("data-kb-focus", "vwk-" + v.id);
+      vwk.title = "Voor een voorstel waarvan de tekst al is aangepast in de versie die medewerkers nu zien.";
+      vwk.addEventListener("click", function () { verwerkt(v); });
+      kn.appendChild(vwk);
       var afw = el("button", "button kb-gevaar", "Afwijzen…"); afw.type = "button"; afw.disabled = !magAf;
       var dub = el("button", "button", "Dubbel…"); dub.type = "button"; dub.disabled = !magAf || !v.andere.length;
       afw.setAttribute("data-kb-focus", "afw-" + v.id);
@@ -377,10 +382,53 @@
       verberg.title = "Collega's zien het voorstel dan niet meer onder Alle voorstellen en kunnen het niet steunen. De indiener ziet het gewoon.";
       verberg.addEventListener("click", function () { actie(v, "verbergen", "", "", v.verborgen ? "0" : "1"); });
       af.appendChild(verberg);
-      if (!magAf) af.appendChild(el("p", "kb-vk-uitleg", "Dit voorstel is meegenomen in de versie die ter inzage ligt. Afwijzen kan pas als de review terug is."));
+      if (!magAf) af.appendChild(el("p", "kb-vk-uitleg", "Dit voorstel is meegenomen in de versie die ter inzage ligt. Afhandelen kan pas als de review terug is."));
+      else if (!v.verwerkt_versie) af.appendChild(el("p", "kb-vk-uitleg", "Afhandelen als verwerkt kan pas als het artikel is gepubliceerd."));
       d.appendChild(af);
       k.appendChild(d);
       return k;
+    }
+
+    // 1.31.2 (K2): de tekst is al aangepast in een gepubliceerde versie. Staat het citaat er nog letterlijk in,
+    // dan eerst de vraag of je het zeker weet; daarna het venster met het voorgevulde bedankbericht.
+    function verwerkt(v) {
+      if (!v.citaat_gepubliceerd) { verwerktBericht(v, false); return; }
+      var inhoud = el("div", "kb-vk-afsluiten");
+      inhoud.appendChild(el("div", "kb-vk-citaat", "“" + v.citaat + "”"));
+      inhoud.appendChild(el("p", null, "Weet je zeker dat het voorstel is verwerkt?"));
+      venster({
+        titel: "De tekst staat nog in het artikel",
+        alineas: ["De tekst waar dit voorstel over gaat, staat nog letterlijk in versie " + v.verwerkt_versie + ", die medewerkers nu zien:"],
+        inhoud: inhoud,
+        knoppen: [
+          { tekst: "Annuleren", focus: true },
+          // Het volgende venster pas openen als dit dicht is, anders gaat de focus terug naar de lade.
+          { tekst: "Ja, het is verwerkt", primair: true, doen: function () { setTimeout(function () { verwerktBericht(v, true); }, 0); } },
+        ],
+      });
+    }
+    function verwerktBericht(v, zeker) {
+      var inhoud = el("div", "kb-vk-afsluiten");
+      var ta = el("textarea");
+      ta.value = v.verwerkt_bericht || "";
+      ta.setAttribute("aria-label", "Bericht aan de indiener");
+      inhoud.appendChild(ta);
+      venster({
+        titel: "Afhandelen als verwerkt",
+        alineas: ["Het voorstel is verwerkt in versie " + v.verwerkt_versie + ", die medewerkers nu zien. " + (v.indiener || "De indiener") + " krijgt dit bericht; het voorstel gaat daarna naar Afgehandeld."],
+        inhoud: inhoud,
+        knoppen: [
+          { tekst: "Annuleren" },
+          {
+            tekst: "Afhandelen en versturen",
+            primair: true,
+            doen: function () {
+              if (!ta.value.trim()) { ta.focus(); return false; }
+              actie(v, "verwerkt", ta.value.trim(), "", "", zeker);
+            },
+          },
+        ],
+      });
     }
 
     function afsluiten(v, soort) {
@@ -418,14 +466,15 @@
       });
     }
 
-    function actie(v, soort, tekst, dubbelVan, waarde) {
+    function actie(v, soort, tekst, dubbelVan, waarde, zeker) {
       // Na het antwoord tekent de lade opnieuw: zet de focus dan terug op de knop van deze handeling.
-      var focusNa = { bericht: "stuur-", notitie: "bewaar-", verbergen: "verberg-", afwijzen: "rij-", dubbel: "rij-" }[soort] + v.id;
+      var focusNa = { bericht: "stuur-", notitie: "bewaar-", verbergen: "verberg-", afwijzen: "rij-", dubbel: "rij-", verwerkt: "vwk-" }[soort] + v.id;
       var data = new FormData();
       data.append("actie", soort);
       data.append("tekst", tekst);
       if (dubbelVan) data.append("dubbel_van", dubbelVan);
       if (waarde) data.append("waarde", waarde);
+      if (zeker) data.append("zeker", "1");
       // Ronde A (M5): hoe het voorstel erbij lag. Is dat intussen veranderd, dan weigert de server.
       data.append("geladen_eigenaar", String(v.geladen_eigenaar || 0));
       data.append("geladen_bericht", String(v.geladen_bericht || 0));

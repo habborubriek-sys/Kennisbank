@@ -175,7 +175,7 @@ Als je een gepubliceerd artikel inhoudelijk wijzigt, gebeurt er drie dingen voor
 
 Twee hulpmiddelen om meldingsmoeheid te voorkomen:
 
-- **Kleine correctie, geen melding**: vink dit aan bij een typfout, opmaak of een verouderde naam. Er ontstaat wel een versie, maar medewerkers krijgen geen melding en geen e-mail. Een toelichting is dan niet verplicht.
+- **Kleine correctie, geen melding**: vink dit aan bij een typfout, opmaak of een verouderde naam. Er ontstaat wel een versie, maar medewerkers krijgen geen melding en geen e-mail. Een toelichting is dan niet verplicht. Verder is het een gewone versie: verbetervoorstellen die je hebt meegenomen, gelden als verwerkt (sinds 1.31.2).
 - Schrijf de toelichting voor de lezer, niet voor jezelf: *wat* is anders en *wat moet hij nu anders doen*. "Tekst aangepast" zegt niets; "Tweede rappel nu na 3 weken in plaats van 2" wel.
 
 Wil je een wijziging breder aankondigen, vink dan **Ook als nieuwsbericht plaatsen** aan: er staat dan een concept-nieuwsbericht klaar met je toelichting, gekoppeld aan het artikel (zie [Nieuws](#nieuws)).
@@ -465,10 +465,12 @@ zonder opslaan, dan waarschuwt de browser; het voorstel blijft dan in de bak lig
   spoedcorrectie meenemen: dat hoort bij de review (het vinkje staat dan uit, met uitleg).
 - **Ligt de conceptversie ter inzage**, dan kun je niet meenemen. Een voorstel dat al is meegenomen, kun je
   dan ook niet afwijzen tot de review terug is. Dat geldt overal: in de lade, via de API en in oude schermen.
-- Een **kleine correctie** neemt geen voorstellen mee, ook niet bij een spoedcorrectie. Publiceer je een
-  conceptversie als kleine correctie, of zonder inhoudelijke wijziging, dan gelden de meegenomen voorstellen
-  **niet als verwerkt**: ze staan weer open in de lade, en de kennisbank zegt dat. Gooi je de conceptversie
-  weg, dan gaat *meenemen* bij de voorstellen ook weer uit.
+- Een **kleine correctie** neemt voorstellen gewoon mee (sinds 1.31.2), ook bij een spoedcorrectie. Een voorstel
+  over een tikfout is juist een kleine correctie. "Klein" betekent alleen: geen melding en geen e-mail voor
+  medewerkers. De indiener van het voorstel krijgt wel je bericht.
+- Publiceer je **zonder inhoudelijke wijziging** (er komt geen nieuwe versie), dan gelden de meegenomen
+  voorstellen **niet als verwerkt**: ze staan weer open in de lade, en de kennisbank zegt dat. Gooi je de
+  conceptversie weg, dan gaat *meenemen* bij de voorstellen ook weer uit.
 - **Twee redacteuren tegelijk** (sinds 1.28.0): bij opslaan telt alleen wat jíj bij Meenemen hebt veranderd.
   Zette een collega intussen iets anders aan of uit, dan blijft dat staan; je wordt niet ongevraagd eigenaar
   van een voorstel dat je niet hebt aangeraakt. Is een aangevinkt voorstel intussen afgehandeld, dan zegt de
@@ -500,10 +502,25 @@ verwisselt:
   reviewers zien hem nooit. Voor wat de volgende behandelaar moet weten ("gebeld met Toezicht, wacht op
   antwoord"). Bij het anonimiseren van een afgehandeld voorstel worden notities verwijderd.
 
-**Afhandelen zonder wijziging** kan ook in de lade: **Afwijzen…** of **Dubbel…** (kies het andere voorstel
-bij hetzelfde artikel; voorstellen worden niet samengevoegd en de steun gaat niet mee). Beide vragen een
-afsluitend bericht aan de indiener. Daaronder **Verbergen voor collega's**, bijvoorbeeld als er een naam van
-een collega in staat.
+**Afhandelen zonder nieuwe versie** kan ook in de lade. Er zijn drie knoppen; alle drie vragen een afsluitend
+bericht aan de indiener.
+
+- **Afhandelen als verwerkt…** (sinds 1.31.2): voor een voorstel waarvan de tekst al is aangepast in de versie
+  die medewerkers nu zien. Bijvoorbeeld omdat een collega het al heeft aangepast, of omdat je het bij het
+  publiceren niet had aangevinkt. Het venster heeft een voorgevuld bedankbericht ("We hebben het verwerkt in
+  versie n …"). Het voorstel krijgt de status *Verwerkt* met dat versienummer; de indiener krijgt een melding en
+  een e-mail.
+  - Staat de geciteerde tekst nog letterlijk in de gepubliceerde versie, dan vraagt de kennisbank eerst of je
+    het zeker weet. De kennisbank kijkt naar de gepubliceerde tekst, niet naar een conceptversie.
+  - Heb je de tekst wel aangepast maar nog niet gepubliceerd? Vink dan *Meenemen in deze versie* aan en
+    publiceer; deze knop is daar niet voor.
+  - De knop werkt niet bij een artikel dat niet gepubliceerd is.
+- **Afwijzen…**: je neemt het voorstel niet over.
+- **Dubbel…**: kies het andere voorstel bij hetzelfde artikel. Voorstellen worden niet samengevoegd en de
+  steun gaat niet mee.
+
+Is het voorstel meegenomen in een versie die ter inzage ligt, dan werken deze knoppen niet tot de review terug
+is. Daaronder staat **Verbergen voor collega's**, bijvoorbeeld als er een naam van een collega in staat.
 
 **Iemand anders was je voor.** Stuurde een collega intussen een bericht aan de indiener, of ligt het voorstel
 intussen bij een ander, dan verstuurt de lade niets. Je ziet meteen wat er gebeurde, en je getypte tekst
@@ -570,8 +587,9 @@ Werken met een voorstel gaat zo:
 2. **Stuur een bericht** met een tussenstand als het even duurt, en zet wat de redactie moet weten in een
    **interne notitie** (beide in de lade).
 3. **Verwerk het**: pas de tekst aan, vink *Meenemen in deze versie* aan en publiceer (met of zonder review).
-   Daarna handel je het af met het voorgevulde bericht. Neem je het niet over, kies dan **Afwijzen…** of
-   **Dubbel…** in de lade. Dat legt ook vast wie het heeft afgehandeld en wanneer.
+   Daarna handel je het af met het voorgevulde bericht. Is de tekst al eerder aangepast en gepubliceerd, kies
+   dan **Afhandelen als verwerkt…** in de lade. Neem je het niet over, kies dan **Afwijzen…** of
+   **Dubbel…**. Dat legt ook vast wie het heeft afgehandeld en wanneer.
 
 Het filter *Indiener heeft als laatste geschreven* is er voor voorstellen uit een oudere installatie,
 waarin terugschrijven nog kon.

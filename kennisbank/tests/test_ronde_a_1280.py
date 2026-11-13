@@ -252,11 +252,13 @@ class NietHangen(RondeABasis):
         v = self.voorstel()
         self.maak_concept()
         self.mee(v)
+        # 1.31.2 (K1): een kleine correctie neemt de voorstellen mee, net als een gewone versie.
         r = self.publiceer(kleine_correctie="on", wijzigingstoelichting="")
         self.assertFalse(Conceptversie.objects.filter(artikel=self.a).exists())
         v.refresh_from_db()
-        self.assertEqual((v.in_conceptversie, v.verwerkt_in_versie, v.is_open), (False, None, True))
-        self.assertIn("geldt niet als verwerkt", meldingen(r))
+        self.assertEqual((v.in_conceptversie, v.verwerkt_in_versie, v.is_open), (False, 2, True))
+        self.assertIn("voorstellen-afhandelen", r["Location"])
+        self.assertNotIn("niet als verwerkt", meldingen(r))
 
     def test_a9_conceptversie_zonder_inhoudelijke_wijziging(self):
         v = self.voorstel()
@@ -291,7 +293,8 @@ class NietHangen(RondeABasis):
         self.assertIsNone(v.verwerkt_in_versie)
         self.assertIn("ter inzage", meldingen(r))
 
-    def test_a10_spoed_als_kleine_correctie_neemt_niets_mee(self):
+    def test_a10_spoed_als_kleine_correctie_neemt_wel_mee(self):
+        # 1.31.2 (K1): ook bij een spoedcorrectie telt een kleine correctie mee.
         v = self.voorstel()
         self.maak_concept()
         self.client.force_login(self.anna)
@@ -299,9 +302,24 @@ class NietHangen(RondeABasis):
         data.update(kb_lade=str(v.pk), kb_meenemen=str(v.pk), kb_mee_geladen="")
         r = self.post(f"{self.url}?spoed=1", data, _save="1")
         v.refresh_from_db()
+        self.assertEqual(v.verwerkt_in_versie, 2)
+        self.assertEqual(v.eigenaar, self.anna, "meegenomen = overgenomen")
+        self.assertIn("voorstellen-afhandelen", r["Location"])
+        self.assertNotIn("niet meegenomen", meldingen(r))
+
+    def test_a10_spoed_zonder_inhoudelijke_wijziging_neemt_niets_mee(self):
+        v = self.voorstel()
+        self.maak_concept()
+        self.client.force_login(self.anna)
+        self.a.refresh_from_db()
+        # De gepubliceerde tekst, ongewijzigd (met het cluster, anders is dát de wijziging).
+        data = beheerdata(self.a, clusters=[self.water.pk], kleine_correctie="on")
+        data.update(kb_lade=str(v.pk), kb_meenemen=str(v.pk), kb_mee_geladen="")
+        r = self.post(f"{self.url}?spoed=1", data, _save="1")
+        v.refresh_from_db()
         self.assertIsNone(v.verwerkt_in_versie)
         self.assertIsNone(v.eigenaar, "niet meegenomen = niet overgenomen")
-        self.assertIn("niet meegenomen", meldingen(r))
+        self.assertIn("geen inhoudelijke wijziging", meldingen(r))
 
     def test_a17_spoed_meenemen_staat_in_het_logboek(self):
         from django.contrib.admin.models import LogEntry

@@ -1302,7 +1302,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         obj = get_object_or_404(self.get_queryset(request), pk=pk)
         qs = (
             Verbetervoorstel.objects.filter(artikel=obj, verwerkt_in_versie__isnull=False, status__in=OPEN_VOORSTEL)
-            .select_related("ingediend_door")
+            .select_related("ingediend_door", "artikel")
             .order_by("ingediend_op")
         )
         if request.method == "POST":
@@ -1340,10 +1340,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             {
                 "v": v,
                 "indiener": diensten.naam_van(v.ingediend_door) if v.ingediend_door_id else "de indiener",
-                "bericht": (
-                    f"Dank je wel voor je verbetervoorstel. We hebben het verwerkt in versie {v.verwerkt_in_versie} "
-                    f"van '{obj.titel}', die nu voor iedereen te zien is."
-                ),
+                "bericht": lade.verwerkt_bericht(v, v.verwerkt_in_versie),
                 "url": scherm_url(v),
             }
             for v in qs
@@ -1488,10 +1485,11 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             kleine_correctie=bool(form.cleaned_data.get("kleine_correctie")),
             review=review_regel,
         )
-        # Ronde A (review 1.27.0, M3/M4): voorstellen tellen alleen mee in een echte nieuwe versie. Een kleine
-        # correctie, of publiceren zonder inhoudelijke wijziging, verwerkt geen voorstellen; dat is één regel
-        # voor de gewone weg en de spoedcorrectie.
-        telt = bool(versie) and not versie.kleine_correctie
+        # Ronde A (review 1.27.0, M3/M4): voorstellen tellen alleen mee als er een nieuwe versie is. Publiceren
+        # zonder inhoudelijke wijziging verwerkt geen voorstellen; dat is één regel voor de gewone weg en de
+        # spoedcorrectie. 1.31.2 (K1): een kleine correctie telt wél mee. Een voorstel over een tikfout is juist
+        # een kleine correctie; "klein" betekent alleen: geen melding en geen favorietenmail voor medewerkers.
+        telt = bool(versie)
         if change and form.instance.status == Status.GEPUBLICEERD:
             # 1.26.0: de vinkjes *Meenemen in deze versie* in de lade. Bij een spoedcorrectie horen ze bij de
             # versie die nu wordt gepubliceerd, anders volgen ze het gewone meenemen.
@@ -1503,10 +1501,9 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     )
                     request._kb_meegenomen = True
                 elif mee:
-                    waarom = "dit een kleine correctie was" if versie else "er geen inhoudelijke wijziging was"
                     messages.warning(
                         request,
-                        f"De aangevinkte voorstellen zijn niet meegenomen, omdat {waarom}. "
+                        "De aangevinkte voorstellen zijn niet meegenomen, omdat er geen inhoudelijke wijziging was. "
                         "Ze staan nog open in de lade.",
                     )
             else:
@@ -1523,12 +1520,11 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     # Zonder conceptversie blijft "meegenomen" staan voor de volgende versie (bevinding 8b).
                     n = (meegenomen.update(in_conceptversie=False) if had_concept else 0) + len(mee)
                     if n:
-                        waarom = "dit een kleine correctie was" if versie else "er geen inhoudelijke wijziging was"
                         messages.warning(
                             request,
                             f"{n} meegenomen voorstel{'len' if n > 1 else ''} "
-                            f"{'gelden' if n > 1 else 'geldt'} niet als verwerkt, omdat {waarom}. "
-                            f"{'Ze staan' if n > 1 else 'Het staat'} weer open in de lade.",
+                            f"{'gelden' if n > 1 else 'geldt'} niet als verwerkt, omdat er geen inhoudelijke "
+                            f"wijziging was. {'Ze staan' if n > 1 else 'Het staat'} weer open in de lade.",
                         )
         if versie:
             if versie.versie == 1:

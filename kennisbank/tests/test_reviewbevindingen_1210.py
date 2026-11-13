@@ -268,15 +268,18 @@ class Bevindingen(ReviewBasis):
         self.assertIsNone(v.verwerkt_in_versie)
         self.assertNotIn("voorstellen-afhandelen", r.get("Location", ""))
 
-    def test_8b_een_kleine_correctie_neemt_geen_voorstellen_mee(self):
+    def test_8b_een_kleine_correctie_neemt_voorstellen_wel_mee(self):
+        # Tot 1.31.2 nam een kleine correctie geen voorstellen mee. Dat klopte niet: een voorstel over een
+        # tikfout is juist een kleine correctie (bouwlijst 1.31.2, K1).
         v = self.voorstel(artikel=self.a)
         Verbetervoorstel.objects.filter(pk=v.pk).update(in_conceptversie=True)  # meegenomen (lade)
         self.als(self.anna)
         self.client.force_login(self.bram)
-        self.post(self.url, beheerdata(self.a, titel="Rappel versturen.", kleine_correctie="on"), _save="1")
+        r = self.post(self.url, beheerdata(self.a, titel="Rappel versturen.", kleine_correctie="on"), _save="1")
         v.refresh_from_db()
-        self.assertTrue(v.in_conceptversie)
-        self.assertIsNone(v.verwerkt_in_versie)
+        self.assertFalse(v.in_conceptversie)
+        self.assertEqual(v.verwerkt_in_versie, 2)
+        self.assertIn("voorstellen-afhandelen", r["Location"])
 
     def test_9_oppakken_uit_een_oude_werkplek_neemt_niet_stil_over(self):
         v = self.voorstel(artikel=self.a)
