@@ -31,7 +31,7 @@ Ronde D van de review van 12 november (bouwlijst `bouwlijst-1.32.0-ronde-d.md`):
 - Een test bewaakt de banner van de editorbundel tegen het lockbestand en de bouwopdracht.
 - GitLab: een rooktest van de image voor hij naar de registry gaat. Niet op een echte GitLab-runner gedraaid.
 - Tijdens de tests staan de logregels uit. Tests die een fout uitlokken (een 400, een 409, een vreemde Host) gaven tientallen logregels in de uitvoer, waardoor een echte fout slecht te zien was. `KB_TEST_LOG_NIVEAU=WARNING` zet ze aan.
-- Vanaf deze versie krijgt elke release een tag (`v1.32.0`; keuze Alex: vanaf nu, niet met terugwerkende kracht).
+- Vanaf deze versie krijgt elke release een tag (`v1.32.0`; keuze Alex: vanaf nu, niet met terugwerkende kracht). De CI zet de tag zelf, op de eerste commit van een versie waarvoor alles groen is op `main`. Alleen die stap mag naar de repository schrijven.
 
 **Documentatie (D3, D6)**
 - Nieuw: `docs/reviewtoestanden.md`: de toestanden van de review, de overgangen, en wat redacteur en reviewer in elke toestand kunnen.
@@ -41,7 +41,7 @@ Ronde D van de review van 12 november (bouwlijst `bouwlijst-1.32.0-ronde-d.md`):
 - Een test controleert dat verwijzingen in de documentatie naar bestaande bestanden wijzen.
 
 **Tests**
-- 20 nieuwe tests (`test_ronde_d_1320.py`); nu 694. Mutatiecheck: 9 bewust aangebrachte fouten, alle 9 betrapt.
+- 22 nieuwe tests (`test_ronde_d_1320.py`); nu 696. Mutatiecheck: 9 bewust aangebrachte fouten, alle 9 betrapt.
 - Geen migratie.
 
 ## 1.31.3 – 2026-11-13

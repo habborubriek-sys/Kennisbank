@@ -485,7 +485,7 @@ draait en zijn dus aan de beheerorganisatie. Ze komen uit de onafhankelijke revi
 De rooktest in `.gitlab-ci.yml` (sinds 1.32.0) is niet op een echte GitLab-runner gedraaid. Loop hem na bij de
 eerste pipeline.
 
-**Versies herkennen.** Elke release heeft sinds 1.32.0 een tag in de repository (`v1.32.0`). De versie staat ook
+**Versies herkennen.** Elke release heeft sinds 1.32.0 een tag in de repository (`v1.32.0`). De GitHub-pipeline zet hem zelf, op de eerste commit van een versie waarvoor alles groen is; de GitLab-pipeline doet dat nog niet. De versie staat ook
 in `kennisbank/__init__.py`, in het label van de image en op de statuspagina.
 
 ## Problemen oplossen

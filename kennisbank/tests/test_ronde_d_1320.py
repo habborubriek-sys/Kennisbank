@@ -187,6 +187,24 @@ class BrowsertestOpdracht(SimpleTestCase):
         self.assertIn("scripts/browsertests/draai.sh", ci)
 
 
+class ReleaseTag(SimpleTestCase):
+    def test_d5_de_ci_zet_de_tag_alleen_op_main_en_na_alle_controles(self):
+        import yaml
+
+        ci = yaml.safe_load((WORTEL / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
+        tag = ci["jobs"]["tag"]
+        self.assertEqual(sorted(tag["needs"]), ["browser", "image", "test"])
+        self.assertIn("refs/heads/main", tag["if"])
+        self.assertIn("push", tag["if"])
+        # Alleen deze stap mag schrijven; de rest van de pipeline niet.
+        self.assertEqual(tag["permissions"], {"contents": "write"})
+        self.assertEqual([naam for naam, job in ci["jobs"].items() if "permissions" in job], ["tag"])
+
+    def test_d5_het_versienummer_is_te_lezen_zoals_de_ci_het_leest(self):
+        regel = [r for r in (WORTEL / "kennisbank/__init__.py").read_text().splitlines() if r.startswith("__version__")]
+        self.assertEqual(regel, [f'__version__ = "{__version__}"'])
+
+
 class StilleTests(SimpleTestCase):
     def test_d5_tijdens_de_tests_geen_logregels_in_de_uitvoer(self):
         import logging

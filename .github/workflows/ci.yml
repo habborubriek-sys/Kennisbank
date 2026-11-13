@@ -103,3 +103,26 @@ jobs:
           curl -fs -o /dev/null -H "Host: kennisbank.example.nl" localhost:8000/ || exit 1
           test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: 10.0.0.1' localhost:8000/)" = "400"
           docker logs app | tail -20
+
+  # Release-tag (1.32.0): is alles groen op de hoofdbranch, dan krijgt de commit de tag v<versie> uit
+  # kennisbank/__init__.py, als die tag nog niet bestaat. Zo wijst een tag altijd naar de eerste groene commit van
+  # die versie, en hoeft niemand eraan te denken. Alleen deze stap mag naar de repository schrijven.
+  tag:
+    needs: [test, browser, image]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Tag zetten als hij er nog niet is
+        run: |
+          versie="v$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' kennisbank/__init__.py)"
+          case "$versie" in v[0-9]*.[0-9]*.[0-9]*) ;; *) echo "Geen versienummer gevonden: '$versie'"; exit 1 ;; esac
+          if git ls-remote --exit-code --tags origin "refs/tags/$versie" >/dev/null; then
+            echo "Tag $versie bestaat al; niets te doen."
+          else
+            git tag "$versie"
+            git push origin "refs/tags/$versie"
+            echo "Tag $versie gezet op $GITHUB_SHA."
+          fi
