@@ -207,6 +207,9 @@ if env_bool("KB_ACHTER_PROXY", True):
 SECURE_SSL_REDIRECT = env_bool("KB_SSL_REDIRECT", False)
 SECURE_REDIRECT_EXEMPT = [r"^healthz$", r"^readyz$"]
 
+# Meldingen na opslaan in de toon van de kennisbank ("Het artikel … is opgeslagen"), zie kennisbank/berichten.py.
+MESSAGE_STORAGE = "kennisbank.berichten.Berichten"
+
 # Welke sites de kennisbank in een iframe mogen tonen (CSP frame-ancestors).
 KB_FRAME_ANCESTORS = env_list("KB_FRAME_ANCESTORS", ["'self'"])
 

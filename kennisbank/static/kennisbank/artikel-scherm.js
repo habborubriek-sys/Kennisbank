@@ -105,6 +105,9 @@
       document.body.style.setProperty("--kb-balk-h", balk.offsetHeight + "px");
       var wb = document.querySelector(".kb-ae-werkbalk");
       if (wb) document.body.style.setProperty("--kb-werkbalk-h", wb.offsetHeight + "px"); // de lade begint eronder
+      // 1.31.0 (ronde C): springen naar een stuk tekst (Toon in de tekst, een opmerking) houdt rekening met de vaste
+      // balken, zodat de tekst er niet achter verdwijnt.
+      document.documentElement.style.scrollPaddingTop = (balk.offsetHeight + (wb ? wb.offsetHeight : 0) + 16) + "px";
     }
     balkHoogte();
     window.addEventListener("resize", balkHoogte);

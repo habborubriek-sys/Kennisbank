@@ -304,8 +304,38 @@ def _artikelen(request, qs, sleutel):
     }
 
 
+def _zoeken(request, qs):
+    """Zoeken in een bak: op artikel, voorstel, citaat, berichten en interne notities (ronde 2 voor het archief;
+    sinds 1.31.0 in elke bak, review 1.27.0 R3 B14)."""
+    zoek = (request.GET.get("q") or "").strip()[:200]
+    if zoek:
+        treffers = (
+            Q(artikel__titel__icontains=zoek)
+            | Q(tekst__icontains=zoek)
+            | Q(citaat__icontains=zoek)
+            | Q(berichten__tekst__icontains=zoek)
+            | Q(notities__tekst__icontains=zoek)
+        )
+        qs = qs.filter(pk__in=Verbetervoorstel.objects.filter(treffers).values("pk"))
+    return qs, zoek
+
+
+#: 1.31.0 (review 1.27.0, R3 B14): de bak waar je het laatst was. "← Werkplek" brengt je daar terug.
+BAK_SLEUTEL = "kb_werkplek_bak"
+
+
 def werkplek(request):
     """/beheer/: links de bakken, rechts de inhoud van de gekozen bak."""
+    onthouden = request.session.get(BAK_SLEUTEL) if "bak" not in request.GET else None
+    if onthouden:
+        try:
+            return _werkplek(request, onthouden)
+        except Http404:  # die bak bestaat niet meer (of je mag er niet meer in)
+            request.session.pop(BAK_SLEUTEL, None)
+    return _werkplek(request, None)
+
+
+def _werkplek(request, onthouden):
     r = rechten(request)
     if not r.is_redacteur:
         return admin.site.index(request)
@@ -315,7 +345,10 @@ def werkplek(request):
 
     # Liggen er nieuwe voorstellen in je eigen bak (toegewezen door een collega), dan begin je daar.
     eigen = next((p for p in menu["personen"] if p["ik"]), None)
-    standaard = eigen["sleutel"] if eigen and eigen["nieuw"] else menu["bakken"][0]["sleutel"]
+    if eigen and eigen["nieuw"]:
+        standaard = eigen["sleutel"]
+    else:
+        standaard = onthouden or menu["bakken"][0]["sleutel"]
     bak = request.GET.get("bak") or standaard
     open_qs = Verbetervoorstel.objects.filter(status__in=OPEN, artikel__omgeving_id__in=omgevingen)
     inhoud, titel, uitleg = {}, "", ""
@@ -335,7 +368,9 @@ def werkplek(request):
             "Nieuwe voorstellen bij artikelen zonder cluster of met meer clusters, en wat uit een clusterbak "
             "is verplaatst. Oudste bovenaan."
         )
+        qs, zoek = _zoeken(request, qs)
         inhoud = _voorstellen(request, qs.order_by("ingediend_op"), omgevingen, bak)
+        inhoud["zoek"] = zoek
     elif bak.startswith("cluster-"):
         cid = bak.split("-", 1)[1]
         clusters = {int(b["sleutel"].split("-", 1)[1]): b["naam"] for b in menu["bakken"] if b["soort"] == "cluster"}
@@ -343,8 +378,9 @@ def werkplek(request):
             raise Http404
         titel = clusters[int(cid)]
         uitleg = "Nieuwe voorstellen bij artikelen van dit cluster die nog niemand heeft opgepakt. Oudste bovenaan."
-        qs = open_qs.filter(eigenaar__isnull=True, cluster_id=int(cid))
+        qs, zoek = _zoeken(request, open_qs.filter(eigenaar__isnull=True, cluster_id=int(cid)))
         inhoud = _voorstellen(request, qs.order_by("ingediend_op"), omgevingen, bak)
+        inhoud["zoek"] = zoek
     elif bak.startswith("u") and bak[1:].isdigit():
         pk = int(bak[1:])
         if pk not in menu["mensen"]:
@@ -352,7 +388,9 @@ def werkplek(request):
         naam = menu["mensen"][pk]
         titel = "Mijn bak" if pk == request.user.pk else f"Bak van {naam}"
         uitleg = "Open voorstellen in deze bak. Langst liggend bovenaan."
-        inhoud = _voorstellen(request, open_qs.filter(eigenaar_id=pk).order_by("eigenaar_sinds"), omgevingen, bak)
+        qs, zoek = _zoeken(request, open_qs.filter(eigenaar_id=pk))
+        inhoud = _voorstellen(request, qs.order_by("eigenaar_sinds"), omgevingen, bak)
+        inhoud["zoek"] = zoek
     elif bak == "afgehandeld":
         titel = "Afgehandeld"
         uitleg = (
@@ -360,17 +398,7 @@ def werkplek(request):
             "het beheer."
         )
         qs = Verbetervoorstel.objects.filter(status__in=KLAAR, artikel__omgeving_id__in=omgevingen)
-        # Zoeken in het archief (ronde 2): op artikel, voorstel, berichten en interne notities.
-        zoek = (request.GET.get("q") or "").strip()[:200]
-        if zoek:
-            treffers = (
-                Q(artikel__titel__icontains=zoek)
-                | Q(tekst__icontains=zoek)
-                | Q(citaat__icontains=zoek)
-                | Q(berichten__tekst__icontains=zoek)
-                | Q(notities__tekst__icontains=zoek)
-            )
-            qs = qs.filter(pk__in=Verbetervoorstel.objects.filter(treffers).values("pk"))
+        qs, zoek = _zoeken(request, qs)
         inhoud = _voorstellen(request, qs.order_by("-behandeld_op", "-pk"), omgevingen, bak)
         inhoud["zoek"] = zoek
         inhoud["zoekbaar"] = True
@@ -489,6 +517,8 @@ def werkplek(request):
         },
         "app_list": admin.site.get_app_list(request) if bak == "alles" else [],
     }
+    if bak != "alles":
+        request.session[BAK_SLEUTEL] = bak
     return TemplateResponse(request, "admin/kennisbank/werkplek.html", context)
 
 

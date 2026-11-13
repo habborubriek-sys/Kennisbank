@@ -265,6 +265,7 @@ dialog.kb-lees::backdrop { background: rgba(15, 27, 45, .55); }
 @media (max-width: 900px) {
   body.kb-scherm .kb-werkvlak { flex-direction: column; }
   .kb-marge { flex-basis: auto; width: 100%; }
+  .kb-ae-kaart::before { display: none; }
   .kb-blad { padding: 18px 16px 26px; }
 }
 

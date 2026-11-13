@@ -2,7 +2,7 @@
  * base_site.html laadt de donkere modus van Django niet meer. */
 
 html:root {
-  --primary:#154273;--secondary:#1f4f86;--accent:#ffd23f;--header-bg:#154273;--breadcrumbs-bg:#1f4f86;--link-fg:#154273;--link-hover-color:#0b2a4d;--button-bg:#fff;--button-fg:#154273;--button-hover-bg:#eef3f9;--default-button-bg:#154273;--default-button-hover-bg:#0b2a4d;--selected-row:#dfe8f4
+  --primary:#154273;--secondary:#1f4f86;--accent:#ffd23f;--header-bg:#154273;--breadcrumbs-bg:#f4f7fb;--breadcrumbs-fg:#3d4b5c;--breadcrumbs-link-fg:#154273;--link-fg:#154273;--link-hover-color:#0b2a4d;--button-bg:#fff;--button-fg:#154273;--button-hover-bg:#eef3f9;--default-button-bg:#154273;--default-button-hover-bg:#0b2a4d;--selected-row:#dfe8f4
 }
 /* Eén knoppenstijl (1.25.0): de hoofdactie donkerblauw gevuld (class default, Openen, Nieuw artikel), de rest
  * omrand. Op de donkere balk van de bewerkschermen gelden eigen regels (artikel-scherm.css). */
@@ -209,7 +209,9 @@ table.kb-bak{width:100%}
 .kb-bak-stip{width:14px;padding-left:0!important;padding-right:0!important}
 .kb-stip{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2a5a92}
 .kb-bak-nieuw td{font-weight:700}
-.kb-bak-snip{color:var(--body-quiet-color);font-weight:400!important;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 1.31.0 (M14): de voorstelkolom neemt de ruimte die er is en kapt af met …; zo past de bak ook op 1024 px. */
+.kb-bak-snip{color:var(--body-quiet-color);font-weight:400!important;width:100%;max-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.kb-bak td:nth-child(3){min-width:9em}
 .kb-getal{text-align:right;white-space:nowrap}
 
 /* Artikel uit Word (1.28.0, ronde A A22): dezelfde rust als de werkplek, zonder Django-zijbalk. */
@@ -237,3 +239,16 @@ table.kb-bak{width:100%}
 .kb-collegas[open] > summary > span:first-child::before{content:"▾"}
 .kb-collegas > summary:hover{background:var(--selected-row)}
 .kb-collegas .kb-bakkenlijst{margin-left:12px}
+
+/* 1.31.0 (review 1.27.0, M15): de overgebleven Django-schermen rustiger. Een lichte kruimelregel (zoals de
+ * infobalk van de editor) in plaats van een tweede blauwe balk. */
+div.breadcrumbs{border-bottom:1px solid #d3d9e2;font-size:.85rem;padding:6px 40px}
+div.breadcrumbs a{text-decoration:underline}
+#content > h1{color:#154273}
+/* Versiegeschiedenis in het paneel: geen herhaalde regel met de naam van de versie boven elke rij. */
+.kb-paneel .inline-group td.original p, .inline-group.kb-versies td.original p{display:none}
+.kb-afhandelen h1{font-size:1.6rem;margin:0 0 10px;color:#154273}
+.kb-import-pagina .kb-afhandelen{max-width:860px}
+/* De artikellijst: is de tabel breder dan het scherm, dan schuif je hem opzij in plaats van dat kolommen wegvallen. */
+#changelist .results{overflow-x:auto}
+.kb-afhandelen .kb-uitleg a{text-decoration:underline}

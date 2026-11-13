@@ -9,6 +9,8 @@ from kennisbank import api, behandelen, lade, reviewweergave, views, werkoverzic
 admin.site.site_header = f"{settings.KB_APP_NAAM} – beheer"
 admin.site.site_title = f"{settings.KB_APP_NAAM} – beheer"
 admin.site.index_title = "Artikelen, voorstellen en toegang"
+# 1.31.0 (review 1.27.0, M15): geen zijmenu van Django; de werkplek is het menu (met "Alle onderdelen").
+admin.site.enable_nav_sidebar = False
 admin.site.site_url = "/"
 
 api_v1 = [

@@ -21,10 +21,11 @@
       {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
 
     {% elif w.inhoud.rijen is not None %}
-      {% if w.inhoud.zoekbaar %}
+      {% if w.inhoud.zoek is not None and w.inhoud.rijen or w.inhoud.zoek %}
+      {# 1.31.0 (review 1.27.0, R3 B14): zoeken in elke bak, niet alleen in Afgehandeld. #}
       <form method="get" class="kb-afgehandeld-zoek" role="search">
         <input type="hidden" name="bak" value="{{ w.gekozen }}">
-        <label class="visually-hidden" for="kb-archief-zoek">Zoeken in afgehandelde voorstellen</label>
+        <label class="visually-hidden" for="kb-archief-zoek">Zoeken in {% if w.inhoud.zoekbaar %}afgehandelde voorstellen{% else %}deze bak{% endif %}</label>
         <input type="search" id="kb-archief-zoek" name="q" value="{{ w.inhoud.zoek }}" placeholder="Zoek op artikel, voorstel, bericht of notitie">
         <button type="submit" class="button">Zoeken</button>
         {% if w.inhoud.zoek %}<a class="button kb-knop-rustig" href="?bak={{ w.gekozen }}">Alles tonen</a>{% endif %}
@@ -59,7 +60,7 @@
           {% if not af %}<th scope="col" class="kb-bak-vink"><span class="visually-hidden">Selecteren</span></th>{% endif %}
           <th scope="col" class="kb-bak-stip"><span class="visually-hidden">Nog niet geopend</span></th>
           <th scope="col">Artikel</th><th scope="col">Voorstel</th>
-          {% if not af and not w.persoonlijk %}<th scope="col">Bij</th>{% endif %}
+          {% if not af and not w.persoonlijk %}<th scope="col">Bij wie</th>{% endif %}
           {% if w.meer_omgevingen %}<th scope="col">Omgeving</th>{% endif %}
           {% if af %}<th scope="col">Uitkomst</th><th scope="col">Datum</th>{% else %}<th scope="col" class="kb-getal">Ligt</th><th scope="col" class="kb-getal">Steun</th>{% endif %}
         </tr></thead>

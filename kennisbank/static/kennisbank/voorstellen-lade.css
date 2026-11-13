@@ -107,8 +107,17 @@ sup.kb-ae-vsnr-actief { box-shadow: 0 0 0 3px #b9d4f3; }
 }
 /* Meldingen bovenaan schuiven net als het blad opzij als de lade open is. */
 @media (min-width: 900px) {
-  body.kb-met-lade .kb-banner { transition: margin .22s ease; }
-  body.kb-lade-open .kb-banner { margin-left: calc(var(--kb-lade-b) + 50px); }
+  body.kb-met-lade .kb-banner, body.kb-met-lade .messagelist, body.kb-met-lade .kb-ae-werkbalk-in { transition: margin .22s ease; }
+  body.kb-lade-open .kb-banner, body.kb-lade-open .messagelist { margin-left: calc(var(--kb-lade-b) + 50px); }
+  /* 1.31.0 (ronde C): ook de werkbalk van de editor schuift opzij, anders vallen de eerste knoppen onder de lade. */
+  body.kb-lade-open .kb-ae-werkbalk-in { margin-left: calc(var(--kb-lade-b) + 50px); }
+}
+/* 1.31.0 (ronde C, M14): lade, blad en marge passen niet naast elkaar op een gewoon scherm. Dan staan de opmerkingen
+ * onder de tekst, zodat het blad breed genoeg blijft en de titel niet wordt afgekapt. */
+@media (max-width: 1599px) {
+  body.kb-lade-open.kb-met-opm .kb-werkvlak { flex-direction: column; align-items: stretch; }
+  body.kb-lade-open.kb-met-opm .kb-marge { flex-basis: auto; width: 100%; }
+  body.kb-lade-open.kb-met-opm .kb-ae-kaart::before { display: none; }
 }
 
 /* 1.29.1: steun als korte lijst, de rest uitklapbaar. */

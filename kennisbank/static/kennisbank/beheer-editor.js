@@ -563,6 +563,14 @@
     window.addEventListener("online", function () { geenVerbindingGemeld = false; meld("Verbinding terug."); naarServer(true); });
     window.addEventListener("offline", geenVerbinding);
     window.addEventListener("pagehide", bakenBijVertrek);
+    // 1.31.0 (review 1.27.0, R3 B16): weglopen met wijzigingen die nog niet zijn opgeslagen? Dan vraagt de browser
+    // het eerst. De kladversie vangt het werk ook op, maar zo weet je dat het nog niet is opgeslagen.
+    window.addEventListener("beforeunload", function (e) {
+      if (!klaar || !heeftGewerkt || bezigMetOpslaan) return;
+      if (tekst(lees()) === basisTekst) return;
+      e.preventDefault();
+      e.returnValue = "";
+    });
     document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") bakenBijVertrek(); });
     // Bij opslaan: de laatste stand nog even in de browser, voor het geval het verzenden mislukt, en
     // daarna niets meer naar de server. Houdt een andere controle het versturen tegen (preventDefault),
@@ -822,14 +830,35 @@
       titel: "Wat is er gewijzigd?",
       alineas: [
         melding ||
-          "Dit artikel is gepubliceerd. Medewerkers krijgen jouw toelichting als melding te zien; " +
-            "wie het als favoriet heeft, krijgt hem per e-mail.",
+          "Na het publiceren krijgen medewerkers jouw toelichting als melding te zien; " +
+            "wie het artikel als favoriet heeft, krijgt hem per e-mail.",
       ],
       inhoud: vak,
       knoppen: [{ tekst: "Annuleren" }, { tekst: "Publiceren", primair: true, doen: opslaan }],
     });
     return true;
   }
+
+  // 1.31.0 (review 1.27.0, R3 B12): Weggooien en Terugroepen vragen het in een echt venster in plaats van met
+  // confirm() van de browser. Annuleren is de rustige knop; de focus staat erop, zodat Enter niets weggooit.
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("button[data-kb-vraag]");
+    if (!b || b.dataset.kbBevestigd === "1") return;
+    e.preventDefault();
+    vensterTonen({
+      titel: b.dataset.kbVraagTitel || b.textContent,
+      alineas: [b.dataset.kbVraag],
+      knoppen: [
+        { tekst: "Annuleren", focus: true },
+        {
+          tekst: b.dataset.kbVraagKnop || b.textContent, primair: true, doen: function () {
+            b.dataset.kbBevestigd = "1";
+            if (b.form && b.form.requestSubmit) b.form.requestSubmit(b); else b.click();
+          },
+        },
+      ],
+    });
+  });
 
   window.kbMelding = function (opties) {
     vensterTonen({ titel: opties.titel, alineas: opties.alineas, knoppen: [{ tekst: "Sluiten", primair: true }] });

@@ -126,9 +126,18 @@ class VersieInline(admin.TabularInline):
     extra = 0
     max_num = 0  # geen lege regel onderaan; er valt hier niets toe te voegen
     can_delete = False
-    fields = ["versie", "gepubliceerd_op", "gepubliceerd_door", "toelichting", "kleine_correctie", "review", "bekijk"]
+    fields = ["versie", "gepubliceerd_op", "door", "toelichting", "klein", "review", "bekijk"]
     readonly_fields = fields
     verbose_name_plural = "Versiegeschiedenis (onveranderlijk)"
+
+    # 1.31.0 (review 1.27.0, M15): de naam in plaats van de inlognaam, en "ja" in plaats van een rood kruisje.
+    @admin.display(description="Gepubliceerd door")
+    def door(self, obj):
+        return diensten.naam_van(obj.gepubliceerd_door) if obj.gepubliceerd_door_id else "—"
+
+    @admin.display(description="Kleine correctie")
+    def klein(self, obj):
+        return "ja" if obj.kleine_correctie else ""
 
     @admin.display(description="")
     def bekijk(self, obj):
@@ -691,6 +700,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         """
         eigen = self.get_queryset(request)
         extra = extra_context or {}
+        extra.setdefault("title", "Artikelen")  # 1.31.0 (M15): niet "Selecteer artikel om te wijzigen"
         extra["mijn_kladversies"] = Kladversie.objects.filter(
             gebruiker=request.user, afgesloten_op__isnull=True
         ).count()

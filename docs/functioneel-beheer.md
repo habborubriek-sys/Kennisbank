@@ -521,8 +521,9 @@ de bak van een collega lag, dan krijgt die collega daar een e-mail van (ook als 
 artikel … is ingetrokken. Daarom sluiten we je verbetervoorstel af." De indiener krijgt dat als melding en
 per e-mail.
 
-**Zoeken in het archief.** Onder **Afgehandeld** staat een zoekvak. Je zoekt op de titel van het artikel, de
-tekst van het voorstel, de berichten aan de indiener en de interne notities.
+**Zoeken.** Sinds 1.31.0 staat in elke bak een zoekvak, ook onder **Afgehandeld** (het archief). Je zoekt op de
+titel van het artikel, de tekst van het voorstel, het citaat, de berichten aan de indiener en de interne
+notities. **← Werkplek** in de editor brengt je terug naar de bak waar je het laatst was.
 
 **E-mail over nieuwe voorstellen.** Je krijgt niet meer een e-mail per nieuw voorstel, maar **één samenvatting
 per dag** met de voorstellen die sinds de vorige keer binnenkwamen in jouw omgeving(en), wat er in je eigen bak

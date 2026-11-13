@@ -1,7 +1,9 @@
 {% extends "admin/change_list.html" %}
 {% block object-tools-items %}
-  <li><a href="{% url 'admin:kennisbank_artikel_importeren_word' %}" class="addlink">Importeren uit Word</a></li>
-  {{ block.super }}
+  {% if has_add_permission %}
+  <li><a href="{% url 'admin:kennisbank_artikel_importeren_word' %}" class="addlink">Artikel uit Word</a></li>
+  <li><a href="{% url 'admin:kennisbank_artikel_add' %}{% if is_popup %}?_popup=1{% endif %}" class="addlink">Nieuw artikel</a></li>
+  {% endif %}
 {% endblock %}
 {% block content_title %}
 {{ block.super }}

@@ -90,6 +90,8 @@
       $(".kb-lip-pijl", lip).textContent = aan ? "◀" : "▶";
       try { sessionStorage.setItem("kb-lade", aan ? "open" : "dicht"); } catch (e) { /* geen opslag: niet erg */ }
       if (window.kbInhoudEditor && window.kbInhoudEditor.tekenMarge) setTimeout(window.kbInhoudEditor.tekenMarge, 260);
+      // 1.31.0: de werkbalk schuift mee en kan dan een regel hoger worden; de hoogtes opnieuw laten meten.
+      setTimeout(function () { window.dispatchEvent(new Event("resize")); }, 260);
     }
 
     function nr(v) { return lijst.indexOf(v) + 1; }

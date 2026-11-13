@@ -11,7 +11,10 @@ div.kb-venster-laag{position:fixed;inset:0;z-index:1200;background:rgba(23,33,43
 .kb-venster p{margin:0 0 10px;line-height:1.45}
 .kb-venster-knoppen{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
 .kb-venster-knoppen .button{cursor:pointer}
-.kb-venster-knoppen .kb-knop-rustig{background:#e6e9ef;color:#2b2f36}
+/* 1.31.0 (review 1.27.0, R3 B12): de hoofdknop valt op, Annuleren is rustig. */
+.kb-venster-knoppen .button:not(.kb-knop-rustig){background:#154273;color:#fff;border-color:#154273;font-weight:600}
+.kb-venster-knoppen .button:not(.kb-knop-rustig):hover{background:#0b2a4d;color:#fff}
+.kb-venster-knoppen .kb-knop-rustig{background:#fff;color:#17212b;border-color:#9fb3cc}
 .kb-venster-veld{display:grid;gap:6px;margin:4px 0 2px}
 .kb-venster-veld label{font-weight:600;font-size:.9rem}
 .kb-venster-veld textarea{width:100%;box-sizing:border-box;font:inherit;padding:7px 9px;border:1px solid #ccc;border-radius:6px;resize:vertical}

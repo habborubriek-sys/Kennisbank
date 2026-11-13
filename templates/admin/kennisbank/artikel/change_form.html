@@ -54,7 +54,7 @@
         <a href="{{ kb_concept_bekijken }}" target="_blank" rel="noopener">Bekijk de gepubliceerde versie</a>
         <a href="?spoed=1">Corrigeer de gepubliceerde versie<small>Een kleine, dringende fout verbeteren in wat medewerkers nu zien, zonder de conceptversie te raken</small></a>
         {% if not kb_review.op_slot %}<button type="submit" class="kb-meer-gevaar kb-concept-weg" name="_weggooien" formaction="{{ kb_concept_weggooien }}" formnovalidate
-          onclick="return confirm('De conceptversie weggooien? Het werk daarin is daarna weg; medewerkers blijven versie {{ original.versie }} zien.');">Conceptversie weggooien</button>{% endif %}
+          data-kb-vraag-titel="Conceptversie weggooien?" data-kb-vraag="Het werk in de conceptversie is daarna weg. Medewerkers blijven versie {{ original.versie }} zien." data-kb-vraag-knop="Weggooien">Conceptversie weggooien</button>{% endif %}
         {% endif %}
       </div>
     </details>
@@ -184,8 +184,7 @@
     {% if kb_opmerkingen %}<p class="kb-paneel-uitleg">Klik op <strong>Opmerkingen</strong> in de balk: dan staan ze rechts naast de tekst waar ze over gaan.</p>{{ kb_opmerkingen|json_script:"kb-opmerkingen" }}{% endif %}
     {% if kb_review.op_slot %}
     <button type="submit" class="button" name="_terugroepen" formaction="{{ kb_terugroepen_url }}" formnovalidate
-      data-vraag="{% if kb_terugroep_vraag %}{{ kb_terugroep_vraag }}{% else %}De conceptversie terugroepen? Het team ziet dat het stuk is teruggeroepen.{% endif %}"
-      onclick="return confirm(this.dataset.vraag);">Terugroepen</button>
+      data-kb-vraag-titel="Terugroepen?" data-kb-vraag="{% if kb_terugroep_vraag %}{{ kb_terugroep_vraag }}{% else %}Het team ziet dat het stuk is teruggeroepen.{% endif %}" data-kb-vraag-knop="Terugroepen">Terugroepen</button>
     {% endif %}
     {% if kb_review.eerder %}
     <details class="kb-review-eerder"><summary>Eerdere rondes ({{ kb_review.eerder|length }})</summary>

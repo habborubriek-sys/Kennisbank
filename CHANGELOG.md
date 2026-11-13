@@ -1,5 +1,32 @@
 # Wijzigingen
 
+## 1.31.0 – 2026-11-13
+
+Ronde C na de onafhankelijke review van 1.27.0: schermen en teksten (bouwlijst
+`bouwlijst-1.30.0-reviewpagina-en-ronde-c.md`, deel 1.31.0). M12 en M16 zaten al in 1.30.0.
+
+**Smalle schermen (M14)**
+- Zijn de lade en de opmerkingen allebei open op een scherm smaller dan 1600 px, dan staan de opmerkingen onder de tekst. Het blad blijft breed genoeg en de titel wordt niet meer afgekapt.
+- De werkbalk van de editor en de meldingen bovenaan schuiven opzij als de lade open is. Eerst vielen de eerste knoppen onder de lade.
+- Springen naar een stuk tekst (*Toon in de tekst*, een opmerking) houdt rekening met de vaste balken, zodat de tekst er niet achter verdwijnt.
+- De werkbak past op 1024 px: de voorstelkolom neemt de ruimte die er is en wordt afgekapt met "…".
+- Al in ronde B: de melding "staat op slot" schuift mee met de lade, en bij 400% zoom vult de lade het scherm.
+
+**Oude Django-schermen (M15)**
+- Geen zijmenu van Django meer in het beheer; de werkplek is het menu (met *Alle onderdelen*). Het kruimelpad is een lichte regel in plaats van een tweede blauwe balk.
+- *Meegenomen voorstellen afhandelen* (na publiceren) in de stijl van de werkplek, met ← Werkplek.
+- De artikellijst heet **Artikelen**, met de knoppen **Artikel uit Word** en **Nieuw artikel**. Een brede tabel kun je opzij schuiven.
+- Paneel *Geschiedenis*: de naam van wie publiceerde in plaats van de inlognaam, en "ja" bij een kleine correctie in plaats van rode kruisjes.
+
+**Teksten en vensters (laag-punten van reviewer 3)**
+- B12: **Terugroepen** en **Conceptversie weggooien** vragen het in een venster van de kennisbank in plaats van met een vraag van de browser. De focus staat op Annuleren. In alle vensters is de hoofdknop nu donkerblauw en Annuleren rustig.
+- B13: meldingen na opslaan zeggen "Het artikel … is opgeslagen" in plaats van "De artikel … is met succes gewijzigd. U kunt deze hieronder weer bewerken." Bij publiceren zegt het venster "Na het publiceren krijgen medewerkers …" in plaats van "Dit artikel is gepubliceerd".
+- B14: in **elke bak** kun je zoeken, niet alleen in Afgehandeld. **← Werkplek** brengt je terug naar de bak waar je was. De kolom "Bij" heet "Bij wie".
+- B16: weglopen uit de editor met wijzigingen die nog niet zijn opgeslagen? Dan vraagt de browser het eerst. De kladversie vangt het werk ook op.
+
+**Tests**
+- 10 nieuwe tests.
+
 ## 1.30.0 – 2026-11-13
 
 De reviewpagina gelijk aan de editor, en M12 en M16 uit de review van 1.27.0 (bouwlijst

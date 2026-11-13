@@ -300,7 +300,11 @@ class WerkplekTests(Basis):
         self.assertIn(f"?voorstel={v.pk}", html)
         self.assertIn('id="kb-selectie"', html)
         self.assertNotIn("Overnemen", html)
-        r = self.werkplek(self.anna)  # standaard: de werkvoorraad
+        # 1.31.0 (R3 B14): /beheer/ zonder bak brengt je terug naar de bak waar je was.
+        r = self.werkplek(self.anna)
+        self.assertEqual([x["v"].tekst for x in r.context["werkplek"]["inhoud"]["rijen"]], ["Bij Bram"])
+        self.client.logout()
+        r = self.werkplek(self.anna)  # nieuwe sessie: standaard de werkvoorraad
         self.assertEqual([x["v"].tekst for x in r.context["werkplek"]["inhoud"]["rijen"]], ["In de werkvoorraad"])
 
     def test_afgehandeld_is_het_archief(self):

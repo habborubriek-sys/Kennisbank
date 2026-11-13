@@ -2,8 +2,14 @@
 {% comment %}
   Na publiceren: de meegenomen verbetervoorstellen afhandelen met een voorgevuld bericht (reviewpunt 11).
 {% endcomment %}
+{# 1.31.0 (review 1.27.0, M15): in de stijl van de werkplek, zonder kruimelpad, zijmenu of tweede kop. #}
+{% block bodyclass %}{{ block.super }} kb-import-pagina{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block content_title %}{% endblock %}
 {% block content %}
 <div class="kb-afhandelen">
+  <p class="kb-import-terug"><a href="{% url 'beheer-start' %}">← Werkplek</a></p>
   <h1>Meegenomen voorstellen afhandelen</h1>
   <p class="kb-uitleg">Deze voorstellen zijn verwerkt in de nieuwe versie van <a href="{{ artikel_url }}">{{ artikel.titel }}</a>.
     Pas het bericht aan als je wilt; de indiener krijgt het als melding en per e-mail en het voorstel staat daarna onder Afgehandeld.
