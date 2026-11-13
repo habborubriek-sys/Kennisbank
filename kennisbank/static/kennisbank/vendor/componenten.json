@@ -8,6 +8,7 @@
       "purl": "pkg:npm/%40tiptap/core@3.33.1",
       "bestanden": [
         "tiptap/tiptap.min.js",
+        "tiptap/tiptap.css",
         "tiptap/LICENSES.txt"
       ],
       "doel": "Editor van het bewerkscherm voor artikelen en nieuwsberichten (secties, onboarding, tabellen); gebundeld met ProseMirror",

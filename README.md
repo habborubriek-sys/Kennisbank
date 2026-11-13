@@ -2,7 +2,7 @@
 
 Eén centrale plek voor werkinstructies, werkafspraken en processen. Medewerkers zoeken en lezen artikelen, zetten extra uitleg voor nieuwe collega's aan, bewaren favorieten, zien bij een artikel wat er is gewijzigd (en krijgen daar als favoriet-houder een e-mail van), drukken een artikel af of bewaren het als PDF, lezen het nieuws van hun afdeling, dienen verbetervoorstellen in en steunen die van collega's, krijgen daar terugkoppeling op van procesmanagement, en stellen vragen aan een assistent die alleen antwoordt uit de kennisbank. Procesmanagement schrijft artikelen in een editor met Word-opmaak of importeert ze uit Word, verdeelt en behandelt voorstellen via gezamenlijke en persoonlijke bakken vanuit een eigen werkplek, houdt bij welke artikelen opnieuw moeten worden nagekeken en ziet welke kennis gebruikt en gemist wordt. Functioneel beheer heeft een statuspagina waarop in één oogopslag te zien is of alles nog loopt. Het zaaksysteem kan per zaaktype de juiste artikelen tonen.
 
-> Versie 1.31.3 · Licentie EUPL-1.2 · Python 3.12+ / Django 5.2 LTS / PostgreSQL 14+
+> Versie 1.32.0 · Licentie EUPL-1.2 · Python 3.12+ / Django 5.2 LTS / PostgreSQL 14+
 
 ## Proberen in één commando
 
@@ -33,10 +33,10 @@ Er is geen maatwerk aan de infrastructuur nodig: één stateless container achte
 
 | Onderdeel | Inhoud |
 |---|---|
-| Applicatie | Django-applicatie met REST-API (`/api/v1/`, OpenAPI in [docs/openapi.yaml](docs/openapi.yaml)) en een frontend zonder build-stap of externe bibliotheken |
+| Applicatie | Django-applicatie met REST-API (`/api/v1/`, OpenAPI in [docs/openapi.yaml](docs/openapi.yaml)) en een frontend zonder build-stap. De enige bibliotheek is de editor van het bewerkscherm (Tiptap), meegeleverd als één bestand; er zijn geen verzoeken naar buiten |
 | Container | [Dockerfile](Dockerfile) (niet-root, read-only filesystem mogelijk, healthcheck), [compose.yaml](compose.yaml) om te proberen |
 | Kubernetes | [deploy/kubernetes](deploy/kubernetes): Deployment, Service, Ingress, migratie-Job, CronJob voor bewaartermijnen |
-| Kwaliteit | geautomatiseerde tests (zie de CHANGELOG voor het aantal per versie), lint, CI-pipelines voor [GitHub](.github/workflows/ci.yml) en [GitLab](.gitlab-ci.yml), SBOM ([sbom.cdx.json](sbom.cdx.json)) |
+| Kwaliteit | geautomatiseerde tests (zie de CHANGELOG voor het aantal per versie), [browsertests](scripts/browsertests/README.md) voor de belangrijkste paden en de toegankelijkheid, lint, CI-pipelines voor [GitHub](.github/workflows/ci.yml) en [GitLab](.gitlab-ci.yml), SBOM ([sbom.cdx.json](sbom.cdx.json)) |
 | Documentatie | Zie hieronder |
 
 ## Documentatie
@@ -49,6 +49,7 @@ Er is geen maatwerk aan de infrastructuur nodig: één stateless container achte
 - [Koppeling met het zaaksysteem](docs/koppeling-zaaksysteem.md): inbedden en API
 - [Toegankelijkheid](docs/toegankelijkheid.md): WCAG 2.1 AA, testresultaten
 - [Functioneel beheer](docs/functioneel-beheer.md): handleiding voor procesmanagement
+- [Toestanden van de review](docs/reviewtoestanden.md): wat kan wanneer, voor redacteur en reviewer
 - [Importformaat](docs/importformaat.md): artikelen in bulk aanleveren
 - [Van prototype naar product](docs/van-prototype-naar-product.md): welke functie uit het prototype waar zit
 
@@ -62,4 +63,5 @@ python manage.py migrate && python manage.py kennisbank_demo
 python manage.py runserver
 python manage.py test kennisbank      # tests (PostgreSQL vereist)
 ruff check .                          # lint
+scripts/browsertests/draai.sh         # browsertests (zie scripts/browsertests/README.md)
 ```

@@ -783,6 +783,8 @@
 
     var ed = new T.Editor({
       element: host,
+      // 1.32.0: geen <style>-element invoegen; de basisstijl staat in vendor/tiptap/tiptap.css (CSP van het beheer).
+      injectCSS: false,
       content: voorbewerk(textarea.value || ""),
       extensions: [
         Document,

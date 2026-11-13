@@ -6,6 +6,7 @@ Zie docs/configuratie.md voor de volledige lijst met uitleg en standaardwaarden.
 """
 
 import re
+import sys
 from pathlib import Path
 
 import dj_database_url
@@ -343,3 +344,12 @@ LOGGING = {
         "httpx": {"level": "WARNING"},
     },
 }
+
+# Tijdens de tests geen logregels in de uitvoer (1.32.0, review 1.27.0): tests die een fout uitlokken (een 400,
+# een 409, een vreemde Host) gaven tientallen regels ruis, waardoor een echte fout slecht te zien was. Tests die
+# het logboek controleren, gebruiken assertLogs en merken hier niets van. Wel zien: KB_TEST_LOG_NIVEAU=WARNING.
+if len(sys.argv) > 1 and sys.argv[1] == "test":
+    LOGGING["root"]["level"] = env("KB_TEST_LOG_NIVEAU", "CRITICAL")
+    for _logger in LOGGING["loggers"].values():
+        _logger["level"] = LOGGING["root"]["level"]
+

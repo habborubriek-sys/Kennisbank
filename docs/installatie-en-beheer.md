@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.31.0 .
-docker push registry.example.nl/kennisbank:1.31.0
+docker build -t registry.example.nl/kennisbank:1.32.0 .
+docker push registry.example.nl/kennisbank:1.32.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -119,7 +119,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.31.0
+  registry.example.nl/kennisbank:1.32.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -141,6 +141,23 @@ De migraties lopen automatisch mee bij het starten (of via `migreer`). Maak voor
 zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens gebeurt; alleen de
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
+
+#### Naar 1.32.0 (vanaf 1.7.0 of later)
+
+Geen migraties. Geldt ook voor 1.31.1 tot en met 1.31.3: die hadden geen migraties en geen nieuwe instellingen.
+
+- **Strengere Content-Security-Policy in het beheer.** `/beheer/` staat geen inline scripts en geen
+  `<style>`-elementen meer toe. De kennisbank zelf heeft die niet. Voegt een proxy of een beveiligingsproduct
+  scripts of stijlen toe aan de pagina's, dan worden die in het beheer nu geweigerd; de browser meldt dat in
+  de console. Zet zo'n product een eigen `Content-Security-Policy`, dan geldt de strengste van de twee.
+- **Nieuw bestand** `kennisbank/static/kennisbank/vendor/tiptap/tiptap.css` (de basisstijl van de editor, die
+  de editor eerder zelf invoegde). Loopt `collectstatic` in een eigen stap, draai die dan opnieuw.
+- **De SBOM** (`sbom.cdx.json`) noemt nu elk pakket uit de editor en de kennisbank zelf.
+- **Nieuwe opdracht** `kennisbank_browsertest`: alleen voor de browsertests, werkt alleen met
+  `KB_DEMO_MODUS=aan` en maakt een eigen database. In productie doet hij niets.
+- **Tijdens de tests** staan de logregels uit (`KB_TEST_LOG_NIVEAU=WARNING` zet ze aan). In productie verandert
+  er niets aan het logboek.
+- Ctrl+F5 na de upgrade.
 
 #### Naar 1.31.0 (vanaf 1.7.0 of later)
 
@@ -448,6 +465,28 @@ Terugdraaien naar een vorige versie doe je door de back-up uit stap 1 terug te z
 **Schalen.** De container is stateless: meer replica's of `KB_WORKERS` verhogen. De limiet op vragen aan de assistent wordt per worker bijgehouden. Bij veel replica's is die dus ruimer dan ingesteld; is dat een probleem, begrens dan ook op de ingress.
 
 **Afhankelijkheden.** Alle Python-pakketten staan vast in [requirements.txt](../requirements.txt). De CI-pipeline draait `pip-audit` op bekende kwetsbaarheden en maakt een SBOM (CycloneDX) met `python scripts/maak_sbom.py`; die bevat ook de meegeleverde browserbibliotheek (de editor Tiptap met ProseMirror, zie `kennisbank/static/kennisbank/vendor/componenten.json`). Tiptap wordt gebouwd in `frontend/` (`npm ci && npm run bouw`, vaste versies in `package-lock.json`; zie `frontend/README.md`) en valt niet onder `pip-audit`: draai daar `npm audit` en kijk bij elke release of er een nieuwere versie met beveiligingsfixes is. Django 5.2 is een LTS-versie met beveiligingsupdates tot april 2028.
+
+## Voor livegang: wat de organisatie zelf regelt
+
+Het pakket levert de applicatie, de tests en de documentatie. De punten hieronder horen bij de omgeving waarin het
+draait en zijn dus aan de beheerorganisatie. Ze komen uit de onafhankelijke review van 12 november 2026 (M28).
+
+| Punt | Wat er nodig is | Wat het pakket al biedt |
+|---|---|---|
+| **Herstel na verlies** | Een herstelprocedure die is geoefend, met afgesproken RPO (hoeveel gegevens mogen verloren gaan) en RTO (hoe snel is het terug). Oefen het terugzetten minstens één keer voor livegang, op een lege omgeving | Alle gegevens staan in PostgreSQL; de container heeft geen staat. `GET /readyz` zegt of de database bereikbaar en gemigreerd is |
+| **Bewaartermijn van back-ups** | Een termijn, vastgelegd in de DPIA. Een back-up bevat ook gegevens die de kennisbank zelf al heeft geanonimiseerd of opgeruimd (namen bij afgehandelde voorstellen, statistieken) | De bewaartermijnen binnen de applicatie staan in [beveiliging-en-privacy](beveiliging-en-privacy.md) |
+| **Alarm bij een mislukte dagelijkse taak** | Een melding als de CronJob `opschonen` faalt of niet loopt. Zonder die taak blijven e-mails in de wachtrij staan en worden bewaartermijnen niet uitgevoerd | De statuspagina (*Beheer → Status*, onder *Onderhoud*) toont wanneer de taak voor het laatst liep; dat is een controle achteraf, geen alarm |
+| **Centrale logging** | De logregels van de container naar het logplatform, met een bewaartermijn | JSON-regels naar stdout, zonder IP-adressen en zonder querystrings (`KB_LOG_NIVEAU`, `KB_LOG_FORMAAT`) |
+| **Beheerafspraken** | Wie is functioneel beheerder, wie technisch; wie krijgt meldingen over beveiliging (zie [SECURITY.md](../SECURITY.md)); wie houdt de afhankelijkheden bij, ook de editor (zie `frontend/README.md`) | `pip-audit` en de SBOM in de pipeline |
+| **Bescherming van de hoofdbranch** | In de eigen repository: een verplichte, geslaagde pipeline voor elke wijziging op de hoofdbranch, en zo nodig een verplichte beoordeling door een tweede persoon | De pipelines voor [GitHub](../.github/workflows/ci.yml) en [GitLab](../.gitlab-ci.yml): lint, migratiecontrole, tests, `pip-audit`, SBOM, en een rooktest van de image |
+| **Browsertests in de eigen pipeline** | De GitLab-pipeline draait de browsertests nog niet. Voeg een stap toe die `scripts/browsertests/draai.sh` draait (Python, Node.js en Chromium nodig) | De stap in de GitHub-pipeline als voorbeeld; zie [scripts/browsertests/README.md](../scripts/browsertests/README.md) |
+| **Toegankelijkheid** | Een handmatige test met een schermlezer, en de toegankelijkheidsverklaring publiceren | [toegankelijkheid](toegankelijkheid.md) en [het NVDA-testscript](nvda-testscript.md) |
+
+De rooktest in `.gitlab-ci.yml` (sinds 1.32.0) is niet op een echte GitLab-runner gedraaid. Loop hem na bij de
+eerste pipeline.
+
+**Versies herkennen.** Elke release heeft sinds 1.32.0 een tag in de repository (`v1.32.0`). De versie staat ook
+in `kennisbank/__init__.py`, in het label van de image en op de statuspagina.
 
 ## Problemen oplossen
 

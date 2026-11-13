@@ -1,0 +1,13 @@
+{
+  "name": "kennisbank-browsertests",
+  "private": true,
+  "description": "Browsertests voor de kennisbank: rooktest (rook.js) en toegankelijkheid (axe.js). Zie README.md.",
+  "scripts": {
+    "rook": "node rook.js",
+    "axe": "node axe.js"
+  },
+  "dependencies": {
+    "axe-core": "4.14.0",
+    "playwright": "1.65.0"
+  }
+}

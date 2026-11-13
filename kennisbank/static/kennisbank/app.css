@@ -227,10 +227,10 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 /* Tagfilter in de zijbalk. */
 .meer-tags{margin:6px 0 0;font-size:.85rem}
 .prop .antwoord textarea{flex:1;min-width:220px;min-height:70px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--surface);resize:vertical;font:inherit}
-.prop .nieuwstip{background:var(--accent);color:#fff;border-radius:10px;padding:1px 8px;font-size:.76rem;font-weight:600}
+.prop .nieuwstip{background:var(--accent);color:var(--accent-fg);border-radius:10px;padding:1px 8px;font-size:.76rem;font-weight:600}
 .propfilter{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
 .propfilter button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font:inherit;cursor:pointer}
-.propfilter button[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.propfilter button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 
 /* Zaaksysteem-simulatie */
 .zs{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,1fr);gap:14px}

@@ -2,36 +2,54 @@
 
 Doel: **WCAG 2.1 niveau AA**, de norm uit het Besluit digitale toegankelijkheid overheid (EN 301 549).
 
-Bijgewerkt bij **versie 1.29.0** (13 november 2026), na de onafhankelijke toegankelijkheidsreview van 1.27.0.
+Bijgewerkt bij **versie 1.32.0** (13 november 2026). De meting hieronder draait sinds die versie bij elke
+wijziging mee in de CI.
 
 ## Geautomatiseerde meting
 
-Gemeten met axe-core 4.10 (regels `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) in Chromium, met
-`scripts/browsertests/axe.js`, op versie 1.29.0 met de demo-inhoud.
+Gemeten met axe-core 4.14 (regels `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) in Chromium, met
+`scripts/browsertests/axe.js`, op vaste testgegevens bovenop de demo-inhoud. Een overtreding houdt een nieuwe
+versie tegen. Zie [scripts/browsertests/README.md](../scripts/browsertests/README.md).
 
 | Scherm | Licht | Donker |
 |---|---|---|
 | Site: start | geen overtredingen | geen overtredingen |
-| Site: artikel | geen overtredingen | geen overtredingen |
-| Site: zoeken | geen overtredingen | geen overtredingen |
+| Site: artikel (zonder en met tags en wijzigingsmelding) | geen overtredingen | geen overtredingen |
 | Site: venster verbetervoorstel | geen overtredingen | geen overtredingen |
+| Site: venster "er ligt al een voorstel" | geen overtredingen | geen overtredingen |
+| Site: zoeken | geen overtredingen | geen overtredingen |
+| Site: nieuws | geen overtredingen | geen overtredingen |
+| Site: mijn verbetervoorstellen | geen overtredingen | geen overtredingen |
 | Review: lijst | geen overtredingen | geen overtredingen |
 | Review: stuk met opmerking in de tekst | geen overtredingen | geen overtredingen |
+| Review: nieuwe opmerking | geen overtredingen | geen overtredingen |
+| Review: venster Afronden | geen overtredingen | geen overtredingen |
 | Beheer: werkplek | geen overtredingen | – (beheer is altijd licht) |
-| Beheer: werkbak | geen overtredingen | – |
+| Beheer: werkbakken (Algemeen, een cluster met voorstellen, Afgehandeld) | geen overtredingen | – |
 | Beheer: artikellijst | geen overtredingen | – |
 | Beheer: Artikel uit Word | geen overtredingen | – |
+| Beheer: geschiedenis van een artikel | geen overtredingen | – |
 | Beheer: nieuw artikel | geen overtredingen | – |
 | Beheer: nieuw nieuwsbericht | geen overtredingen | – |
 | Beheer: bewerkscherm | geen overtredingen | – |
-| Beheer: bewerkscherm met open lade en open voorstel | geen overtredingen | – |
 | Beheer: venster Afronden | geen overtredingen | – |
-| Beheer: paneel Eigenschappen | geen overtredingen | – |
+| Beheer: panelen Eigenschappen en Geschiedenis | geen overtredingen | – |
+| Beheer: bewerkscherm met conceptversie en menu Meer | geen overtredingen | – |
+| Beheer: bewerkscherm ter inzage, met lade en opmerking | geen overtredingen | – |
+| Beheer: lade open, en met de steun uitgeklapt | geen overtredingen | – |
+| Beheer: vensters Afhandelen, Afwijzen en Dubbel in de lade | geen overtredingen | – |
+
+Samen 45 metingen. De uitbreiding in 1.32.0 vond twee fouten die eerder niet waren gemeten; beide zijn hersteld:
+een artikel zonder tags had op de site een lege groep met een naam (`aria-prohibited-attr`), en in donker had
+het gekozen filter bij *Verbetervoorstellen* te weinig contrast (2,2:1; nu ruim boven 4,5:1).
 
 Een geautomatiseerde test vindt ongeveer een derde van de mogelijke problemen. Daarom is ook het
 toetsenbordgedrag nagelopen (hieronder) en is er een script voor een handmatige test met een schermlezer.
 
 ## Met het toetsenbord nagelopen (Playwright, Chromium)
+
+Sinds 1.32.0 loopt `scripts/browsertests/rook.js` een groot deel hiervan bij elke wijziging na, in de CI: de
+vensters Afronden, Afhandelen, Weggooien en de kladversie, de lade, de panelen en Bekijk als medewerker.
 
 - **Vensters in het beheer** (Afronden, Versturen, Afwijzen, Dubbel, Link, Overnemen, de kladversie):
   - het zijn echte dialogen (`<dialog>` met `showModal`), met een titel;

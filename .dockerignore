@@ -7,3 +7,4 @@ staticfiles
 *.sqlite3
 docs/schermafbeeldingen
 frontend
+scripts/browsertests

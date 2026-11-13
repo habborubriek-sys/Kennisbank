@@ -8,17 +8,17 @@
 {% block content_title %}
 {{ block.super }}
 {% if mijn_kladversies %}
-<p class="kb-klad-seintje" style="background:#e8f0fb;border-left:4px solid #1f4e8c;padding:10px 14px;margin:10px 0">
+<p class="kb-klad-seintje">
   Je hebt <b>{{ mijn_kladversies }} kladversie{{ mijn_kladversies|pluralize:"s" }}</b> die nog niet {% if mijn_kladversies == 1 %}is{% else %}zijn{% endif %} opgeslagen.
   <a href="{% url 'admin:kennisbank_kladversie_changelist' %}">Bekijken en verder gaan</a>
 </p>
 {% endif %}
 {% if te_herzien %}
-<p class="warning" style="background:#fdf3d8;border-left:4px solid #c89b1c;padding:10px 14px;margin:10px 0">
+<p class="warning kb-herzien-seintje">
   <b>{{ te_herzien }} artikel{{ te_herzien|pluralize:"en" }}</b> moet{% if te_herzien == 1 %}{% else %}en{% endif %} opnieuw worden nagekeken: de datum is verstreken.
   <a href="?herziening=te_laat">Laat ze zien</a>{% if herzien_binnenkort %} · {{ herzien_binnenkort }} volg{{ herzien_binnenkort|pluralize:"t,en" }} binnen 30 dagen (<a href="?herziening=binnenkort">bekijken</a>){% endif %}.
 </p>
 {% elif herzien_binnenkort %}
-<p style="color:#555;margin:10px 0">{{ herzien_binnenkort }} artikel{{ herzien_binnenkort|pluralize:"en" }} moet{% if herzien_binnenkort == 1 %}{% else %}en{% endif %} binnen 30 dagen opnieuw worden nagekeken. <a href="?herziening=binnenkort">Bekijken</a></p>
+<p class="kb-herzien-rustig">{{ herzien_binnenkort }} artikel{{ herzien_binnenkort|pluralize:"en" }} moet{% if herzien_binnenkort == 1 %}{% else %}en{% endif %} binnen 30 dagen opnieuw worden nagekeken. <a href="?herziening=binnenkort">Bekijken</a></p>
 {% endif %}
 {% endblock %}

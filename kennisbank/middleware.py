@@ -43,6 +43,13 @@ class SecurityHeadersMiddleware:
             "font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; "
             f"form-action 'self' {self._idp()}; frame-ancestors {ancestors}"
         ).replace("  ", " ")
+        self.csp_beheer = (
+            # style-src-attr: de editor (Tiptap) zet bij tabellen een style-attribuut op <table> en <col>. Een
+            # <style>-element of een inline script blijft geweigerd.
+            "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; "
+            "img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; "
+            f"form-action 'self' {self._idp()}; frame-ancestors 'self'"
+        ).replace("  ", " ")
 
     @staticmethod
     def _idp():
@@ -56,13 +63,17 @@ class SecurityHeadersMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
-        # Het beheerscherm van Django gebruikt inline scripts; daar een ruimere policy.
-        if request.path.startswith("/beheer/") or request.path.startswith("/api/docs"):
+        # De API-documentatie (Redoc) heeft inline scripts en stijlen nodig; alleen daar een ruimere policy.
+        if request.path.startswith("/api/docs"):
             response.setdefault(
                 "Content-Security-Policy",
                 "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
                 "img-src 'self' data:; frame-ancestors 'self'",
             )
+        # 1.32.0 (review 1.27.0, M9): het beheer staat geen inline scripts meer toe. Eigen sjablonen en Django
+        # zelf laden alle scripts als bestand. Het beheer wordt nooit ingebed (frame-ancestors 'self').
+        elif request.path.startswith("/beheer/"):
+            response.setdefault("Content-Security-Policy", self.csp_beheer)
         else:
             response.setdefault("Content-Security-Policy", self.csp)
         response.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")

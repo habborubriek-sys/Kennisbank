@@ -3,9 +3,17 @@ on:
   push:
   pull_request:
 
+# De acties staan vast op een commit-hash (1.32.0, review 1.27.0): een tag als v4 kan achteraf worden verzet.
+# Bijwerken: de hash en het versienummer erachter samen vervangen.
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # pyproject.toml belooft 3.12 of hoger; de container draait 3.13.
+        python: ["3.12", "3.13"]
     services:
       postgres:
         image: postgres:16-alpine
@@ -18,9 +26,9 @@ jobs:
       KB_ALLOWED_HOSTS: testserver,localhost
       KB_LOG_NIVEAU: WARNING
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: {python-version: "3.13"}
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with: {python-version: "${{ matrix.python }}"}
       - run: pip install -r requirements-dev.txt
       - name: Lint
         run: ruff check .
@@ -32,14 +40,50 @@ jobs:
         run: pip-audit -r requirements.txt
       - name: SBOM (CycloneDX)
         run: python scripts/maak_sbom.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: matrix.python == '3.13'
         with: {name: sbom, path: sbom.cdx.json}
 
+  # Browsertests (1.32.0, review 1.27.0, M24): toegankelijkheid met axe en de belangrijkste paden in een echte
+  # browser, op een wegwerpdatabase met vaste testgegevens. Zie scripts/browsertests/README.md.
+  browser:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: {POSTGRES_DB: kennisbank, POSTGRES_USER: kennisbank, POSTGRES_PASSWORD: kennisbank}
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U kennisbank" --health-interval 5s --health-retries 20
+    env:
+      KB_DATABASE_URL: postgres://kennisbank:kennisbank@localhost:5432/kennisbank
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with: {python-version: "3.13"}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: {node-version: "22"}
+      - run: pip install -r requirements.txt
+      - name: Playwright en axe (vaste versies)
+        working-directory: scripts/browsertests
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Browsertests
+        run: scripts/browsertests/draai.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: failure()
+        with:
+          name: browsertests-uitvoer
+          path: |
+            scripts/browsertests/uitvoer/
+            scripts/browsertests/.server.log
+          include-hidden-files: true
+
   image:
-    needs: test
+    needs: [test, browser]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - run: docker build -t kennisbank:${{ github.sha }} .
       - name: Rooktest container
         run: |

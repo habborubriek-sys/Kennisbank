@@ -1,5 +1,49 @@
 # Wijzigingen
 
+## 1.32.0 – 2026-11-13
+
+Ronde D van de review van 12 november (bouwlijst `bouwlijst-1.32.0-ronde-d.md`): tests, CI en documentatie. Voor gebruikers verandert er niets aan de schermen, op twee kleine herstellingen voor de toegankelijkheid na.
+
+**Browsertests in de repository en de CI (D1, M24)**
+- Nieuw: `scripts/browsertests/`. `rook.js` loopt de belangrijkste paden af in een echte browser (67 controles): de lade, van voorstel tot gepubliceerde versie met review, spoedcorrectie, conceptversie weggooien, nieuw artikel, nieuwsbericht, kladversie, de bediening met het toetsenbord, en elk beheerscherm. `axe.js` meet 45 schermen en vensters op toegankelijkheid (was 23), de site en de review in licht en donker.
+- Een fout in een script van de pagina en een melding van de Content-Security-Policy tellen in elke stap als fout.
+- Nieuwe opdracht `kennisbank_browsertest`: maakt een eigen wegwerpdatabase met vaste testgegevens en start daar een server op. Werkt alleen met `KB_DEMO_MODUS=aan`; de gewone database wordt niet aangeraakt.
+- De CI draait de browsertests bij elke push, als eigen stap naast de gewone tests. Ze houden een push tegen als ze falen, met één herhaling op een verse database tegen toevallige storingen (keuze Alex). Bij een fout zijn de schermafdrukken en het logboek van de server te downloaden.
+- Playwright en axe-core liggen vast op een exacte versie.
+- Nagegaan met drie bewust aangebrachte fouten (een stijl die de CSP weigert, een te laag contrast, een knop die niet meer inklapt): alle drie betrapt.
+
+**Strengere Content-Security-Policy in het beheer (D2, M9)**
+- `/beheer/` staat geen inline scripts en geen `<style>`-elementen meer toe (`script-src 'self'; style-src 'self'`). Alleen de API-documentatie (`/api/docs/`) houdt de ruime regel.
+- De editor voegde zelf een `<style>`-element in. Die regels staan nu in `vendor/tiptap/tiptap.css`, en de editor draait met `injectCSS: false`.
+- Inline stijlen in de sjablonen (statuspagina, artikellijst) en op twee formuliervelden staan nu in de stylesheet.
+- Eén uitzondering blijft: `style-src-attr 'unsafe-inline'`. De editor zet bij een tabel een `style`-attribuut op `<table>` en `<col>`. Dat kwam pas aan het licht doordat de browsertest een tabel invoegt.
+
+**Twee toegankelijkheidsfouten hersteld, gevonden door de bredere meting**
+- Site, artikel zonder tags: er stond een lege groep met een naam (`aria-prohibited-attr`). De groep staat er nu alleen als er tags zijn, met `role="group"`.
+- Site in donker, *Verbetervoorstellen*: het gekozen filter en het label *nieuw* hadden witte tekst op lichtblauw (contrast 2,2:1). Ze gebruiken nu de tekstkleur van het thema.
+
+**SBOM compleet (D4, M27)**
+- `sbom.cdx.json` noemt nu elk van de 37 pakketten in de editorbundel (was alleen `@tiptap/core`), en de kennisbank zelf met het versienummer (`metadata.component`). Het script stopt als `LICENSES.txt` en het lockbestand van elkaar afwijken.
+
+**CI (D5)**
+- De GitHub-acties staan vast op een commit-hash.
+- De tests draaien ook op Python 3.12 (keuze Alex); `pyproject.toml` belooft 3.12 of hoger.
+- Een test bewaakt de banner van de editorbundel tegen het lockbestand en de bouwopdracht.
+- GitLab: een rooktest van de image voor hij naar de registry gaat. Niet op een echte GitLab-runner gedraaid.
+- Tijdens de tests staan de logregels uit. Tests die een fout uitlokken (een 400, een 409, een vreemde Host) gaven tientallen logregels in de uitvoer, waardoor een echte fout slecht te zien was. `KB_TEST_LOG_NIVEAU=WARNING` zet ze aan.
+- Vanaf deze versie krijgt elke release een tag (`v1.32.0`; keuze Alex: vanaf nu, niet met terugwerkende kracht).
+
+**Documentatie (D3, D6)**
+- Nieuw: `docs/reviewtoestanden.md`: de toestanden van de review, de overgangen, en wat redacteur en reviewer in elke toestand kunnen.
+- `docs/installatie-en-beheer.md`: nieuw hoofdstuk *Voor livegang: wat de organisatie zelf regelt* (herstelprocedure met RPO en RTO, bewaartermijn van back-ups, alarm bij een mislukte dagelijkse taak, centrale logging, beheerafspraken, bescherming van de hoofdbranch; M28), en het hoofdstuk *Naar 1.32.0*.
+- `docs/functioneel-beheer.md` naast de schermen gelegd. Vier dingen klopten niet meer en zijn hersteld: hoe je bij het bewerkscherm komt, waar de spoedcorrectie staat (onder *Meer ▾*), de bak *Ter inzage* op de werkplek, en de opsomming bij nieuwsberichten.
+- `docs/toegankelijkheid.md`, `docs/beveiliging-en-privacy.md`, `docs/architectuur.md`, `README.md` en `SECURITY.md` (noemde nog 1.4.x) bijgewerkt.
+- Een test controleert dat verwijzingen in de documentatie naar bestaande bestanden wijzen.
+
+**Tests**
+- 20 nieuwe tests (`test_ronde_d_1320.py`); nu 694. Mutatiecheck: 9 bewust aangebrachte fouten, alle 9 betrapt.
+- Geen migratie.
+
 ## 1.31.3 – 2026-11-13
 
 Feedback van Alex op de lade: de knoppen waren te lang en werden afgekapt, *Dubbel…* stond lichtgrijs, de titel had een rand alsof het een knop was, en de lijst met steuners was te lang.

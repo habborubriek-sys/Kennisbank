@@ -3,18 +3,6 @@
 <div class="breadcrumbs"><a href="{% url 'admin:index' %}">Home</a> &rsaquo; Status</div>
 {% endblock %}
 {% block content %}
-<style>
-  .kb-status h2{font-size:1rem;margin:22px 0 6px}
-  .kb-status table{width:100%;border-collapse:collapse}
-  .kb-status td{padding:7px 10px;border-bottom:1px solid var(--hairline-color,#e5e5e5);vertical-align:top}
-  .kb-status td.s{width:26px;text-align:center;font-size:1.1rem;line-height:1.3}
-  .kb-status td.n{width:260px;font-weight:600}
-  .kb-status .advies{color:#555;font-size:.92rem;margin:3px 0 0;max-width:80ch}
-  .kb-status .kop{padding:12px 14px;border-radius:6px;margin:0 0 6px}
-  .kb-status .kop.goed{background:#e8f4ea;border-left:4px solid #2e7d32}
-  .kb-status .kop.let_op{background:#fdf3d8;border-left:4px solid #c89b1c}
-  .kb-status .kop.fout{background:#fbe9e9;border-left:4px solid #a6192e}
-</style>
 <div id="content-main" class="kb-status">
   <p class="kop {{ overzicht.totaal }}">
     {% if overzicht.totaal == "goed" %}<b>Alles staat goed.</b> Geen aandachtspunten gevonden.
@@ -22,14 +10,14 @@
     {% else %}<b>Er is iets dat gerepareerd moet worden.</b> Hieronder staat wat, en wat eraan te doen is.
     {% endif %}
   </p>
-  <p style="color:#555">Gemeten op {{ overzicht.gemeten_op|date:"j F Y, H:i" }}. Deze pagina leest alleen; ververs hem om opnieuw te meten.</p>
+  <p class="kb-status-gemeten">Gemeten op {{ overzicht.gemeten_op|date:"j F Y, H:i" }}. Deze pagina leest alleen; ververs hem om opnieuw te meten.</p>
 
   {% for groep in overzicht.groepen %}
   <h2>{{ groep.titel }}</h2>
   <table>
     {% for r in groep.rijen %}
     <tr>
-      <td class="s" title="{{ r.stand }}">{% if r.stand == "goed" %}<span style="color:#2e7d32">●</span>{% elif r.stand == "let_op" %}<span style="color:#c89b1c">●</span>{% else %}<span style="color:#a6192e">●</span>{% endif %}</td>
+      <td class="s" title="{{ r.stand }}">{% if r.stand == "goed" %}<span class="stip-goed">●</span>{% elif r.stand == "let_op" %}<span class="stip-let-op">●</span>{% else %}<span class="stip-fout">●</span>{% endif %}</td>
       <td class="n">{{ r.naam }}</td>
       <td>{{ r.waarde }}{% if r.advies %}<p class="advies">{{ r.advies }}</p>{% endif %}</td>
     </tr>
@@ -38,7 +26,7 @@
   {% endfor %}
 
   <h2>Wat IT dagelijks moet laten lopen</h2>
-  <p class="advies" style="max-width:80ch">
+  <p class="advies">
     <code>python manage.py kennisbank_opschonen</code> — verstuurt de gebundelde favorietenmail, ruimt
     oude statistieken en verlopen bewerkclaims op, anonimiseert afgehandelde verbetervoorstellen en
     verwijdert verlopen sessies. Eén keer per dag is genoeg. Of die taak loopt, staat hierboven onder

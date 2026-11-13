@@ -6,7 +6,8 @@ Als **redacteur** schrijf en onderhoud je de artikelen in jouw omgeving, behande
 
 Het bewerkscherm (sinds 1.22.0) laat het artikel zien zoals medewerkers het lezen, en daarin typ je ook.
 
-1. Ga naar **Beheer** (link links onderin de kennisbank) → *Artikelen*, of klik in een artikel op **Bewerken**.
+1. Klik in een artikel op **Bewerken**, of ga naar je **werkplek** (knop **Werkplek** rechtsboven in de
+   kennisbank) en open daar een artikel. Een nieuw artikel begin je op je werkplek met **Nieuw artikel**.
 2. **Bovenaan staat een blauwe balk** met links **← Werkplek** en de titel. Daaronder staat een dunne, lichte
    infobalk met de labels: *Conceptversie* en de stand van de review (bijvoorbeeld *Teruggegeven door Team Water
    · 2 opmerkingen*), met klein erachter welke versie medewerkers zien en wie het laatst iets deed. Rechts in de
@@ -85,8 +86,8 @@ artikel heeft een nieuwe versie.
 - Op je werkplek staan conceptversies onder **Concepten**, bovenaan, met het label *conceptversie*.
 - Een artikel dat nog nooit is gepubliceerd, heeft geen conceptversie nodig: het is zelf nog een concept.
 - **Spoedcorrectie.** Moet er iets dringends verbeterd worden in wat medewerkers nu zien (een fout
-  telefoonnummer, een verkeerde termijn) terwijl je aan een conceptversie werkt, kies dan in de balk bovenaan
-  **Corrigeer de gepubliceerde versie**. Je bewerkt dan de gepubliceerde tekst en publiceert die met een
+  telefoonnummer, een verkeerde termijn) terwijl je aan een conceptversie werkt, kies dan onder **Meer ▾** in
+  de balk bovenaan **Corrigeer de gepubliceerde versie**. Je bewerkt dan de gepubliceerde tekst en publiceert die met een
   toelichting; de conceptversie blijft ongewijzigd (en op slot als hij ter inzage ligt). De omgeving kun je bij
   een spoedcorrectie niet wijzigen. Daarna meldt een
   balk boven het artikel dat de gepubliceerde versie intussen is aangepast: **neem de correctie zelf mee in de conceptversie**,
@@ -365,11 +366,12 @@ dat al gepubliceerd is **Opslaan** (meteen zichtbaar), **Terugzetten naar concep
 - **Titel** en **tekst**, op het blad. Dezelfde werkbalk als bij een artikel (vet, lijsten, links, tabellen,
   ongedaan maken), maar zonder secties en onboarding.
 - Onder **Eigenschappen**:
-- **Omgeving**: het bericht is alleen zichtbaar voor medewerkers van die omgeving.
-- **Artikelen**: koppel de artikelen waar het bericht over gaat; die verschijnen als links onder het bericht.
-- **Status**: *Concept* (alleen zichtbaar in het beheer) of *Gepubliceerd*.
-- **Vastgepind**: blijft bovenaan staan, bijvoorbeeld "Nieuwe werkwijze per 1 januari".
-- **Verloopt op**: daarna zakt het bericht naar *Ouder nieuws* (inklapbaar onderaan); het blijft wel vindbaar. Leeg = geen einddatum.
+  - **Omgeving**: het bericht is alleen zichtbaar voor medewerkers van die omgeving.
+  - **Artikelen**: koppel de artikelen waar het bericht over gaat; die verschijnen als links onder het bericht.
+  - **Status**: *Concept* (alleen zichtbaar in het beheer) of *Gepubliceerd*.
+  - **Vastgepind**: blijft bovenaan staan, bijvoorbeeld "Nieuwe werkwijze per 1 januari".
+  - **Verloopt op**: daarna zakt het bericht naar *Ouder nieuws* (inklapbaar onderaan); het blijft wel vindbaar.
+    Leeg = geen einddatum.
 
 Een bericht kun je, anders dan een artikel, gewoon verwijderen (onderaan het paneel Eigenschappen). Nieuwsberichten gaan niet per e-mail; daarvoor is de nieuwspagina.
 
@@ -392,8 +394,8 @@ van wat je aanklikt. Achter elke bak staat hoeveel er in ligt.
   geopend.
 - **Afgehandeld**: het archief met verwerkte en afgewezen voorstellen. Medewerkers zien die niet meer
   (behalve hun eigen voorstellen, met het antwoord dat ze kregen).
-- **Artikelen**: *Concepten*, *Mijn kladversies* en *Opnieuw nakijken* (artikelen waarvan de
-  herzieningsdatum is verstreken).
+- **Artikelen**: *Concepten*, *Ter inzage* (als het reviewproces aanstaat), *Mijn kladversies* en *Opnieuw
+  nakijken* (artikelen waarvan de herzieningsdatum is verstreken).
 - Knoppen voor **Nieuw artikel**, **Nieuw bericht** en **Artikel uit Word**, en onderaan **Alle onderdelen**: de gewone lijst
   van het beheer (artikelen, tags, zaaktypen, enz.).
 

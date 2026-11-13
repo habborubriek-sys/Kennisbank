@@ -4,3 +4,9 @@ __pycache__/
 staticfiles/
 /.env
 frontend/node_modules/
+
+# Browsertests
+scripts/browsertests/node_modules/
+scripts/browsertests/.opzet.json
+scripts/browsertests/uitvoer/
+scripts/browsertests/.server.log

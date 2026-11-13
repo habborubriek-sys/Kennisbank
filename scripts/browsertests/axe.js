@@ -1,46 +1,75 @@
-const { chromium } = require(process.env.PLAYWRIGHT || "playwright");
-const fs = require("fs");
-const AXE = fs.readFileSync(process.env.AXE_PAD || require.resolve("axe-core/axe.min.js"), "utf8");
-// Gebruik: node axe.js <inzage-id met een opmerking> [artikel-id met open voorstellen] [voorstel-id]
-// Omgeving: KB_URL (standaard http://localhost:8000), demo-gebruikers met wachtwoord "demo".
-const B = process.env.KB_URL || "http://localhost:8000", INZ = process.argv[2], ART = process.argv[3] || "", VS = process.argv[4] || "";
-let fouten = 0;
-async function sessie(b, u, schema) {
-  const p = await (await b.newContext({ viewport: { width: 1280, height: 900 }, bypassCSP: true, colorScheme: schema })).newPage();
-  p.on("pageerror", e => console.log("JS-FOUT", e.message));
-  await p.goto(B + "/inloggen/?next=/"); await p.fill('input[name="username"]', u); await p.fill('input[name="password"]', "demo"); await p.click('button[type="submit"]'); await p.waitForTimeout(800);
-  return p;
-}
-async function meet(p, naam) {
-  await p.addScriptTag({ content: AXE });
-  const r = await p.evaluate(async () => (await axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] })).violations.map(v => v.id + "(" + v.nodes.length + "): " + v.nodes.slice(0, 2).map(n => n.target.join(" ") + " " + ((n.any[0] && n.any[0].message) || "")).join(" || ")));
-  if (r.length) fouten++;
-  console.log((r.length ? "FOUT " : "OK   ") + naam + (r.length ? " " + JSON.stringify(r) : ""));
-}
-async function dichtVensters(p) { for (let i = 0; i < 4 && await p.locator("dialog[open]").count(); i++) { await p.locator("dialog[open] button").last().click(); await p.waitForTimeout(700); } }
+// Toegankelijkheid: meet de schermen met axe-core (WCAG 2.0/2.1 A en AA), de site en de review in licht én donker.
+//
+// Draait tegen de server van `manage.py kennisbank_browsertest`, vóór rook.js (dat de testgegevens wijzigt).
+// Het script stopt met code 1 als er een overtreding is. Zie README.md.
+const g = require("./gemeen");
+const { B, OPZET: o, meet, stap } = g;
+
 (async () => {
-  const b = await chromium.launch();
+  const browser = await g.start();
+  const sessie = (wie, schema) => g.sessie(browser, wie, { schema, bypassCSP: true, breedte: 1280, hoogte: 900 });
+
   for (const schema of ["light", "dark"]) {
-    const m = await sessie(b, "medewerker", schema);
-    await m.goto(B + "/"); await m.waitForTimeout(1200); await meet(m, schema + " site start");
-    await m.goto(B + "/artikel/" + (process.env.KB_ARTIKEL || "1") + "/x"); await m.waitForTimeout(1200); await meet(m, schema + " site artikel");
-    await m.fill("#q", "rappel"); await m.waitForTimeout(1200); await meet(m, schema + " site zoeken");
-    const rv = await sessie(b, "reviewer", schema);
-    await rv.goto(B + "/review/"); await rv.waitForTimeout(800); await meet(rv, schema + " reviewlijst");
-    await rv.goto(B + `/review/${INZ}/`); await rv.waitForTimeout(1200); await meet(rv, schema + " reviewpagina met opmerking");
+    const naam = schema === "light" ? "licht" : "donker";
+    const m = await sessie("medewerker", schema);
+    await stap(`site (${naam})`, m, async () => {
+      await m.goto(B + "/"); await m.locator("#q").waitFor(); await m.waitForTimeout(800); await meet(m, `${naam}: site start`);
+      await m.goto(B + `/artikel/${o.rustig.artikel}/${o.rustig.slug}`); await m.locator("h1").first().waitFor(); await m.waitForTimeout(800); await meet(m, `${naam}: site artikel`);
+      await m.locator("#propBtn").click(); await m.locator("#propText").waitFor(); await meet(m, `${naam}: site venster verbetervoorstel`);
+      await m.locator("#propCancel").click();
+      await m.goto(B + `/artikel/${o.demo.artikel}/${o.demo.slug}`); await m.locator("h1").first().waitFor(); await m.waitForTimeout(800); await meet(m, `${naam}: site artikel met tags en wijzigingsmelding`);
+      await m.locator("#propBtn").click(); await m.locator("#dubbel").waitFor(); await meet(m, `${naam}: site venster er ligt al een voorstel`);
+      await m.keyboard.press("Escape");
+      await m.fill("#q", "rappel"); await m.waitForTimeout(1200); await meet(m, `${naam}: site zoeken`);
+      await m.locator("button[data-view='nieuws']").click(); await m.waitForTimeout(800); await meet(m, `${naam}: site nieuws`);
+      await m.locator("button[data-view='voorstellen']").click(); await m.waitForTimeout(800); await meet(m, `${naam}: site verbetervoorstellen`);
+    });
+    const rv = await sessie("reviewer", schema);
+    await stap(`review (${naam})`, rv, async () => {
+      await rv.goto(B + "/review/"); await rv.waitForTimeout(600); await meet(rv, `${naam}: reviewlijst`);
+      await rv.goto(B + `/review/${o.inzage.inzage}/`); await rv.locator("#rv-verschil").waitFor(); await rv.waitForTimeout(900); await meet(rv, `${naam}: reviewpagina met opmerking`);
+      await rv.locator("#rv-alg-knop").click(); await rv.waitForTimeout(300); await meet(rv, `${naam}: reviewpagina, nieuwe opmerking`);
+      await rv.locator("#rv-afronden-knop").click(); await rv.waitForTimeout(300); await meet(rv, `${naam}: reviewpagina, venster Afronden`);
+      await rv.keyboard.press("Escape");
+    });
+    await m.context().close(); await rv.context().close();
   }
-  const r = await sessie(b, "redacteur", "light");
-  await r.goto(B + "/beheer/"); await r.waitForTimeout(800); await meet(r, "werkplek");
-  await r.goto(B + "/beheer/?bak=algemeen"); await r.waitForTimeout(800); await meet(r, "werkbak algemeen");
-  await r.goto(B + "/beheer/kennisbank/artikel/"); await r.waitForTimeout(800); await meet(r, "beheer artikellijst");
-  await r.goto(B + "/beheer/kennisbank/artikel/importeren-word/"); await r.waitForTimeout(800); await meet(r, "artikel uit Word");
-  await r.goto(B + "/beheer/kennisbank/artikel/add/"); await r.waitForTimeout(1500); await dichtVensters(r); await meet(r, "nieuw artikel");
-  await r.goto(B + "/beheer/kennisbank/bericht/add/"); await r.waitForTimeout(1500); await dichtVensters(r); await meet(r, "nieuw nieuwsbericht");
-  await r.goto(B + "/beheer/kennisbank/artikel/" + (process.env.KB_ARTIKEL || "1") + "/change/"); await r.waitForTimeout(1500); await dichtVensters(r); await meet(r, "bewerkscherm (geen voorstellen)");
-  if (ART) await r.goto(B + `/beheer/kennisbank/artikel/${ART}/change/?voorstel=${VS}`); await r.waitForTimeout(1800); await dichtVensters(r); await meet(r, "bewerkscherm met lade open (ter inzage)");
-  await r.click(".kb-afronden-knop"); await r.waitForTimeout(300); await meet(r, "venster Afronden");
-  await r.keyboard.press("Escape");
-  await r.click("[data-kb-paneel='eig']"); await r.waitForTimeout(300); await meet(r, "paneel Eigenschappen");
-  await b.close();
-  process.exit(fouten ? 1 : 0);
-})();
+
+  const r = await sessie("redacteur", "light");
+  await stap("beheer: werkplek en lijsten", r, async () => {
+    await r.goto(B + "/beheer/"); await r.waitForTimeout(600); await meet(r, "werkplek");
+    await r.goto(B + "/beheer/?bak=algemeen"); await r.waitForTimeout(600); await meet(r, "werkbak Algemeen");
+    await r.goto(B + "/beheer/"); await r.locator("a.kb-bakregel", { hasText: "Nat beheer" }).first().click(); await r.waitForTimeout(600); await meet(r, "werkbak van een cluster, met voorstellen");
+    await r.goto(B + "/beheer/?bak=afgehandeld"); await r.waitForTimeout(600); await meet(r, "werkbak Afgehandeld");
+    await r.goto(B + "/beheer/kennisbank/artikel/"); await r.waitForTimeout(600); await meet(r, "artikellijst");
+    await r.goto(B + "/beheer/kennisbank/artikel/importeren-word/"); await r.waitForTimeout(600); await meet(r, "Artikel uit Word");
+    await r.goto(B + `/beheer/kennisbank/artikel/${o.rustig.artikel}/history/`); await r.waitForTimeout(600); await meet(r, "geschiedenis van een artikel");
+  });
+  await stap("beheer: bewerkscherm", r, async () => {
+    await r.goto(B + "/beheer/kennisbank/artikel/add/"); await r.locator(".ProseMirror").first().waitFor(); await r.waitForTimeout(600); await g.dichtVensters(r); await meet(r, "nieuw artikel");
+    await r.goto(B + "/beheer/kennisbank/bericht/add/"); await r.locator(".ProseMirror").first().waitFor(); await r.waitForTimeout(600); await g.dichtVensters(r); await meet(r, "nieuw nieuwsbericht");
+    await g.bewerk(r, o.rustig.artikel); await meet(r, "bewerkscherm zonder voorstellen");
+    await r.click(".kb-afronden-knop"); await r.waitForTimeout(300); await meet(r, "venster Afronden");
+    await r.keyboard.press("Escape");
+    await r.click("[data-kb-paneel='eig']"); await r.waitForTimeout(300); await meet(r, "paneel Eigenschappen");
+    await r.keyboard.press("Escape");
+    await r.click("[data-kb-paneel='gesch']"); await r.waitForTimeout(300); await meet(r, "paneel Geschiedenis");
+    await r.keyboard.press("Escape");
+    await g.bewerk(r, o.spoed.artikel); await r.locator(".kb-meer summary").click(); await r.waitForTimeout(200); await meet(r, "bewerkscherm met conceptversie en menu Meer");
+    await g.bewerk(r, o.inzage.artikel, `?voorstel=${o.inzage.voorstel}`); await meet(r, "bewerkscherm ter inzage, met lade en opmerking");
+  });
+  await stap("beheer: de lade en haar vensters", r, async () => {
+    await g.bewerk(r, o.lade.artikel, `?voorstel=${o.lade.steun}`); await meet(r, "lade open");
+    await r.locator(`[data-kb-focus="steun-${o.lade.steun}"]`).click(); await meet(r, "lade met de steun uitgeklapt");
+    await r.locator(`[data-kb-focus="vwk-${o.lade.steun}"]`).click(); await r.waitForTimeout(300); await meet(r, "venster De tekst staat nog in het artikel");
+    await r.locator("dialog[open] button", { hasText: "Ja, het is verwerkt" }).click(); await r.waitForTimeout(400); await meet(r, "venster Afhandelen als verwerkt");
+    await r.keyboard.press("Escape");
+    await r.locator(`[data-kb-focus="afw-${o.lade.steun}"]`).click(); await r.waitForTimeout(300); await meet(r, "venster Voorstel afwijzen");
+    await r.keyboard.press("Escape");
+    await r.locator(`[data-kb-focus="dub-${o.lade.steun}"]`).click(); await r.waitForTimeout(300); await meet(r, "venster Dubbel voorstel");
+    await r.keyboard.press("Escape");
+  });
+
+  await browser.close();
+  g.klaar();
+})().catch((e) => { console.log("FOUT onverwacht :: " + (e.stack || e)); process.exit(1); });

@@ -385,7 +385,7 @@
       <div class="sections">${a.blokken.map((b) => b.type === "tekst" ? `<div class="inleiding">${b.html}</div>` : `<details class="sec" id="sectie-${b.nummer}" ${b.nummer === 1 ? "open" : ""}><summary>${esc(b.kop)}</summary><div class="body">${b.html}</div></details>`).join("")}</div>
       <div class="foot">
        ${a.gerelateerd.length ? `<div class="related"><h2 class="stats-h">Gerelateerd</h2><ul>${a.gerelateerd.map((r) => `<li><a href="${esc(r.url)}" data-open="${r.id}" class="linkbtn">${esc(r.titel)}</a></li>`).join("")}</ul></div>` : ""}
-       <div class="chips" aria-label="Tags">${a.tags.map((t) => `<button class="chip" type="button" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+       ${a.tags.length ? `<div class="chips" role="group" aria-label="Tags">${a.tags.map((t) => `<button class="chip" type="button" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</div>` : ""}
        <p class="hint">Klopt iets niet of mis je iets? Selecteer de tekst, of <button class="link" type="button" id="propBtn">dien een verbetervoorstel in</button>.</p>
       </div>
      </article></div>`;

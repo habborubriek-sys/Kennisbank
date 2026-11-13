@@ -605,6 +605,726 @@
           "url": "https://www.npmjs.com/package/@tiptap/core"
         }
       ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-blockquote",
+      "type": "library",
+      "name": "@tiptap/extension-blockquote",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-blockquote@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-bold",
+      "type": "library",
+      "name": "@tiptap/extension-bold",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-bold@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-code",
+      "type": "library",
+      "name": "@tiptap/extension-code",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-code@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-code-block",
+      "type": "library",
+      "name": "@tiptap/extension-code-block",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-code-block@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-document",
+      "type": "library",
+      "name": "@tiptap/extension-document",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-document@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-hard-break",
+      "type": "library",
+      "name": "@tiptap/extension-hard-break",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-hard-break@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-heading",
+      "type": "library",
+      "name": "@tiptap/extension-heading",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-heading@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-horizontal-rule",
+      "type": "library",
+      "name": "@tiptap/extension-horizontal-rule",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-horizontal-rule@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-italic",
+      "type": "library",
+      "name": "@tiptap/extension-italic",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-italic@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-link",
+      "type": "library",
+      "name": "@tiptap/extension-link",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-link@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-list",
+      "type": "library",
+      "name": "@tiptap/extension-list",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-list@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-paragraph",
+      "type": "library",
+      "name": "@tiptap/extension-paragraph",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-paragraph@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-strike",
+      "type": "library",
+      "name": "@tiptap/extension-strike",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-strike@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-subscript",
+      "type": "library",
+      "name": "@tiptap/extension-subscript",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-subscript@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-superscript",
+      "type": "library",
+      "name": "@tiptap/extension-superscript",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-superscript@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-table",
+      "type": "library",
+      "name": "@tiptap/extension-table",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-table@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-text",
+      "type": "library",
+      "name": "@tiptap/extension-text",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-text@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extension-underline",
+      "type": "library",
+      "name": "@tiptap/extension-underline",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extension-underline@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/extensions",
+      "type": "library",
+      "name": "@tiptap/extensions",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/extensions@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/pm",
+      "type": "library",
+      "name": "@tiptap/pm",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/pm@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-@tiptap/starter-kit",
+      "type": "library",
+      "name": "@tiptap/starter-kit",
+      "version": "3.33.1",
+      "purl": "pkg:npm/%40tiptap/starter-kit@3.33.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-linkifyjs",
+      "type": "library",
+      "name": "linkifyjs",
+      "version": "4.4.0",
+      "purl": "pkg:npm/linkifyjs@4.4.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-orderedmap",
+      "type": "library",
+      "name": "orderedmap",
+      "version": "2.1.1",
+      "purl": "pkg:npm/orderedmap@2.1.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-prosemirror-commands",
+      "type": "library",
+      "name": "prosemirror-commands",
+      "version": "1.7.2",
+      "purl": "pkg:npm/prosemirror-commands@1.7.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-prosemirror-dropcursor",
+      "type": "library",
+      "name": "prosemirror-dropcursor",
+      "version": "1.8.4",
+      "purl": "pkg:npm/prosemirror-dropcursor@1.8.4",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-prosemirror-gapcursor",
+      "type": "library",
+      "name": "prosemirror-gapcursor",
+      "version": "1.4.1",
+      "purl": "pkg:npm/prosemirror-gapcursor@1.4.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-prosemirror-history",
+      "type": "library",
+      "name": "prosemirror-history",
+      "version": "1.5.1",
+      "purl": "pkg:npm/prosemirror-history@1.5.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-prosemirror-keymap",
+      "type": "library",
+      "name": "prosemirror-keymap",
+      "version": "1.2.3",
+      "purl": "pkg:npm/prosemirror-keymap@1.2.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-prosemirror-model",
+      "type": "library",
+      "name": "prosemirror-model",
+      "version": "1.25.13",
+      "purl": "pkg:npm/prosemirror-model@1.25.13",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-prosemirror-schema-list",
+      "type": "library",
+      "name": "prosemirror-schema-list",
+      "version": "1.6.0",
+      "purl": "pkg:npm/prosemirror-schema-list@1.6.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-prosemirror-state",
+      "type": "library",
+      "name": "prosemirror-state",
+      "version": "1.4.4",
+      "purl": "pkg:npm/prosemirror-state@1.4.4",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-prosemirror-tables",
+      "type": "library",
+      "name": "prosemirror-tables",
+      "version": "1.8.5",
+      "purl": "pkg:npm/prosemirror-tables@1.8.5",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-prosemirror-transform",
+      "type": "library",
+      "name": "prosemirror-transform",
+      "version": "1.12.5",
+      "purl": "pkg:npm/prosemirror-transform@1.12.5",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-prosemirror-view",
+      "type": "library",
+      "name": "prosemirror-view",
+      "version": "1.42.9",
+      "purl": "pkg:npm/prosemirror-view@1.42.9",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-rope-sequence",
+      "type": "library",
+      "name": "rope-sequence",
+      "version": "1.3.4",
+      "purl": "pkg:npm/rope-sequence@1.3.4",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
+    },
+    {
+      "bom-ref": "npm-w3c-keyname",
+      "type": "library",
+      "name": "w3c-keyname",
+      "version": "2.2.8",
+      "purl": "pkg:npm/w3c-keyname@2.2.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "kennisbank:bundel",
+          "value": "vendor/tiptap/tiptap.min.js"
+        }
+      ]
     }
   ],
   "dependencies": [
@@ -724,10 +1444,51 @@
     },
     {
       "ref": "requirements-L9"
+    },
+    {
+      "ref": "vendor-tiptap",
+      "dependsOn": [
+        "npm-@tiptap/extension-blockquote",
+        "npm-@tiptap/extension-bold",
+        "npm-@tiptap/extension-code",
+        "npm-@tiptap/extension-code-block",
+        "npm-@tiptap/extension-document",
+        "npm-@tiptap/extension-hard-break",
+        "npm-@tiptap/extension-heading",
+        "npm-@tiptap/extension-horizontal-rule",
+        "npm-@tiptap/extension-italic",
+        "npm-@tiptap/extension-link",
+        "npm-@tiptap/extension-list",
+        "npm-@tiptap/extension-paragraph",
+        "npm-@tiptap/extension-strike",
+        "npm-@tiptap/extension-subscript",
+        "npm-@tiptap/extension-superscript",
+        "npm-@tiptap/extension-table",
+        "npm-@tiptap/extension-text",
+        "npm-@tiptap/extension-underline",
+        "npm-@tiptap/extensions",
+        "npm-@tiptap/pm",
+        "npm-@tiptap/starter-kit",
+        "npm-linkifyjs",
+        "npm-orderedmap",
+        "npm-prosemirror-commands",
+        "npm-prosemirror-dropcursor",
+        "npm-prosemirror-gapcursor",
+        "npm-prosemirror-history",
+        "npm-prosemirror-keymap",
+        "npm-prosemirror-model",
+        "npm-prosemirror-schema-list",
+        "npm-prosemirror-state",
+        "npm-prosemirror-tables",
+        "npm-prosemirror-transform",
+        "npm-prosemirror-view",
+        "npm-rope-sequence",
+        "npm-w3c-keyname"
+      ]
     }
   ],
   "metadata": {
-    "timestamp": "2026-11-12T00:39:58.808716+00:00",
+    "timestamp": "2026-11-13T15:41:05.898348+00:00",
     "tools": {
       "components": [
         {
@@ -829,9 +1590,22 @@
           "version": "11.12.0"
         }
       ]
+    },
+    "component": {
+      "bom-ref": "kennisbank",
+      "type": "application",
+      "name": "kennisbank",
+      "version": "1.32.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "EUPL-1.2"
+          }
+        }
+      ]
     }
   },
-  "serialNumber": "urn:uuid:c27fbbc5-02f8-4ff5-a26a-1c42914c8372",
+  "serialNumber": "urn:uuid:f33317d9-115a-4c4f-b477-637658e67ee2",
   "version": 1,
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",

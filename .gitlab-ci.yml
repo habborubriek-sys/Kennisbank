@@ -30,6 +30,36 @@ image:
   services: [docker:27-dind]
   script:
     - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" .
+    # Rooktest (1.32.0): de image start en antwoordt, voor hij naar de registry gaat. Zelfde controle als in
+    # .github/workflows/ci.yml. De verzoeken gaan vanuit de container zelf, zodat het netwerk van de runner
+    # er niet toe doet. Niet getest op een echte GitLab-runner; loop hem na bij de eerste pipeline.
+    - docker network create kb
+    - docker run -d --name db --network kb -e POSTGRES_DB=kennisbank -e POSTGRES_USER=kennisbank -e POSTGRES_PASSWORD=kennisbank postgres:16-alpine
+    - sleep 8
+    - >
+      docker run -d --name app --network kb
+      -e KB_DATABASE_URL=postgres://kennisbank:kennisbank@db:5432/kennisbank
+      -e KB_SECRET_KEY=ci-test-sleutel -e KB_DEMO_MODUS=aan -e KB_COOKIES_SECURE=nee
+      -e KB_ALLOWED_HOSTS=kennisbank.example.nl
+      "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - |
+      vraag() {
+        docker exec app python -c "
+      import sys, urllib.request, urllib.error
+      v = urllib.request.Request('http://127.0.0.1:8000' + sys.argv[1], headers={'Host': sys.argv[2]})
+      try:
+          print(urllib.request.urlopen(v, timeout=5).status)
+      except urllib.error.HTTPError as e:
+          print(e.code)
+      except Exception:
+          print(0)
+      " "$1" "$2"
+      }
+      for i in $(seq 1 30); do [ "$(vraag /readyz 10.0.0.1)" = "200" ] && break; sleep 2; done
+      [ "$(vraag /readyz 10.0.0.1)" = "200" ] || { docker logs app | tail -30; exit 1; }
+      [ "$(vraag /healthz 10.0.0.1)" = "200" ] || exit 1
+      [ "$(vraag /inloggen/ kennisbank.example.nl)" = "200" ] || exit 1
+      [ "$(vraag / 10.0.0.1)" = "400" ] || exit 1
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
   rules:

@@ -223,14 +223,14 @@ class ArtikelForm(forms.ModelForm):
     tags_tekst = forms.CharField(
         required=False,
         label="Tags",
-        widget=TagsWidget(attrs={"style": "width:60%", "autocomplete": "off"}),
+        widget=TagsWidget(attrs={"class": "kb-veld-breed", "autocomplete": "off"}),
         help_text="Gescheiden door komma's, bijvoorbeeld: rappel, termijnen, brief. "
         "Nieuwe tags worden automatisch aangemaakt.",
     )
     wijzigingstoelichting = forms.CharField(
         required=False,
         max_length=300,
-        widget=forms.TextInput(attrs={"style": "width:60%", "placeholder": "Wat is er veranderd, in één zin?"}),
+        widget=forms.TextInput(attrs={"class": "kb-veld-breed", "placeholder": "Wat is er veranderd, in één zin?"}),
         label="Toelichting bij deze wijziging",
         help_text="Verplicht als een gepubliceerd artikel inhoudelijk wijzigt. Medewerkers zien deze zin als "
         "melding bij het artikel, en wie het als favoriet heeft krijgt hem per e-mail. "
@@ -623,6 +623,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         css = {
             "all": [
                 "kennisbank/fonts.css",
+                "kennisbank/vendor/tiptap/tiptap.css",
                 "kennisbank/beheer-editor.css",
                 "kennisbank/artikel-scherm.css",
                 "kennisbank/voorstellen-lade.css",
@@ -2185,7 +2186,14 @@ class BerichtAdmin(RedactieRechtenMixin, admin.ModelAdmin):
 
     class Media:
         # Sinds 1.23.0 hetzelfde scherm en dezelfde editor als bij artikelen (zonder secties en onboarding).
-        css = {"all": ["kennisbank/fonts.css", "kennisbank/beheer-editor.css", "kennisbank/artikel-scherm.css"]}
+        css = {
+            "all": [
+                "kennisbank/fonts.css",
+                "kennisbank/vendor/tiptap/tiptap.css",
+                "kennisbank/beheer-editor.css",
+                "kennisbank/artikel-scherm.css",
+            ]
+        }
         js = [
             "kennisbank/vendor/tiptap/tiptap.min.js",
             "kennisbank/artikel-editor.js",
