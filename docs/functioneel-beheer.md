@@ -55,7 +55,7 @@ Onder een gepubliceerd artikel staat één knop: **Afronden…**. Die opent een 
 
 - **Opslaan als concept** bewaart je wijziging als **conceptversie**. Medewerkers blijven de gepubliceerde
   versie zien en merken niets: geen nieuwe versie, geen melding, geen e-mail.
-- **Ter inzage aanbieden** (alleen als het reviewproces aanstaat): je wijziging wordt eerst opgeslagen als
+- **Ter inzage geven** (alleen als het reviewproces aanstaat): je wijziging wordt eerst opgeslagen als
   conceptversie, en daarna gaat precies die tekst naar het reviewteam dat je kiest. Zie *Reviewproces*.
 - **Publiceren** zet je wijziging meteen live: medewerkers zien de nieuwe tekst, met je toelichting als melding.
   Is de toelichting nog leeg, dan vraagt een venster erom voordat er iets gebeurt. Daarna kom je terug op je
@@ -99,7 +99,7 @@ Staat in de omgeving **Reviewproces gebruiken** aan (een beheerder zet dat aan b
 een conceptversie laten meelezen door een specialistisch team, bijvoorbeeld Team Water. Een akkoord is niet
 nodig om te publiceren: jij bent eindverantwoordelijk. Maar zolang een team aan het lezen is, publiceer je niet.
 
-1. **Afronden → Ter inzage aanbieden.** Het team van het cluster van het artikel staat al aangevinkt; pas dat
+1. **Afronden → Ter inzage geven.** Het team van het cluster van het artikel staat al aangevinkt; pas dat
    aan als dat nodig is (meer teams mag). Je wijziging wordt eerst opgeslagen, dus het team leest precies wat
    je op het scherm hebt.
 2. **Op slot.** De conceptversie staat daarna **op slot**: je kunt hem niet wijzigen, publiceren of weggooien
@@ -136,7 +136,7 @@ nodig om te publiceren: jij bent eindverantwoordelijk. Maar zolang een team aan 
    Algemene opmerkingen staan bovenaan. De markering hoort niet bij de tekst en wordt nooit opgeslagen. Pas je
    die zin aan, dan staat bij de opmerking "Tekst is intussen gewijzigd", met het oorspronkelijke citaat. De
    knop **Opmerkingen** zet de marge aan en uit. Opmerkingen zie je pas als het team heeft gereageerd. Daarna:
-   *Afronden → Ter inzage aanbieden* voor een nieuwe ronde (eerdere rondes staan in het paneel **Review**).
+   *Afronden → Ter inzage geven* voor een nieuwe ronde (eerdere rondes staan in het paneel **Review**).
 5. **Akkoord?** In het paneel **Review** staat dan *Versie n akkoord bevonden door Team Water, datum*, en de balk zegt *Akkoord: Team Water*. Dit label zie je
    alleen in het beheer. **Wijzig je daarna nog iets, dan vervalt het akkoord**; begin je te typen, dan
    waarschuwt een balk daarvoor. Opslaan zonder iets te veranderen laat het akkoord staan. Bij meer teams
@@ -451,7 +451,7 @@ blauwe tabblad dat uit de linkerrand steekt (met het aantal open voorstellen bij
   wanneer, en wie het steunt.
 
 **Meenemen in deze versie.** Ga je het voorstel verwerken, vink dan *Meenemen in deze versie* aan. **Dat telt
-pas als je opslaat** (*Afronden → Opslaan als concept*, *Ter inzage aanbieden* of *Publiceren*). Ga je weg
+pas als je opslaat** (*Afronden → Opslaan als concept*, *Ter inzage geven* of *Publiceren*). Ga je weg
 zonder opslaan, dan waarschuwt de browser; het voorstel blijft dan in de bak liggen en is niet opgepakt.
 
 - **Wie meeneemt, wordt eigenaar.** Ligt het voorstel bij een collega, dan vraagt de kennisbank eerst of je het

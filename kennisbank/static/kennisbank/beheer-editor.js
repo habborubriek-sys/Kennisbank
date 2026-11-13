@@ -663,7 +663,7 @@
       fout.hidden = true;
       vak.appendChild(fout);
       vensterTonen({
-        titel: "Ter inzage aanbieden",
+        titel: "Ter inzage geven",
         alineas: [
           "Je wijzigingen worden eerst opgeslagen als conceptversie. Daarna gaat precies die tekst naar het team, en staat hij op slot tot het team reageert of je hem terugroept.",
           "Aan welk team?",
@@ -722,7 +722,7 @@
       } else {
         if (!cfg.spoed) {
           keuzes.push({ tekst: "Opslaan als concept", uitleg: "Medewerkers merken niets. Je kunt later verder.", doen: function () { klik('button[name="_conceptversie"]'); } });
-          if (cfg.teams.length) keuzes.push({ tekst: "Ter inzage aanbieden", uitleg: "Eerst opslaan, dan naar een reviewteam.", doen: terInzage });
+          if (cfg.teams.length) keuzes.push({ tekst: "Ter inzage geven", uitleg: "Eerst opslaan, dan naar een reviewteam.", doen: terInzage });
         }
         keuzes.push({ tekst: "Publiceren", uitleg: cfg.spoed ? "De correctie gaat meteen live voor alle medewerkers." : "Alle medewerkers zien deze tekst meteen.", doen: function () { klik('input[name="_save"].kb-publiceren'); } });
       }

@@ -1212,7 +1212,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     messages.ERROR,
                 )
             elif request.POST.get("kb_daarna_ter_inzage") == "1":
-                # Afronden → Ter inzage aanbieden: eerst opgeslagen (hierboven), dan ter inzage. Zo gaat
+                # Afronden → Ter inzage geven: eerst opgeslagen (hierboven), dan ter inzage. Zo gaat
                 # altijd de tekst van het scherm naar het team (review 1.20.1, bevinding 4).
                 self._ter_inzage_na_opslaan(request, obj)
             else:

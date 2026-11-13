@@ -77,7 +77,7 @@ Open hiervoor een voorstel uit de werkbak.
     - *Verwacht:* je hoort "Afronden, dialoogvenster" en de keuzes met uitleg.
     - Tab blijft in het venster.
     - Escape sluit het venster, en de focus staat weer op *Afronden…*.
-23. Kies *Ter inzage aanbieden* en bevestig zonder een team te kiezen.
+23. Kies *Ter inzage geven* en bevestig zonder een team te kiezen.
     - *Verwacht:* je hoort de vraag, de vinkjes met de teamnaam, en de foutmelding.
 24. Kies *Bekijk als medewerker* en druk op Escape terwijl de focus in het voorbeeld staat.
     - *Verwacht:* je hoort dat er een venster opent. Escape sluit het, en de focus staat weer op de knop.

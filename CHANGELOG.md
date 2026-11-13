@@ -20,7 +20,7 @@ Ronde C na de onafhankelijke review van 1.27.0: schermen en teksten (bouwlijst
 
 **Teksten en vensters (laag-punten van reviewer 3)**
 - B12: **Terugroepen** en **Conceptversie weggooien** vragen het in een venster van de kennisbank in plaats van met een vraag van de browser. De focus staat op Annuleren. In alle vensters is de hoofdknop nu donkerblauw en Annuleren rustig.
-- B13: meldingen na opslaan zeggen "Het artikel … is opgeslagen" in plaats van "De artikel … is met succes gewijzigd. U kunt deze hieronder weer bewerken." Bij publiceren zegt het venster "Na het publiceren krijgen medewerkers …" in plaats van "Dit artikel is gepubliceerd".
+- B13: meldingen na opslaan zeggen "Het artikel … is opgeslagen" in plaats van "De artikel … is met succes gewijzigd. U kunt deze hieronder weer bewerken." Bij publiceren zegt het venster "Na het publiceren krijgen medewerkers …" in plaats van "Dit artikel is gepubliceerd". Overal heet het nu **Ter inzage geven** (in *Afronden* stond "Ter inzage aanbieden").
 - B14: in **elke bak** kun je zoeken, niet alleen in Afgehandeld. **← Werkplek** brengt je terug naar de bak waar je was. De kolom "Bij" heet "Bij wie".
 - B16: weglopen uit de editor met wijzigingen die nog niet zijn opgeslagen? Dan vraagt de browser het eerst. De kladversie vangt het werk ook op.
 
