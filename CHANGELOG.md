@@ -1,5 +1,45 @@
 # Wijzigingen
 
+## 1.30.0 – 2026-11-13
+
+De reviewpagina gelijk aan de editor, en M12 en M16 uit de review van 1.27.0 (bouwlijst
+`bouwlijst-1.30.0-reviewpagina-en-ronde-c.md`, go van Alex).
+
+**Eén balk, zoals in de editor**
+- Bovenaan staat een blauwe balk met **← Review**, de titel, **Wijzigingen tonen**, **Bekijk als medewerker**, **☾ Donker** en **Afronden…**. Daaronder staat een lichte infobalk: team, bij wie het stuk ligt, wie het voorlegde, met welke versie wordt vergeleken, en een legenda.
+- **Wijzigingen tonen** zet de markeringen van nieuw en weg aan of uit. De browser onthoudt die keuze. De tweede kopie van de tekst onderaan is weg.
+- **Bekijk als medewerker** opent een venster met de conceptversie zoals medewerkers hem zien. Dat is hetzelfde voorbeeld als in de editor, met onboarding aan of uit.
+
+**Kleuren**
+- Groen is alleen nog voor opmerkingen. **Nieuwe tekst is vet en lichtgrijs** met een donkere streep eronder; weggehaalde tekst blijft rood doorgestreept. De streep links van een gewijzigd blok is grijs in plaats van geel.
+- **Verbetervoorstellen staan blauw in de tekst** (stippellijn, rond nummer). Ze zijn genummerd in *Waarom deze wijziging* en hebben daar *Toon in de tekst*. Gaat een voorstel over tekst die is weggehaald, dan staat dat erbij. Namen staan er nog steeds niet bij.
+- Genummerde lijsten houden hun nummers, en onboarding-blokken zijn herkenbaar, zoals medewerkers ze zien (review 1.27.0, R3 B15).
+
+**Opmerkingen in de marge**
+- Elke opmerking is een kaartje rechts, op de hoogte van de tekst waar het over gaat, met een lijntje ernaar. Ga je met de muis over het kaartje, dan kleurt de markering feller. Op een smal scherm staan de kaartjes onder de tekst.
+- Je selecteert tekst en kiest **Opmerking**, of je kiest **+ Algemene opmerking**. Typen of plakken van het stuk tekst kan nog steeds.
+- **Je eigen opmerking wijzigen of weghalen** kan zolang het stuk in deze ronde ter inzage ligt (M16, besluit Alex). Een gewijzigde opmerking krijgt "bewerkt", en weghalen vraagt eerst een bevestiging. Alleen de schrijver mag dit; de server controleert dat.
+- Vóór **Oppakken** kun je alleen meelezen. Ligt het stuk bij een collega, dan zie je **Overnemen**.
+
+**Afronden**
+- **Afronden…** opent een venster met **Teruggeven met opmerkingen** of **Akkoord**, met de uitleg erbij en een vak voor een laatste opmerking.
+- Staat er nog een kaartje met tekst open, dan zegt het venster dat en gaat die tekst mee.
+- Teruggeven zonder een enkele opmerking kan niet.
+
+**Eerdere rondes en de lijst**
+- Eerdere rondes staan ingeklapt onder de tekst. Per oude opmerking zie je het citaat en of die tekst er nog hetzelfde staat of is aangepast.
+- In de lijst *Review* staat wat bij jou ligt bovenaan.
+
+**Editor (M12)**
+- Opmerking en verbetervoorstel op dezelfde tekst zijn allebei zichtbaar: het groene vlak met de groene lijn, en daaronder de blauwe stippellijn. Eerder verdween het groen.
+
+**Techniek**
+- Migratie `0031_opmerking_bewerkt`.
+- Nieuw adres `/review/<id>/voorbeeld/`.
+- In het voorbeeld werkt Escape nu ook bij vaste inhoud.
+- Zonder JavaScript werkt de reviewpagina nog steeds: de kaartjes staan dan als lijst en de knoppen onder de opmerkingen.
+- 22 nieuwe tests. axe op de reviewpagina in licht en donker, met alle vensters open: 0 overtredingen.
+
 ## 1.29.1 – 2026-11-13
 
 Werkplek en lade na feedback van Alex (bouwlijst `bouwlijst-1.29.1-werkplek-en-lade.md`).

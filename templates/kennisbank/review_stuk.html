@@ -1,79 +1,181 @@
 {% extends "kennisbank/review_basis.html" %}
+{% comment %}
+  De leesweergave van één stuk (1.30.0): opgezet zoals het bewerkscherm van de redacteur. Eén balk bovenaan met
+  een lichte infobalk, het blad met de tekst, en de opmerkingen in de marge op de hoogte van de tekst waar ze over
+  gaan. Zonder JavaScript werkt alles ook: dan staan de opmerkingen als lijst naast de tekst en de knoppen eronder.
+{% endcomment %}
 {% block titel %}{{ artikel.titel }}{% endblock %}
-{% block inhoud %}
-<p class="rv-terug"><a href="{% url 'review-lijst' %}">← Terug naar Review</a></p>
-<h1>{{ titel_verschil }}</h1>
-<div class="rv-statusbalk" role="status">
-  <span>{{ i.team.naam }}</span>
-  <span>{{ i.get_status_display }}{% if i.status != "ter_inzage" %} op {{ i.afgerond_op|date:"j F" }}{% endif %}</span>
-  <span>voorgelegd door <b>{{ door }}</b> op {{ i.gestart_op|date:"j F Y" }}</span>
-  <span>{% if bij %}ligt bij <b>{% if van_mij %}jou{% else %}{{ bij }}{% endif %}</b>{% else %}nog niet opgepakt{% endif %}</span>
-</div>
+{% block body_klasse %} rv-stuk{% if open and van_mij %} rv-mag-reageren{% endif %}{% endblock %}
+{% block balk %}
+<header class="rv-balk" aria-label="Review van dit artikel">
+  <a class="rv-balk-terug" href="{% url 'review-lijst' %}">← Review</a>
+  <div class="rv-balk-titel">{{ artikel.titel }}</div>
+  <nav class="rv-balk-knoppen" aria-label="Weergave">
+    <button type="button" class="rv-bk" id="rv-wijz-knop" aria-pressed="true" hidden>Wijzigingen tonen</button>
+    <button type="button" class="rv-bk" id="rv-lees-knop" data-url="{% url 'review-voorbeeld' i.pk %}" hidden>Bekijk als medewerker</button>
+    <button class="rv-bk kb-thema" type="button" data-kb-thema aria-pressed="false" hidden><span class="kb-thema-icoon" aria-hidden="true">☾</span>Donker</button>
+  </nav>
+  <div class="rv-balk-afronden">
+    {% if open and not van_mij %}
+    <form method="post">{% csrf_token %}<input type="hidden" name="geladen_reviewer" value="{{ i.reviewer_id|default:'' }}">
+      <button class="rv-hoofdknop" type="submit" name="actie" value="oppakken">{% if bij %}Overnemen{% else %}Oppakken{% endif %}</button></form>
+    {% elif open %}
+    <button type="button" class="rv-hoofdknop" id="rv-afronden-knop" aria-haspopup="dialog" hidden>Afronden…</button>
+    {% endif %}
+  </div>
+  <div class="rv-balk-sub" role="status">
+    <span class="rv-pil">{{ i.get_status_display }} · {{ i.team.naam }}</span>
+    <span class="rv-stand{% if van_mij %} rv-stand-mij{% elif not bij %} rv-stand-open{% endif %}">{% if bij %}ligt bij {% if van_mij %}jou{% else %}{{ bij }}{% endif %}{% else %}nog niet opgepakt{% endif %}</span>
+    <span class="rv-balk-meta">voorgelegd door {{ door }} op {{ i.gestart_op|date:"j F Y" }} · vergeleken met versie {{ basis_versie }}, wat medewerkers nu zien · {{ aantal_gewijzigd }} blok{{ aantal_gewijzigd|pluralize:"ken" }} gewijzigd</span>
+    <span class="rv-legenda" aria-hidden="true"><ins>nieuw</ins> <del>weg</del>{% if voorstellen %} <span class="rv-leg rv-leg-vs">verbetervoorstel</span>{% endif %} <span class="rv-leg rv-leg-opm">opmerking</span></span>
+  </div>
+</header>
+{% endblock %}
 
-<div class="rv-raster">
-  <section class="rv-tekst" aria-labelledby="rv-wijz">
-    <h2 id="rv-wijz">Wat is er veranderd</h2>
-    <p class="rv-uitleg">Ten opzichte van wat medewerkers nu zien (versie {{ basis_versie }}).
-      <ins>Nieuw</ins> en <del>weg</del> zijn gemarkeerd; {{ aantal_gewijzigd }} blok{{ aantal_gewijzigd|pluralize:"ken" }} gewijzigd.</p>
+{% block inhoud %}
+<div class="rv-werkvlak">
+  <article class="rv-blad" aria-labelledby="rv-titel">
+    {% if open and not van_mij %}
+    <p class="rv-alleen-lezen">{% if bij %}Dit stuk ligt bij {{ bij }}. Je kunt meelezen; wil je het zelf afronden, kies dan <b>Overnemen</b>.{% else %}Lees gerust mee. Wil je opmerkingen plaatsen of het stuk afronden, kies dan eerst <b>Oppakken</b>; dan weten je teamgenoten dat jij het doet.{% endif %}</p>
+    {% endif %}
+    <h1 id="rv-titel" class="rv-blad-titel">{{ titel_verschil }}</h1>
+    {% if samenvatting_verschil %}<p class="rv-samenvatting">{{ samenvatting_verschil }}</p>{% endif %}
     {% if gepubliceerd_gewijzigd %}<p class="rv-let-op"><b>Let op:</b> de gepubliceerde versie is aangepast nadat deze conceptversie begon
       (bijvoorbeeld een spoedcorrectie). Wat je hieronder als "weg" ziet, kan die correctie zijn; de redacteur neemt hem nog mee.</p>{% endif %}
-    <p class="rv-samenvatting"><b>Samenvatting:</b> {{ samenvatting_verschil }}</p>
     {% if voorstellen or voorstellen_verborgen %}
     {# 1.27.0: waarom deze wijziging? De meegenomen verbetervoorstellen, zonder de naam van de indiener. #}
-    <div class="rv-voorstellen">
-      <h3>Waarom deze wijziging</h3>
+    {# 1.30.0: genummerd en blauw in de tekst, zoals in de editor. #}
+    <section class="rv-voorstellen" aria-labelledby="rv-vs-kop">
+      <h2 id="rv-vs-kop">Waarom deze wijziging</h2>
       {% if voorstellen %}<p class="rv-uitleg">Bij deze versie {% if voorstellen|length == 1 %}hoort een verbetervoorstel{% else %}horen {{ voorstellen|length }} verbetervoorstellen{% endif %} van collega's. Je ziet wat er werd voorgesteld, niet wie het indiende.</p>
-      <ul>{% for v in voorstellen %}<li>{% if v.citaat %}<q>{{ v.citaat|truncatechars:160 }}</q> — {% endif %}{{ v.tekst|linebreaksbr }}</li>{% endfor %}</ul>{% endif %}
+      <ol class="rv-vs-lijst">{% for v in voorstellen %}<li class="rv-vs" id="rv-vs-{{ v.nr }}" data-nr="{{ v.nr }}" data-citaat="{{ v.citaat }}"><span class="rv-vs-nr" aria-hidden="true">{{ v.nr }}</span><span class="rv-vs-tekst"><span class="kb-sr">Verbetervoorstel {{ v.nr }}: </span>{% if v.citaat %}<q>{{ v.citaat|truncatechars:160 }}</q> — {% endif %}{{ v.tekst|linebreaksbr }}<span class="rv-vs-status" hidden></span></span></li>{% endfor %}</ol>{% endif %}
       {% if voorstellen_verborgen %}<p class="rv-uitleg">{% if voorstellen_verborgen == 1 %}1 voorstel is{% else %}{{ voorstellen_verborgen }} voorstellen zijn{% endif %} niet zichtbaar, omdat er persoonlijke gegevens in staan.</p>{% endif %}
-    </div>
+    </section>
     {% endif %}
-    <div class="rv-verschil">{{ verschil }}</div>
-    <details class="rv-volledig"><summary>Toon de nieuwe tekst zoals medewerkers hem straks zien</summary>
-      <div class="art"><div class="sections">{{ nieuwe_tekst|safe }}</div></div>
+    <h2 class="kb-sr">De tekst, met de wijzigingen gemarkeerd</h2>
+    <div class="rv-verschil" id="rv-verschil">{{ verschil }}</div>
+    {% if eerder %}
+    <details class="rv-eerdere-rondes">
+      <summary>Eerdere rondes ({{ eerder|length }})</summary>
+      {% for e in eerder %}
+      <div class="rv-ronde">
+        <h3>Ronde {{ e.ronde }} · {{ e.status }}</h3>
+        <ul>{% for o in e.opmerkingen %}
+          <li>{% if o.citaat %}<q>{{ o.citaat|truncatechars:200 }}</q>
+            <span class="rv-ronde-stand{% if o.staat_er_nog %} rv-nog{% else %} rv-aangepast{% endif %}">{% if o.staat_er_nog %}staat er nog hetzelfde{% else %}tekst is aangepast{% endif %}</span>{% else %}<span class="rv-ronde-stand">algemeen</span>{% endif %}
+            <span class="rv-ronde-tekst">{{ o.tekst|linebreaksbr }}</span></li>
+        {% empty %}<li>Geen opmerkingen.</li>{% endfor %}</ul>
+      </div>
+      {% endfor %}
     </details>
-  </section>
-
-  <aside class="rv-zij" aria-label="Opmerkingen en reageren">
-    {% if open and not van_mij %}
-    <form method="post">{% csrf_token %}<input type="hidden" name="geladen_reviewer" value="{{ i.reviewer_id|default:'' }}"><button class="tb primary" type="submit" name="actie" value="oppakken">{% if bij %}Overnemen{% else %}Oppakken{% endif %}</button></form>
     {% endif %}
-    <h2>Opmerkingen</h2>
-    <ol class="kb-opm-lijst" id="rv-opmerkingen-lijst" hidden></ol>
-    {% if opmerkingen %}
-    <ul class="rv-opmerkingen" id="rv-opmerkingen-zonderjs">
-      {% for o in opmerkingen %}<li><span class="wie">{{ o.naam }} · {{ o.moment|date:"j F H:i" }}</span>{% if o.citaat %}<q class="kb-opm-citaat">{{ o.citaat }}</q>{% endif %}{{ o.tekst|linebreaksbr }}</li>{% endfor %}
-    </ul>
-    {% else %}<p class="rv-leeg" id="rv-opmerkingen-leeg">Nog geen opmerkingen.</p>{% endif %}
-    {{ opmerkingen_data|json_script:"rv-opmerkingen-data" }}
-    {% if open %}
-    <form method="post" class="rv-form">{% csrf_token %}
-      <p class="rv-uitleg">Selecteer tekst links om er een opmerking bij te zetten, of schrijf een algemene opmerking.</p>
+  </article>
+
+  <aside class="rv-marge" id="rv-marge" aria-labelledby="rv-marge-kop">
+    <div class="rv-marge-kopregel">
+      <h2 id="rv-marge-kop">Opmerkingen{% if opmerkingen %} ({{ opmerkingen|length }}){% endif %}</h2>
+      {% if open and van_mij %}<button type="button" class="rv-link" id="rv-alg-knop" hidden>+ Algemene opmerking</button>{% endif %}
+    </div>
+    {% if not opmerkingen %}<p class="rv-leeg" id="rv-opm-leeg">{% if open and van_mij %}Nog geen opmerkingen. Selecteer tekst om er een opmerking bij te zetten.{% else %}Nog geen opmerkingen.{% endif %}</p>{% endif %}
+
+    {% if open and van_mij %}
+    {# Een nieuwe opmerking. Zonder JavaScript staat dit vak altijd open; met JavaScript verschijnt het bij de geselecteerde tekst. #}
+    <form method="post" class="rv-kaart rv-nieuw" id="rv-nieuw" aria-labelledby="rv-nieuw-kop">{% csrf_token %}
+      <h3 id="rv-nieuw-kop" class="rv-nieuw-kop">Nieuwe opmerking</h3>
       <input type="hidden" name="citaat" id="rv-citaat" value="">
       <div class="rv-citaat-vak" id="rv-citaat-vak" hidden><span>Bij:</span> <q id="rv-citaat-tekst"></q>
-        <button type="button" class="tb" id="rv-citaat-wis" aria-label="Citaat weghalen">×</button></div>
+        <button type="button" class="rv-x" id="rv-citaat-wis" aria-label="Citaat weghalen; dan wordt het een algemene opmerking">×</button></div>
       {# 1.29.0 (ronde B, M20): zonder muis selecteren is lastig; daarom ook een weg via typen of plakken. #}
       <details class="rv-citaat-zelf" id="rv-citaat-zelf"><summary>Bij een bepaald stuk tekst? Typ of plak het hier</summary>
-        <label for="rv-citaat-invoer" class="rv-uitleg">Een paar woorden uit de tekst hiernaast, precies zoals ze er staan</label>
+        <label for="rv-citaat-invoer" class="rv-uitleg">Een paar woorden uit de tekst, precies zoals ze er staan</label>
         <input type="text" id="rv-citaat-invoer" maxlength="1000" autocomplete="off">
       </details>
-      <label for="rv-tekst">Opmerking</label>
-      <textarea id="rv-tekst" name="tekst" rows="5" maxlength="4000" placeholder="Bijvoorbeeld: in stap 3 klopt de termijn niet; dat is 6 weken."></textarea>
+      <label for="rv-tekst" class="kb-sr">Opmerking</label>
+      <textarea id="rv-tekst" name="tekst" rows="4" maxlength="4000" placeholder="Bijvoorbeeld: hier klopt de termijn niet; dat is 6 weken."></textarea>
       <div class="rv-knoppen">
-        <button class="tb" type="submit" name="actie" value="opmerking">Opmerking toevoegen</button>
+        <button class="rv-knop rv-knop-hoofd" type="submit" name="actie" value="opmerking">Plaatsen</button>
+        <button class="rv-knop" type="button" id="rv-nieuw-annuleer" hidden>Annuleren</button>
       </div>
-      <p class="rv-uitleg">Klaar met lezen?</p>
-      <div class="rv-knoppen">
-        <button class="tb" type="submit" name="actie" value="teruggeven">Teruggeven met opmerkingen</button>
-        <button class="tb primary" type="submit" name="actie" value="akkoord">Akkoord</button>
-      </div>
-      <p class="rv-uitleg">Wat je in het vak hierboven typt, gaat mee als opmerking. Akkoord geldt voor precies deze tekst:
-        wijzigt de redacteur daarna nog iets, dan vervalt het.</p>
     </form>
     {% endif %}
-    {% if eerder %}
-    <h2>Eerdere rondes</h2>
-    <ul class="rv-opmerkingen">{% for e in eerder %}<li><span class="wie">Ronde {{ e.ronde }} · {{ e.status }}</span>{% for o in e.opmerkingen %}{{ o.tekst|linebreaksbr }}<br>{% endfor %}</li>{% endfor %}</ul>
+
+    {% if opmerkingen %}
+    <ol class="rv-kaarten" id="rv-kaarten">
+      {% for o in opmerkingen %}
+      <li class="rv-kaart{% if not o.citaat %} rv-kaart-alg{% endif %}" id="rv-opm-{{ forloop.counter }}" data-nr="{{ forloop.counter }}"{% if o.citaat %} data-citaat="{{ o.citaat }}"{% endif %}>
+        <span class="rv-kaart-nr" aria-hidden="true">{{ forloop.counter }}</span>
+        <div class="rv-kaart-inhoud">
+          <span class="rv-kaart-wie"><span class="kb-sr">Opmerking {{ forloop.counter }}, </span>{{ o.naam }} · {{ o.moment|date:"j F H:i" }}{% if o.bewerkt %} · bewerkt{% endif %}{% if not o.citaat %} · algemeen{% endif %}</span>
+          {% if o.citaat %}<q class="rv-kaart-citaat">{{ o.citaat }}</q>{% endif %}
+          <p class="rv-kaart-tekst">{{ o.tekst|linebreaksbr }}</p>
+          <div class="rv-kaart-acties">
+            {% if o.citaat %}<button type="button" class="rv-link rv-toon" hidden>Toon in de tekst</button>{% endif %}
+            {% if o.eigen and open and van_mij %}
+            {# 1.30.0 (M16, besluit Alex): je eigen opmerking aanpassen of weghalen, zolang het stuk in deze ronde ter inzage ligt. #}
+            <details class="rv-wijzig"><summary class="rv-link">Wijzigen</summary>
+              <form method="post" class="rv-wijzig-form">{% csrf_token %}<input type="hidden" name="opmerking" value="{{ o.id }}">
+                <label for="rv-wijzig-{{ o.id }}" class="kb-sr">Opmerking {{ forloop.counter }} aanpassen</label>
+                <textarea id="rv-wijzig-{{ o.id }}" name="tekst" rows="4" maxlength="4000" required>{{ o.tekst }}</textarea>
+                <div class="rv-knoppen"><button class="rv-knop rv-knop-hoofd" type="submit" name="actie" value="opmerking_wijzigen">Opslaan</button></div>
+              </form>
+            </details>
+            <form method="post" class="rv-weg-form" data-nr="{{ forloop.counter }}">{% csrf_token %}<input type="hidden" name="opmerking" value="{{ o.id }}">
+              <button class="rv-link rv-gevaar" type="submit" name="actie" value="opmerking_weghalen">Weghalen</button></form>
+            {% endif %}
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+    {% endif %}
+
+    {% if open and van_mij %}
+    {# Zonder JavaScript: de knoppen gewoon onder de opmerkingen. Met JavaScript gaat dit via Afronden… in de balk. #}
+    <form method="post" class="rv-afronden-zonderjs" id="rv-afronden-zonderjs">{% csrf_token %}
+      <h3>Klaar met lezen?</h3>
+      <div class="rv-knoppen">
+        <button class="rv-knop" type="submit" name="actie" value="teruggeven">Teruggeven met opmerkingen</button>
+        <button class="rv-knop rv-knop-hoofd" type="submit" name="actie" value="akkoord">Akkoord</button>
+      </div>
+      <p class="rv-uitleg">Akkoord geldt voor precies deze tekst: wijzigt de redacteur daarna nog iets, dan vervalt het.</p>
+    </form>
     {% endif %}
   </aside>
 </div>
+
+{% if open and van_mij %}
+<dialog class="rv-venster-laag" id="rv-afronden" aria-labelledby="rv-afronden-titel" aria-describedby="rv-afronden-stand">
+  <form method="post" class="rv-venster" id="rv-afronden-form">{% csrf_token %}
+    <h2 id="rv-afronden-titel">Afronden</h2>
+    <p id="rv-afronden-stand">{% if opmerkingen %}Je team heeft {{ opmerkingen|length }} opmerking{{ opmerkingen|length|pluralize:"en" }} geplaatst. De redacteur ziet ze zodra je afrondt.{% else %}Er zijn nog geen opmerkingen geplaatst.{% endif %}</p>
+    <p class="rv-venster-let-op" id="rv-afronden-open" hidden>Je hebt nog een opmerking die je niet hebt geplaatst. Die staat hieronder en gaat mee als je afrondt.</p>
+    <input type="hidden" name="citaat" id="rv-afronden-citaat" value="">
+    <div class="rv-venster-veld">
+      <label for="rv-afronden-tekst">Nog een opmerking erbij <span class="rv-zacht">(mag leeg{% if not opmerkingen %}, behalve bij teruggeven{% endif %})</span></label>
+      <textarea id="rv-afronden-tekst" name="tekst" rows="3" maxlength="4000"></textarea>
+    </div>
+    <div class="rv-keuzes">
+      <button type="submit" class="rv-keuze" name="actie" value="teruggeven" id="rv-keuze-terug"><b>Teruggeven met opmerkingen</b><small>De redacteur past de tekst aan en legt hem daarna opnieuw voor.</small></button>
+      <button type="submit" class="rv-keuze" name="actie" value="akkoord" id="rv-keuze-akkoord"><b>Akkoord</b><small>Geldt voor precies deze tekst. Wijzigt de redacteur daarna nog iets, dan vervalt het akkoord.</small></button>
+    </div>
+    <p class="rv-venster-fout" id="rv-afronden-fout" role="alert" hidden>Schrijf bij teruggeven wat er anders moet; dat leest de redacteur.</p>
+    <div class="rv-venster-knoppen"><button type="button" class="rv-knop" data-rv-sluit>Annuleren</button></div>
+  </form>
+</dialog>
+<dialog class="rv-venster-laag" id="rv-weg" aria-labelledby="rv-weg-titel" aria-describedby="rv-weg-uitleg">
+  <div class="rv-venster">
+    <h2 id="rv-weg-titel">Opmerking weghalen?</h2>
+    <p id="rv-weg-uitleg">De opmerking verdwijnt. De redacteur krijgt hem niet te zien.</p>
+    <div class="rv-venster-knoppen">
+      <button type="button" class="rv-knop" data-rv-sluit>Annuleren</button>
+      <button type="button" class="rv-knop rv-knop-gevaar" id="rv-weg-ja">Weghalen</button>
+    </div>
+  </div>
+</dialog>
+{% endif %}
+<dialog class="rv-lees" id="rv-lees" aria-labelledby="rv-lees-titel">
+  <div class="rv-lees-balk"><span class="rv-lees-tag">VOORBEELD</span><h2 id="rv-lees-titel">Zo zien medewerkers het als deze versie wordt gepubliceerd</h2><button type="button" data-rv-sluit>Sluiten</button></div>
+  <iframe title="Voorbeeld voor medewerkers" id="rv-lees-frame"></iframe>
+</dialog>
+<noscript><p><a href="{% url 'review-voorbeeld' i.pk %}">Bekijk als medewerker</a></p></noscript>
 {% endblock %}

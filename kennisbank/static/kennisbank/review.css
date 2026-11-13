@@ -1,58 +1,204 @@
 /* Leesweergave voor reviewers (/review/, stap C). Bouwt op app.css. */
 .review-pagina .top{display:flex;align-items:center;gap:16px}
-.rv-main{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+.rv-main{max-width:1180px;margin:0 auto;padding:24px 20px 60px;width:100%}
 .rv-main h1{margin:.2rem 0 .6rem}
 .rv-main h2{font-size:1.05rem;margin:1.4rem 0 .5rem}
 .rv-uitleg{color:var(--fg-muted);margin:.3rem 0 .8rem}
 .rv-leeg{color:var(--fg-muted)}
-.rv-terug{margin:0}
 .rv-statusbalk{display:flex;flex-wrap:wrap;gap:8px 18px;background:var(--surface-2,#eef2f7);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:0 0 16px}
 .rv-lijst{list-style:none;margin:0;padding:0}
 .rv-item{border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:0 0 8px;display:flex;flex-direction:column;gap:2px}
 .rv-van-mij{border-left:4px solid var(--accent)}
 .rv-titel{font-weight:600;font-size:1.02rem}
 .rv-meta{color:var(--fg-muted);font-size:.9rem}
-.rv-raster{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start}
-@media (max-width:1000px){.rv-raster{grid-template-columns:1fr}}
-.rv-verschil{line-height:1.6}
-.rv-verschil p,.rv-verschil h2,.rv-verschil h3,.rv-verschil h4{margin:.5rem 0}
-.rv-verschil .vs-li{padding-left:1rem}
-.rv-verschil .vs-li::before{content:"• "}
-.rv-verschil .vs-gewijzigd,.rv-verschil .vs-nieuw,.rv-verschil .vs-weg{border-left:3px solid #b58500;padding-left:8px}
-.rv-main ins{background:#d8f3dc;color:#14532d;text-decoration:none;border-bottom:2px solid #2d6a4f}
-.rv-main del{background:#fde2e4;color:#7f1d1d;text-decoration:line-through}
-.rv-samenvatting{margin:.2rem 0 1rem}
-.rv-volledig{margin-top:1.4rem;border-top:1px solid var(--line);padding-top:.8rem}
-.rv-volledig summary{cursor:pointer;font-weight:600}
-.rv-zij form{margin:0 0 10px}
-.rv-form label{font-weight:600;display:block;margin-bottom:4px}
-.rv-form textarea{width:100%;box-sizing:border-box;font:inherit;padding:8px;border:1px solid var(--line);border-radius:6px}
-.rv-knoppen{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-.rv-opmerkingen{list-style:none;margin:0 0 12px;padding:0}
-.rv-opmerkingen li{border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:0 0 6px}
-.rv-opmerkingen .wie{display:block;font-size:.8rem;color:var(--fg-muted);margin-bottom:2px}
 .rv-meldingen{list-style:none;margin:0 0 14px;padding:0}
 .rv-meldingen li{border-radius:6px;padding:8px 12px;margin:0 0 6px;background:var(--surface-2,#eef2f7)}
 .rv-meldingen li.warning{background:#fff1cc;color:#5c3d00}
 .rv-meldingen li.success{background:#dff1e3;color:#1e6b34}
-.rv-let-op{background:#fff1cc;border-left:3px solid #b58500;padding:8px 12px;border-radius:4px}
-.rv-selectieknop{position:absolute;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,.2)}
-.rv-citaat-vak{display:flex;gap:6px;align-items:flex-start;color:#17212b;background:#f1faf3;border:1px solid #8cc79e;border-radius:6px;padding:6px 8px;margin:0 0 8px}
-.rv-citaat-vak q{flex:1;font-style:italic}
 .rv-eerder{margin-top:6px;font-size:.85rem;color:var(--fg-muted)}
 .rv-eerder summary{cursor:pointer}
 .rv-eerder ul{margin:4px 0 0;padding-left:18px}
+.kb-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* --- Eén stuk (1.30.0): opgezet zoals het bewerkscherm van de redacteur ---------------------------------- */
+body.rv-stuk{background:#e7ecf2}
+:root[data-theme="dark"] body.rv-stuk{background:var(--bg)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) body.rv-stuk{background:var(--bg)}}
+body.rv-stuk .rv-main{max-width:1260px;padding-top:14px}
+
+/* De balk: één blauwe regel met daaronder een lichte infobalk, net als in de editor. */
+.rv-balk{position:sticky;top:0;z-index:40;display:grid;align-items:center;gap:0 12px;
+  grid-template-columns:auto minmax(0,1fr) auto auto;grid-template-areas:"terug titel knoppen afronden" "sub sub sub sub";
+  background:#154273;color:#fff;padding:8px 20px 0;font-family:var(--font-ui)}
+.rv-balk-terug{grid-area:terug;color:#fff;text-decoration:none;font-size:14px;line-height:20px;padding:6px 12px;border:1px solid #4a6b93;border-radius:6px;white-space:nowrap}
+.rv-balk-terug:hover{background:#24507f}
+.rv-balk-titel{grid-area:titel;min-width:0;font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv-balk-knoppen{grid-area:knoppen;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-self:end}
+.rv-balk-afronden{grid-area:afronden;justify-self:end;display:flex;gap:8px;align-items:center}
+.rv-balk-afronden form{margin:0}
+.rv-bk{border:1px solid #4a6b93;background:transparent;color:#fff;border-radius:6px;padding:6px 12px;font:inherit;font-size:14px;line-height:20px;cursor:pointer}
+.rv-bk:hover{background:#24507f}
+.rv-bk[aria-pressed="true"]:not(.kb-thema){border-color:#f2c230;background:#24507f}
+.rv-hoofdknop{background:#f2c230;color:#2b2000;border:1px solid #f2c230;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;font-size:14px;line-height:20px;cursor:pointer}
+.rv-hoofdknop:hover{background:#ffd75a}
+.rv-balk :focus-visible{outline:3px solid #fff;outline-offset:2px}
+.rv-balk-sub{grid-area:sub;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;margin:8px -20px 0;padding:4px 20px;
+  background:#f4f7fb;color:#3d4b5c;border-top:3px solid #f2c230;border-bottom:1px solid #d3d9e2;font-size:12px;line-height:18px}
+.rv-pil{background:#fbe3b0;color:#5a3d00;font-weight:700;padding:0 8px;border-radius:9px}
+.rv-stand{background:#e3eaf3;color:#154273;font-weight:600;padding:0 8px;border-radius:9px}
+.rv-stand-mij{background:#154273;color:#fff}
+.rv-stand-open{background:#f9d4cf;color:#6e1a10}
+.rv-balk-meta{color:#5b6b7d}
+.rv-legenda{margin-left:auto;display:flex;gap:10px;align-items:center;color:#3d4b5c}
+.rv-leg::before{content:"";display:inline-block;width:16px;height:9px;margin-right:4px;vertical-align:middle;border-radius:2px}
+.rv-leg-vs::before{background:#e3eefb;border-bottom:2px dotted #154273}
+.rv-leg-opm::before{background:#dcf1e2;border-bottom:2px solid #1d6b3a}
+@media (max-width:1100px){
+  .rv-balk{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"terug titel afronden" "knoppen knoppen knoppen" "sub sub sub";row-gap:8px}
+  .rv-balk-knoppen{justify-self:start}
+  .rv-legenda{margin-left:0}
+}
+.rv-alleen-lezen{margin:0 0 16px;background:var(--surface-2);border:1px solid var(--line);border-left:4px solid #154273;border-radius:8px;padding:10px 14px}
+
+/* Het blad en de marge. */
+.rv-werkvlak{display:flex;gap:28px;align-items:flex-start}
+.rv-blad{flex:1 1 auto;min-width:0;max-width:860px;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:26px 34px 40px;line-height:1.6;position:relative}
+.rv-blad-titel{font-family:var(--font-title);font-size:1.9rem;line-height:1.25;margin:0 0 .5rem!important}
+.rv-samenvatting{font-size:1.08rem;color:var(--fg-muted);margin:.2rem 0 1rem}
+.rv-marge{flex:0 0 320px;position:relative;align-self:stretch}
+.rv-marge-kopregel{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.rv-marge-kopregel h2{margin:0 0 6px!important;font-size:1rem}
+@media (max-width:1100px){
+  .rv-werkvlak{flex-direction:column}
+  .rv-blad{max-width:none;width:100%;padding:20px 18px 30px}
+  .rv-marge{flex-basis:auto;width:100%}
+}
+
+/* Wijzigingen (1.30.0, R1): groen is van de opmerkingen; nieuwe tekst is neutraal, weg is rood doorgestreept. */
+.rv-main ins,.rv-legenda ins{background:#e6e9ee;color:#17212b;text-decoration:none;font-weight:600;border-bottom:2px solid #3d4a5c;border-radius:2px;padding:0 1px}
+.rv-main del,.rv-legenda del{background:#fde2e4;color:#7f1d1d;text-decoration:line-through}
+.rv-verschil p,.rv-verschil h2,.rv-verschil h3,.rv-verschil h4{margin:.5rem 0}
+.rv-verschil h2{font-family:var(--font-title);font-size:1.25rem}
+.rv-verschil .vs-li{padding-left:1.4rem;position:relative}
+.rv-verschil .vs-li::before{content:"•";position:absolute;left:.4rem}
+.rv-verschil .vs-ol::before{content:attr(data-nr) ".";left:0}
+.rv-verschil .vs-onb{background:var(--onb);border-left:4px solid var(--onb-line);padding:4px 12px;margin:0;border-radius:0 6px 6px 0}
+.rv-verschil .vs-onb + .vs-onb{border-radius:0 0 6px 0}
+/* Gewijzigde blokken: een grijze streep links, buiten de tekst (geel is van de onboarding). */
+.rv-verschil .vs-gewijzigd,.rv-verschil .vs-nieuw,.rv-verschil .vs-weg{border-left:3px solid #8a96a6;padding-left:8px;margin-left:-11px}
+.rv-verschil .vs-li.vs-gewijzigd,.rv-verschil .vs-li.vs-nieuw,.rv-verschil .vs-li.vs-weg{padding-left:calc(1.4rem + 8px)}
+.rv-verschil .vs-li.vs-gewijzigd::before,.rv-verschil .vs-li.vs-nieuw::before,.rv-verschil .vs-li.vs-weg::before{left:calc(.4rem + 8px)}
+.rv-verschil .vs-ol.vs-gewijzigd::before,.rv-verschil .vs-ol.vs-nieuw::before,.rv-verschil .vs-ol.vs-weg::before{left:8px}
+.rv-verschil .vs-onb.vs-gewijzigd,.rv-verschil .vs-onb.vs-nieuw,.rv-verschil .vs-onb.vs-weg{border-left:4px solid var(--onb-line);margin-left:0;padding-left:12px;box-shadow:-11px 0 0 -8px #8a96a6}
+/* Wijzigingen uit: de tekst zoals hij wordt. */
+body.rv-zonder-wijz .rv-main del,body.rv-zonder-wijz .rv-verschil .vs-weg{display:none}
+body.rv-zonder-wijz .rv-main ins{background:none;border:0;font-weight:inherit;padding:0}
+body.rv-zonder-wijz .rv-verschil .vs-gewijzigd:not(.vs-onb),body.rv-zonder-wijz .rv-verschil .vs-nieuw:not(.vs-onb){border-left-color:transparent}
+body.rv-zonder-wijz .rv-verschil .vs-onb{box-shadow:none}
+body.rv-zonder-wijz .rv-legenda ins,body.rv-zonder-wijz .rv-legenda del{display:none}
+
+.rv-let-op{background:#fff1cc;color:#3d2c00;border-left:3px solid #b58500;padding:8px 12px;border-radius:4px}
+
 /* Waarom deze wijziging (1.27.0): de meegenomen verbetervoorstellen, zonder namen. Blauw, zoals in de editor. */
 .rv-voorstellen{color:#17212b;background:#f3f8fd;border:1px solid #b9d0ea;border-left:4px solid #154273;border-radius:8px;padding:10px 14px;margin:0 0 14px}
-.rv-voorstellen h3{font-size:1rem;margin:0 0 4px}
-.rv-voorstellen ul{margin:6px 0 0;padding-left:18px}
-.rv-voorstellen li{margin:4px 0}
-.rv-voorstellen q{font-style:italic;color:#4a5565}
+.rv-voorstellen h2{font-size:1rem!important;margin:0 0 4px!important}
 .rv-voorstellen .rv-uitleg{color:#4a5565}
+.rv-vs-lijst{list-style:none;margin:6px 0 0;padding:0}
+.rv-vs{display:flex;gap:8px;align-items:flex-start;margin:6px 0;border-radius:6px;padding:2px 4px}
+.rv-vs q{font-style:italic;color:#4a5565}
+.rv-vs-nr,sup.rv-vs-nr{flex:none;display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#154273;color:#fff;font-size:12px;font-weight:700;font-style:normal;line-height:1}
+sup.rv-vs-nr{width:17px;height:17px;font-size:11px;vertical-align:super;margin-left:2px;cursor:pointer}
+.rv-vs-status{display:block;font-size:.82rem;color:#4a5565;margin-top:2px}
+.rv-vs.rv-flits,mark.rv-vs-mark.rv-flits{outline:3px solid #154273;outline-offset:2px}
+mark.rv-vs-mark{background:#e3eefb;color:#17212b;border-bottom:2px dotted #154273;border-radius:2px;padding:0 1px}
+mark.rv-vs-mark mark.kb-opm,mark.kb-opm mark.rv-vs-mark{background:#dcf1e2;box-shadow:inset 0 -5px 0 -3px #154273}
 
-/* Ronde B (1.29.0) */
-.rv-tekst{position:relative}
-.rv-citaat-zelf{margin:0 0 8px;font-size:.9rem}
-.rv-citaat-zelf summary{cursor:pointer;color:var(--accent,#154273)}
-.rv-citaat-zelf input{width:100%;box-sizing:border-box;margin-top:4px}
-.kb-opm-ga{background:none;border:none;padding:0;color:#154273;text-decoration:underline;font:inherit;font-size:.82rem;cursor:pointer;align-self:flex-start}
+/* Selectieknop bij geselecteerde tekst. */
+.rv-blad{--rv-x:0}
+.rv-selectieknop{position:absolute;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,.2);background:#1d6b3a;color:#fff;border:1px solid #1d6b3a;border-radius:6px;padding:5px 12px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.rv-selectieknop:focus-visible{outline:3px solid #154273;outline-offset:2px}
+
+/* Kaarten in de marge, zoals in de editor: groen, vierkant nummer, op de hoogte van de tekst. */
+.rv-kaarten{list-style:none;margin:0;padding:0}
+.rv-kaart{background:var(--surface);color:var(--fg);border:1px solid #8cc79e;border-radius:8px;padding:10px 12px;margin:0 0 10px;display:flex;gap:8px;font-size:14px;line-height:1.45;transition:top .15s,box-shadow .15s}
+.rv-marge.rv-zweeft .rv-kaart{position:absolute;left:0;right:0;margin:0}
+.rv-marge.rv-zweeft .rv-kaart:not(.rv-kaart-alg)::before{content:"";position:absolute;left:-29px;top:16px;width:28px;border-top:2px solid #1d6b3a}
+.rv-kaart.rv-actief,.rv-kaart:focus-within{box-shadow:0 4px 14px rgba(15,27,45,.18);border-color:#1d6b3a;z-index:2}
+.rv-kaart.rv-flits{outline:3px solid #1d6b3a;outline-offset:2px}
+.rv-kaart-nr{flex:none;min-width:22px;height:22px;padding:0 4px;border-radius:4px;background:#1d6b3a;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.rv-kaart-alg .rv-kaart-nr{background:#d5dbe3;color:#17212b}
+.rv-kaart-inhoud{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.rv-kaart-wie{font-size:12px;color:var(--fg-muted)}
+.rv-kaart-citaat{font-style:italic;color:var(--fg-muted);border-left:3px solid #8cc79e;padding-left:6px;display:block}
+.rv-kaart-tekst{margin:0;white-space:normal}
+.rv-kaart-acties{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:2px}
+.rv-kaart-acties form{margin:0}
+.rv-wijzig[open]{order:9;width:100%}
+.rv-wijzig summary{list-style:none;display:inline}
+.rv-wijzig summary::-webkit-details-marker{display:none}
+.rv-wijzig[open] summary{font-weight:600}
+.rv-wijzig-form textarea{margin-top:6px}
+.rv-link{background:none;border:none;padding:0;color:var(--accent);text-decoration:underline;font:inherit;font-size:13px;cursor:pointer}
+.rv-gevaar{color:var(--crit)}
+
+/* Nieuwe opmerking. */
+.rv-nieuw{flex-direction:column;gap:6px;border-color:#1d6b3a;box-shadow:0 4px 14px rgba(15,27,45,.12)}
+.rv-nieuw-kop{margin:0!important;font-size:.95rem}
+.rv-nieuw textarea,.rv-wijzig-form textarea,.rv-venster textarea{width:100%;box-sizing:border-box;font:inherit;font-size:14px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);resize:vertical}
+.rv-citaat-vak{display:flex;gap:6px;align-items:flex-start;color:#17212b;background:#f1faf3;border:1px solid #8cc79e;border-radius:6px;padding:6px 8px}
+.rv-citaat-vak q{flex:1;font-style:italic}
+.rv-x{background:none;border:none;font-size:18px;line-height:1;cursor:pointer;color:#17212b;padding:0 2px}
+.rv-citaat-zelf{font-size:.88rem}
+.rv-citaat-zelf summary{cursor:pointer;color:var(--accent)}
+.rv-citaat-zelf input{width:100%;box-sizing:border-box;margin-top:4px;font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg)}
+.rv-knoppen{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 0}
+.rv-knop{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 14px;font:inherit;font-size:14px;cursor:pointer}
+.rv-knop:hover{border-color:var(--accent)}
+.rv-knop-hoofd{background:#154273;color:#fff;border-color:#154273;font-weight:600}
+.rv-knop-hoofd:hover{background:#24507f}
+.rv-knop-gevaar{background:#a6192e;color:#fff;border-color:#a6192e;font-weight:600}
+.rv-afronden-zonderjs{margin-top:16px;border-top:1px solid var(--line);padding-top:10px}
+.rv-afronden-zonderjs h3{font-size:1rem;margin:0}
+body.rv-js .rv-afronden-zonderjs{display:none}
+
+/* Eerdere rondes, onder de tekst. */
+.rv-eerdere-rondes{margin-top:1.6rem;border-top:1px solid var(--line);padding-top:.8rem}
+.rv-eerdere-rondes summary{cursor:pointer;font-weight:600}
+.rv-ronde h3{font-size:.95rem;margin:.8rem 0 .3rem}
+.rv-ronde ul{margin:0;padding-left:18px}
+.rv-ronde li{margin:0 0 8px}
+.rv-ronde q{font-style:italic;color:var(--fg-muted)}
+.rv-ronde-stand{display:inline-block;font-size:.78rem;font-weight:600;padding:0 7px;border-radius:9px;margin-left:6px;background:#e3eaf3;color:#17212b}
+.rv-ronde-stand.rv-aangepast{background:#cfe9d6;color:#154a26}
+.rv-ronde-stand.rv-nog{background:#fbe3b0;color:#5a3d00}
+.rv-ronde-tekst{display:block}
+
+/* Vensters (Afronden, Weghalen), net als in het beheer. */
+dialog.rv-venster-laag{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;border:0;padding:16px;background:transparent;color:inherit;z-index:1200}
+dialog.rv-venster-laag[open]{display:flex;align-items:center;justify-content:center}
+dialog.rv-venster-laag::backdrop{background:rgba(23,33,43,.45)}
+.rv-venster{background:var(--surface);color:var(--fg);border-radius:10px;padding:20px 22px;max-width:560px;width:100%;box-shadow:0 12px 32px rgba(0,0,0,.28);max-height:90vh;overflow:auto;margin:0}
+.rv-venster h2{margin:0 0 10px!important;font-size:1.2rem!important}
+.rv-venster p{margin:0 0 10px;line-height:1.45}
+.rv-venster-let-op{background:#fff1cc;color:#3d2c00;border-radius:6px;padding:8px 10px}
+.rv-venster-veld{display:grid;gap:6px;margin:4px 0 12px}
+.rv-venster-veld label{font-weight:600;font-size:.92rem}
+.rv-zacht{font-weight:400;color:var(--fg-muted)}
+.rv-keuzes{display:flex;flex-direction:column;gap:8px}
+.rv-keuze{text-align:left;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px 14px;cursor:pointer;font:inherit;display:flex;flex-direction:column;gap:2px}
+.rv-keuze b{font-size:1rem}
+.rv-keuze small{color:var(--fg-muted);font-size:.88rem}
+.rv-keuze:hover,.rv-keuze:focus-visible{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.rv-venster-fout{color:var(--crit);font-size:.9rem;margin:8px 0 0!important}
+.rv-venster-knoppen{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+
+/* Bekijk als medewerker. */
+dialog.rv-lees{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;border:0;box-sizing:border-box;z-index:1300;background:transparent;padding:16px}
+dialog.rv-lees[open]{display:flex;flex-direction:column}
+dialog.rv-lees::backdrop{background:rgba(15,27,45,.55)}
+.rv-lees-balk{display:flex;align-items:center;gap:12px;background:#1f4a7a;color:#fff;padding:10px 16px;border-radius:10px 10px 0 0}
+.rv-lees-balk h2{margin:0!important;font-size:1rem!important;font-weight:600}
+.rv-lees-tag{font-size:11px;font-weight:600;letter-spacing:.08em;border:1px solid #fff;border-radius:10px;padding:1px 8px}
+.rv-lees-balk button{margin-left:auto;border:1px solid #fff;background:transparent;color:#fff;border-radius:6px;padding:7px 14px;cursor:pointer;font:inherit}
+.rv-lees iframe{flex:1;border:none;background:#f3f5f8;border-radius:0 0 10px 10px;width:100%}
+.rv-voorstellen .rv-link{color:#154273}

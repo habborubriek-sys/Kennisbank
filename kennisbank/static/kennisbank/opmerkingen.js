@@ -15,11 +15,12 @@
 
   // Alle tekstknopen onder `root`, behalve die in <del> (weggehaalde tekst in de verschilweergave) en in
   // markeringen die we zelf eerder plaatsten (het nummer).
-  function tekstknopen(root) {
+  // 1.30.0: metDel = ook in weggehaalde tekst zoeken (een verbetervoorstel gaat vaak over tekst die nu weg is).
+  function tekstknopen(root, metDel) {
     var uit = [], walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: function (n) {
         for (var p = n.parentNode; p && p !== root; p = p.parentNode) {
-          if (p.nodeName === "DEL" || (p.classList && (p.classList.contains("kb-opm-nr") || p.classList.contains("kb-sr")))) return NodeFilter.FILTER_REJECT;
+          if ((p.nodeName === "DEL" && !metDel) || (p.classList && (p.classList.contains("kb-opm-nr") || p.classList.contains("rv-vs-nr") || p.classList.contains("kb-sr")))) return NodeFilter.FILTER_REJECT;
         }
         return NodeFilter.FILTER_ACCEPT;
       }
@@ -29,11 +30,13 @@
   }
 
   // Zoek `citaat` in de tekst onder root (witruimte telt als één spatie) en zet er <mark>-elementen om.
-  // Geeft het eerste <mark> terug, of null als het citaat er niet (meer) staat.
-  function markeer(root, citaat, nr) {
+  // Geeft het eerste <mark> terug (met .kbLaatste = het laatste), of null als het citaat er niet (meer) staat.
+  // opties (1.30.0, voor de verbetervoorstellen op de reviewpagina): {klasse, geenNummer, metDel, sr}.
+  function markeer(root, citaat, nr, opties) {
+    opties = opties || {};
     var zoek = normaal(citaat);
     if (!zoek) return null;
-    var knopen = tekstknopen(root), tekens = [], kaart = [], vorigSpatie = true;
+    var knopen = tekstknopen(root, opties.metDel), tekens = [], kaart = [], vorigSpatie = true;
     knopen.forEach(function (k) {
       var s = k.nodeValue;
       for (var i = 0; i < s.length; i++) {
@@ -51,15 +54,24 @@
       var k = kaart[j][0], off = kaart[j][1], laatste = stukken[stukken.length - 1];
       if (laatste && laatste.knoop === k) laatste.tot = off + 1; else stukken.push({ knoop: k, van: off, tot: off + 1 });
     }
-    var eerste = null;
+    var eerste = null, laatste = null;
     // Van achter naar voren splitsen, zodat de offsets van eerdere stukken blijven kloppen.
     for (var s = stukken.length - 1; s >= 0; s--) {
       var st = stukken[s], midden = st.knoop.splitText(st.van);
       midden.splitText(st.tot - st.van);
       var m = document.createElement("mark");
-      m.className = "kb-opm"; m.dataset.nr = String(nr);
+      m.className = opties.klasse || "kb-opm"; m.dataset.nr = String(nr);
       midden.parentNode.insertBefore(m, midden); m.appendChild(midden);
       eerste = m;
+      if (!laatste) laatste = m;
+    }
+    eerste.kbLaatste = laatste;
+    if (opties.geenNummer) {
+      if (opties.sr) {
+        var srb = document.createElement("span"); srb.className = "kb-sr"; srb.textContent = opties.sr + ": ";
+        eerste.insertBefore(srb, eerste.firstChild);
+      }
+      return eerste;
     }
     var sup = document.createElement("sup"); sup.className = "kb-opm-nr"; sup.textContent = String(nr);
     sup.setAttribute("aria-hidden", "true");
@@ -116,5 +128,5 @@
     return gevonden;
   }
 
-  window.KbOpmerkingen = { markeer: markeer, plaats: plaats, normaal: normaal };
+  window.KbOpmerkingen = { markeer: markeer, plaats: plaats, normaal: normaal, toon: toon };
 })();

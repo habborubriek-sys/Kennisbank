@@ -68,6 +68,7 @@ urlpatterns = [
     # Leesweergave voor reviewers (stap C): bewust buiten het beheer.
     path("review/", reviewweergave.lijst, name="review-lijst"),
     path("review/<int:pk>/", reviewweergave.stuk, name="review-stuk"),
+    path("review/<int:pk>/voorbeeld/", reviewweergave.voorbeeld, name="review-voorbeeld"),
     path("login-voltooid/", views.login_voltooid, name="login-voltooid"),
     path("demo/zaaksysteem/", views.demo_zaaksysteem, name="demo-zaaksysteem"),
     path("zaaktype/<str:code>", views.ingebed, name="ingebed"),

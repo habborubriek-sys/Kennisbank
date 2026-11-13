@@ -106,14 +106,29 @@ nodig om te publiceren: jij bent eindverantwoordelijk. Maar zolang een team aan 
    tot het team reageert. Wil je toch verder, kies dan **Terugroepen** (in het paneel *Review* of via *Afronden*). Is het team er al mee bezig, dan vraagt de
    kennisbank eerst of je het zeker weet. Een reviewer die het had opgepakt, krijgt een e-mail. Wat hij al had
    opgemerkt, blijft bewaard en zie je als *voorlopig*: "mogelijk niet compleet".
-3. **Het team leest** in een eigen, eenvoudige leesweergave: de knop **Review** bovenaan de kennisbank (`/review/`).
-   Heb je verbetervoorstellen meegenomen in deze versie, dan ziet het team die bovenaan onder **Waarom deze
-   wijziging**: wat er werd voorgesteld, niet wie het indiende, en zonder je notities of berichten. Een reviewer ziet de nieuwe tekst met
-   de wijzigingen gemarkeerd (zoals *wijzigingen bijhouden* in Word) en pakt het stuk op ("ligt bij Piet").
-   Hij **selecteert een stuk tekst** en zet er een opmerking bij, of schrijft een algemene opmerking. De
-   opmerkingen staan genummerd naast de tekst, met een groene markering in de tekst.
-   Lukt selecteren niet (bijvoorbeeld zonder muis), dan kan hij het stuk tekst ook typen of plakken. Daarna **geeft hij het
-   terug** of geeft hij **akkoord**. Reviewers bewerken niets en publiceren niets.
+3. **Het team leest** in een eigen leesweergave: de knop **Review** bovenaan de kennisbank (`/review/`). Sinds
+   1.30.0 ziet die er uit als jouw bewerkscherm: een blauwe balk met **← Review**, **Wijzigingen tonen**,
+   **Bekijk als medewerker** en **Afronden…**, een lichte infobalk eronder, het blad met de tekst, en rechts
+   de marge met opmerkingen.
+   - Heb je verbetervoorstellen meegenomen in deze versie, dan ziet het team die bovenaan onder **Waarom deze
+     wijziging**, genummerd, en in de tekst **blauw** met een rond nummer, net als bij jou in de editor. Het
+     team ziet wat er werd voorgesteld, niet wie het indiende, en niets van je notities of berichten.
+   - Nieuwe tekst is **vet en lichtgrijs** met een donkere streep, weggehaalde tekst **rood doorgestreept**
+     (zoals *wijzigingen bijhouden* in Word). Met **Wijzigingen tonen** zet de reviewer dat uit en leest hij
+     de tekst zoals hij wordt. Groen is alleen voor opmerkingen.
+   - Een reviewer **pakt het stuk eerst op** ("ligt bij Piet"); daarvoor kan hij alleen meelezen.
+   - Hij **selecteert een stuk tekst** en kiest **Opmerking**: het kaartje opent in de marge, op de hoogte van
+     die tekst. Of hij kiest **+ Algemene opmerking**. Lukt selecteren niet (bijvoorbeeld zonder muis), dan
+     typt of plakt hij het stuk tekst in het kaartje.
+   - Zolang het stuk ter inzage ligt, kan hij **zijn eigen opmerking wijzigen of weghalen** (besluit Alex,
+     M16). Een gewijzigde opmerking krijgt "bewerkt"; weghalen vraagt eerst een bevestiging. Opmerkingen van
+     teamgenoten kan hij niet aanpassen.
+   - **Afronden…** opent een venster met **Teruggeven met opmerkingen** of **Akkoord**, en een vak voor nog
+     een laatste opmerking. Teruggeven zonder een enkele opmerking kan niet. Staat er nog een kaartje met
+     tekst open, dan zegt het venster dat en gaat die tekst mee.
+   - Onder de tekst staan de **eerdere rondes**, per opmerking met "staat er nog hetzelfde" of "tekst is
+     aangepast".
+   Reviewers bewerken niets en publiceren niets.
 4. **Teruggegeven?** Je krijgt een e-mail. Open het artikel: de balk zegt *Teruggegeven door Team Water · 2
    opmerkingen*, en de opmerkingen staan meteen **rechts in de marge, op de hoogte van de tekst waar ze over
    gaan**. Die tekst is groen gemarkeerd met een doorgetrokken lijn eronder en een vierkant nummer; ga je met
@@ -141,6 +156,8 @@ een e-mail aan de reviewer.
 tekst: die is daarna weer van de redactie. Is een stuk intussen teruggeroepen of gestopt terwijl je typte, dan
 krijg je een melding met de tekst die je had getypt, zodat je hem kunt kopiëren. Pakt een collega uit je team
 het stuk net voor jou op, dan zegt de kennisbank dat; overnemen kan daarna bewust.
+
+In de lijst op `/review/` staat wat bij jou ligt bovenaan.
 
 Op je werkplek staat onder *Artikelen* de bak **Ter inzage**, met per artikel de stand per team; wat is
 teruggegeven, staat bovenaan. Reviewers krijgen één e-mail per dag als er iets nieuws ter inzage komt. Wie

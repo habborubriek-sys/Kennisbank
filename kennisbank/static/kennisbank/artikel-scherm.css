@@ -206,6 +206,12 @@ body.kb-op-slot .kb-blad { background: #fbfbfc; }
  * van een voorstel. */
 .kb-ae-opm { background: #dcf1e2; border-bottom: 2px solid #1d6b3a; border-radius: 2px; }
 .kb-ae-opm.kb-ae-opm-actief { background: #b4e0c1; }
+/* 1.30.0 (review 1.27.0, M12): opmerking en verbetervoorstel op dezelfde tekst. Allebei zichtbaar: groen vlak met
+ * de groene doorgetrokken lijn, en daaronder de blauwe stippellijn van het voorstel. */
+.kb-ae-opm.kb-ae-vs, .kb-ae-opm .kb-ae-vs, .kb-ae-vs .kb-ae-opm {
+  background: #dcf1e2; border-bottom: 2px dotted #2a5a92; box-shadow: inset 0 -4px 0 -2px #1d6b3a; padding-bottom: 1px;
+}
+.kb-ae-opm.kb-ae-vs.kb-ae-vs-actief, .kb-ae-opm .kb-ae-vs.kb-ae-vs-actief, .kb-ae-vs.kb-ae-vs-actief .kb-ae-opm { background: #b9d4f3; }
 .kb-marge { display: none; position: relative; flex: 0 0 300px; align-self: stretch; }
 body.kb-met-opm .kb-marge { display: block; }
 .kb-ae-kaart { position: absolute; left: 0; right: 0; background: #fff; border: 1px solid #8cc79e; border-radius: 8px; padding: 10px 12px; font: 13px/1.45 "Source Sans 3", system-ui, sans-serif; display: flex; gap: 8px; text-align: left; cursor: pointer; color: #17212b; transition: top .15s, box-shadow .15s; }

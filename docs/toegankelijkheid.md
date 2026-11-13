@@ -55,10 +55,16 @@ toetsenbordgedrag nagelopen (hieronder) en is er een script voor een handmatige 
 - **De werkbalk van de editor** is één Tab-stop. Met de pijltjes, Home en End ga je van knop naar knop.
   Knoppen die aan of uit staan, hebben `aria-pressed`.
 - **Het sectiemenu (⋯ en +)** werkt met de pijltjes. Escape of Tab sluit het en zet de focus terug.
-- **Reviewpagina:**
-  - de knop *Opmerking bij deze tekst* verschijnt ook na een selectie met Shift+pijltjes;
-  - je kunt de tekst ook typen of plakken ("Bij een bepaald stuk tekst?");
-  - elke opmerking heeft een knop *Ga naar opmerking n in de tekst*.
+- **Reviewpagina** (sinds 1.30.0 opgezet als het bewerkscherm):
+  - de knop *Opmerking* verschijnt ook na een selectie met Shift+pijltjes, en staat in de Tab-volgorde direct
+    na de tekst;
+  - in het kaartje voor een algemene opmerking kun je het stuk tekst ook typen of plakken ("Bij een bepaald stuk
+    tekst?");
+  - elke opmerking en elk verbetervoorstel heeft een knop *Toon in de tekst*; de focus gaat naar de markering;
+  - Escape sluit het kaartje van een nieuwe opmerking (de getypte tekst blijft bewaard) en de vensters
+    *Afronden*, *Weghalen* en *Bekijk als medewerker*; daarna staat de focus weer op de knop;
+  - in het venster *Weghalen* staat de focus op *Annuleren*, zodat Enter niets weghaalt;
+  - *Wijzigingen tonen* is een knop met `aria-pressed`.
 - **Werkbak:**
   - het vinkje noemt het voorstel en het artikel;
   - de stip "nog niet geopend" en het rode aantal hebben een tekst voor de schermlezer;
@@ -75,8 +81,10 @@ Behalve de kleur verschilt ook de vorm (WCAG 1.4.1, ook voor kleurenblinden). De
 opmerking 1 van de review" en "einde opmerking 1", in plaats van een los getal midden in de zin. Alle nummers
 hebben een contrast van minstens 4,5:1.
 
-Op de reviewpagina tonen *ingevoegd* en *verwijderd* niet alleen kleur: ingevoegde tekst is onderstreept,
-verwijderde tekst doorgehaald (`<ins>`/`<del>`).
+Op de reviewpagina tonen *ingevoegd* en *verwijderd* niet alleen kleur: ingevoegde tekst is vet met een
+donkere streep eronder, verwijderde tekst doorgehaald (`<ins>`/`<del>`). Sinds 1.30.0 is ingevoegde tekst
+lichtgrijs in plaats van groen, zodat groen alleen voor opmerkingen is. Opmerking en voorstel op dezelfde tekst
+zijn allebei zichtbaar: het groene vlak met de groene lijn, en daaronder de blauwe stippellijn.
 
 ## Ingebouwd op de site
 

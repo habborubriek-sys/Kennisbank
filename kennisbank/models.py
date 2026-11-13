@@ -1047,6 +1047,8 @@ class ReviewOpmerking(models.Model):
     )
     tekst = models.TextField(max_length=4000)
     moment = models.DateTimeField(default=timezone.now)
+    #: 1.30.0 (M16): de reviewer paste zijn opmerking aan in dezelfde ronde. Leeg = nooit aangepast.
+    bewerkt_op = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "opmerking bij een review"

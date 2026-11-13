@@ -24,26 +24,43 @@ class _Blokken(HTMLParser):
         self.blokken = []  # [(soort, tekst)]
         self._stapel = []
         self._tekst = []
+        # 1.30.0 (review 1.27.0, R3 B15): genummerde lijsten en onboarding zoals medewerkers ze zien.
+        self._lijsten = []  # [[soort ("ul"/"ol"), teller]]
+        self._divs = []  # per open <div>: is het een onboarding-blok?
 
     def _afsluiten(self):
         tekst = " ".join("".join(self._tekst).split())
         if tekst:
-            soort = next((t for t in reversed(self._stapel) if t in KOPPEN), None) or (
-                "li" if "li" in self._stapel else "p"
-            )
+            soort = next((t for t in reversed(self._stapel) if t in KOPPEN), None)
+            if soort is None and "li" in self._stapel:
+                lijst = self._lijsten[-1] if self._lijsten else ["ul", 0]
+                soort = f"ol:{lijst[1]}" if lijst[0] == "ol" else "li"
+            soort = soort or "p"
+            if any(self._divs):
+                soort += "+onb"
             self.blokken.append((soort, tekst))
         self._tekst = []
 
     def handle_starttag(self, tag, attrs):
-        if tag in BLOKKEN:
+        if tag in BLOKKEN or tag in ("ul", "ol"):
             self._afsluiten()
         if tag == "br":
             self._tekst.append(" ")
+        if tag in ("ul", "ol"):
+            self._lijsten.append([tag, 0])
+        elif tag == "li" and self._lijsten:
+            self._lijsten[-1][1] += 1
+        if tag == "div":
+            self._divs.append("onboarding" in (dict(attrs).get("class") or "").split())
         self._stapel.append(tag)
 
     def handle_endtag(self, tag):
-        if tag in BLOKKEN:
+        if tag in BLOKKEN or tag in ("ul", "ol"):
             self._afsluiten()
+        if tag in ("ul", "ol") and self._lijsten:
+            self._lijsten.pop()
+        if tag == "div" and self._divs:
+            self._divs.pop()
         if tag in self._stapel:
             while self._stapel and self._stapel.pop() != tag:
                 pass
@@ -82,11 +99,20 @@ def woordverschil(oud: str, nieuw: str) -> str:
 
 
 def _blok_html(soort, inhoud, klasse=""):
-    tag = soort if soort in KOPPEN else ("li" if soort == "li" else "p")
-    attr = f' class="{klasse}"' if klasse else ""
-    if tag == "li":
-        # Het opsommingsteken komt uit de stylesheet, zodat het niet in een geselecteerd citaat belandt.
-        return f'<p class="vs-li{" " + klasse if klasse else ""}">{inhoud}</p>'
+    soort, _, extra = soort.partition("+")
+    klassen = [klasse] if klasse else []
+    if extra == "onb":
+        klassen.append("vs-onb")
+    if soort == "li" or soort.startswith("ol:"):
+        # Het opsommingsteken of nummer komt uit de stylesheet, zodat het niet in een geselecteerd citaat belandt.
+        klassen.insert(0, "vs-li")
+        nr = ""
+        if soort.startswith("ol:"):
+            klassen.insert(1, "vs-ol")
+            nr = f' data-nr="{int(soort[3:] or 0)}"'
+        return f'<p class="{" ".join(klassen)}"{nr}>{inhoud}</p>'
+    tag = soort if soort in KOPPEN else "p"
+    attr = f' class="{" ".join(klassen)}"' if klassen else ""
     return f"<{tag}{attr}>{inhoud}</{tag}>"
 
 

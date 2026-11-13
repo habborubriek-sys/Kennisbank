@@ -359,6 +359,34 @@ def opmerking_toevoegen(inzage, auteur, tekst: str, citaat: str = ""):
     return ReviewOpmerking.objects.create(inzage=inzage, auteur=auteur, tekst=tekst, citaat=citaat)
 
 
+def _eigen_opmerking(inzage, gebruiker, opmerking_id):
+    """1.30.0 (M16, besluit Alex): alleen de schrijver, en alleen zolang het stuk in deze ronde ter inzage ligt."""
+    _moet_open(inzage)
+    try:
+        opm = inzage.opmerkingen.select_for_update().get(pk=int(opmerking_id))
+    except (ValueError, TypeError, ReviewOpmerking.DoesNotExist):
+        raise ReviewFout("Deze opmerking bestaat niet meer.") from None
+    if opm.auteur_id != gebruiker.pk:
+        raise ReviewFout("Je kunt alleen je eigen opmerkingen aanpassen.")
+    return opm
+
+
+def opmerking_wijzigen(inzage, gebruiker, opmerking_id, tekst: str):
+    opm = _eigen_opmerking(inzage, gebruiker, opmerking_id)
+    tekst = (tekst or "").strip()[:4000]
+    if not tekst:
+        raise ReviewFout("Een opmerking kan niet leeg zijn. Wil je hem weg? Kies dan Weghalen.")
+    if tekst != opm.tekst:
+        opm.tekst = tekst
+        opm.bewerkt_op = timezone.now()
+        opm.save(update_fields=["tekst", "bewerkt_op"])
+    return opm
+
+
+def opmerking_weghalen(inzage, gebruiker, opmerking_id):
+    _eigen_opmerking(inzage, gebruiker, opmerking_id).delete()
+
+
 def _afronden(inzage, door, status, tekst, citaat=""):
     _moet_open(inzage)
     if (tekst or "").strip():

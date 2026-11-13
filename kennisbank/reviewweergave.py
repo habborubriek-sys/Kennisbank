@@ -12,7 +12,6 @@ from django.http import Http404
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.formats import date_format
 from django.utils.safestring import mark_safe
 
 from . import review
@@ -20,7 +19,7 @@ from .diensten import naam_van
 from .inhoud import schoon
 from .models import OPEN as OPEN_VOORSTEL
 from .models import Conceptversie, Inzage, InzageStatus, Verbetervoorstel
-from .verschil import verschil_html, woordverschil
+from .verschil import blokken, verschil_html, woordverschil
 
 
 def _basis(request):
@@ -77,6 +76,8 @@ def lijst(request):
         }
         for i in open_
     ]
+    # 1.30.0: wat bij jou ligt, staat bovenaan; daarbinnen de oudste eerst.
+    rijen.sort(key=lambda r: not r["van_mij"])
     balk = {
         "totaal": len(rijen),
         "bij_mij": sum(1 for r in rijen if r["van_mij"]),
@@ -120,15 +121,21 @@ def stuk(request, pk):
     artikel = inzage.artikel
     v = concept.velden or {}
     verschil, aantal = verschil_html(artikel.inhoud, v.get("inhoud", ""))
+    van_mij = inzage.reviewer_id == request.user.pk
     opmerkingen = [
         {
+            "id": o.pk,
             "naam": naam_van(o.auteur) if o.auteur_id else "Reviewer",
             "moment": o.moment,
             "tekst": o.tekst,
             "citaat": o.citaat,
+            "bewerkt": o.bewerkt_op is not None,
+            # 1.30.0 (M16): je eigen opmerking kun je in deze ronde nog aanpassen of weghalen.
+            "eigen": o.auteur_id == request.user.pk and van_mij,
         }
         for o in inzage.opmerkingen.select_related("auteur")
     ]
+    nieuwe_platte_tekst = _plat(v.get("inhoud", ""))
     return render(
         request,
         "kennisbank/review_stuk.html",
@@ -146,35 +153,38 @@ def stuk(request, pk):
             # het citaat: niet wie het indiende, geen notities of berichten (besluit 6 van Alex).
             # Ronde A (review 1.27.0, M8): een verborgen voorstel (bijvoorbeeld met een naam erin) blijft ook voor
             # de reviewer verborgen; hij ziet alleen dat er een is.
+            # 1.30.0: met een nummer, zodat de reviewer het voorstel blauw in de tekst terugvindt.
             "voorstellen": [
-                {"citaat": cit, "tekst": tekst}
-                for cit, tekst in Verbetervoorstel.objects.filter(
-                    artikel=artikel, in_conceptversie=True, status__in=OPEN_VOORSTEL, verborgen=False
+                {"nr": nr, "citaat": cit, "tekst": tekst}
+                for nr, (cit, tekst) in enumerate(
+                    Verbetervoorstel.objects.filter(
+                        artikel=artikel, in_conceptversie=True, status__in=OPEN_VOORSTEL, verborgen=False
+                    )
+                    .order_by("ingediend_op", "pk")
+                    .values_list("citaat", "tekst"),
+                    start=1,
                 )
-                .order_by("ingediend_op", "pk")
-                .values_list("citaat", "tekst")
             ],
             "voorstellen_verborgen": Verbetervoorstel.objects.filter(
                 artikel=artikel, in_conceptversie=True, status__in=OPEN_VOORSTEL, verborgen=True
             ).count(),
             "nieuwe_tekst": schoon(v.get("inhoud", "")),
             "opmerkingen": opmerkingen,
-            "opmerkingen_data": [
-                {
-                    "nr": nr,
-                    "wie": o["naam"],
-                    "wanneer": date_format(timezone.localtime(o["moment"]), "j F H:i"),
-                    "tekst": o["tekst"],
-                    "citaat": o["citaat"],
-                }
-                for nr, o in enumerate(opmerkingen, start=1)
-            ],
+            # 1.30.0: per oude opmerking of die tekst er nog staat; dat wil een reviewer in ronde 2 weten.
             "eerder": [
                 {
                     "team": e.team.naam,
                     "ronde": e.ronde,
                     "status": e.get_status_display().lower(),
-                    "opmerkingen": list(e.opmerkingen.all()),
+                    "opmerkingen": [
+                        {
+                            "tekst": o.tekst,
+                            "citaat": o.citaat,
+                            "staat_er_nog": bool(o.citaat)
+                            and " ".join(o.citaat.split()).casefold() in nieuwe_platte_tekst,
+                        }
+                        for o in e.opmerkingen.all()
+                    ],
                 }
                 for e in Inzage.objects.filter(
                     artikel=artikel, afgesloten=False, ronde__lt=inzage.ronde, team=inzage.team
@@ -183,7 +193,7 @@ def stuk(request, pk):
                 .prefetch_related("opmerkingen")
             ],
             "bij": naam_van(inzage.reviewer) if inzage.reviewer_id else None,
-            "van_mij": inzage.reviewer_id == request.user.pk,
+            "van_mij": van_mij,
             "open": inzage.status == InzageStatus.TER_INZAGE,
             "door": naam_van(inzage.gestart_door) if inzage.gestart_door_id else "procesmanagement",
             "basis_versie": artikel.versie,
@@ -191,6 +201,35 @@ def stuk(request, pk):
             # met de aangepaste versie, en de redacteur moet die wijziging nog meenemen.
             "gepubliceerd_gewijzigd": bool(concept.basis_stempel)
             and concept.basis_stempel != (artikel.gewijzigd_op.isoformat() if artikel.gewijzigd_op else ""),
+        },
+    )
+
+
+@login_required
+def voorbeeld(request, pk):
+    """1.30.0: *Bekijk als medewerker* voor de reviewer: de conceptversie zoals medewerkers hem straks zien."""
+    inzage = review._inzage_voor(request.user, pk)
+    if inzage is None or inzage.status != InzageStatus.TER_INZAGE:
+        raise Http404
+    concept = Conceptversie.objects.filter(artikel=inzage.artikel).first()
+    if concept is None:
+        raise Http404
+    v = concept.velden or {}
+    from django.conf import settings
+
+    return render(
+        request,
+        "kennisbank/voorbeeld.html",
+        {
+            "app_naam": settings.KB_APP_NAAM,
+            "vaste_titelbalk": "Voorbeeld",
+            "vaste_inhoud": {
+                "titel": v.get("titel", inzage.artikel.titel),
+                "samenvatting": v.get("samenvatting", inzage.artikel.samenvatting),
+                "soort": v.get("soort", inzage.artikel.soort),
+                "inhoud": schoon(v.get("inhoud", "")),
+            },
+            "vaste_regel": "conceptversie ter inzage · zo ziet het eruit als deze versie wordt gepubliceerd",
         },
     )
 
@@ -228,6 +267,12 @@ def _actie(request, pk):
                 messages.success(
                     request, "Opmerking toegevoegd. De redacteur ziet hem als je teruggeeft of akkoord geeft."
                 )
+            elif actie == "opmerking_wijzigen":
+                review.opmerking_wijzigen(inzage, request.user, request.POST.get("opmerking"), tekst)
+                messages.success(request, "Opmerking aangepast.")
+            elif actie == "opmerking_weghalen":
+                review.opmerking_weghalen(inzage, request.user, request.POST.get("opmerking"))
+                messages.success(request, "Opmerking weggehaald.")
             elif actie == "teruggeven":
                 review.teruggeven(inzage, request.user, tekst, citaat)
                 messages.success(request, "Teruggegeven aan de redacteur, met je opmerkingen.")
@@ -244,6 +289,11 @@ def _actie(request, pk):
                 return redirect("review-lijst")
             messages.warning(request, str(e))
     return redirect("review-stuk", pk=pk)
+
+
+def _plat(html: str) -> str:
+    """Platte tekst om citaten in terug te vinden: zonder opmaak, witruimte als één spatie, kleine letters."""
+    return " ".join(t for _, t in blokken(html)).casefold()
 
 
 def _ooit_van_mijn_team(gebruiker, pk) -> bool:

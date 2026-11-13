@@ -89,17 +89,24 @@ Open hiervoor een voorstel uit de werkbak.
 ## E. Reviewpagina, als `reviewer`
 
 27. Ga naar `/review/` en open een stuk.
-    - *Verwacht:* de statusregel wordt voorgelezen (team, ter inzage, bij wie).
-28. Lees *Wat is er veranderd* in bladermodus.
+    - *Verwacht:* de infobalk wordt voorgelezen (team, ter inzage, bij wie).
+    - Ligt het nog niet bij jou, kies dan **Oppakken** in de balk.
+28. Lees de tekst in bladermodus.
     - *Verwacht:* je hoort "ingevoegd" en "verwijderd". Gebeurt dat niet, zet dan in NVDA bij Documentopmaak
       "Revisies van editor melden" aan.
+    - Bij een meegenomen voorstel hoor je "verbetervoorstel 1".
+    - Druk op **Wijzigingen tonen**. *Verwacht:* je hoort "niet ingedrukt", en de tekst leest zonder weggehaalde
+      stukken.
 29. Zet een opmerking bij een stuk tekst.
-    - Selecteer met Shift+pijltjes en druk op Tab naar *Opmerking bij deze tekst*.
-    - Of gebruik *Bij een bepaald stuk tekst? Typ of plak het hier*.
+    - Selecteer met Shift+pijltjes en druk op Tab naar *Opmerking*. Typ, en kies *Plaatsen*.
+    - Of kies *+ Algemene opmerking* en gebruik *Bij een bepaald stuk tekst? Typ of plak het hier*.
     - *Verwacht:* beide wegen werken zonder muis.
-30. Ga in de lijst met opmerkingen naar *Ga naar opmerking 1 in de tekst*.
+30. Ga in de marge naar *Toon in de tekst* bij opmerking 1.
     - *Verwacht:* de focus staat op de markering, en je hoort "opmerking 1".
-
+    - Kies bij je eigen opmerking *Wijzigen*, pas de tekst aan en kies *Opslaan*. Kies daarna *Weghalen*.
+      *Verwacht:* het venster wordt voorgelezen en de focus staat op *Annuleren*.
+    - Kies **Afronden…**. *Verwacht:* het venster *Afronden* wordt voorgelezen, Tab blijft erin, en Escape zet
+      de focus terug op de knop.
 ## F. Algemeen, op elk scherm
 
 31. Zoom in naar 400% (Ctrl +).

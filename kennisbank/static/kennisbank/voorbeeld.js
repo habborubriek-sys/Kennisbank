@@ -68,6 +68,13 @@
     this.textContent = o ? "Alles inklappen" : "Alles uitklappen";
   });
 
+  // 1.29.0 (1.30.0: ook bij vaste inhoud, voor de reviewer): Escape in het voorbeeld sluit "Bekijk als medewerker" (de toets komt anders niet bij de pagina).
+  if (window.parent !== window) {
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") window.parent.postMessage({ type: "kb-voorbeeld-esc" }, location.origin);
+    });
+  }
+
   // Vaste inhoud: dit scherm wordt ook gebruikt om een eerdere versie te bekijken. Dan staat de tekst
   // al in de pagina en is er geen editor die hem doorgeeft.
   var vast = document.getElementById("vasteInhoud");
@@ -81,10 +88,4 @@
     render(e.data);
   });
   if (window.parent !== window) window.parent.postMessage({ type: "kb-voorbeeld-klaar" }, location.origin);
-  // 1.29.0: Escape in het voorbeeld sluit "Bekijk als medewerker" (de toets komt anders niet bij de pagina).
-  if (window.parent !== window) {
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") window.parent.postMessage({ type: "kb-voorbeeld-esc" }, location.origin);
-    });
-  }
 })();

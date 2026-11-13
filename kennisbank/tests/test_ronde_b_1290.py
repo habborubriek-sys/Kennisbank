@@ -64,6 +64,8 @@ class Reviewpagina(LadeBasis):
         self.maak_concept()
         self.ter_inzage()
         i = Inzage.objects.get(artikel=self.a)
+        # 1.30.0: opmerkingen plaatsen kan na het oppakken.
+        self.als(self.wim).post(f"/review/{i.pk}/", {"actie": "oppakken", "geladen_reviewer": ""})
         html = self.als(self.wim).get(f"/review/{i.pk}/").content.decode()
         self.assertIn('id="rv-citaat-invoer"', html)
         self.assertIn('<label for="rv-citaat-invoer"', html)

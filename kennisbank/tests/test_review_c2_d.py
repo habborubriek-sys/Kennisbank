@@ -180,9 +180,9 @@ class OpmerkingBijTekstTests(ReviewBasis):
     def test_reviewer_krijgt_de_opmerkingen_als_gegevens(self):
         review.opmerking_toevoegen(self.i, self.wim, "Zes?", "drie weken")
         html = self.als(self.wim).get(f"/review/{self.i.pk}/").content.decode()
-        start = html.index('id="rv-opmerkingen-data"')
-        data = json.loads(html[html.index(">", start) + 1 : html.index("</script>", start)])
-        self.assertEqual([(d["nr"], d["citaat"], d["tekst"]) for d in data], [(1, "drie weken", "Zes?")])
+        # 1.30.0: de kaarten staan in de pagina; het script zoekt het citaat en zet de markering.
+        self.assertIn('id="rv-opm-1" data-nr="1" data-citaat="drie weken"', html)
+        self.assertIn('<p class="rv-kaart-tekst">Zes?</p>', html)
         self.assertIn("opmerkingen.js", html)
 
     def test_redacteur_krijgt_de_opmerkingen_voor_het_voorbeeld(self):
