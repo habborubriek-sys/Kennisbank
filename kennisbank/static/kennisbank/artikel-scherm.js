@@ -145,13 +145,6 @@
     if (document.readyState === "complete") setTimeout(iconenRol, 0);
     else window.addEventListener("load", function () { setTimeout(iconenRol, 0); });
 
-    // --- Meer ▾: dicht bij een klik ernaast of Escape ------------------------------------
-    var meer = $(".kb-meer", balk);
-    if (meer) {
-      document.addEventListener("click", function (e) { if (meer.open && !meer.contains(e.target)) meer.open = false; });
-      document.addEventListener("keydown", function (e) { if (e.key === "Escape" && meer.open) { meer.open = false; $("summary", meer).focus(); } });
-    }
-
     // --- Bekijk als medewerker ----------------------------------------------------------
     var lees = $("[data-kb-lees]", balk);
     if (lees) lees.addEventListener("click", function () { bekijkAlsMedewerker(form); });

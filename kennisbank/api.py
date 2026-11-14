@@ -97,9 +97,10 @@ class ArtikelSerializer(ArtikelKortSerializer):
     blokken = serializers.SerializerMethodField()
     gerelateerd = serializers.SerializerMethodField()
     bewerk_url = serializers.SerializerMethodField()
+    bewerk_concept = serializers.SerializerMethodField()
 
     class Meta(ArtikelKortSerializer.Meta):
-        fields = ArtikelKortSerializer.Meta.fields + ["blokken", "gerelateerd", "bewerk_url"]
+        fields = ArtikelKortSerializer.Meta.fields + ["blokken", "gerelateerd", "bewerk_url", "bewerk_concept"]
 
     def get_blokken(self, obj) -> list[dict]:
         """De tekst in leesvolgorde: vrije tekst (altijd zichtbaar) en secties (in-/uitklapbaar)."""
@@ -123,6 +124,38 @@ class ArtikelSerializer(ArtikelKortSerializer):
         if self.context["rechten"].mag_redigeren(obj):
             return f"/beheer/kennisbank/artikel/{obj.pk}/change/"
         return None
+
+    @extend_schema_field(
+        inline_serializer(
+            "BewerkConcept",
+            {
+                "door": serializers.CharField(),
+                "sinds": serializers.DateTimeField(),
+                "concept_url": serializers.CharField(),
+                "live_url": serializers.CharField(),
+            },
+            allow_null=True,
+        )
+    )
+    def get_bewerk_concept(self, obj) -> dict | None:
+        """Alleen voor wie mag redigeren: ligt er een concept van dit artikel? (1.33.0)
+
+        De site vraagt dan bij *Bewerken* of je de live versie wilt verbeteren of verder wilt met het concept.
+        """
+        if not self.context["rechten"].mag_redigeren(obj):
+            return None
+        from .models import Conceptversie
+
+        concept = Conceptversie.objects.filter(artikel=obj).select_related("gestart_door").first()
+        if concept is None:
+            return None
+        basis = f"/beheer/kennisbank/artikel/{obj.pk}/change/"
+        return {
+            "door": diensten.naam_van(concept.gestart_door),
+            "sinds": concept.gestart_op.isoformat(),
+            "concept_url": basis,
+            "live_url": basis + "?live=1",
+        }
 
 
 class VoorstelBerichtSerializer(serializers.ModelSerializer):

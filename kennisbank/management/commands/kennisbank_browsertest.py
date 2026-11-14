@@ -139,15 +139,31 @@ class Command(BaseCommand):
         # 3. Kaal gepubliceerd artikel: de hele stroom van bewerken tot publiceren loopt hierop.
         stroom = self.artikel("Browsertest stroom", redacteur, cluster)
 
-        # 4. Met een conceptversie (niet ter inzage): spoedcorrectie en weggooien.
+        # 4. Met een conceptversie (niet ter inzage): de live versie verbeteren en het concept weggooien.
         spoed = self.artikel("Browsertest spoed", redacteur, cluster)
         self.concept(spoed, redacteur, TEKST.replace("twee weken", "vier weken"))
+
+        # 4b. 1.33.0: een concept waarvan de live versie daarna is verbeterd. Vier wijzigingen, van elke soort:
+        #     de eerste alinea is ook in het concept gewijzigd (zelf aanpassen), twee kunnen veilig worden
+        #     overgenomen en er is een opsommingspunt bij gekomen.
+        live = self.artikel("Browsertest live", redacteur, cluster)
+        self.concept(live, redacteur, TEKST.replace("twee weken", "vier weken"))
+        live.inhoud = (
+            TEKST.replace("dezelfde dag.", "dezelfde dag nog.")
+            .replace("de datum in het logboek", "de datum en het tijdstip in het logboek")
+            .replace("in de zaak.</li>", "in de zaak.</li><li>Stuur een kopie naar de mailbox.</li>")
+            .replace("coordinator", "teamleider")
+        )
+        live.save()
+        diensten.herbouw_secties(live)
+        diensten.registreer_publicatie(live, redacteur, "Teamleider in plaats van coordinator")
+        live.refresh_from_db()
 
         # 5. Kaal gepubliceerd artikel waar niets aan gebeurt: voor de axe-meting.
         rustig = self.artikel("Browsertest rustig", redacteur, cluster)
 
         demo = Artikel.objects.get(slug="rappel-versturen")
-        assert Conceptversie.objects.count() == 2  # noqa: S101 - controle op de eigen opzet
+        assert Conceptversie.objects.count() == 3  # noqa: S101 - controle op de eigen opzet
         return {
             "lade": {
                 "artikel": lade.pk,
@@ -158,7 +174,8 @@ class Command(BaseCommand):
             },
             "inzage": {"artikel": inzage_a.pk, "inzage": inzage.pk, "voorstel": v_mee.pk},
             "stroom": {"artikel": stroom.pk},
-            "spoed": {"artikel": spoed.pk},
+            "spoed": {"artikel": spoed.pk, "slug": spoed.slug},
+            "live": {"artikel": live.pk},
             "rustig": {"artikel": rustig.pk, "slug": rustig.slug},
             # Een artikel uit de demo-inhoud, met tags, onboarding en een wijzigingsmelding.
             "demo": {"artikel": demo.pk, "slug": demo.slug},

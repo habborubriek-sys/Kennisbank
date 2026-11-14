@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.32.0
+  version: 1.33.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
@@ -671,7 +671,13 @@ components:
           type: string
           nullable: true
           readOnly: true
+        bewerk_concept:
+          allOf:
+          - $ref: '#/components/schemas/BewerkConcept'
+          nullable: true
+          readOnly: true
       required:
+      - bewerk_concept
       - bewerk_url
       - blokken
       - clusters
@@ -917,6 +923,23 @@ components:
       - tekst
       - titel
       - verlopen
+    BewerkConcept:
+      type: object
+      properties:
+        door:
+          type: string
+        sinds:
+          type: string
+          format: date-time
+        concept_url:
+          type: string
+        live_url:
+          type: string
+      required:
+      - concept_url
+      - door
+      - live_url
+      - sinds
     GezienRequest:
       type: object
       properties:

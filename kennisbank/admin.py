@@ -135,7 +135,8 @@ class VersieInline(admin.TabularInline):
     def door(self, obj):
         return diensten.naam_van(obj.gepubliceerd_door) if obj.gepubliceerd_door_id else "—"
 
-    @admin.display(description="Kleine correctie")
+    # 1.33.0 (L3): het begrip "kleine correctie" is uit de schermen; het veld zegt alleen of er een melding ging.
+    @admin.display(description="Zonder melding")
     def klein(self, obj):
         return "ja" if obj.kleine_correctie else ""
 
@@ -238,9 +239,9 @@ class ArtikelForm(forms.ModelForm):
     )
     kleine_correctie = forms.BooleanField(
         required=False,
-        label="Kleine correctie, geen melding",
-        help_text="Typfout, opmaak, een verouderde naam. De wijziging komt wel in de versiegeschiedenis, "
-        "maar medewerkers krijgen geen melding en geen e-mail.",
+        label="Medewerkers hoeven dit niet te weten",
+        help_text="Stil bijwerken, bijvoorbeeld bij een typfout of opmaak. De wijziging komt wel in de "
+        "versiegeschiedenis, maar medewerkers krijgen geen melding en geen e-mail.",
     )
     geladen_stempel = forms.CharField(required=False, widget=forms.HiddenInput)
     #: Stempel van de conceptversie toen dit scherm werd geopend ('' = er was er geen). Zie
@@ -296,7 +297,9 @@ class ArtikelForm(forms.ModelForm):
             )
         if self.spoed and "omgeving" in self.fields:
             self.fields["omgeving"].disabled = True  # bevinding 2: spoed verhuist niets
-            self.fields["omgeving"].help_text = "Bij een spoedcorrectie blijft de omgeving zoals hij is."
+            self.fields["omgeving"].help_text = (
+                "Je verbetert de live versie terwijl er een concept ligt: de omgeving blijft dan zoals hij is."
+            )
         if self.instance.pk and not self.is_bound:
             self.fields["tags_tekst"].initial = ", ".join(self.instance.tags.values_list("naam", flat=True))
             self.fields["geladen_stempel"].initial = stempel_van(self.instance)
@@ -355,7 +358,7 @@ class ArtikelForm(forms.ModelForm):
             self.add_error(
                 "wijzigingstoelichting",
                 "Geef in één zin aan wat er is gewijzigd; medewerkers zien dit als melding bij het artikel. "
-                "Is het alleen een typfout of opmaak? Vink dan 'Kleine correctie' aan.",
+                "Hoeven medewerkers dit niet te weten (een typfout, opmaak)? Kies dan bij publiceren 'Nee'.",
             )
         return data
 
@@ -387,7 +390,8 @@ class ArtikelForm(forms.ModelForm):
         if self.instance.pk and review.op_slot(self.instance.pk):
             raise forms.ValidationError(
                 "De conceptversie ligt ter inzage bij een reviewteam. Roep hem eerst terug voordat je publiceert. "
-                "Is er een dringende fout in de gepubliceerde versie? Gebruik dan 'Corrigeer de gepubliceerde versie'."
+                "Is er een dringende fout in wat medewerkers nu zien? Open het artikel op de site, kies Bewerken en "
+                "daarna 'De live versie verbeteren'."
             )
 
     def _gepubliceerde_tekst_houden(self, data):
@@ -513,8 +517,28 @@ class ArtikelForm(forms.ModelForm):
         )
 
 
+def _besluiten_uit(request):
+    """Het verborgen veld ``kb_live_besluiten`` van het bewerkscherm: {id: besluit}. None als het ontbreekt."""
+    ruw = request.POST.get("kb_live_besluiten")
+    if ruw is None:
+        return None
+    try:
+        waarde = json.loads(ruw or "{}")
+    except ValueError:
+        return None
+    return waarde if isinstance(waarde, dict) else None
+
+
 def stempel_van_waarde(gewijzigd_op) -> str:
     return gewijzigd_op.isoformat() if gewijzigd_op else ""
+
+
+def _live_gevraagd(request) -> bool:
+    """Wil de redacteur de live versie verbeteren terwijl er een concept ligt? (1.33.0)
+
+    ``?live=1``; ``?spoed=1`` is de naam van vóór 1.33.0 en blijft werken voor oude links en bladwijzers.
+    """
+    return request.GET.get("live") == "1" or request.GET.get("spoed") == "1"
 
 
 def stempel_van(artikel) -> str:
@@ -635,6 +659,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             "kennisbank/artikel-scherm.js",
             "kennisbank/beheer-editor.js",
             "kennisbank/voorstellen-lade.js",
+            "kennisbank/live-wijzigingen.js",
         ]
 
     def get_urls(self):
@@ -659,6 +684,11 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 "<int:pk>/ter-inzage/",
                 self.admin_site.admin_view(self.ter_inzage),
                 name="kennisbank_artikel_ter_inzage",
+            ),
+            path(
+                "<int:pk>/live-wijzigingen/",
+                self.admin_site.admin_view(self.live_wijzigingen),
+                name="kennisbank_artikel_live_wijzigingen",
             ),
             path(
                 "<int:pk>/voorstellen-afhandelen/",
@@ -1036,7 +1066,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         concept = self._concept_van(obj)
         # Spoedcorrectie (reviewpunt 12): de gepubliceerde versie aanpassen terwijl er een conceptversie
         # is. Het formulier opent dan de gepubliceerde tekst; de conceptversie blijft ongewijzigd.
-        spoed = request.GET.get("spoed") == "1" and concept is not None and not als_concept
+        spoed = _live_gevraagd(request) and concept is not None and not als_concept
         if spoed:
             request._kb_spoed = True
         return type(
@@ -1075,7 +1105,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 {"titel": v.tekst[:90], "url": reverse("beheer-voorstel", args=[v.pk])}
                 for v in Verbetervoorstel.objects.filter(artikel=obj, in_conceptversie=True, status__in=OPEN_VOORSTEL)
             ]
-            if request.GET.get("spoed") == "1" and concept is not None:
+            if _live_gevraagd(request) and concept is not None:
                 # Spoedcorrectie: de gepubliceerde versie, niet de conceptversie (reviewpunt 12).
                 from . import review
 
@@ -1097,8 +1127,24 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                         }
                     )
                 )
-                extra["kb_concept_artikel_gewijzigd"] = concept.basis_stempel != stempel_van(obj)
-                extra["kb_concept_bekijken"] = reverse("admin:kennisbank_artikel_concept_bekijken", args=[obj.pk])
+                # 1.33.0: wat er live is veranderd sinds dit concept begon, voor het paneel rechts. Lukt de
+                # vergelijking niet (de versie waar het concept van uitging is er niet meer), dan blijft de
+                # algemene waarschuwing.
+                live_gewijzigd = concept.basis_stempel != stempel_van(obj)
+                # Na een mislukte opslag komt het formulier terug: de keuzes van zojuist blijven dan staan.
+                gepost = _besluiten_uit(request) if request.method == "POST" else None
+                if gepost is not None:
+                    from .livewijzigingen import besluiten_bijwerken
+
+                    gepost = besluiten_bijwerken(
+                        concept.live_besluiten, gepost, diensten.naam_van(request.user), timezone.now().isoformat()
+                    )
+                extra["kb_live"] = (
+                    self._live_gegevens(request, obj, concept, besluiten=gepost) if live_gewijzigd else None
+                )
+                extra["kb_concept_artikel_gewijzigd"] = live_gewijzigd and extra["kb_live"] is None
+                extra["kb_live_bekijken"] = obj.get_absolute_url()
+                extra["kb_live_besluiten"] = json.dumps(extra["kb_live"]["besluiten"]) if extra["kb_live"] else ""
                 from . import review
 
                 if review.gebruikt_review(obj):
@@ -1154,6 +1200,8 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     ]
                 extra["kb_afronden"] = {
                     "spoed": spoed,
+                    # 1.33.0 (L4): weggooien staat niet meer onder Meer maar in dit venster.
+                    "weggooien": concept is not None and not op_slot,
                     "op_slot": op_slot,
                     "concept": concept is not None,
                     "teams": teams,
@@ -1178,6 +1226,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     request.user,
                     diensten.concept_velden(form.cleaned_data),
                     form.cleaned_data.get("geladen_concept"),
+                    live_besluiten=_besluiten_uit(request),
                 )
             except diensten.ConceptOpSlot:
                 request._kb_concept_conflict = True
@@ -1412,6 +1461,111 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             self.message_user(request, "De conceptversie is weggegooid. Je ziet weer de gepubliceerde tekst.")
         return redirect(reverse("admin:kennisbank_artikel_change", args=[obj.pk]))
 
+    def _live_gegevens(self, request, obj, concept, velden=None, besluiten=None):
+        """Wat er live is veranderd sinds het concept begon, afgezet tegen het concept (livewijzigingen.py).
+
+        ``velden`` is wat de redacteur nu op het scherm heeft; zonder velden de opgeslagen conceptversie.
+        Geeft None als de versie waar het concept van uitging niet meer te vinden is.
+        """
+        from . import livewijzigingen
+        from . import review as _review
+
+        basis = ArtikelVersie.objects.filter(artikel=obj, versie=concept.basis_versie).first()
+        if basis is None or not isinstance(basis.inhoud, dict) or "inhoud" not in basis.inhoud:
+            return None
+        live = diensten.momentopname(obj)
+        mijn = velden if velden is not None else concept.velden
+        if besluiten is None:
+            besluiten = concept.live_besluiten
+        v = livewijzigingen.vergelijk(basis.inhoud, live, mijn, besluiten)
+        labels = {
+            "soort": "soort",
+            "eigenaar": "eigenaar",
+            "clusters": "clusters",
+            "tags": "tags",
+            "zaaktypen": "zaaktypen",
+        }
+        eigenschappen = [label for sleutel, label in labels.items() if basis.inhoud.get(sleutel) != live.get(sleutel)]
+        if not v.wijzigingen and not eigenschappen:
+            return None
+        sinds = (
+            ArtikelVersie.objects.filter(artikel=obj, versie__gt=concept.basis_versie)
+            .select_related("gepubliceerd_door")
+            .order_by("versie")
+        )
+        wie = []
+        for versie in sinds:
+            regel = (
+                f"{diensten.naam_van(versie.gepubliceerd_door)} "
+                f"({date_format(timezone.localtime(versie.gepubliceerd_op), 'j F')})"
+            )
+            if regel not in wie:
+                wie.append(regel)
+        return {
+            "url": reverse("admin:kennisbank_artikel_live_wijzigingen", args=[obj.pk]),
+            "wijzigingen": v.wijzigingen,
+            "telling": livewijzigingen.telling(v.wijzigingen),
+            "besluiten": {wid: b.get("besluit") for wid, b in (besluiten or {}).items() if isinstance(b, dict)},
+            "basis_versie": concept.basis_versie,
+            "live_versie": obj.versie,
+            "wie": " en ".join(wie),
+            "eigenschappen": eigenschappen,
+            "op_slot": _review.op_slot(obj.pk),
+            "bekijken": obj.get_absolute_url(),
+        }
+
+    def live_wijzigingen(self, request, pk):
+        """De wijzigingen van de live versie opnieuw uitrekenen tegen wat er nu in de editor staat, en er
+        desgevraagd één (``overnemen=<id>``) of alle veilige (``overnemen=veilig``) in verwerken.
+
+        Slaat niets op: het antwoord bevat de nieuwe tekst en het bewerkscherm zet die in de editor. Pas bij
+        *Opslaan als concept* is hij van het concept, samen met de besluiten.
+        """
+        from django.core.exceptions import PermissionDenied
+
+        from . import livewijzigingen
+        from . import review as _review
+        from .inhoud import schoon
+
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST"])
+        obj = self.get_queryset(request).filter(pk=pk).first()
+        if obj is None or not self._mag_lade(request, obj):
+            raise PermissionDenied
+        concept = self._concept_van(obj)
+        if concept is None:
+            return JsonResponse({"fout": "Dit artikel heeft geen concept meer."}, status=409)
+        velden = dict(concept.velden)
+        velden.update(
+            titel=request.POST.get("titel", ""),
+            samenvatting=request.POST.get("samenvatting", ""),
+            inhoud=schoon(request.POST.get("inhoud", "")),
+        )
+        besluiten = livewijzigingen.besluiten_bijwerken(
+            concept.live_besluiten, _besluiten_uit(request), diensten.naam_van(request.user), timezone.now().isoformat()
+        )
+        overnemen = request.POST.get("overnemen", "")
+        antwoord = {}
+        if overnemen:
+            if _review.op_slot(obj.pk):
+                return JsonResponse({"fout": "Het concept ligt ter inzage en staat op slot."}, status=409)
+            basis = ArtikelVersie.objects.filter(artikel=obj, versie=concept.basis_versie).first()
+            if basis is None or not isinstance(basis.inhoud, dict):
+                return JsonResponse({"fout": "De vergelijking is niet meer te maken."}, status=409)
+            ids = "veilig" if overnemen == "veilig" else [overnemen]
+            nieuw, gedaan = livewijzigingen.neem_over(basis.inhoud, diensten.momentopname(obj), velden, ids, besluiten)
+            for wid in gedaan:
+                besluiten.pop(wid, None)  # overgenomen: een eerder "niet overnemen" vervalt
+            if gedaan:
+                velden = nieuw
+                antwoord["velden"] = {n: velden.get(n, "") for n in ("titel", "samenvatting", "inhoud")}
+            antwoord["gedaan"] = gedaan
+        gegevens = self._live_gegevens(request, obj, concept, velden, besluiten)
+        if gegevens is None:
+            return JsonResponse({"fout": "Er zijn geen wijzigingen meer te tonen."}, status=409)
+        antwoord.update(gegevens)
+        return JsonResponse(antwoord)
+
     def concept_bekijken(self, request, pk):
         from .inhoud import schoon
 
@@ -1453,7 +1607,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         if spoed:
             # De conceptversie (en een lopende review) blijft zoals hij is; ook de kladversie, want daar
             # staat het werk aan de conceptversie in.
-            review_regel = "Spoedcorrectie op de gepubliceerde versie; de conceptversie bleef ongewijzigd."
+            review_regel = "Verbetering van de live versie; het concept bleef ongewijzigd."
         elif change:
             from . import review
 
@@ -1473,7 +1627,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         # "nieuw"; die hoort nu niet meer op het toevoegscherm terug te komen. Niet bij een spoedcorrectie,
         # ook niet als een collega de conceptversie intussen weggooide en dit een gewone publicatie werd
         # (ronde A, review 1.27.0 R1 B8): het spoedscherm blijft van de kladversie af.
-        if not spoed and request.GET.get("spoed") != "1":
+        if not spoed and not _live_gevraagd(request):
             diensten.klad_afsluiten(request.user, form.instance if change else None)
         form.instance.tags.set(
             [Tag.objects.get_or_create(naam=n)[0] for n in tags_uit_tekst(form.cleaned_data.get("tags_tekst", ""))]
@@ -1527,6 +1681,13 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                             f"{'gelden' if n > 1 else 'geldt'} niet als verwerkt, omdat er geen inhoudelijke "
                             f"wijziging was. {'Ze staan' if n > 1 else 'Het staat'} weer open in de lade.",
                         )
+        if versie and spoed:
+            # 1.33.0 (L2): het concept weet wat er live is veranderd en laat dat bij openen zien.
+            messages.info(
+                request,
+                "Er ligt een concept van dit artikel. Wie het opent, ziet wat je in de live versie hebt veranderd "
+                "en kan dat overnemen.",
+            )
         if versie:
             if versie.versie == 1:
                 messages.info(request, "Gepubliceerd als versie 1.")
@@ -1544,7 +1705,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                         "zoekbalk op woorden uit de tekst, niet via het zaaksysteem of een onderwerp.",
                     )
             elif versie.kleine_correctie:
-                messages.info(request, f"Gepubliceerd als versie {versie.versie} (kleine correctie, geen melding).")
+                messages.info(request, f"Gepubliceerd als versie {versie.versie}, zonder melding aan medewerkers.")
             else:
                 messages.info(
                     request,

@@ -17,13 +17,13 @@ async function afronden(p, keuze) {
   await venster(p).locator(".kb-afronden-keuze", { hasText: keuze }).first().click();
 }
 
-// Publiceren via Afronden; bij een gepubliceerd artikel volgt het venster "Wat is er gewijzigd?".
+// Publiceren via Afronden; bij een gepubliceerd artikel volgt het venster "Moeten medewerkers dit weten?".
 async function publiceer(p, opties) {
   opties = opties || {};
   await afronden(p, "Publiceren");
   const toel = p.locator("#kb-toel");
   await toel.waitFor({ timeout: 5000 });
-  if (opties.klein) await venster(p).locator('input[type="checkbox"]').check();
+  if (opties.stil) { await venster(p).locator("#kb-weten-nee").check(); ok(!(await toel.isVisible()), "bij Nee is er geen veld voor een toelichting"); }
   else await toel.fill(opties.toelichting || "Tekst aangepast voor de browsertest");
   await Promise.all([p.waitForNavigation(), vensterKnop(p, "Publiceren").click()]);
 }
@@ -125,7 +125,7 @@ async function typInAlinea(p, bevat, tekst) {
     ok((await red.locator("#kb-lip-teller").textContent()) === "1", "de teller op het tabblad klopt");
   });
 
-  await stap("lade: meenemen en publiceren als kleine correctie", red, async () => {
+  await stap("lade: meenemen en stil publiceren", red, async () => {
     await g.bewerk(red, o.lade.artikel, `?voorstel=${o.lade.steun}`);
     await red.locator(".ProseMirror p", { hasText: "twee weken" }).first().dblclick(); // een woord selecteren
     await red.locator(".ProseMirror p", { hasText: "twee weken" }).first().click();
@@ -137,8 +137,8 @@ async function typInAlinea(p, bevat, tekst) {
     await red.locator(`[data-kb-focus="mee-${o.lade.steun}"]`).click();
     await red.locator(".kb-vk-open", { hasText: /aangepast ✓/i }).waitFor();
     ok(true, "de lade ziet dat de tekst is aangepast");
-    await publiceer(red, { klein: true });
-    ok(/voorstellen-afhandelen/.test(red.url()), "na publiceren als kleine correctie komt het afhandelscherm", red.url());
+    await publiceer(red, { stil: true });
+    ok(/voorstellen-afhandelen/.test(red.url()), "na stil publiceren komt het afhandelscherm", red.url());
     ok(/verwerkt in versie 2/.test(await red.locator("textarea").first().inputValue()), "voorgevuld bericht met versie 2");
     await Promise.all([red.waitForNavigation(), red.locator('button[type="submit"], input[type="submit"]').filter({ hasText: /afhandelen/i }).first().click()]);
     ok(!/voorstellen-afhandelen/.test(red.url()), "afhandelen stuurt terug naar het artikel of de werkplek", red.url());
@@ -224,32 +224,116 @@ async function typInAlinea(p, bevat, tekst) {
     ok(true, "de indiener ziet dat zijn voorstel is verwerkt");
   });
 
-  // --- 3. Spoedcorrectie en conceptversie weggooien ------------------------------------------------------
-  await stap("editor: spoedcorrectie naast een conceptversie", red, async () => {
-    await g.bewerk(red, o.spoed.artikel);
-    ok(/vier weken/.test(await red.locator(".ProseMirror").first().innerText()), "het scherm opent met de conceptversie");
-    await red.locator(".kb-meer summary").click();
-    await Promise.all([red.waitForNavigation(), red.locator(".kb-meer-menu a", { hasText: "Corrigeer de gepubliceerde versie" }).click()]);
-    await red.locator(".ProseMirror").first().waitFor(); await red.waitForTimeout(500); await g.dichtVensters(red);
-    ok(/twee weken/.test(await red.locator(".ProseMirror").first().innerText()), "de spoedcorrectie toont de gepubliceerde tekst");
-    await typInAlinea(red, "Bel bij spoed", " Het nummer staat op intranet.");
-    await publiceer(red, { klein: true });
-    await med.goto(B + `/artikel/${o.spoed.artikel}/browsertest-spoed`);
-    await med.locator("text=Het nummer staat op intranet").first().waitFor();
-    ok(true, "de correctie staat meteen live");
-    await g.bewerk(red, o.spoed.artikel);
-    ok(/vier weken/.test(await red.locator(".ProseMirror").first().innerText()), "de conceptversie is er nog");
+  // --- 3. De live versie verbeteren, overnemen in het concept, concept weggooien (1.33.0) -----------------
+  await stap("site: Bewerken vraagt wat je wilt als er een concept ligt", red, async () => {
+    await red.goto(B + `/artikel/${o.spoed.artikel}/${o.spoed.slug}`);
+    await red.locator("#bewerkBtn").waitFor();
+    await red.locator("#bewerkBtn").focus(); await red.keyboard.press("Enter");
+    const d = red.locator("dialog.bewerk-keuze[open]");
+    await d.waitFor();
+    ok(/ werkt sinds .* aan een nieuwe versie\. Medewerkers zien nog versie 1\./.test(await tekstVan(d.locator("#bkUitleg"))), "het venster zegt wie er aan het concept werkt", await tekstVan(d.locator("#bkUitleg")));
+    const keuzes = await d.locator(".bk-keuze b").allTextContents();
+    ok(keuzes.join("|") === "De live versie verbeteren|Verder met het concept", "twee keuzes, de live versie eerst", keuzes.join("|"));
+    await red.keyboard.press("Escape");
+    ok((await red.locator("dialog[open]").count()) === 0 && (await red.evaluate(() => document.activeElement.id)) === "bewerkBtn", "Escape sluit het venster en de focus staat weer op Bewerken");
+    await red.locator("#bewerkBtn").click();
+    await Promise.all([red.waitForURL(/change\/\?live=1/), red.locator("#bkLive").click()]);
+    await red.locator(".ProseMirror").first().waitFor(); await red.waitForTimeout(600); await g.dichtVensters(red);
+    ok((await tekstVan(red.locator(".kb-balk .kb-pil"))) === "Live versie", "de balk zegt Live versie", await tekstVan(red.locator(".kb-balk .kb-pil")));
+    ok(/twee weken/.test(await red.locator(".ProseMirror").first().innerText()), "het scherm toont wat medewerkers nu zien, niet het concept");
+    ok((await red.locator(".kb-naar-concept").count()) === 1 && (await red.locator("#kb-p-live, .kb-meer").count()) === 0, "een gewone knop Naar het concept; geen paneel en geen menu Meer");
+    await typInAlinea(red, "Komt er geen reactie", " Het nummer staat op intranet.");
+    await publiceer(red, { stil: true });
+    await med.goto(B + `/artikel/${o.spoed.artikel}/${o.spoed.slug}`);
+    await med.locator("text=Het nummer staat op intranet").first().waitFor({ state: "attached" });
+    ok((await med.locator("#bewerkBtn").count()) === 0, "de verbetering staat meteen live; een medewerker ziet geen Bewerken");
   });
 
-  await stap("editor: conceptversie weggooien", red, async () => {
+  await stap("editor: het concept laat zien wat er live is veranderd", red, async () => {
+    await red.goto(B + `/artikel/${o.spoed.artikel}/${o.spoed.slug}`);
+    await red.locator("#bewerkBtn").click();
+    await Promise.all([red.waitForURL(/change\/$/), red.locator("#bkConcept").click()]);
+    await red.locator(".ProseMirror").first().waitFor(); await red.waitForTimeout(600); await g.dichtVensters(red);
+    ok(/vier weken/.test(await red.locator(".ProseMirror").first().innerText()), "Verder met het concept opent het concept, ongewijzigd");
+    ok(/Let op: de live versie is bijgewerkt\. .*Er is 1 wijziging\./.test(await tekstVan(red.locator("#kb-live-melding"))), "de melding boven het concept", await tekstVan(red.locator("#kb-live-melding")));
+    ok((await tekstVan(red.locator("#kb-live-knop"))) === "Live wijzigingen (1)", "de knop in de balk telt mee");
+    ok((await red.locator(".kb-meer").count()) === 0, "er is geen menu Meer meer");
+  });
+
+  await stap("editor: de wijzigingen van de live versie langslopen en overnemen", red, async () => {
+    await g.bewerk(red, o.live.artikel);
+    const pm = () => red.locator(".ProseMirror").first().innerText();
+    ok(/Er zijn 4 wijzigingen\./.test(await tekstVan(red.locator("#kb-live-melding"))), "vier wijzigingen gemeld", await tekstVan(red.locator("#kb-live-melding")));
+    await red.locator("#kb-live-bekijk").focus(); await red.keyboard.press("Enter");
+    await red.locator("#kb-live-lijf .kb-live-uitleg").first().waitFor();
+    ok((await red.evaluate(() => document.activeElement.textContent)) === "Veranderd in de live versie", "het paneel opent met de focus op de kop");
+    ok((await tekstVan(red.locator("#kb-live-teller"))) === "Wijziging 1 van 4" && (await red.locator(".kb-live-stip").count()) === 4, "stap 1 van 4, met vier balkjes");
+    // 1: de alinea is ook in het concept gewijzigd.
+    ok(/zelf ook gewijzigd/.test(await tekstVan(red.locator("#kb-live-lijf .kb-live-uitleg"))), "wijziging 1: zelf aanpassen", await tekstVan(red.locator("#kb-live-lijf .kb-live-uitleg")));
+    ok((await red.locator("#kb-live-lijf ins").count()) > 0 && (await red.locator("#kb-live-lijf .kb-live-rij button").allTextContents()).join("|") === "Zet de cursor in de alinea|Ik heb het aangepast|Niet overnemen", "rood en groen, en drie knoppen", (await red.locator("#kb-live-lijf .kb-live-rij button").allTextContents()).join("|"));
+    ok(/vier weken/.test(await tekstVan(red.locator(".ProseMirror .kb-ae-live"))), "de alinea is in het blad gemarkeerd", await tekstVan(red.locator(".ProseMirror .kb-ae-live")));
+    const blad = await red.locator(".kb-blad").boundingBox(), paneel = await red.locator("#kb-p-live").boundingBox();
+    ok(blad.x + blad.width <= paneel.x + 1, "het blad staat naast het paneel, niet eronder", JSON.stringify([blad.x + blad.width, paneel.x]));
+    await red.locator("#kb-live-lijf button", { hasText: "Zet de cursor in de alinea" }).click();
+    await red.waitForTimeout(300); // de editor pakt de focus in het volgende beeldje
+    ok((await red.evaluate(() => document.activeElement.classList.contains("ProseMirror"))), "de focus staat in de tekst");
+    await red.keyboard.type(" Zelf aangevuld.");
+    ok(/vier weken een rappel\. Bel bij spoed dezelfde dag\. Zelf aangevuld\./.test(await pm()), "de cursor staat in de alinea: typen kan terwijl het paneel open is", JSON.stringify(await pm()));
+    await red.locator("#kb-live-lijf button", { hasText: "Ik heb het aangepast" }).click();
+    ok((await red.evaluate(() => document.activeElement.id)) === "kb-live-volgende", "daarna staat de focus op Volgende");
+    ok((await tekstVan(red.locator("#kb-live-lijf .kb-live-stand"))) === "Aangepast ✓", "stand: aangepast");
+    // 2: veilig overnemen.
+    await red.keyboard.press("Enter");
+    ok((await tekstVan(red.locator("#kb-live-teller"))) === "Wijziging 2 van 4" && /overnemen kan veilig/.test(await tekstVan(red.locator("#kb-live-lijf .kb-live-uitleg"))), "wijziging 2: veilig");
+    await red.locator("#kb-live-lijf button", { hasText: "Overnemen in het concept" }).click();
+    await red.locator("#kb-live-lijf .kb-live-stand-klaar").waitFor();
+    ok(/de datum en het tijdstip in het logboek/.test(await pm()) && /Zelf aangevuld/.test(await pm()), "overgenomen in de editor; eigen werk staat er nog", await pm());
+    ok(/tijdstip/.test(await tekstVan(red.locator(".ProseMirror .kb-ae-live-net"))), "de overgenomen alinea licht groen op");
+    // 3: niet overnemen, en dat terugdraaien.
+    await red.click("#kb-live-volgende");
+    ok(/nieuw in de live versie/.test(await tekstVan(red.locator("#kb-live-lijf .kb-live-uitleg"))) && (await red.locator(".ProseMirror .kb-ae-live-na").count()) === 1, "wijziging 3: nieuw, met de plek aangewezen");
+    await red.locator("#kb-live-lijf button", { hasText: "Niet overnemen" }).click();
+    ok((await tekstVan(red.locator("#kb-live-voortgang"))) === "3 van 4 verwerkt", "voortgang 3 van 4", await tekstVan(red.locator("#kb-live-voortgang")));
+    await red.click(".kb-afronden-knop");
+    ok(/dan vervallen 2 wijzigingen die live zijn gemaakt/.test(await tekstVan(venster(red))) && (await venster(red).locator(".kb-afronden-keuze").first().innerText()).startsWith("Eerst de wijzigingen langslopen"), "Afronden waarschuwt en biedt aan ze eerst langs te lopen", await tekstVan(venster(red)));
+    await red.keyboard.press("Escape");
+    await red.locator("#kb-live-lijf button", { hasText: "Toch opnieuw bekijken" }).click();
+    // Alles wat veilig kan in één keer.
+    ok((await tekstVan(red.locator("#kb-live-alles"))) === "Alle 2 veilige wijzigingen in één keer overnemen", "twee veilige wijzigingen over", await tekstVan(red.locator("#kb-live-alles")));
+    await red.click("#kb-live-alles");
+    await red.locator("#kb-live-alles:disabled").waitFor();
+    const lijst = await red.locator(".ProseMirror li").allTextContents();
+    ok(lijst.join("|") === "Noteer de datum en het tijdstip in het logboek.|Leg het antwoord vast in de zaak.|Stuur een kopie naar de mailbox.", "het nieuwe punt staat achteraan in de lijst", lijst.join("|"));
+    ok(/overleg dan met de teamleider/.test(await pm()), "ook de laatste veilige wijziging is overgenomen");
+    ok((await tekstVan(red.locator("#kb-live-voortgang"))) === "4 van 4 verwerkt" && (await tekstVan(red.locator("#kb-live-knop"))) === "Live wijzigingen ✓", "alles verwerkt");
+    ok(/De wijzigingen van de live versie zijn verwerkt\./.test(await tekstVan(red.locator("#kb-live-melding"))), "de melding wordt groen", await tekstVan(red.locator("#kb-live-melding")));
+    await red.keyboard.press("Escape");
+    ok((await red.locator("#kb-p-live.kb-open").count()) === 0 && (await red.evaluate(() => document.activeElement.id)) === "kb-live-knop", "Escape sluit het paneel; de focus staat op de knop in de balk");
+    ok((await red.locator(".ProseMirror .kb-ae-live").count()) === 0, "de markering in het blad is weg");
+    // Opslaan: de tekst én het besluit blijven staan, ook voor een collega.
+    await Promise.all([red.waitForNavigation(), afronden(red, "Opslaan als concept")]);
+    await g.bewerk(red, o.live.artikel);
+    ok(/tijdstip/.test(await pm()) && /Zelf aangevuld/.test(await pm()), "na opslaan staat alles in het concept");
+    ok((await tekstVan(red.locator("#kb-live-knop"))) === "Live wijzigingen ✓" && !(await red.locator("#kb-live-melding").isVisible()), "alles verwerkt: geen melding meer, wel de knop");
+    await red.click("#kb-live-knop");
+    ok(/Met de hand aangepast in het concept, door /.test(await tekstVan(red.locator("#kb-live-lijf .kb-live-uitleg"))), "het besluit staat er met de naam bij", await tekstVan(red.locator("#kb-live-lijf .kb-live-uitleg")));
+    await red.keyboard.press("Escape");
+  });
+
+  await stap("editor: conceptversie weggooien via Afronden", red, async () => {
     await g.bewerk(red, o.spoed.artikel);
-    await red.locator(".kb-meer summary").click();
-    await red.locator(".kb-meer-menu button", { hasText: "Conceptversie weggooien" }).click();
+    await afronden(red, "Conceptversie weggooien");
+    await red.locator("dialog[open] h2", { hasText: "Conceptversie weggooien?" }).waitFor();
     ok((await red.evaluate(() => document.activeElement.textContent)) === "Annuleren", "het venster Weggooien staat met de focus op Annuleren");
     await Promise.all([red.waitForNavigation(), vensterKnop(red, "Weggooien").click()]);
     await g.bewerk(red, o.spoed.artikel);
     ok(!/vier weken/.test(await red.locator(".ProseMirror").first().innerText()), "de conceptversie is weg");
-    ok((await red.locator(".kb-meer").count()) === 0, "zonder conceptversie is er geen menu Meer");
+    await red.click(".kb-afronden-knop");
+    ok((await venster(red).locator(".kb-afronden-keuze", { hasText: "Conceptversie weggooien" }).count()) === 0, "zonder conceptversie biedt Afronden geen weggooien aan");
+    await red.keyboard.press("Escape");
+    await red.goto(B + `/artikel/${o.spoed.artikel}/${o.spoed.slug}`);
+    await red.locator("a.tb.primary", { hasText: "Bewerken" }).waitFor();
+    ok((await red.locator("#bewerkBtn").count()) === 0, "zonder concept is Bewerken weer een gewone link");
   });
 
   // --- 4. Nieuw artikel, nieuwsbericht, kladversie -------------------------------------------------------

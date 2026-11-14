@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.32.0 .
-docker push registry.example.nl/kennisbank:1.32.0
+docker build -t registry.example.nl/kennisbank:1.33.0 .
+docker push registry.example.nl/kennisbank:1.33.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -119,7 +119,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.32.0
+  registry.example.nl/kennisbank:1.33.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -141,6 +141,23 @@ De migraties lopen automatisch mee bij het starten (of via `migreer`). Maak voor
 zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens gebeurt; alleen de
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
+
+#### Naar 1.33.0 (vanaf 1.7.0 of later)
+
+Eén migratie, `0032_concept_live_besluiten`: een nieuw veld bij de conceptversie, leeg voor bestaande
+conceptversies. Bestaande gegevens veranderen niet.
+
+- **De live versie verbeteren** terwijl er een concept ligt, begint voortaan op de site (*Bewerken* vraagt wat
+  je wilt) en niet meer in het bewerkscherm van het concept. Het adres is `…/change/?live=1`; het oude
+  `?spoed=1` blijft werken, voor wie er een bladwijzer van heeft.
+- **De API** geeft bij `GET /api/v1/artikelen/<id>` een nieuw veld `bewerk_concept` (leeg voor wie niet mag
+  redigeren, en als er geen concept is). Een koppeling die onbekende velden negeert, merkt er niets van.
+- **Nieuw bestand** `kennisbank/static/kennisbank/live-wijzigingen.js`. Loopt `collectstatic` in een eigen stap,
+  draai die dan opnieuw.
+- **Voor de redactie verandert er iets:** de woorden *spoedcorrectie* en *kleine correctie* en het menu *Meer*
+  zijn uit de schermen. Zie het hoofdstuk *De live versie verbeteren terwijl er een concept ligt* in
+  [functioneel-beheer.md](functioneel-beheer.md). Het veld `kleine_correctie` in de database blijft en betekent hetzelfde: geen melding aan medewerkers.
+- Ctrl+F5 na de upgrade.
 
 #### Naar 1.32.0 (vanaf 1.7.0 of later)
 

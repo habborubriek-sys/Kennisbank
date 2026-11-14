@@ -34,12 +34,14 @@ versie tegen. Zie [scripts/browsertests/README.md](../scripts/browsertests/READM
 | Beheer: bewerkscherm | geen overtredingen | – |
 | Beheer: venster Afronden | geen overtredingen | – |
 | Beheer: panelen Eigenschappen en Geschiedenis | geen overtredingen | – |
-| Beheer: bewerkscherm met conceptversie en menu Meer | geen overtredingen | – |
+| Beheer: bewerkscherm met conceptversie; venster Afronden daarbij; venster *Moeten medewerkers dit weten?*; bewerkscherm van de live versie (1.33.0) | geen overtredingen | – |
+| Beheer: concept met de melding dat de live versie is bijgewerkt; paneel *Veranderd in de live versie* in drie standen; venster Afronden met live wijzigingen (1.33.0) | geen overtredingen | – |
+| Site: venster *Dit artikel heeft een concept* bij Bewerken, licht en donker (1.33.0) | geen overtredingen | – |
 | Beheer: bewerkscherm ter inzage, met lade en opmerking | geen overtredingen | – |
 | Beheer: lade open, en met de steun uitgeklapt | geen overtredingen | – |
 | Beheer: vensters Afhandelen, Afwijzen en Dubbel in de lade | geen overtredingen | – |
 
-Samen 45 metingen. De uitbreiding in 1.32.0 vond twee fouten die eerder niet waren gemeten; beide zijn hersteld:
+Samen 55 metingen (45 tot 1.33.0). De uitbreiding in 1.32.0 vond twee fouten die eerder niet waren gemeten; beide zijn hersteld:
 een artikel zonder tags had op de site een lege groep met een naam (`aria-prohibited-attr`), en in donker had
 het gekozen filter bij *Verbetervoorstellen* te weinig contrast (2,2:1; nu ruim boven 4,5:1).
 

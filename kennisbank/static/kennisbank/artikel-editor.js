@@ -217,6 +217,49 @@
     return T.DecorationSet.create(doc, deco);
   }
 
+  /* Wijzigingen in de live versie (1.33.0): één alinea aanwijzen, als decoratie. `m` is {sleutel, nr} zoals
+   * de server hem geeft: de tekst van de alinea zonder witruimte, en de hoeveelste alinea met die tekst het is.
+   * Met `na`/`voor` een streep eronder of erboven (daar komt nieuwe tekst), met `net` groen (zojuist overgenomen). */
+  var liveSleutel = new T.PluginKey("kbLive");
+
+  function liveStaat(doc, m) {
+    if (!m || !m.sleutel) return { m: null, pos: null, eind: null, deco: T.DecorationSet.empty };
+    var nr = 0, pos = null, eind = null;
+    doc.descendants(function (node, p) {
+      if (pos !== null) return false;
+      if (!node.isTextblock) return true;
+      if (node.textContent.replace(/\s+/g, "") === m.sleutel) {
+        if (nr === (m.nr || 0)) { pos = p; eind = p + node.nodeSize; }
+        nr++;
+      }
+      return false;
+    });
+    if (pos === null) return { m: m, pos: null, eind: null, deco: T.DecorationSet.empty };
+    var klasse = "kb-ae-live" + (m.net ? " kb-ae-live-net" : m.na ? " kb-ae-live-na" : m.voor ? " kb-ae-live-voor" : "");
+    return { m: m, pos: pos, eind: eind, deco: T.DecorationSet.create(doc, [T.Decoration.node(pos, eind, { class: klasse })]) };
+  }
+
+  var Live = T.Extension.create({
+    name: "kbLive",
+    addProseMirrorPlugins: function () {
+      return [
+        new T.Plugin({
+          key: liveSleutel,
+          state: {
+            init: function () { return liveStaat(null, null); },
+            apply: function (tr, oud, _o, nieuw) {
+              var m = tr.getMeta(liveSleutel);
+              if (m !== undefined) return liveStaat(nieuw.doc, m);
+              if (tr.docChanged && oud.m) return liveStaat(nieuw.doc, oud.m);
+              return oud;
+            },
+          },
+          props: { decorations: function (state) { return liveSleutel.getState(state).deco; } },
+        }),
+      ];
+    },
+  });
+
   function sectieVoor(doc, pos) {
     var kop = "";
     doc.nodesBetween(0, pos, function (node, p) {
@@ -804,6 +847,7 @@
         Sectie,
         Onboarding,
         Opmerkingen,
+        Live,
         Voorstellen.configure({ opKlik: function (id) { if (opties.opVoorstel) opties.opVoorstel(id); else if (window.kbOpVoorstel) window.kbOpVoorstel(id); } }),
       ],
       editorProps: {
@@ -848,6 +892,22 @@
         var dom = ed.view.domAtPos(v._plek.from);
         var node = dom.node.nodeType === 1 ? dom.node : dom.node.parentElement;
         if (node && node.scrollIntoView) node.scrollIntoView({ block: "center", behavior: "smooth" });
+        return true;
+      },
+      // 1.33.0: de alinea van een wijziging in de live versie aanwijzen (null = niets). Geeft terug of hij is
+      // gevonden. Met schuif=true komt hij in beeld, met focus=true staat de cursor erin.
+      liveMarkeer: function (m, opties) {
+        opties = opties || {};
+        ed.view.dispatch(ed.state.tr.setMeta(liveSleutel, m || null).setMeta("addToHistory", false));
+        var st = liveSleutel.getState(ed.state);
+        if (st.pos === null) return false;
+        // De cursor aan het eind van de alinea: daar ga je meestal verder met typen.
+        if (opties.focus) ed.chain().focus().setTextSelection(st.eind - 1).run();
+        if (opties.schuif) {
+          var node = ed.view.nodeDOM(st.pos);
+          var rustig = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          if (node && node.scrollIntoView) node.scrollIntoView({ block: "center", behavior: rustig ? "auto" : "smooth" });
+        }
         return true;
       },
       tekenMarge: function () { if (opm) opm.teken(); },

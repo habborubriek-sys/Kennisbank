@@ -94,7 +94,7 @@ Voor test en demo: `KB_EMAIL_HOST=console` verstuurt niets maar schrijft elke e-
 
 ### E-mail bij wijziging van een favoriet artikel
 
-Wie een artikel als favoriet heeft, krijgt een e-mail als het inhoudelijk wijzigt (niet bij een *kleine correctie*). Elke medewerker kan dit zelf uitzetten onder *Instellingen* in het menu; IT bepaalt de werkwijze:
+Wie een artikel als favoriet heeft, krijgt een e-mail als het inhoudelijk wijzigt (niet als de redacteur bij publiceren kiest dat medewerkers het niet hoeven te weten). Elke medewerker kan dit zelf uitzetten onder *Instellingen* in het menu; IT bepaalt de werkwijze:
 
 | Variabele | Standaard | Omschrijving |
 |---|---|---|

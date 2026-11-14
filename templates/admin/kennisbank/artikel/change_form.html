@@ -21,12 +21,12 @@
   <div class="kb-balk-titel">{% if original %}{{ original.titel }}{% else %}Nieuw artikel{% endif %}</div>
   <div class="kb-balk-sub">
     {% if kb_spoed %}
-    <span class="kb-pil kb-pil-spoed">Spoedcorrectie</span>
-    <span class="kb-balk-meta">Je past versie {{ original.versie }} aan, wat medewerkers nu zien</span>
+    <span class="kb-pil kb-pil-spoed">Live versie</span>
+    <span class="kb-balk-meta">Je verbetert versie {{ original.versie }}: wat medewerkers nu zien. Het concept blijft zoals het is.</span>
     {% elif kb_concept %}
     <span class="kb-pil">Conceptversie</span>
     {% if kb_balk_stand %}<span class="kb-stand kb-stand-{{ kb_balk_stand.soort }}">{{ kb_balk_stand.tekst }}</span>{% endif %}
-    <span class="kb-balk-meta">Medewerkers zien versie {{ original.versie }} · bijgewerkt door {{ kb_concept_bijgewerkt_door }}, {{ kb_concept.bijgewerkt_op|date:"j F H:i" }}</span><span id="kb-laatst-door" hidden>{{ kb_concept_bijgewerkt_door }}</span>
+    <span class="kb-balk-meta">Medewerkers zien <a href="{{ kb_live_bekijken }}" target="_blank" rel="noopener" title="Bekijk de live versie in een nieuw tabblad">versie {{ original.versie }}</a> · bijgewerkt door {{ kb_concept_bijgewerkt_door }}, {{ kb_concept.bijgewerkt_op|date:"j F H:i" }}</span><span id="kb-laatst-door" hidden>{{ kb_concept_bijgewerkt_door }}</span>
     {% elif original and original.versie %}
     <span class="kb-pil kb-pil-rustig">{{ original.get_status_display }}</span>
     {% if kb_balk_stand %}<span class="kb-stand kb-stand-{{ kb_balk_stand.soort }}">{{ kb_balk_stand.tekst }}</span>{% endif %}
@@ -44,21 +44,9 @@
     <button type="button" class="kb-bk" data-kb-paneel="eig" aria-expanded="false" aria-controls="kb-p-eig">Eigenschappen</button>
     {% if original %}<button type="button" class="kb-bk" data-kb-paneel="gesch" aria-expanded="false" aria-controls="kb-p-gesch">Geschiedenis</button>{% endif %}
     {% if kb_review_teams %}<button type="button" class="kb-bk" data-kb-paneel="rev" aria-expanded="false" aria-controls="kb-p-rev">Review</button>{% endif %}
-    {% if kb_spoed or kb_concept %}
-    <details class="kb-meer">
-      <summary class="kb-bk">Meer <span aria-hidden="true">▾</span></summary>
-      <div class="kb-meer-menu">
-        {% if kb_spoed %}
-        <a href="{{ kb_concept_url }}">Terug naar de conceptversie</a>
-        {% else %}
-        <a href="{{ kb_concept_bekijken }}" target="_blank" rel="noopener">Bekijk de gepubliceerde versie</a>
-        <a href="?spoed=1">Corrigeer de gepubliceerde versie<small>Een kleine, dringende fout verbeteren in wat medewerkers nu zien, zonder de conceptversie te raken</small></a>
-        {% if not kb_review.op_slot %}<button type="submit" class="kb-meer-gevaar kb-concept-weg" name="_weggooien" formaction="{{ kb_concept_weggooien }}" formnovalidate
-          data-kb-vraag-titel="Conceptversie weggooien?" data-kb-vraag="Het werk in de conceptversie is daarna weg. Medewerkers blijven versie {{ original.versie }} zien." data-kb-vraag-knop="Weggooien">Conceptversie weggooien</button>{% endif %}
-        {% endif %}
-      </div>
-    </details>
-    {% endif %}
+    {# 1.33.0 (L4): het menu Meer is weg. Weggooien staat in Afronden; de live versie verbeter je via Bewerken op de site. #}
+    {% if kb_live %}<button type="button" class="kb-bk" data-kb-paneel="live" id="kb-live-knop" aria-expanded="false" aria-controls="kb-p-live">Live wijzigingen{% if kb_live.telling.open %} ({{ kb_live.telling.open }}){% else %} ✓{% endif %}</button>{% endif %}
+    {% if kb_spoed %}<a class="kb-bk kb-naar-concept" href="{{ kb_concept_url }}">Naar het concept</a>{% endif %}
   </nav>
   <div class="kb-balk-afronden">
     {% if kb_afronden %}<button type="button" class="kb-afronden-knop">Afronden…</button>
@@ -74,9 +62,9 @@
 {% if kb_concept_collegas %}<input type="hidden" id="kb-concept-collegas" value="{{ kb_concept_collegas }}">{% endif %}
 {% if kb_spoed %}
 <div class="kb-banner kb-banner-spoed" role="status">
-  <p><strong>Spoedcorrectie: je past de gepubliceerde versie aan</strong> (versie {{ original.versie }}, wat medewerkers nu zien).
-    De conceptversie blijft ongewijzigd{% if kb_spoed_op_slot %} en ligt nog ter inzage{% endif %}. Neem de correctie straks
-    zelf mee in de conceptversie.</p>
+  <p><strong>Je verbetert de live versie</strong> (versie {{ original.versie }}, wat medewerkers nu zien).
+    Het concept blijft ongewijzigd{% if kb_spoed_op_slot %} en ligt nog ter inzage{% endif %}. Wie het concept daarna opent,
+    ziet wat je hier hebt veranderd en kan het overnemen.</p>
 </div>
 {% endif %}
 {% if kb_review.op_slot %}
@@ -84,14 +72,26 @@
   <input type="hidden" id="kb-op-slot" value="1">
   <p><strong>Deze conceptversie ligt ter inzage en staat op slot.</strong> Je kunt hem pas weer wijzigen, publiceren
     of weggooien als het team reageert of als je hem terugroept (Afronden → Terugroepen). Een dringende fout in wat
-    medewerkers nu zien, verbeter je met <strong>Corrigeer de gepubliceerde versie</strong>.</p>
+    medewerkers nu zien, verbeter je buiten het concept: open het artikel op de site, kies <strong>Bewerken</strong> en
+    dan <strong>De live versie verbeteren</strong>.</p>
+</div>
+{% endif %}
+{% if kb_live %}
+{# 1.33.0 (L2): de live versie is bijgewerkt nadat dit concept begon. live-wijzigingen.js houdt de tekst bij. #}
+<div class="kb-banner kb-live-melding{% if not kb_live.telling.open %} kb-live-klaar{% endif %}" id="kb-live-melding"{% if not kb_live.telling.vervalt and not kb_live.eigenschappen %} hidden{% endif %}>
+  <div class="kb-live-melding-tekst" role="status">
+    <p><strong id="kb-live-kop">{% if kb_live.telling.open %}Let op: de live versie is bijgewerkt.{% else %}De wijzigingen van de live versie zijn verwerkt.{% endif %}</strong>
+      <span id="kb-live-zin">{% if kb_live.telling.open %}Dit concept komt niet meer overeen met de publicatie. Er {% if kb_live.telling.totaal == 1 %}is 1 wijziging{% else %}zijn {{ kb_live.telling.totaal }} wijzigingen{% endif %}{% if kb_live.telling.open != kb_live.telling.totaal %}, waarvan nog {{ kb_live.telling.open }} te doen{% endif %}.{% elif kb_live.telling.niet %}{{ kb_live.telling.niet }} bewust niet overgenomen: publiceren vervangt die.{% endif %}</span></p>
+    {% if kb_live.eigenschappen %}<p class="kb-live-eig">Ook live gewijzigd: {{ kb_live.eigenschappen|join:", " }}. Dat neem je zelf over in <strong>Eigenschappen</strong>; anders zet publiceren het terug.</p>{% endif %}
+  </div>
+  {% if kb_live.wijzigingen %}<button type="button" class="button kb-live-bekijk" id="kb-live-bekijk">{% if kb_live.telling.open %}Loop de wijzigingen langs ({{ kb_live.telling.open }}){% else %}Nog eens bekijken{% endif %}</button>{% endif %}
 </div>
 {% endif %}
 {% if kb_concept_artikel_gewijzigd %}
 <div class="kb-banner" role="status">
-  <p class="kb-conceptlet"><strong>Let op:</strong> de gepubliceerde versie is gewijzigd nadat deze conceptversie begon
-    (bijvoorbeeld een spoedcorrectie of een import). Neem die wijziging mee in de conceptversie, anders draait publiceren hem
-    terug. Kijk in de Geschiedenis wat er veranderde.</p>
+  <p class="kb-conceptlet"><strong>Let op: de live versie is bijgewerkt.</strong> Dit concept komt niet meer overeen met
+    de publicatie. Neem de wijziging zelf mee in het concept, anders draait publiceren hem terug. Kijk in de Geschiedenis
+    wat er veranderde.</p>
 </div>
 {% endif %}
 
@@ -156,6 +156,29 @@
 </aside>
 {% endif %}
 
+{% if kb_live %}
+{# 1.33.0 (L2): de wijzigingen van de live versie, één voor één. Het blad blijft ernaast zichtbaar en bewerkbaar. #}
+{{ kb_live|json_script:"kb-live-gegevens" }}
+<input type="hidden" name="kb_live_besluiten" id="kb-live-besluiten" value="{{ kb_live_besluiten }}">
+<aside class="kb-paneel kb-paneel-live" id="kb-p-live" aria-label="Veranderd in de live versie">
+  <div class="kb-paneel-kop"><h2>Veranderd in de live versie</h2><button type="button" class="kb-paneel-sluit" aria-label="Paneel sluiten">✕</button></div>
+  <p class="kb-paneel-uitleg">Van versie {{ kb_live.basis_versie }} naar versie {{ kb_live.live_versie }}{% if kb_live.wie %}, door {{ kb_live.wie }}{% endif %}.
+    <a href="{{ kb_live.bekijken }}" target="_blank" rel="noopener">Bekijk de live versie</a></p>
+  {% if kb_live.op_slot %}<p class="kb-live-uitleg kb-live-let">Het concept ligt ter inzage en staat op slot. Je kunt de wijzigingen bekijken; overnemen kan na terugroepen.</p>{% endif %}
+  <div class="kb-live-nav">
+    <button type="button" class="button kb-knop-rustig" id="kb-live-vorige">← Vorige</button>
+    <span class="kb-live-teller" id="kb-live-teller" role="status"></span>
+    <button type="button" class="button kb-knop-rustig" id="kb-live-volgende">Volgende →</button>
+  </div>
+  <div class="kb-live-stippen" id="kb-live-stippen" role="group" aria-label="Alle wijzigingen"></div>
+  <div class="kb-live-lijf" id="kb-live-lijf"></div>
+  <div class="kb-live-voet">
+    <button type="button" class="button kb-knop-rustig" id="kb-live-alles"{% if kb_live.op_slot %} hidden{% endif %}></button>
+    <div class="kb-live-voortgang"><span id="kb-live-voortgang" role="status"></span><span class="kb-live-legenda" aria-hidden="true"><ins>nieuw</ins> <del>weg</del></span></div>
+  </div>
+</aside>
+{% endif %}
+
 {% if kb_review_teams %}
 <aside class="kb-paneel kb-paneel-review" id="kb-p-rev" aria-label="Review">
   <div class="kb-paneel-kop"><h2>Review</h2><button type="button" class="kb-paneel-sluit" aria-label="Review sluiten">✕</button></div>
@@ -212,6 +235,8 @@
 {% if kb_kan_concept and not kb_review.op_slot and not kb_spoed %}
 <div class="submit-row kb-conceptrij">
   <button type="submit" class="button kb-concept-opslaan" name="_conceptversie" value="1">Opslaan als conceptversie</button>
+  {% if kb_concept %}<button type="submit" class="button kb-concept-weg" name="_weggooien" formaction="{{ kb_concept_weggooien }}" formnovalidate
+    data-kb-vraag-titel="Conceptversie weggooien?" data-kb-vraag="Het werk in de conceptversie is daarna weg. Medewerkers blijven versie {{ original.versie }} zien." data-kb-vraag-knop="Weggooien">Conceptversie weggooien</button>{% endif %}
   <span class="kb-concepthint">{% if kb_concept %}Publiceren zet de conceptversie live voor alle medewerkers.{% else %}Publiceren zet je wijziging meteen live voor alle medewerkers.{% endif %}</span>
 </div>
 {% endif %}

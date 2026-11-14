@@ -332,7 +332,9 @@ class NietHangen(RondeABasis):
         self.post(f"{self.url}?spoed=1", data, _save="1")
         v.refresh_from_db()
         self.assertEqual(v.verwerkt_in_versie, 2)
-        self.assertTrue(LogEntry.objects.filter(object_id=str(v.pk), change_message__contains="spoedcorrectie"))
+        self.assertTrue(
+            LogEntry.objects.filter(object_id=str(v.pk), change_message__contains="verbetering van de live versie")
+        )
 
     def test_a11_afgewezen_is_niet_meer_meegenomen(self):
         v = self.voorstel()

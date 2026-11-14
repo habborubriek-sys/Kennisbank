@@ -157,7 +157,7 @@
         vorigeOnbewaard = nuOnbewaard;
       }
       if (opSlot) m.appendChild(el("div", "kb-lade-melding kb-lade-slot", "Deze versie ligt ter inzage. Meenemen kan nu niet. Een bericht sturen kan wel, en voorstellen die niet zijn meegenomen, kun je afwijzen."));
-      if (spoed) m.appendChild(el("div", "kb-lade-melding kb-lade-spoed", "Spoedcorrectie: wat je hier meeneemt, geldt als verwerkt zodra je deze correctie publiceert."));
+      if (spoed) m.appendChild(el("div", "kb-lade-melding kb-lade-spoed", "Je verbetert de live versie: wat je hier meeneemt, geldt als verwerkt zodra je publiceert."));
       var na = naAkkoord();
       if (na.length) m.appendChild(el("div", "kb-lade-melding kb-lade-onbewaard", "Na het akkoord meegenomen: " + na.map(function (v) { return "voorstel " + nr(v); }).join(", ") + ". De reviewer heeft dat niet gezien. Controleer of het echt is verwerkt."));
       var o = aantalOnbewaard();
@@ -263,7 +263,7 @@
       else if (v.citaat && mee[v.id] && i.gevonden) d.appendChild(el("div", "kb-vk-let", "Meegenomen, maar de tekst staat nog ongewijzigd in het artikel. Al aangepast?"));
       else if (v.citaat && !i.gevonden) d.appendChild(el("div", "kb-vk-weg", "Deze tekst staat niet meer letterlijk in het artikel."));
       var spoedSlot = spoed && v.mee && g.op_slot;
-      if (spoed && v.mee) d.appendChild(el("div", "kb-vk-let", spoedSlot ? "Dit voorstel is meegenomen in de conceptversie die ter inzage ligt. Je kunt het niet in deze spoedcorrectie meenemen; het hoort bij de review." : "Dit voorstel is al meegenomen in de conceptversie. Neem je het hier mee, dan geldt het als verwerkt in deze correctie."));
+      if (spoed && v.mee) d.appendChild(el("div", "kb-vk-let", spoedSlot ? "Dit voorstel is meegenomen in de conceptversie die ter inzage ligt. Je kunt het hier niet meenemen; het hoort bij de review." : "Dit voorstel is al meegenomen in de conceptversie. Neem je het hier mee, dan geldt het als verwerkt in deze verbetering van de live versie."));
       if (v.verwerkt_in_versie) {
         var vw = el("div", "kb-vk-let", "Al verwerkt in versie " + v.verwerkt_in_versie + ", maar nog niet afgehandeld. ");
         var link = el("a", null, "Nu afhandelen");
@@ -281,7 +281,7 @@
       vak.setAttribute("data-kb-focus", "mee-" + v.id);
       lab.appendChild(vak);
       var tekst = el("span");
-      tekst.appendChild(el("b", null, spoed ? "Meenemen in deze spoedcorrectie" : "Meenemen in deze versie"));
+      tekst.appendChild(el("b", null, spoed ? "Meenemen in deze verbetering" : "Meenemen in deze versie"));
       if (mee[v.id] !== bewaard[v.id]) tekst.appendChild(document.createTextNode(" · nog niet opgeslagen"));
       if (opSlot) tekst.appendChild(document.createTextNode(" · kan niet terwijl de versie ter inzage ligt"));
       lab.appendChild(tekst);

@@ -861,6 +861,10 @@ class Conceptversie(models.Model):
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
     bijgewerkt_op = models.DateTimeField(default=timezone.now)
+    #: 1.33.0: wat de redactie heeft besloten over wijzigingen in de live versie die niet aan de tekst te
+    #: zien zijn (niet overnemen, met de hand aangepast, gezien). Per wijziging: besluit, door wie en wanneer.
+    #: Gedeeld door iedereen die aan dit concept werkt. Zie livewijzigingen.py.
+    live_besluiten = models.JSONField(default=dict, blank=True)
 
     class Meta:
         verbose_name = "conceptversie"

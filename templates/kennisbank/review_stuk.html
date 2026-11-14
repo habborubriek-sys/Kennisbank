@@ -40,8 +40,8 @@
     {% endif %}
     <h1 id="rv-titel" class="rv-blad-titel">{{ titel_verschil }}</h1>
     {% if samenvatting_verschil %}<p class="rv-samenvatting">{{ samenvatting_verschil }}</p>{% endif %}
-    {% if gepubliceerd_gewijzigd %}<p class="rv-let-op"><b>Let op:</b> de gepubliceerde versie is aangepast nadat deze conceptversie begon
-      (bijvoorbeeld een spoedcorrectie). Wat je hieronder als "weg" ziet, kan die correctie zijn; de redacteur neemt hem nog mee.</p>{% endif %}
+    {% if gepubliceerd_gewijzigd %}<p class="rv-let-op"><b>Let op:</b> de live versie is bijgewerkt nadat deze conceptversie begon.
+      Wat je hieronder als "weg" ziet, kan die verbetering zijn; de redacteur neemt hem nog over in het concept.</p>{% endif %}
     {% if voorstellen or voorstellen_verborgen %}
     {# 1.27.0: waarom deze wijziging? De meegenomen verbetervoorstellen, zonder de naam van de indiener. #}
     {# 1.30.0: genummerd en blauw in de tekst, zoals in de editor. #}

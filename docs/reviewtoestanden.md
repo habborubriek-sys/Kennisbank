@@ -62,7 +62,8 @@ bewaard voor de versiegeschiedenis.
 | Conceptversie weggooien | ja | nee, eerst terugroepen |
 | Ter inzage geven | ja | nee, ligt er al |
 | Terugroepen | – | ja; is een team al bezig, dan eerst een bevestiging |
-| Spoedcorrectie op de gepubliceerde versie | ja | ja |
+| De live versie verbeteren (via *Bewerken* op de site) | ja | ja |
+| Wijzigingen van de live versie overnemen in het concept | ja | nee, alleen bekijken |
 | Opmerkingen van het team zien | na teruggeven of akkoord; na terugroepen als *voorlopig* | nee |
 | Bericht aan de indiener van een voorstel, interne notitie | ja | ja |
 
@@ -86,7 +87,7 @@ naam van de indiener, en geen notities of berichten van de redactie. Een verborg
 | Meenemen aan- of uitzetten | ja; telt bij opslaan | nee |
 | Een meegenomen voorstel afhandelen, afwijzen of ontdubbelen | ja | nee, tot de review terug is |
 | Een voorstel dat niet is meegenomen afhandelen, afwijzen of ontdubbelen | ja | ja |
-| Een meegenomen voorstel in een spoedcorrectie meenemen | ja | nee; het hoort bij de review |
+| Een meegenomen voorstel meenemen bij het verbeteren van de live versie | ja | nee; het hoort bij de review |
 
 Dat geldt op elke weg: in de lade, via de API (`PATCH /api/v1/voorstellen/<id>` geeft 409) en in oude schermen.
 
@@ -94,8 +95,8 @@ Welke voorstellen meegenomen waren op het moment van ter inzage geven, wordt bij
 redacteur na een akkoord nog een voorstel mee, dan heeft de reviewer dat niet gezien; het bewerkscherm waarschuwt
 daarvoor in het venster Afronden.
 
-Bij publiceren krijgen de meegenomen voorstellen het nummer van de nieuwe versie, ook bij een kleine correctie
-(sinds 1.31.2). Publiceren zonder inhoudelijke wijziging geeft geen nieuwe versie; de voorstellen staan dan weer
+Bij publiceren krijgen de meegenomen voorstellen het nummer van de nieuwe versie, ook als medewerkers er geen
+melding van krijgen (sinds 1.31.2). Publiceren zonder inhoudelijke wijziging geeft geen nieuwe versie; de voorstellen staan dan weer
 open.
 
 ## Wat er in de versiegeschiedenis komt

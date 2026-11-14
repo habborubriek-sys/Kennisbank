@@ -234,7 +234,7 @@
   var inhoudEditor = null;
 
   function kladversie() {
-    // Bij een spoedcorrectie geen kladversie: die hoort bij het werk aan de conceptversie.
+    // Wie de live versie verbetert terwijl er een concept ligt, krijgt geen kladversie: die hoort bij het concept.
     if (document.getElementById("kb-spoed")) return;
     var m = location.pathname.match(/^(.*)\/kennisbank\/artikel\/(?:(\d+)\/change|add)\/$/);
     var form = document.querySelector("#artikel_form, form#content-main form, #content form");
@@ -724,7 +724,13 @@
           keuzes.push({ tekst: "Opslaan als concept", uitleg: "Medewerkers merken niets. Je kunt later verder.", doen: function () { klik('button[name="_conceptversie"]'); } });
           if (cfg.teams.length) keuzes.push({ tekst: "Ter inzage geven", uitleg: "Eerst opslaan, dan naar een reviewteam.", doen: terInzage });
         }
-        keuzes.push({ tekst: "Publiceren", uitleg: cfg.spoed ? "De correctie gaat meteen live voor alle medewerkers." : "Alle medewerkers zien deze tekst meteen.", doen: function () { klik('input[name="_save"].kb-publiceren'); } });
+        // 1.33.0 (L2): wat er live is veranderd en nog niet in dit concept staat, vervalt bij publiceren.
+        var live = !cfg.spoed && window.kbLive ? window.kbLive.telling() : null;
+        var verlies = live && live.vervalt ? " " + (live.vervalt === 1 ? "Eén live wijziging gaat" : live.vervalt + " live wijzigingen gaan") + " verloren." : "";
+        if (live && live.open) keuzes.unshift({ tekst: "Eerst de wijzigingen langslopen", uitleg: "Neem over wat er in de live versie is veranderd.", doen: window.kbLive.toon });
+        keuzes.push({ tekst: "Publiceren", uitleg: cfg.spoed ? "De verbetering gaat meteen live voor alle medewerkers." : "Alle medewerkers zien deze tekst meteen." + verlies, doen: function () { klik('input[name="_save"].kb-publiceren'); } });
+        // 1.33.0 (L4): stond onder Meer. De knop zelf vraagt nog om bevestiging.
+        if (cfg.weggooien) keuzes.push({ tekst: "Conceptversie weggooien", uitleg: "Het werk in het concept is daarna weg. Medewerkers blijven de live versie zien.", doen: function () { klik('button[name="_weggooien"]'); }, rustig: true });
       }
       keuzes.push({ tekst: "Afbreken", uitleg: "Sluiten zonder op te slaan.", doen: afbreken, rustig: true });
 
@@ -748,6 +754,8 @@
       if (cfg.akkoord && gewijzigd()) alineas.push("Let op: je hebt de tekst gewijzigd na het akkoord van het reviewteam. Sla je op of publiceer je, dan geldt het akkoord niet meer.");
       // Ronde A (M7/M13): voorstellen die meegenomen zijn maar misschien nog niet behandeld.
       if (window.kbVoorstelWaarschuwingen) alineas = alineas.concat(window.kbVoorstelWaarschuwingen());
+      var liveNu = !cfg.spoed && !cfg.op_slot && window.kbLive ? window.kbLive.telling() : null;
+      if (liveNu && liveNu.vervalt) alineas.push("De live versie is bijgewerkt nadat dit concept begon. Publiceer je nu, dan " + (liveNu.vervalt === 1 ? "vervalt 1 wijziging" : "vervallen " + liveNu.vervalt + " wijzigingen") + " die live " + (liveNu.vervalt === 1 ? "is" : "zijn") + " gemaakt.");
       venster = vensterTonen({ titel: "Afronden", alineas: alineas, inhoud: lijst, knoppen: [{ tekst: "Annuleren" }] });
     });
 
@@ -787,55 +795,76 @@
     });
   }
 
+  /* 1.33.0 (L3): bij publiceren één vraag, "Moeten medewerkers dit weten?". Ja = een toelichting, die
+   * medewerkers als melding zien. Nee = stil bijwerken. Dat laatste had vóór 1.33.0 een eigen naam en een vinkje; het veld
+   * kleine_correctie bestaat nog en krijgt hier zijn waarde. */
   function vraagToelichting(melding, daarna) {
     var toel = veld("wijzigingstoelichting");
     var klein = veld("kleine_correctie");
     var vak = document.createElement("div");
-    vak.className = "kb-venster-veld";
+    vak.className = "kb-venster-veld kb-weten";
+    function keuze(id, tekst, uitleg, aan) {
+      var l = document.createElement("label");
+      l.className = "kb-venster-keuze kb-weten-keuze";
+      var i = document.createElement("input");
+      i.type = "radio";
+      i.name = "kb-weten";
+      i.id = id;
+      i.checked = aan;
+      var t = document.createElement("span");
+      var b = document.createElement("strong");
+      b.textContent = tekst;
+      t.appendChild(b);
+      t.appendChild(document.createTextNode(" " + uitleg));
+      l.appendChild(i);
+      l.appendChild(t);
+      vak.appendChild(l);
+      return i;
+    }
+    var stil = !!(klein && klein.checked);
+    var ja = keuze("kb-weten-ja", "Ja.", "Ze krijgen een melding bij het artikel; wie het als favoriet heeft, krijgt een e-mail.", !stil);
+    var veldVak = document.createElement("div");
+    veldVak.className = "kb-weten-toel";
     var label = document.createElement("label");
-    label.textContent = "Wat is er gewijzigd?";
+    label.textContent = "Wat is er gewijzigd? In één zin, voor medewerkers.";
     label.setAttribute("for", "kb-toel");
     var invoer = document.createElement("textarea");
     invoer.id = "kb-toel";
     invoer.rows = 3;
     invoer.maxLength = 300;
     invoer.value = toel ? toel.value : "";
-    var keuze = document.createElement("label");
-    keuze.className = "kb-venster-keuze";
-    var hok = document.createElement("input");
-    hok.type = "checkbox";
-    keuze.appendChild(hok);
-    keuze.appendChild(document.createTextNode(" Kleine correctie (typfout of opmaak): geen melding en geen e-mail"));
+    veldVak.appendChild(label);
+    veldVak.appendChild(invoer);
+    vak.appendChild(veldVak);
+    var nee = keuze("kb-weten-nee", "Nee.", "Stil bijwerken, bijvoorbeeld bij een typfout of opmaak. De wijziging komt wel in de geschiedenis.", stil);
     var fout = document.createElement("p");
     fout.className = "kb-venster-fout";
+    fout.setAttribute("role", "alert");
     fout.hidden = true;
-    vak.appendChild(label);
-    vak.appendChild(invoer);
-    vak.appendChild(keuze);
     vak.appendChild(fout);
+    function bij() { veldVak.hidden = nee.checked; fout.hidden = true; }
+    ja.addEventListener("change", bij);
+    nee.addEventListener("change", bij);
+    bij();
     function opslaan() {
-      if (!hok.checked && !invoer.value.trim()) {
-        fout.textContent = "Geef in één zin aan wat er is gewijzigd, of vink 'Kleine correctie' aan.";
+      if (!nee.checked && !invoer.value.trim()) {
+        fout.textContent = "Geef in één zin aan wat er is gewijzigd, of kies Nee als medewerkers dit niet hoeven te weten.";
         fout.hidden = false;
         invoer.focus();
         return false;
       }
-      if (toel) toel.value = invoer.value;
-      if (klein) klein.checked = hok.checked;
+      if (toel) toel.value = nee.checked ? "" : invoer.value;
+      if (klein) klein.checked = nee.checked;
       if (daarna) daarna();
       return true;
     }
-    hok.addEventListener("change", function () { invoer.disabled = hok.checked; });
     vensterTonen({
-      titel: "Wat is er gewijzigd?",
-      alineas: [
-        melding ||
-          "Na het publiceren krijgen medewerkers jouw toelichting als melding te zien; " +
-            "wie het artikel als favoriet heeft, krijgt hem per e-mail.",
-      ],
+      titel: "Moeten medewerkers dit weten?",
+      alineas: melding ? [melding] : [],
       inhoud: vak,
       knoppen: [{ tekst: "Annuleren" }, { tekst: "Publiceren", primair: true, doen: opslaan }],
     });
+    if (!stil) invoer.focus();
     return true;
   }
 

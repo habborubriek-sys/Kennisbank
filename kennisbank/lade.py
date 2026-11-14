@@ -216,7 +216,7 @@ def meenemen_opslaan(request, artikel, *, spoed=False, telt=True) -> list:
             spoed_ids.append(v.pk)
             _eigenaar_worden(request, v)
             if model_admin:
-                model_admin.log_change(request, v, "Meegenomen in een spoedcorrectie.")
+                model_admin.log_change(request, v, "Meegenomen in een verbetering van de live versie.")
             continue
         gewenst = v.pk in mee
         was = (v.pk in geladen) if geladen is not None else v.in_conceptversie

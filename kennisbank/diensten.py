@@ -768,7 +768,7 @@ def concept_stand(artikel_id) -> str:
     return moment.isoformat() if moment else ""
 
 
-def concept_opslaan(artikel, gebruiker, velden, geladen: str) -> Conceptversie:
+def concept_opslaan(artikel, gebruiker, velden, geladen: str, live_besluiten=None) -> Conceptversie:
     """Bewaar de conceptversie van een gepubliceerd artikel.
 
     ``geladen`` is de stempel van de conceptversie toen het scherm werd geopend ('' als er toen geen
@@ -792,8 +792,18 @@ def concept_opslaan(artikel, gebruiker, velden, geladen: str) -> Conceptversie:
                 gestart_door=gebruiker,
                 gestart_op=nu,
             )
+        if live_besluiten is not None:
+            # 1.33.0: wat er over de wijzigingen in de live versie is besloten. Dat is geen wijziging van de
+            # tekst: het telt niet mee voor de stempel en laat een akkoord van een reviewteam dus staan.
+            from .livewijzigingen import besluiten_bijwerken
+
+            concept.live_besluiten = besluiten_bijwerken(
+                concept.live_besluiten, live_besluiten, naam_van(gebruiker), nu.isoformat()
+            )
         if concept.pk and concept.velden == velden:
             # Niets veranderd: de stempel blijft, en daarmee een akkoord van een reviewteam (bouwlijst 1.21.0).
+            if live_besluiten is not None:
+                Conceptversie.objects.filter(pk=concept.pk).update(live_besluiten=concept.live_besluiten)
             return concept
         concept.velden = velden
         concept.bijgewerkt_door = gebruiker

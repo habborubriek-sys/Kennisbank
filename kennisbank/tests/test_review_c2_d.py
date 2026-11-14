@@ -105,10 +105,15 @@ class SpoedcorrectieTests(ReviewBasis):
 
     def test_spoed_opent_de_gepubliceerde_tekst(self):
         html = self.client.get(self.url + "?spoed=1").content.decode()
-        self.assertIn("Spoedcorrectie: je past de gepubliceerde versie aan", html)
+        self.assertIn("Je verbetert de live versie", html)
+        self.assertNotIn("poedcorrectie", html)
         self.assertIn("twee weken", html)
         self.assertNotIn('id="kb-op-slot"', html)
-        self.assertIn("Corrigeer de gepubliceerde versie", self.client.get(self.url).content.decode())
+        # 1.33.0 (L1): vanuit het concept is er geen weg meer naar de live versie; die loopt via de site.
+        concept = self.client.get(self.url).content.decode()
+        self.assertNotIn("Corrigeer de gepubliceerde versie", concept)
+        self.assertNotIn("?spoed=1", concept)
+        self.assertNotIn("?live=1", concept)
 
     def test_spoed_publiceert_zonder_de_conceptversie_te_raken(self):
         data = beheerdata(
@@ -125,12 +130,13 @@ class SpoedcorrectieTests(ReviewBasis):
         c = Conceptversie.objects.get(artikel=self.a)
         self.assertEqual((c.stempel, c.velden["inhoud"]), (self.c.stempel, "<p>Stuur na drie weken een rappel.</p>"))
         self.assertTrue(review.op_slot(self.a.pk))
-        self.assertIn("Spoedcorrectie", ArtikelVersie.objects.get(artikel=self.a, versie=2).review)
+        self.assertIn("Verbetering van de live versie", ArtikelVersie.objects.get(artikel=self.a, versie=2).review)
         # De gele balk en de reviewer zien dat de gepubliceerde versie is aangepast.
-        self.assertIn("is gewijzigd nadat deze conceptversie begon", self.client.get(self.url).content.decode())
+        self.assertIn("Let op: de live versie is bijgewerkt.", self.client.get(self.url).content.decode())
         i = Inzage.objects.get()
         self.assertIn(
-            "is aangepast nadat deze conceptversie begon", self.als(self.wim).get(f"/review/{i.pk}/").content.decode()
+            "de live versie is bijgewerkt nadat deze conceptversie begon",
+            self.als(self.wim).get(f"/review/{i.pk}/").content.decode(),
         )
 
     def test_spoed_vraagt_ook_een_toelichting(self):

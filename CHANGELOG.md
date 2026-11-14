@@ -1,5 +1,40 @@
 # Wijzigingen
 
+## 1.33.0 – 2026-11-14
+
+De live versie verbeteren, en in het concept overnemen wat er live veranderde (bouwlijst `bouwlijst-1.33.0-live-versie-bijgewerkt.md`). Aanleiding: de schermen kenden te veel begrippen (kladversie, conceptversie, spoedcorrectie, kleine correctie, review). Twee ervan verdwijnen als begrip, en het menu *Meer* is weg.
+
+**De live versie verbeteren, buiten het concept (L1)**
+- Klik je op de site op **Bewerken** bij een artikel met een concept, dan vraagt een venster: *De live versie verbeteren* of *Verder met het concept*. Je komt niet meer via het concept bij de live versie.
+- In het scherm van de live versie zegt de balk **Live versie**, met een knop **Naar het concept**. Het woord *spoedcorrectie* komt niet meer voor in schermen, meldingen en nieuwe regels van de geschiedenis ("Verbetering van de live versie; het concept bleef ongewijzigd").
+- De regels zijn niet veranderd: het concept, een lopende review en de kladversie blijven ongemoeid. Het adres is `?live=1`; `?spoed=1` blijft werken.
+- De API geeft bij een artikel het veld `bewerk_concept`, alleen voor wie mag redigeren.
+
+**In het concept: wat er live is veranderd (L2)**
+- Melding boven het concept: "Let op: de live versie is bijgewerkt. Dit concept komt niet meer overeen met de publicatie", met het aantal wijzigingen.
+- Nieuw paneel **Veranderd in de live versie**: één wijziging tegelijk, in rood en groen, met *Vorige*, *Volgende* en een balkje per wijziging. Het concept blijft ernaast zichtbaar en bewerkbaar; de alinea waar het over gaat is gemarkeerd.
+- Per wijziging: **Overnemen in het concept** (de alinea is in het concept niet gewijzigd), **Toevoegen aan het concept** (live is er iets bij gekomen: een alinea, een opsommingspunt of een hele sectie), **Ook weghalen uit het concept** (live weggehaald), met de hand aanpassen en **Ik heb het aangepast** (de alinea is in het concept zelf ook gewijzigd), of **Gezien** (de alinea staat niet meer in het concept). **Niet overnemen** kan altijd. Titel en samenvatting doen mee.
+- **Alle veilige wijzigingen in één keer overnemen.** Tekst die de redacteur zelf in het concept schreef, wordt nooit automatisch vervangen.
+- De voortgang blijft staan, per concept en gedeeld met collega's, met de naam van wie het besloot (keuze Alex). Hij wordt bewaard bij *Opslaan als concept*.
+- Het venster **Afronden** waarschuwt zolang er wijzigingen open staan of bewust niet zijn overgenomen, zegt hoeveel er bij publiceren vervallen, en biedt aan ze eerst langs te lopen.
+- Ligt het concept ter inzage, dan is het paneel alleen-lezen.
+- Zijn live ook eigenschappen gewijzigd (tags, clusters, zaaktypen, soort, eigenaar), dan noemt de melding welke.
+- Er wordt naar tekst gekeken, per alinea, kop, opsommingspunt of tabelcel. Een wijziging in alleen opmaak of het adres van een link ziet het paneel niet.
+
+**"Moeten medewerkers dit weten?" (L3)**
+- Bij publiceren vervangt deze vraag het vinkje *kleine correctie*. *Ja*: een toelichting, die medewerkers als melding zien. *Nee*: stil bijwerken, zonder toelichting.
+- Het woord *kleine correctie* is uit de schermen. Het veld in de database blijft en betekent hetzelfde.
+
+**Het menu Meer is weg (L4)**
+- *Conceptversie weggooien* is een keuze in **Afronden**, met dezelfde bevestiging als eerst.
+- De live versie bekijk je via het versienummer in de infobalk (*Medewerkers zien versie n*) of via het paneel.
+- Hersteld: *Bekijk de gepubliceerde versie* onder Meer opende de opgeslagen conceptversie in plaats van de gepubliceerde tekst. De nieuwe link gaat naar het artikel op de site.
+
+**Techniek en tests**
+- Nieuwe module `kennisbank/livewijzigingen.py` en het endpoint `…/artikel/<id>/live-wijzigingen/`; het endpoint slaat niets op. Migratie `0032_concept_live_besluiten` (één nieuw veld, leeg voor bestaande conceptversies).
+- 50 nieuwe tests (746 in totaal), alle tegen een bewust kapotte versie gedraaid: 20 mutaties in de servercode en 5 in de scripts. Eén mutatie in de scripts overleefde terecht: de browser zet de focus na het sluiten van het venster zelf al terug.
+- Browsertests: `rook.js` 104 controles (was 67), met de hele weg van *Bewerken* op de site tot overnemen in het concept; `axe.js` 55 metingen (was 45). De meting vond één fout in het nieuwe werk (een link die alleen aan de kleur te herkennen was), hersteld voor de release.
+
 ## 1.32.0 – 2026-11-13
 
 Ronde D van de review van 12 november (bouwlijst `bouwlijst-1.32.0-ronde-d.md`): tests, CI en documentatie. Voor gebruikers verandert er niets aan de schermen, op twee kleine herstellingen voor de toegankelijkheid na.

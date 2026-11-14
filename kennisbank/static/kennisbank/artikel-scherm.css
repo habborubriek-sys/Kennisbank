@@ -58,6 +58,8 @@ body.kb-scherm .kb-balk {
 .kb-balk-sub { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin: 8px -20px 0; padding: 4px 20px;
   background: #f4f7fb; color: #3d4b5c; border-top: 3px solid var(--kb-geel); border-bottom: 1px solid var(--kb-lijn); font-size: 12px; line-height: 18px; }
 .kb-balk-meta { color: #5b6b7d; margin-left: 2px; }
+/* Een link midden in een zin is aan meer dan de kleur te herkennen (WCAG 1.4.1). */
+.kb-balk-meta a, .kb-paneel-live .kb-paneel-uitleg a { color: #154273; text-decoration: underline; }
 .kb-balk-sub .kb-pil, .kb-balk-sub .kb-stand { font-size: 12px; font-weight: 600; padding: 0 7px; border-radius: 9px; line-height: 18px; }
 .kb-pil.kb-pil-rustig { background: #e3eaf3; color: #154273; }
 .kb-balk-sub button.kb-balk-link { background: none; border: none; padding: 0; color: #ffd7d7; text-decoration: underline; font: inherit; cursor: pointer; }
@@ -68,18 +70,7 @@ body.kb-scherm .kb-balk {
 .kb-stand-terug { background: #f9d4cf; color: #6e1a10; }
 .kb-stand-akkoord { background: #cfe9d6; color: #154a26; }
 .kb-balk-knoppen { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-/* Meer ▾ */
-.kb-meer { position: relative; }
-.kb-meer > summary { list-style: none; display: inline-block; }
-.kb-meer > summary::-webkit-details-marker { display: none; }
-.kb-meer[open] > summary { border-color: var(--kb-geel); background: var(--kb-blauw-2); }
-.kb-meer-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; min-width: 280px; background: #fff; color: #17212b;
-  border: 1px solid var(--kb-lijn); border-radius: 8px; box-shadow: 0 8px 24px rgba(23,33,43,.18); padding: 6px; display: flex; flex-direction: column; }
-.kb-balk .kb-meer-menu a, .kb-meer-menu button { display: block; text-align: left; color: #17212b; text-decoration: none; padding: 8px 10px; border-radius: 6px;
-  background: none; border: none; font: inherit; font-size: 14px; cursor: pointer; }
-.kb-meer-menu small { display: block; color: var(--kb-zacht); font-size: 12px; margin-top: 2px; }
-.kb-balk .kb-meer-menu a:hover, .kb-meer-menu button:hover { background: #eef3f9; }
-.kb-meer-menu .kb-meer-gevaar { color: #a6192e; border-top: 1px solid #e1e6ec; border-radius: 0 0 6px 6px; margin-top: 4px; }
+a.kb-bk { text-decoration: none; display: inline-block; }
 .kb-bk { border: 1px solid #4a6b93; background: transparent; color: #fff; border-radius: 6px; padding: 6px 12px; font-size: 14px; line-height: 20px; cursor: pointer; font-family: inherit; }
 .kb-bk:hover { background: var(--kb-blauw-2); }
 .kb-bk.kb-aan { border-color: var(--kb-geel); background: var(--kb-blauw-2); }
@@ -304,3 +295,60 @@ body.kb-scherm .kb-ae-werkbalk-in { min-height: 46px; box-sizing: border-box; }
 
 /* Ronde B (1.29.0): alleen voor de schermlezer. */
 .kb-sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* --- Veranderd in de live versie (1.33.0) ---------------------------------------------- */
+/* De melding boven het concept. */
+.kb-live-melding { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; border-left: 5px solid #c89b1c; }
+.kb-live-melding[hidden] { display: none; }
+.kb-live-melding-tekst { flex: 1 1 300px; min-width: 0; }
+.kb-live-melding.kb-live-klaar { background: #e3f3e7; border-color: #9ccfaa; border-left-color: #1e7a3c; color: #0f3d1f; }
+.kb-live-melding .button { background: #154273; color: #fff; border: 1px solid #154273; border-radius: 6px; padding: 7px 14px; font-weight: 600; cursor: pointer; }
+.kb-live-melding.kb-live-klaar .button { background: #fff; color: #17212b; border-color: #9fb3cc; }
+/* Het paneel: dezelfde plek als de andere panelen, maar het blad schuift opzij zodat het zichtbaar en bewerkbaar blijft. */
+body.kb-scherm .kb-paneel-live.kb-open { gap: 10px; padding-bottom: 0; }
+.kb-live-nav { display: flex; align-items: center; gap: 8px; }
+.kb-live-teller { flex: 1; text-align: center; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; color: #17212b; }
+.kb-paneel-live .button { border-radius: 6px; padding: 6px 12px; font-size: 14px; cursor: pointer; border: 1px solid #154273; background: #154273; color: #fff; font-weight: 600; }
+.kb-paneel-live .button.kb-knop-rustig { background: #fff; color: #17212b; border-color: #9fb3cc; font-weight: 400; }
+.kb-paneel-live .button:disabled { opacity: .45; cursor: default; }
+.kb-live-stippen { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.kb-live-stip { width: 26px; height: 10px; border-radius: 5px; border: 0; padding: 0; background: #b6c2d2; cursor: pointer; }
+.kb-live-stip.kb-live-stip-klaar { background: #1e7a3c; }
+.kb-live-stip.kb-live-stip-niet { background: #6b7786; }
+.kb-live-stip[aria-current="true"] { outline: 2px solid #154273; outline-offset: 2px; }
+.kb-live-lijf { flex: 1; min-height: 120px; overflow-y: auto; color: #17212b; font-size: 15px; line-height: 1.5; }
+.kb-live-waar { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: 13px; color: #3d4b5c; margin-bottom: 8px; }
+.kb-live-waar b { font-size: 15px; color: #17212b; }
+.kb-live-stand { margin-left: auto; font-weight: 700; border-radius: 999px; padding: 1px 10px; font-size: 13px; background: #fde9a8; color: #4a3800; }
+.kb-live-stand-klaar { background: #d9f2df; color: #0f3d1f; }
+.kb-live-stand-niet { background: #e6eaf0; color: #3d4b5c; }
+.kb-live-lijf h3 { margin: 10px 0 4px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #5a6675; background: none; padding: 0; }
+.kb-live-vak { border: 1px solid #d3d9e2; border-radius: 8px; padding: 10px 12px 2px; }
+.kb-live-vak p { margin: 0 0 8px; }
+.kb-live-uitleg { margin: 0; font-size: 14px; color: #3d4b5c; background: #f4f7fb; border-radius: 6px; padding: 7px 10px; }
+.kb-live-uitleg.kb-live-let { background: #fdf3d8; color: #5b4a12; }
+.kb-live-rij { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.kb-paneel-live ins { background: #d9f2df; color: #0f3d1f; text-decoration: none; border-bottom: 2px solid #1e7a3c; border-radius: 2px; padding: 0 1px; }
+.kb-paneel-live del { background: #fde2e4; color: #7f1d1d; text-decoration: line-through; }
+.kb-live-voet { position: sticky; bottom: 0; margin: 0 -18px; padding: 10px 18px 14px; border-top: 1px solid #d3d9e2; background: #f7f9fc; display: flex; flex-direction: column; gap: 8px; border-radius: 0 0 10px 10px; }
+.kb-live-voortgang { font-size: 14px; color: #3d4b5c; display: flex; justify-content: space-between; gap: 8px; }
+.kb-live-legenda { font-size: 13px; white-space: nowrap; }
+.kb-live-onbewaard { margin: 0; font-size: 13px; color: #5b4a12; }
+/* De alinea waar de wijziging over gaat, in het blad. */
+.kb-ae-inhoud .kb-ae-live { background: #eaf1fb; box-shadow: -4px 0 0 #2f6fc2; border-radius: 3px; }
+.kb-ae-inhoud .kb-ae-live-na { background: none; box-shadow: 0 3px 0 #2f6fc2; }
+.kb-ae-inhoud .kb-ae-live-voor { background: none; box-shadow: 0 -3px 0 #2f6fc2; }
+.kb-ae-inhoud .kb-ae-live-na::after { content: "\2191  hier staat live nieuwe tekst"; display: block; font-size: 13px; font-weight: 600; color: #1f4f96; }
+.kb-ae-inhoud .kb-ae-live-voor::before { content: "\2193  hier staat live nieuwe tekst"; display: block; font-size: 13px; font-weight: 600; color: #1f4f96; }
+.kb-ae-inhoud .kb-ae-live-net { background: #d9f2df; box-shadow: -4px 0 0 #1e7a3c; }
+.kb-vast.kb-live-hier { background: #eaf1fb; box-shadow: -4px 0 0 #2f6fc2; border-radius: 3px; }
+/* Het paneel is met rand en binnenruimte 468px breed en staat 8px van de kant. */
+@media (min-width: 1180px) {
+  body.kb-live-open .kb-werkvlak, body.kb-live-open .kb-banner, body.kb-live-open .messagelist { margin-right: 492px; }
+  body.kb-live-open .kb-ae-werkbalk-in { margin-right: 492px; }
+}
+@media (max-width: 1179px) {
+  /* Smal scherm: het paneel onderaan, het blad erboven. */
+  body.kb-scherm .kb-paneel-live.kb-open { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-width: none; height: 52vh; }
+  body.kb-live-open .kb-werkvlak { margin-bottom: 56vh; }
+}

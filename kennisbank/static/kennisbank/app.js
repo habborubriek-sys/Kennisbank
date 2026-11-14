@@ -362,6 +362,30 @@
       ${inhoud}</div>`;
   }
 
+  /* 1.33.0: er ligt een concept van dit artikel. Bewerken vraagt dan eerst wat je wilt: de live versie
+   * verbeteren (wat medewerkers nu zien) of verder met het concept. Zo kom je nooit via het concept bij de
+   * live versie uit. Een echte <dialog>: Tab blijft erin, Escape sluit, de focus gaat terug naar de knop. */
+  function bewerkKeuze(a, knop) {
+    const c = a.bewerk_concept, doel = EMBED ? ' target="_blank" rel="noopener"' : "";
+    const d = document.createElement("dialog");
+    d.className = "bewerk-keuze";
+    d.setAttribute("aria-labelledby", "bkTitel");
+    d.setAttribute("aria-describedby", "bkUitleg");
+    d.innerHTML = `<h2 id="bkTitel">Dit artikel heeft een concept</h2>
+      <p id="bkUitleg">${esc(c.door)} werkt sinds ${datum(c.sinds)} aan een nieuwe versie. Medewerkers zien nog versie ${esc(a.versie)}. Wat wil je doen?</p>
+      <div class="bk-keuzes">
+        <a class="bk-keuze" id="bkLive" href="${esc(c.live_url)}"${doel}><b>De live versie verbeteren</b><span>Je past aan wat medewerkers nu zien, bijvoorbeeld een fout telefoonnummer. Het concept blijft zoals het is en laat daarna zien wat je hebt veranderd.</span></a>
+        <a class="bk-keuze" id="bkConcept" href="${esc(c.concept_url)}"${doel}><b>Verder met het concept</b><span>Je werkt mee aan de nieuwe versie. Medewerkers merken niets tot die wordt gepubliceerd.</span></a>
+      </div>
+      <div class="bk-voet"><button class="tb" type="button" id="bkDicht">Annuleren</button></div>`;
+    document.body.appendChild(d);
+    const sluit = () => { d.close(); d.remove(); if (knop.isConnected) knop.focus(); };
+    d.addEventListener("cancel", (e) => { e.preventDefault(); sluit(); });
+    d.querySelector("#bkDicht").addEventListener("click", sluit);
+    d.querySelectorAll("a").forEach((l) => l.addEventListener("click", () => { if (EMBED) sluit(); }));
+    d.showModal();
+  }
+
   function renderArticle(a) {
     const zt = a.zaaktypen.length ? a.zaaktypen.map(esc).join(", ") : "alle zaaktypen";
     // Eigen, smallere kolom: zo sluiten de witte kaart en de leesbare regellengte op elkaar aan.
@@ -375,7 +399,8 @@
         <button class="tb" type="button" id="shareBtn">⤴ Delen</button>
         <button class="tb" type="button" id="printBtn">🖨 Afdrukken of opslaan als PDF</button>
         ${EMBED ? `<a class="tb" href="${esc(a.url)}" target="_blank" rel="noopener">↗ Open in kennisbank</a>` : ""}
-        ${a.bewerk_url ? `<a class="tb primary" href="${esc(a.bewerk_url)}" ${EMBED ? 'target="_blank" rel="noopener"' : ""}>Bewerken</a>` : ""}
+        ${a.bewerk_url && a.bewerk_concept ? '<button class="tb primary" type="button" id="bewerkBtn" aria-haspopup="dialog">Bewerken</button>'
+          : a.bewerk_url ? `<a class="tb primary" href="${esc(a.bewerk_url)}" ${EMBED ? 'target="_blank" rel="noopener"' : ""}>Bewerken</a>` : ""}
        </div></div>
       <h1 id="artTitel">${esc(a.titel)}</h1>
       <p class="summary">${esc(a.samenvatting)}</p>
@@ -642,6 +667,8 @@
       if (EMBED) { state.view = "zaaktype"; render(true); } else if (history.length > 1 && document.referrer.startsWith(location.origin)) history.back(); else ga(state.view);
     });
     $("#favBtn").addEventListener("click", () => toggleFav(a.id));
+    const bewerk = $("#bewerkBtn");
+    if (bewerk) bewerk.addEventListener("click", () => bewerkKeuze(a, bewerk));
     $("#shareBtn").addEventListener("click", () => {
       const url = location.origin + a.url;  // /artikel/<nummer>/<naam>: het nummer maakt de link blijvend
       const klaar = () => toast("Link gekopieerd");

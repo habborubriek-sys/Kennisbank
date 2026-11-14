@@ -119,3 +119,32 @@ Open hiervoor een voorstel uit de werkbak.
     - *Verwacht:* de markeringen zijn nog te herkennen aan de lijnen eronder (stippel bij een voorstel,
       doorgetrokken bij een opmerking).
     - Noteer wat er gebeurt met de pillen in de infobalk, het lade-tabblad en de nummers.
+
+## G. De live versie verbeteren en overnemen in het concept (1.33.0), als `redacteur`
+
+Nodig: een artikel met een conceptversie. Maak die door een gepubliceerd artikel te bewerken en *Afronden →
+Opslaan als concept* te kiezen.
+
+33. Open dat artikel op de site en druk op **Bewerken**.
+    - *Verwacht:* je hoort "Dit artikel heeft een concept" en de uitleg wie eraan werkt.
+    - Tab loopt langs *De live versie verbeteren*, *Verder met het concept* en *Annuleren* en blijft in het venster.
+    - Escape sluit het venster, en de focus staat weer op *Bewerken*.
+34. Kies *De live versie verbeteren*, wijzig een woord en kies *Afronden → Publiceren*.
+    - *Verwacht:* in de infobalk hoor je "Live versie".
+    - Het venster heet "Moeten medewerkers dit weten?". De twee keuzes worden als keuzerondjes voorgelezen, met
+      hun uitleg. Bij *Nee* is het tekstvak weg.
+    - Publiceren bij *Ja* zonder toelichting geeft een melding die wordt voorgelezen.
+35. Open het concept (werkplek, bak *Concepten*), ga naar *Loop de wijzigingen langs* en druk op Enter.
+    - *Verwacht:* de melding "Let op: de live versie is bijgewerkt" is te lezen, met het aantal wijzigingen.
+    - Het paneel opent, en de focus staat op de kop *Veranderd in de live versie*.
+    - Na *Volgende* hoor je de teller ("Wijziging 2 van 4").
+    - Weggehaalde en nieuwe tekst: NVDA meldt "verwijderd" en "ingevoegd" als dat aanstaat onder
+      Documentopmaak. Noteer wat je hoort als het uitstaat.
+36. Druk op *Overnemen in het concept*, en bij een volgende wijziging op *Niet overnemen*.
+    - *Verwacht:* de focus staat daarna op *Volgende*.
+    - De balkjes zeggen per wijziging de stand ("Wijziging 2: Wanneer, Overgenomen").
+    - De voortgang onderaan ("2 van 4 verwerkt") wordt gelezen.
+37. Druk op Escape en daarna op *Afronden…*.
+    - *Verwacht:* het paneel sluit, en de focus staat op *Live wijzigingen* in de balk.
+    - Het venster Afronden leest hoeveel wijzigingen vervallen bij publiceren, en biedt *Eerst de wijzigingen
+      langslopen* en *Conceptversie weggooien*.

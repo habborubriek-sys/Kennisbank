@@ -8,12 +8,16 @@ Het bewerkscherm (sinds 1.22.0) laat het artikel zien zoals medewerkers het leze
 
 1. Klik in een artikel op **Bewerken**, of ga naar je **werkplek** (knop **Werkplek** rechtsboven in de
    kennisbank) en open daar een artikel. Een nieuw artikel begin je op je werkplek met **Nieuw artikel**.
+   Ligt er al een concept van het artikel, dan vraagt **Bewerken** eerst wat je wilt: *De live versie
+   verbeteren* of *Verder met het concept* (zie *De live versie verbeteren terwijl er een concept ligt*).
 2. **Bovenaan staat een blauwe balk** met links **← Werkplek** en de titel. Daaronder staat een dunne, lichte
    infobalk met de labels: *Conceptversie* en de stand van de review (bijvoorbeeld *Teruggegeven door Team Water
    · 2 opmerkingen*), met klein erachter welke versie medewerkers zien en wie het laatst iets deed. Rechts in de
-   blauwe balk staan de knoppen **Opmerkingen**, **Bekijk als medewerker**, **Eigenschappen**, **Geschiedenis**, **Review** en
-   **Meer ▾**, met als laatste **Afronden…**. Onder *Meer* staan de acties die je minder vaak nodig hebt: de
-   gepubliceerde versie bekijken, die versie met spoed corrigeren, en de conceptversie weggooien.
+   blauwe balk staan de knoppen **Opmerkingen**, **Bekijk als medewerker**, **Eigenschappen**, **Geschiedenis** en **Review**,
+   met als laatste **Afronden…**. Is de live versie bijgewerkt nadat het concept begon, dan staat er ook **Live
+   wijzigingen**. Het menu *Meer* bestaat sinds 1.33.0 niet meer: de conceptversie weggooien doe je via
+   *Afronden*, en de live versie bekijk je door in de infobalk op het versienummer te klikken
+   (*Medewerkers zien versie n*).
 3. **Titel en samenvatting** staan bovenaan het artikel, op de plek waar de lezer ze ziet. Ze horen bij elk
    artikel en kunnen niet weg. Zijn ze leeg, dan staat er grijze uitleg in; klik je erin, dan verschijnt een
    label (*Titel · verplicht, maximaal 200 tekens*, *Samenvatting · verschijnt ook in de zoekresultaten en het
@@ -58,21 +62,24 @@ Onder een gepubliceerd artikel staat één knop: **Afronden…**. Die opent een 
   versie zien en merken niets: geen nieuwe versie, geen melding, geen e-mail.
 - **Ter inzage geven** (alleen als het reviewproces aanstaat): je wijziging wordt eerst opgeslagen als
   conceptversie, en daarna gaat precies die tekst naar het reviewteam dat je kiest. Zie *Reviewproces*.
-- **Publiceren** zet je wijziging meteen live: medewerkers zien de nieuwe tekst, met je toelichting als melding.
-  Is de toelichting nog leeg, dan vraagt een venster erom voordat er iets gebeurt. Daarna kom je terug op je
-  werkplek.
+- **Publiceren** zet je wijziging meteen live. Een venster vraagt eerst: **Moeten medewerkers dit weten?**
+  Kies *Ja* en schrijf in één zin wat er is gewijzigd: medewerkers zien die zin als melding bij het artikel, en wie
+  het als favoriet heeft, krijgt een e-mail. Kies *Nee* om stil bij te werken, bijvoorbeeld bij een typfout of
+  opmaak; een toelichting is dan niet nodig. Daarna kom je terug op je werkplek.
+- **Conceptversie weggooien** (alleen als er een conceptversie is die niet ter inzage ligt) gooit het werk aan de
+  nieuwe versie weg, na een bevestiging. Medewerkers blijven de live versie zien.
 - **Afbreken** sluit het artikel zonder op te slaan. Wat je sinds het laatste opslaan veranderde, gaat verloren
   (ook de kladversie van dit scherm); een opgeslagen conceptversie blijft gewoon staan.
 
-Ligt de conceptversie ter inzage, dan biedt het venster alleen **Terugroepen** en **Afbreken**. Bij een
-spoedcorrectie alleen **Publiceren** en **Afbreken**. Bij een nieuw artikel, of een artikel dat nog nooit is
+Ligt de conceptversie ter inzage, dan biedt het venster alleen **Terugroepen** en **Afbreken**. Verbeter je de
+live versie terwijl er een concept ligt, dan alleen **Publiceren** en **Afbreken**. Bij een nieuw artikel, of een artikel dat nog nooit is
 gepubliceerd, biedt het venster **Opslaan als concept** (medewerkers zien nog niets), **Publiceren** en
 **Afbreken**. Ter inzage geven kan bij zo'n artikel nog niet.
 
 Is er een conceptversie, dan opent het artikel in het beheer met die conceptversie. De balk bovenaan zegt dat je
-in de conceptversie werkt, wie hem het laatst bijwerkte en welke versie medewerkers nu zien. Onder **Meer** kun
-je de gepubliceerde versie **bekijken**, of de conceptversie **weggooien** (niet als hij ter inzage ligt: roep hem
-dan eerst terug). Gooi je hem weg, dan staan voorstellen die je had *meegenomen* weer op "niet meegenomen". Werk verder
+in de conceptversie werkt, wie hem het laatst bijwerkte en welke versie medewerkers nu zien; klik op dat
+versienummer om de live versie te **bekijken**. De conceptversie **weggooien** doe je via *Afronden* (niet als hij
+ter inzage ligt: roep hem dan eerst terug). Gooi je hem weg, dan staan voorstellen die je had *meegenomen* weer op "niet meegenomen". Werk verder
 met *Afronden → Opslaan als concept*; wil je hem publiceren, kies dan *Afronden → Publiceren* en vul de
 toelichting in. De conceptversie is daarna weg en het
 artikel heeft een nieuwe versie.
@@ -85,14 +92,60 @@ artikel heeft een nieuwe versie.
   melding en wordt jouw opslag geweigerd, net als bij het artikel zelf. Je werk staat dan nog in je kladversie.
 - Op je werkplek staan conceptversies onder **Concepten**, bovenaan, met het label *conceptversie*.
 - Een artikel dat nog nooit is gepubliceerd, heeft geen conceptversie nodig: het is zelf nog een concept.
-- **Spoedcorrectie.** Moet er iets dringends verbeterd worden in wat medewerkers nu zien (een fout
-  telefoonnummer, een verkeerde termijn) terwijl je aan een conceptversie werkt, kies dan onder **Meer ▾** in
-  de balk bovenaan **Corrigeer de gepubliceerde versie**. Je bewerkt dan de gepubliceerde tekst en publiceert die met een
-  toelichting; de conceptversie blijft ongewijzigd (en op slot als hij ter inzage ligt). De omgeving kun je bij
-  een spoedcorrectie niet wijzigen. Daarna meldt een
-  balk boven het artikel dat de gepubliceerde versie intussen is aangepast: **neem de correctie zelf mee in de conceptversie**,
-  anders draait publiceren hem terug. In de versiegeschiedenis staat "Spoedcorrectie".
+- **De live versie verbeteren terwijl er een concept ligt.** Zie de paragraaf hieronder.
 - Staat het reviewproces aan, dan kun je een conceptversie **ter inzage** geven aan een reviewteam; zie hieronder.
+
+#### De live versie verbeteren terwijl er een concept ligt
+
+Soms moet er iets dringends worden verbeterd in wat medewerkers nu zien (een fout telefoonnummer, een verkeerde
+termijn) terwijl er al aan een nieuwe versie wordt gewerkt. Dat doe je **buiten het concept**:
+
+1. Open het artikel op de site en klik op **Bewerken**. Omdat er een concept ligt, vraagt een venster wat je
+   wilt. Kies **De live versie verbeteren**. (*Verder met het concept* opent het concept; vanaf je werkplek, bak
+   *Concepten*, ga je daar direct naartoe.)
+2. Je ziet hetzelfde bewerkscherm, met de tekst die medewerkers nu zien. De balk zegt **Live versie**. Het
+   concept blijft zoals het is, ook als het ter inzage ligt. De omgeving kun je hier niet wijzigen. Met **Naar
+   het concept** in de balk ga je naar het concept zonder iets op te slaan.
+3. Verbeter de tekst en kies **Afronden → Publiceren**. In de versiegeschiedenis staat bij die versie
+   "Verbetering van de live versie; het concept bleef ongewijzigd".
+
+Wie daarna het concept opent, ziet bovenaan **Let op: de live versie is bijgewerkt**, met het aantal wijzigingen.
+Publiceer je het concept zonder ze over te nemen, dan vervallen ze: het concept vervangt de live tekst.
+
+**De wijzigingen langslopen.** Klik op *Loop de wijzigingen langs* (of op **Live wijzigingen** in de balk).
+Rechts opent het paneel **Veranderd in de live versie**. Het toont één wijziging tegelijk, met wat er weg is in
+rood en wat er bij kwam in groen. Met *Vorige* en *Volgende*, of de balkjes erboven, loop je erdoorheen. Je
+concept blijft ernaast staan en je kunt er gewoon in typen; de alinea waar het over gaat is gemarkeerd.
+
+| Wat je ziet | Wat je doet |
+|---|---|
+| De alinea is in het concept niet gewijzigd | **Overnemen in het concept**: de alinea krijgt de live tekst |
+| Er is live een alinea, opsommingspunt of sectie bij gekomen | **Toevoegen aan het concept**: het blad laat zien waar hij komt |
+| Er is live een alinea weggehaald die nog ongewijzigd in het concept staat | **Ook weghalen uit het concept** |
+| De alinea is in het concept zelf ook gewijzigd | Pas hem met de hand aan (*Zet de cursor in de alinea*), daarna **Ik heb het aangepast** |
+| De alinea staat niet meer in het concept | Er is niets over te nemen: **Gezien** |
+
+Bij elke wijziging kun je ook **Niet overnemen** kiezen; die wijziging vervalt dan als het concept wordt
+gepubliceerd. Onderaan het paneel staat **Alle veilige wijzigingen in één keer overnemen**: dat neemt alles over
+wat het concept niet raakt en laat de rest staan. Tekst die je in het concept zelf hebt geschreven, wordt nooit
+automatisch vervangen.
+
+Je hoeft niet alles in één keer te doen. Wat je overneemt, staat in de editor en wordt van het concept zodra je
+**Afronden → Opslaan als concept** kiest; je keuzes (*niet overnemen*, *aangepast*, *gezien*) worden dan ook
+bewaard, met je naam erbij. Ze gelden voor het concept, dus ook voor een collega die het daarna opent. Het
+venster **Afronden** waarschuwt zolang er wijzigingen open staan of bewust niet zijn overgenomen, en zegt hoeveel
+er bij publiceren vervallen. Ligt het concept ter inzage, dan kun je de wijzigingen wel bekijken maar niet
+overnemen; dat kan na terugroepen.
+
+Goed om te weten:
+
+- De kennisbank kijkt naar de **tekst**, per alinea, kop, opsommingspunt of tabelcel, en naar titel en
+  samenvatting. Een wijziging in alleen de opmaak (iets vet gemaakt, een link naar een ander adres) ziet het
+  paneel niet.
+- Zijn live ook eigenschappen gewijzigd (tags, clusters, zaaktypen, soort, eigenaar), dan noemt de melding
+  welke. Die neem je zelf over in *Eigenschappen*.
+- De woorden *spoedcorrectie* en *kleine correctie* komen sinds 1.33.0 niet meer voor in de schermen. In oude
+  regels van de versiegeschiedenis kan "Spoedcorrectie" nog staan.
 
 ## Reviewproces: een conceptversie laten meelezen
 
@@ -145,8 +198,8 @@ nodig om te publiceren: jij bent eindverantwoordelijk. Maar zolang een team aan 
    verschijnt het label pas als alle teams akkoord zijn; tot dan zie je per team de stand.
 6. **Publiceren** kan zodra er niets meer ter inzage ligt. In de versiegeschiedenis staat bij die versie
    "Akkoord van Team Water", "Gepubliceerd met wijzigingen na het akkoord van Team Water" of "Gepubliceerd
-   zonder akkoord van …". Moet er tijdens de review iets dringends in de gepubliceerde versie, gebruik dan de
-   spoedcorrectie.
+   zonder akkoord van …". Moet er tijdens de review iets dringends in de live versie, verbeter die dan via
+   *Bewerken* op de site (*De live versie verbeteren*).
 
 **Wanneer een review vanzelf stopt.** Archiveer je het artikel (via de lijst of het scherm), of verhuist het naar
 een andere omgeving, dan stopt de review: een reviewer die ermee bezig was, krijgt een e-mail, en de conceptversie
@@ -176,7 +229,7 @@ Als je een gepubliceerd artikel inhoudelijk wijzigt, gebeurt er drie dingen voor
 
 Twee hulpmiddelen om meldingsmoeheid te voorkomen:
 
-- **Kleine correctie, geen melding**: vink dit aan bij een typfout, opmaak of een verouderde naam. Er ontstaat wel een versie, maar medewerkers krijgen geen melding en geen e-mail. Een toelichting is dan niet verplicht. Verder is het een gewone versie: verbetervoorstellen die je hebt meegenomen, gelden als verwerkt (sinds 1.31.2).
+- **Moeten medewerkers dit weten? Nee**: kies dit bij publiceren voor een typfout, opmaak of een verouderde naam. Er ontstaat wel een versie, maar medewerkers krijgen geen melding en geen e-mail. Een toelichting is dan niet nodig. (Tot 1.33.0 heette dit *kleine correctie*; in het paneel Eigenschappen staat het als *Medewerkers hoeven dit niet te weten*.) Verder is het een gewone versie: verbetervoorstellen die je hebt meegenomen, gelden als verwerkt (sinds 1.31.2).
 - Schrijf de toelichting voor de lezer, niet voor jezelf: *wat* is anders en *wat moet hij nu anders doen*. "Tekst aangepast" zegt niets; "Tweede rappel nu na 3 weken in plaats van 2" wel.
 
 Wil je een wijziging breder aankondigen, vink dan **Ook als nieuwsbericht plaatsen** aan: er staat dan een concept-nieuwsbericht klaar met je toelichting, gekoppeld aan het artikel (zie [Nieuws](#nieuws)).
@@ -248,7 +301,7 @@ Een kladversie is nooit zichtbaar voor medewerkers, telt niet als versie en leve
 Twee dingen om te weten:
 
 - De kopie in de browser staat op **die ene computer**. Werk je op een gedeelde werkplek, sla dan op of gooi de kladversie weg voordat je wegloopt.
-- **Clusters en zaaktypen** worden meegenomen in de kladversie. **Publicatiekeuzes** (status, toelichting, kleine correctie) bewust niet: die horen bij het moment van opslaan.
+- **Clusters en zaaktypen** worden meegenomen in de kladversie. **Publicatiekeuzes** (status, toelichting, wel of geen melding) bewust niet: die horen bij het moment van opslaan.
 - **Eén kladversie voor een nieuw artikel.** Begin je in twee tabbladen tegelijk aan twee *nieuwe* artikelen, dan delen die één kladversie: de laatste wint, en opslaan van het ene sluit de kladversie van het andere af. Begin een tweede nieuw artikel dus pas als het eerste is opgeslagen (als concept mag). Voor bestaande artikelen speelt dit niet: daar heeft elk artikel zijn eigen kladversie.
 
 Een paar dingen die de kennisbank bewust tegenhoudt bij het opslaan:
@@ -306,7 +359,7 @@ toekomst, dan blijft die staan.
 - Klopt een artikel nog gewoon? Selecteer het en kies de actie **Markeren als nagekeken**. De datum
   schuift dan vooruit; er komt géén nieuwe versie en medewerkers krijgen geen melding.
 - Wijzig en publiceer je het artikel wél, dan schuift de datum automatisch mee — publiceren is immers
-  het moment dat je de tekst hebt nagekeken. Een *kleine correctie* schuift niets op: een typfout
+  het moment dat je de tekst hebt nagekeken. Publiceren zonder melding aan medewerkers schuift niets op: een typfout
   herstellen is geen herziening.
 - Medewerkers zien deze datum niet. Hij is een hulpmiddel voor procesmanagement, geen uitspraak over
   de geldigheid van de instructie.
@@ -463,14 +516,14 @@ zonder opslaan, dan waarschuwt de browser; het voorstel blijft dan in de bak lig
 - **Publiceer je**, dan opent de kennisbank een scherm met per meegenomen voorstel een **voorgevuld bericht**
   ("We hebben het verwerkt in versie n …"). Pas het aan als je wilt en kies *Versturen en afhandelen*; laat je
   het vinkje weg, dan blijft het voorstel open met "Al verwerkt in versie n" in de lade, en handel je het later af.
-- **Spoedcorrectie**: ook dan kun je meenemen (bijvoorbeeld een spelfout); het hoort bij de correctie die je
-  publiceert. Een voorstel dat is meegenomen in een conceptversie die **ter inzage** ligt, kun je niet in een
-  spoedcorrectie meenemen: dat hoort bij de review (het vinkje staat dan uit, met uitleg).
+- **Verbeter je de live versie terwijl er een concept ligt**, dan kun je ook meenemen (bijvoorbeeld een
+  spelfout); het hoort bij de verbetering die je publiceert. Een voorstel dat is meegenomen in een conceptversie
+  die **ter inzage** ligt, kun je daar niet meenemen: dat hoort bij de review (het vinkje staat dan uit, met uitleg).
 - **Ligt de conceptversie ter inzage**, dan kun je niet meenemen. Een voorstel dat al is meegenomen, kun je
   dan ook niet afwijzen tot de review terug is. Dat geldt overal: in de lade, via de API en in oude schermen.
-- Een **kleine correctie** neemt voorstellen gewoon mee (sinds 1.31.2), ook bij een spoedcorrectie. Een voorstel
-  over een tikfout is juist een kleine correctie. "Klein" betekent alleen: geen melding en geen e-mail voor
-  medewerkers. De indiener van het voorstel krijgt wel je bericht.
+- Publiceer je **zonder melding aan medewerkers** (*Moeten medewerkers dit weten? Nee*), dan gaan voorstellen
+  gewoon mee (sinds 1.31.2). Een voorstel over een tikfout is daar juist een voorbeeld van. Het betekent alleen:
+  geen melding en geen e-mail voor medewerkers. De indiener van het voorstel krijgt wel je bericht.
 - Publiceer je **zonder inhoudelijke wijziging** (er komt geen nieuwe versie), dan gelden de meegenomen
   voorstellen **niet als verwerkt**: ze staan weer open in de lade, en de kennisbank zegt dat. Gooi je de
   conceptversie weg, dan gaat *meenemen* bij de voorstellen ook weer uit.

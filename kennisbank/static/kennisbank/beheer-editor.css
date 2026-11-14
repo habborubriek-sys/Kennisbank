@@ -37,3 +37,9 @@ div.kb-venster-laag{position:fixed;inset:0;z-index:1200;background:rgba(23,33,43
 .kb-melding-klad{background:#e8f0fb;border-left:4px solid #1f4e8c;color:#17212b}
 .kb-klad-voorproef{background:#f4f5f7;border-radius:6px;padding:8px 10px;font-size:.9rem;color:#333}
 @media (prefers-reduced-motion:reduce){#kb-klad-melding{transition:none}}
+/* 1.33.0 (L3): "Moeten medewerkers dit weten?" bij publiceren. */
+.kb-weten-keuze{align-items:flex-start}
+.kb-weten-keuze input{margin-top:3px;flex:none}
+.kb-weten-keuze strong{font-weight:700}
+.kb-weten-toel{display:grid;gap:6px;margin:0 0 6px 24px}
+.kb-weten-toel[hidden]{display:none}

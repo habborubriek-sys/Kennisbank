@@ -84,17 +84,17 @@ class OnlangsAfgerond(ReviewBasis):
 
 
 class BalkMetMeer(ReviewBasis):
-    def test_minder_gebruikte_acties_onder_meer(self):
+    def test_het_menu_meer_is_weg(self):
+        # 1.33.0 (L4): Meer bestaat niet meer. Weggooien zit in Afronden, de live versie bekijk je via de infobalk.
         self.maak_concept()
         html = self.client.get(self.url).content.decode()
         balk = balk_van(html)
-        meer = balk[balk.index('class="kb-meer"') :]
-        self.assertIn("Bekijk de gepubliceerde versie", meer)
-        self.assertIn("Corrigeer de gepubliceerde versie", meer)
-        self.assertIn("Conceptversie weggooien", meer)
+        self.assertNotIn("kb-meer", html)
+        self.assertNotIn("Corrigeer de gepubliceerde versie", html)
+        self.assertNotIn("Conceptversie weggooien", balk)
         sub = balk[balk.index("kb-balk-sub") : balk.index("kb-balk-terug")]
         self.assertIn("Conceptversie</span>", sub)
-        self.assertIn("Medewerkers zien versie", sub)
+        self.assertIn(f'Medewerkers zien <a href="{self.a.get_absolute_url()}"', sub)
 
     def test_reviewstand_naast_de_conceptversie(self):
         self.maak_concept()

@@ -55,9 +55,31 @@ const { B, OPZET: o, meet, stap } = g;
     await r.keyboard.press("Escape");
     await r.click("[data-kb-paneel='gesch']"); await r.waitForTimeout(300); await meet(r, "paneel Geschiedenis");
     await r.keyboard.press("Escape");
-    await g.bewerk(r, o.spoed.artikel); await r.locator(".kb-meer summary").click(); await r.waitForTimeout(200); await meet(r, "bewerkscherm met conceptversie en menu Meer");
+    await g.bewerk(r, o.spoed.artikel); await meet(r, "bewerkscherm met conceptversie");
+    await r.click(".kb-afronden-knop"); await r.waitForTimeout(300); await meet(r, "venster Afronden bij een conceptversie");
+    await r.locator("dialog[open] .kb-afronden-keuze", { hasText: "Publiceren" }).first().click(); await r.locator("#kb-toel").waitFor(); await meet(r, "venster Moeten medewerkers dit weten");
+    await r.keyboard.press("Escape");
+    await g.bewerk(r, o.spoed.artikel, "?live=1"); await meet(r, "bewerkscherm van de live versie");
     await g.bewerk(r, o.inzage.artikel, `?voorstel=${o.inzage.voorstel}`); await meet(r, "bewerkscherm ter inzage, met lade en opmerking");
   });
+  // 1.33.0: wat er live is veranderd, in het concept.
+  await stap("beheer: veranderd in de live versie", r, async () => {
+    await g.bewerk(r, o.live.artikel); await meet(r, "concept met de melding dat de live versie is bijgewerkt");
+    await r.click("#kb-live-bekijk"); await r.locator("#kb-live-lijf .kb-live-uitleg").first().waitFor(); await r.waitForTimeout(500); await meet(r, "paneel Veranderd in de live versie, zelf aanpassen");
+    await r.click("#kb-live-volgende"); await r.waitForTimeout(400); await meet(r, "paneel Veranderd in de live versie, veilig overnemen");
+    await r.locator("#kb-live-lijf button", { hasText: "Niet overnemen" }).click(); await r.waitForTimeout(400); await meet(r, "paneel Veranderd in de live versie, niet overgenomen");
+    await r.click(".kb-afronden-knop"); await r.waitForTimeout(300); await meet(r, "venster Afronden met live wijzigingen");
+    await r.keyboard.press("Escape");
+  });
+  for (const schema of ["light", "dark"]) {
+    const naam = schema === "light" ? "licht" : "donker";
+    const rs = await sessie("redacteur", schema);
+    await stap(`site: Bewerken bij een concept (${naam})`, rs, async () => {
+      await rs.goto(B + `/artikel/${o.spoed.artikel}/${o.spoed.slug}`); await rs.locator("#bewerkBtn").waitFor(); await rs.waitForTimeout(600);
+      await rs.click("#bewerkBtn"); await rs.locator("dialog.bewerk-keuze[open]").waitFor(); await meet(rs, `${naam}: site venster Dit artikel heeft een concept`);
+    });
+    await rs.context().close();
+  }
   await stap("beheer: de lade en haar vensters", r, async () => {
     await g.bewerk(r, o.lade.artikel, `?voorstel=${o.lade.steun}`); await meet(r, "lade open");
     await r.locator(`[data-kb-focus="steun-${o.lade.steun}"]`).click(); await meet(r, "lade met de steun uitgeklapt");
