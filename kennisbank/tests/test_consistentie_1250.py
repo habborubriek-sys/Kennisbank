@@ -93,7 +93,7 @@ class BalkMetMeer(ReviewBasis):
         self.assertNotIn("Corrigeer de gepubliceerde versie", html)
         self.assertNotIn("Conceptversie weggooien", balk)
         sub = balk[balk.index("kb-balk-sub") : balk.index("kb-balk-terug")]
-        self.assertIn("Conceptversie</span>", sub)
+        self.assertIn("Concept</span>", sub)
         self.assertIn(f'Medewerkers zien <a href="{self.a.get_absolute_url()}"', sub)
 
     def test_reviewstand_naast_de_conceptversie(self):
@@ -102,7 +102,8 @@ class BalkMetMeer(ReviewBasis):
         balk = balk_van(self.client.get(self.url).content.decode())
         sub = balk[balk.index("kb-balk-sub") : balk.index("kb-balk-terug")]
         self.assertIn("kb-stand", sub)
-        self.assertIn("Ter inzage bij Team Water", sub)
+        self.assertIn('<span class="kb-stand kb-stand-inzage">Bij het reviewteam</span>', sub)
+        self.assertIn("Team Water: nog niet opgepakt", sub)
 
 
 class AfrondenOveral(ReviewBasis):

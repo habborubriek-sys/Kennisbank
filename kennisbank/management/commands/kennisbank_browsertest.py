@@ -159,6 +159,22 @@ class Command(BaseCommand):
         diensten.registreer_publicatie(live, redacteur, "Teamleider in plaats van coordinator")
         live.refresh_from_db()
 
+        # 4c. 1.34.0: een kladversie van 25 dagen oud, voor de kolom *Vervalt* in de bak Mijn kladversies.
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from kennisbank.models import Kladversie
+
+        # Een eigen artikel, zodat het venster "je hebt een kladversie" geen andere stap in de weg zit.
+        klad_artikel = self.artikel("Browsertest klad", redacteur, cluster)
+        klad = Kladversie.objects.create(
+            gebruiker=redacteur, artikel=klad_artikel, velden={"titel": "Browsertest klad"}
+        )
+        Kladversie.objects.filter(pk=klad.pk).update(
+            bijgewerkt_op=timezone.now() - timedelta(days=settings.KB_KLADVERSIE_DAGEN - 5)
+        )
+
         # 5. Kaal gepubliceerd artikel waar niets aan gebeurt: voor de axe-meting.
         rustig = self.artikel("Browsertest rustig", redacteur, cluster)
 
@@ -179,4 +195,5 @@ class Command(BaseCommand):
             "rustig": {"artikel": rustig.pk, "slug": rustig.slug},
             # Een artikel uit de demo-inhoud, met tags, onboarding en een wijzigingsmelding.
             "demo": {"artikel": demo.pk, "slug": demo.slug},
+            "cluster": cluster.pk,
         }

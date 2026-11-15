@@ -53,7 +53,7 @@ class ConceptversieTests(Basis):
         self.assertEqual((c.gestart_door, c.basis_versie), (self.anna, 1))
         # Zonder toelichting: die hoort bij publiceren, niet bij een conceptversie.
         self.assertIn(
-            "Conceptversie opgeslagen",
+            "Concept opgeslagen",
             LogEntry.objects.filter(object_id=str(self.a.pk)).latest("action_time").get_change_message(),
         )
 
@@ -112,7 +112,7 @@ class ConceptversieTests(Basis):
         # Bram had het artikel geopend vóór de conceptversie bestond (geladen_concept leeg).
         r = self.post(beheerdata(self.a, inhoud="<p>Brams directe wijziging</p>", geladen_concept=""), _save="1")
         self.assertEqual(r.status_code, 200)
-        self.assertIn("conceptversie van dit artikel", r.content.decode())
+        self.assertIn("het concept van dit artikel", r.content.decode())
         self.a.refresh_from_db()
         self.assertEqual(self.a.inhoud, "<p>Oude tekst</p>")
         self.assertTrue(Conceptversie.objects.filter(artikel=self.a).exists())

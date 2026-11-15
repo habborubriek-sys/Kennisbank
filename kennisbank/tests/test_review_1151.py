@@ -113,12 +113,14 @@ class PrivacyTests(Basis):
         # De indiener ziet het gewoon.
         self.assertEqual(len(self.als(self.lies).get("/api/v1/voorstellen?lijst=mijn").json()), 1)
 
-    def test_verbergen_via_de_lade(self):
+    def test_verbergen_via_de_bak(self):
+        # 1.34.0: verbergen zit niet meer in de lade maar in de selectiebalk van de bak.
         v = self.voorstel()
-        r = self.als(self.anna).post(f"/beheer/voorstel/{v.pk}/lade/", {"actie": "verbergen", "waarde": "1"})
-        self.assertEqual(r.status_code, 200)
+        r = self.als(self.anna).post("/beheer/werkplek/selectie/", {"actie": "verbergen", "voorstel": [f"{v.pk}-0"]})
+        self.assertEqual(r.status_code, 302)
         v.refresh_from_db()
         self.assertTrue(v.verborgen)
+        self.assertEqual(self.client.post(f"/beheer/voorstel/{v.pk}/lade/", {"actie": "verbergen"}).status_code, 400)
 
     def test_indienvenster_zegt_wie_wat_ziet(self):
         html = self.als(self.lies).get("/").content.decode()

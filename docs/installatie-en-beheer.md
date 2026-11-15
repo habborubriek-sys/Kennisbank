@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.33.0 .
-docker push registry.example.nl/kennisbank:1.33.0
+docker build -t registry.example.nl/kennisbank:1.34.0 .
+docker push registry.example.nl/kennisbank:1.34.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -119,7 +119,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.33.0
+  registry.example.nl/kennisbank:1.34.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -142,10 +142,23 @@ zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
 
+#### Naar 1.34.0 (vanaf 1.7.0 of later)
+
+Eén migratie, `0033_tekst_concept`: alleen de helptekst van een veld (bij *Omgevingen*). Er verandert niets
+aan de tabellen of de gegevens; de migratie is in een oogwenk klaar.
+
+- **Voor de redactie verandert er iets:** de review staat in de schermen in drie standen (*Bij de redactie*,
+  *Bij het reviewteam*, *Akkoord*); het werk aan een nieuwe versie heet overal *concept*; de bak *Ter inzage*
+  heet *Review*; *Verbergen voor collega's* staat in de bak in plaats van in de editor. Zie
+  [functioneel-beheer.md](functioneel-beheer.md) en [reviewtoestanden.md](reviewtoestanden.md).
+- **De API** is niet gewijzigd. Adressen ook niet: `…/beheer/?bak=ter_inzage` en `…/conceptversie/weggooien/`
+  bestaan nog onder dezelfde naam.
+- Ctrl+F5 na de upgrade.
+
 #### Naar 1.33.0 (vanaf 1.7.0 of later)
 
-Eén migratie, `0032_concept_live_besluiten`: een nieuw veld bij de conceptversie, leeg voor bestaande
-conceptversies. Bestaande gegevens veranderen niet.
+Eén migratie, `0032_concept_live_besluiten`: een nieuw veld bij het concept, leeg voor bestaande
+concepten. Bestaande gegevens veranderen niet.
 
 - **De live versie verbeteren** terwijl er een concept ligt, begint voortaan op de site (*Bewerken* vraagt wat
   je wilt) en niet meer in het bewerkscherm van het concept. Het adres is `…/change/?live=1`; het oude
@@ -262,7 +275,7 @@ Geen migraties. Wat er voor gebruikers verandert (zie het CHANGELOG):
 - Onder een gepubliceerd artikel staat **één knop *Afronden…*** in plaats van de losse knoppen; die blijven op de
   pagina bestaan voor wie zonder JavaScript werkt. Nieuwe statische bestanden; `collectstatic` doet de container
   zelf. Laat gebruikers na de upgrade eenmalig **Ctrl+F5** doen.
-- **Publiceren en weggooien kan niet meer** zolang een conceptversie ter inzage ligt: eerst terugroepen.
+- **Publiceren en weggooien kan niet meer** zolang een concept ter inzage ligt: eerst terugroepen.
 - Zet een beheerder het **reviewproces van een omgeving uit**, dan wordt alles wat er ter inzage ligt
   teruggeroepen en krijgen reviewers die ermee bezig waren een e-mail. Archiveren of verhuizen naar een andere
   omgeving stopt een lopende review ook.
@@ -316,7 +329,7 @@ cluster; de rest komt in *Algemeen*. Niets om te configureren.
 
 - **Werkvoorraad per cluster.** Nieuwe voorstellen komen in de bak van het cluster van het artikel (bij precies
   één cluster) of in *Algemeen*.
-- **Conceptversie.** Redacteuren kunnen een wijziging aan een gepubliceerd artikel opslaan als conceptversie;
+- **Concept.** Redacteuren kunnen een wijziging aan een gepubliceerd artikel opslaan als concept;
   medewerkers zien dan de gepubliceerde versie tot de redacteur publiceert. Geen invloed op de API voor lezers.
 
 #### Naar 1.16.0 (vanaf 1.7.0 of later)

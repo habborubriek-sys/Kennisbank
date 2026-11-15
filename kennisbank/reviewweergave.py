@@ -218,7 +218,7 @@ def voorbeeld(request, pk):
                 "soort": v.get("soort", inzage.artikel.soort),
                 "inhoud": schoon(v.get("inhoud", "")),
             },
-            "vaste_regel": "conceptversie ter inzage · zo ziet het eruit als deze versie wordt gepubliceerd",
+            "vaste_regel": "concept ter inzage · zo ziet het eruit als deze versie wordt gepubliceerd",
         },
     )
 

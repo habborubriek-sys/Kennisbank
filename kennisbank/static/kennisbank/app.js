@@ -425,7 +425,7 @@
   ];
 
   function gesprekHTML(p) {
-    // De terugkoppeling en de updates van procesmanagement, oudste bovenaan. Bewust eenrichting: de
+    // De berichten en de updates van procesmanagement, oudste bovenaan. Bewust eenrichting: de
     // medewerker dient in, procesmanagement koppelt terug en houdt hem op de hoogte. Behandelen en
     // terugkoppelen doet procesmanagement sinds 1.15.0 in het beheer (de bakken), niet hier.
     const regels = (p.berichten || []).map((b) => `<div class="bericht ${b.van_redactie ? "pm" : "ind"}"><span class="wie">${esc(b.naam)}${b.van_redactie ? " · procesmanagement" : ""} · ${datum(b.moment)}</span><p>${esc(b.tekst)}</p></div>`).join("");
@@ -479,7 +479,7 @@
       filter === "open"
         ? '<div class="empty">Niets staat meer open. Kies hierboven een ander filter om afgehandelde voorstellen te zien.</div>'
         : '<div class="empty">Geen voorstellen in dit filter.</div>';
-    return `<p class="lead">Jouw voorstellen, met de terugkoppeling van procesmanagement.</p>
+    return `<p class="lead">Jouw voorstellen, met de berichten van procesmanagement.</p>
      ${voorstellen.length ? `<div class="propfilter" role="group" aria-label="Filter op status">${knoppen}</div>` : ""}
      ${lijst.length ? `<div class="props">${lijst.map((p) => `<div class="prop" data-prop="${p.id}">
       <div class="ph"><span><a class="tb" href="${esc(p.artikel_url)}" data-open="${p.artikel}">${esc(p.artikel_titel)}</a> &nbsp;${datum(p.ingediend_op)} · bij versie ${p.artikel_versie}</span><span>${p.ongelezen ? `<span class="nieuwstip">${p.ongelezen} nieuw</span> ` : ""}<span class="status ${esc(p.status)}">${esc(VOORSTEL_LABEL[p.status] || p.status)}</span></span></div>
@@ -891,7 +891,7 @@
       $("#propText").value = "";
       closeProp();
       renderFilters();
-      toast("Verbetervoorstel ingediend. Je krijgt een terugkoppeling van procesmanagement.");
+      toast("Verbetervoorstel ingediend. Je krijgt bericht van procesmanagement.");
     } catch (err) {
       toast(err.status === 429 ? "Je hebt veel voorstellen ingediend; probeer het later opnieuw." : "Indienen is mislukt.");
     } finally { knop.disabled = false; }

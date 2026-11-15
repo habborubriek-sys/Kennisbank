@@ -1488,7 +1488,7 @@
     }
   ],
   "metadata": {
-    "timestamp": "2026-11-14T00:24:09.491243+00:00",
+    "timestamp": "2026-11-15T19:46:23.809526+00:00",
     "tools": {
       "components": [
         {
@@ -1595,7 +1595,7 @@
       "bom-ref": "kennisbank",
       "type": "application",
       "name": "kennisbank",
-      "version": "1.33.0",
+      "version": "1.34.0",
       "licenses": [
         {
           "license": {
@@ -1605,7 +1605,7 @@
       ]
     }
   },
-  "serialNumber": "urn:uuid:5cef8871-33ef-46a8-8745-afcc38c10669",
+  "serialNumber": "urn:uuid:e72991f2-438c-4fb8-82cd-c220ebae41ff",
   "version": 1,
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",

@@ -122,7 +122,7 @@ Open hiervoor een voorstel uit de werkbak.
 
 ## G. De live versie verbeteren en overnemen in het concept (1.33.0), als `redacteur`
 
-Nodig: een artikel met een conceptversie. Maak die door een gepubliceerd artikel te bewerken en *Afronden →
+Nodig: een artikel met een concept. Maak dat door een gepubliceerd artikel te bewerken en *Afronden →
 Opslaan als concept* te kiezen.
 
 33. Open dat artikel op de site en druk op **Bewerken**.
@@ -147,4 +147,18 @@ Opslaan als concept* te kiezen.
 37. Druk op Escape en daarna op *Afronden…*.
     - *Verwacht:* het paneel sluit, en de focus staat op *Live wijzigingen* in de balk.
     - Het venster Afronden leest hoeveel wijzigingen vervallen bij publiceren, en biedt *Eerst de wijzigingen
-      langslopen* en *Conceptversie weggooien*.
+      langslopen* en *Concept weggooien*.
+
+## H. Drie standen en de bak (1.34.0), als `redacteur`
+
+38. Open een artikel met een concept en lees de infobalk onder de blauwe balk.
+    - *Verwacht:* je hoort "Concept", daarna de stand ("Bij de redactie", "Bij het reviewteam" of "Akkoord") en
+      de regel erachter, bijvoorbeeld "Nog niet ter inzage gegeven".
+39. Ga naar je werkplek en open de bak van een cluster met voorstellen. Vink een voorstel aan met de spatiebalk
+    en ga met Tab naar *Verbergen voor collega's*; druk op Enter.
+    - *Verwacht:* na het aanvinken hoor je "1 voorstel aangevinkt".
+    - Na Enter wordt de melding "1 voorstel verborgen voor collega's" voorgelezen, en in de rij hoor je
+      "verborgen voor collega's".
+40. Open de bakken *Concepten*, *Review* en *Mijn kladversies*.
+    - *Verwacht:* de tabellen hebben kolomkoppen (*Review*, *Vervalt*) die bij elke cel worden voorgelezen.
+    - De stand en de regel erachter worden als gewone tekst gelezen, niet alleen als kleur.

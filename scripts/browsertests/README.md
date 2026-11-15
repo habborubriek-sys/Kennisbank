@@ -5,7 +5,7 @@ houden een push tegen als ze falen.
 
 | Script | Wat het doet |
 |---|---|
-| `axe.js` | Meet 55 schermen en vensters met axe-core (WCAG 2.0/2.1 A en AA). De site en de reviewpagina's in licht én donker; het beheer in licht. |
+| `axe.js` | Meet 59 schermen en vensters met axe-core (WCAG 2.0/2.1 A en AA). De site en de reviewpagina's in licht én donker; het beheer in licht. |
 | `rook.js` | Loopt de belangrijkste paden af, van begin tot eind: de lade, van voorstel tot gepubliceerde versie met review, de live versie verbeteren terwijl er een concept ligt en dat in het concept overnemen, nieuw artikel, nieuwsbericht, kladversie, en de bediening met het toetsenbord. Bezoekt daarna elk beheerscherm. |
 | `gemeen.js` | Gedeelde hulpfuncties: inloggen, een stap uitvoeren, meten met axe. |
 | `draai.sh` | Start de testserver, draait `axe.js` en `rook.js`, en herhaalt één keer bij een fout. |
@@ -37,10 +37,10 @@ in `.server.log`; in de CI zijn die te downloaden bij de mislukte run.
 - laadt de demo-inhoud en de demo-accounts (`medewerker`, `redacteur`, `reviewer`, `beheerder`, wachtwoord `demo`);
 - zet daarbovenop altijd hetzelfde klaar:
   - *Browsertest lade*: vier open voorstellen, het eerste met vier steuners;
-  - *Browsertest ter inzage*: een conceptversie die bij Team Water ligt, opgepakt, met een opmerking en een
+  - *Browsertest ter inzage*: een concept dat bij Team Water ligt, opgepakt, met een opmerking en een
     meegenomen voorstel;
   - *Browsertest stroom*: een kaal artikel waarop de hele stroom loopt;
-  - *Browsertest spoed*: een artikel met een conceptversie die niet ter inzage ligt;
+  - *Browsertest spoed*: een artikel met een concept dat niet ter inzage ligt;
   - *Browsertest rustig*: een artikel waar niets mee gebeurt;
 - schrijft de id's naar `.opzet.json`, waar de scripts ze lezen;
 - start de ontwikkelserver op poort 8765.

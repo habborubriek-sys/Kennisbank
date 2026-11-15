@@ -90,7 +90,7 @@ sup.kb-ae-vsnr-actief { box-shadow: 0 0 0 3px #b9d4f3; }
 /* Korte melding na een handeling */
 .kb-lade-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #17212b; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 200; max-width: 90vw; }
 .kb-lade-toast-fout { background: #a6192e; }
-.kb-vk-verberg { background: none; border: none; padding: 0; margin-top: 8px; color: #154273; text-decoration: underline; font-size: 12px; cursor: pointer; }
+.kb-vk-verborgen { font-style: italic; }
 .kb-vk-let a { color: inherit; font-weight: 700; }
 
 /* Ronde B (1.29.0): toegankelijkheid. */

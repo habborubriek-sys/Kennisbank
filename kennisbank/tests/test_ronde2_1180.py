@@ -205,12 +205,13 @@ class BehandelschermTests(Scherm):
         self.assertFalse(VoorstelNotitie.objects.filter(voorstel=v).exists())
 
     def test_verbergen_en_weer_tonen(self):
+        # 1.34.0: via de selectiebalk van de bak.
         v = self.voorstel()
-        self.als(self.anna)
-        self.lade(v, "verbergen", waarde="1")
+        c = self.als(self.anna)
+        c.post("/beheer/werkplek/selectie/", {"actie": "verbergen", "voorstel": [f"{v.pk}-0"]})
         v.refresh_from_db()
         self.assertTrue(v.verborgen)
-        self.lade(v, "verbergen", waarde="0")
+        c.post("/beheer/werkplek/selectie/", {"actie": "tonen", "voorstel": [f"{v.pk}-0"]})
         v.refresh_from_db()
         self.assertFalse(v.verborgen)
 

@@ -830,7 +830,7 @@ def concept_weggooien(artikel) -> bool:
             return False
         if op_slot(artikel.pk):
             raise ConceptTerInzage(
-                "De conceptversie ligt ter inzage bij een reviewteam. Roep hem eerst terug; daarna kun je hem "
+                "Het concept ligt bij een reviewteam. Roep het eerst terug; daarna kun je het "
                 "weggooien."
             )
         afsluiten(artikel)  # wat eerder ter inzage lag, telt niet meer mee
@@ -861,9 +861,9 @@ def concept_gepubliceerd(artikel, door) -> bool:
     concept.delete()
     if collegas and artikel.status == Status.GEPUBLICEERD:
         mail_na_commit(
-            f"Conceptversie gepubliceerd: {artikel.titel}",
-            f"{naam_van(door)} heeft de conceptversie van '{artikel.titel}' gepubliceerd, waar jij ook aan werkte. "
-            "Medewerkers zien die tekst nu; de conceptversie is daarmee afgesloten.\n\n"
+            f"Concept gepubliceerd: {artikel.titel}",
+            f"{naam_van(door)} heeft het concept van '{artikel.titel}' gepubliceerd, waar jij ook aan werkte. "
+            "Medewerkers zien die tekst nu; het concept is daarmee afgesloten.\n\n"
             f"{settings.KB_BASIS_URL}/beheer/kennisbank/artikel/{artikel.pk}/change/",
             [u.email for u in collegas],
         )

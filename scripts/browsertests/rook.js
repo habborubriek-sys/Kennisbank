@@ -42,6 +42,25 @@ async function typInAlinea(p, bevat, tekst) {
   const med = await g.sessie(browser, "medewerker");
   const rev = await g.sessie(browser, "reviewer");
 
+  // --- 0. De bak: verbergen voor collega's (1.34.0) en wanneer een kladversie vervalt ---------------------
+  await stap("bak: verbergen voor collega's en weer tonen", red, async () => {
+    await red.goto(B + `/beheer/?bak=cluster-${o.cluster}`);
+    const vink = red.locator(`input[form="kb-selectie"][value^="${o.lade.steun}-"]`);
+    await vink.focus(); await red.keyboard.press("Space");
+    await Promise.all([red.waitForNavigation(), red.locator('#kb-selectie button[value="verbergen"]').click()]);
+    ok(/1 voorstel verborgen voor collega's/.test(await tekstVan(red.locator(".messagelist"))), "melding na verbergen", await tekstVan(red.locator(".messagelist")));
+    const rij = red.locator("tr.kb-bak-rij", { has: red.locator(`input[value^="${o.lade.steun}-"]`) });
+    ok(/verborgen voor collega's/.test(await tekstVan(rij)), "de rij draagt het label", await tekstVan(rij));
+    await g.bewerk(red, o.lade.artikel, `?voorstel=${o.lade.steun}`);
+    ok(/Verborgen voor collega's\. Dat wijzig je in de bak/.test(await tekstVan(red.locator("#kb-lade"))) && (await red.locator(".kb-vk-verberg").count()) === 0, "de lade zegt dat het verborgen is en heeft er geen knop meer voor");
+    await red.goto(B + `/beheer/?bak=cluster-${o.cluster}`);
+    await red.locator(`input[form="kb-selectie"][value^="${o.lade.steun}-"]`).check();
+    await Promise.all([red.waitForNavigation(), red.locator('#kb-selectie button[value="tonen"]').click()]);
+    ok(!/verborgen voor collega's/.test(await tekstVan(red.locator("table.kb-bak"))), "weer tonen haalt het label weg");
+    await red.goto(B + "/beheer/?bak=kladversies");
+    ok(/Browsertest klad.*over 5 dagen/.test(await tekstVan(red.locator("table.kb-tabel"))), "de bak Mijn kladversies zegt wanneer een kladversie vervalt", await tekstVan(red.locator("table.kb-tabel")));
+  });
+
   // --- 1. De lade ----------------------------------------------------------------------------------------
   await stap("lade: knoppen, steun en toetsenbord", red, async () => {
     await g.bewerk(red, o.lade.artikel, `?voorstel=${o.lade.steun}`);
@@ -167,11 +186,12 @@ async function typInAlinea(p, bevat, tekst) {
     await red.locator(`[data-kb-focus="mee-${stroomVoorstel}"]`).click();
     await Promise.all([red.waitForNavigation(), afronden(red, "Opslaan als concept")]);
     await red.locator(".ProseMirror").first().waitFor();
-    ok(/De coordinator is de teamleider/.test(await red.locator(".ProseMirror").first().innerText()), "de conceptversie bevat de nieuwe tekst");
+    ok(/De coordinator is de teamleider/.test(await red.locator(".ProseMirror").first().innerText()), "het concept bevat de nieuwe tekst");
+    ok((await tekstVan(red.locator(".kb-balk .kb-stand"))) === "Bij de redactie" && (await tekstVan(red.locator(".kb-balk .kb-pil"))) === "Concept", "de infobalk zegt Concept, Bij de redactie", await tekstVan(red.locator(".kb-balk-sub")));
     await med.goto(B + `/artikel/${o.stroom.artikel}/browsertest-stroom`);
     await med.locator("article, main").first().waitFor();
     await med.waitForTimeout(800);
-    ok(!/De coordinator is de teamleider/.test(await med.locator("body").innerText()), "medewerkers zien de conceptversie niet");
+    ok(!/De coordinator is de teamleider/.test(await med.locator("body").innerText()), "medewerkers zien het concept niet");
   });
 
   await stap("editor: ter inzage geven", red, async () => {
@@ -180,7 +200,10 @@ async function typInAlinea(p, bevat, tekst) {
     ok(await venster(red).locator('input[type="checkbox"]').first().isChecked(), "het team van het cluster staat voorgevuld");
     await Promise.all([red.waitForNavigation(), vensterKnop(red, "Opslaan en ter inzage geven").click()]);
     await red.waitForLoadState("networkidle");
-    ok(/ter inzage/i.test(await tekstVan(red.locator(".kb-balk"))), "de balk zegt dat de versie ter inzage ligt", await tekstVan(red.locator(".kb-balk")));
+    ok((await tekstVan(red.locator(".kb-balk .kb-stand"))) === "Bij het reviewteam" && /nog niet opgepakt/.test(await tekstVan(red.locator(".kb-balk .kb-stand-regel"))), "de stand is Bij het reviewteam, nog niet opgepakt", await tekstVan(red.locator(".kb-balk-sub")));
+    await red.goto(B + "/beheer/?bak=ter_inzage");
+    ok(/Browsertest stroom\s*Bij het reviewteam/.test(await tekstVan(red.locator("table.kb-tabel"))), "de bak Review toont dezelfde stand", await tekstVan(red.locator("table.kb-tabel")));
+    await g.bewerk(red, o.stroom.artikel);
     await red.click(".kb-afronden-knop");
     const keuzes = await venster(red).locator(".kb-afronden-keuze strong").allTextContents();
     ok(keuzes.join("|") === "Terugroepen|Afbreken", "op slot: alleen Terugroepen en Afbreken", keuzes.join("|"));
@@ -208,6 +231,7 @@ async function typInAlinea(p, bevat, tekst) {
 
   await stap("editor: opmerking lezen, publiceren en voorstel afhandelen", red, async () => {
     await g.bewerk(red, o.stroom.artikel);
+    ok((await tekstVan(red.locator(".kb-balk .kb-stand"))) === "Bij de redactie" && /Teruggegeven door .* met 1 opmerking/.test(await tekstVan(red.locator(".kb-balk .kb-stand-regel"))), "teruggegeven: de stand is Bij de redactie, met de reden erbij", await tekstVan(red.locator(".kb-balk-sub")));
     ok(/Opmerkingen \(1\)/.test(await tekstVan(red.locator(".kb-balk-knoppen"))), "de redacteur ziet dat er een opmerking is", await tekstVan(red.locator(".kb-balk-knoppen")));
     ok(/Graag ook de naam van het team erbij/.test(await red.locator("body").innerText()), "de opmerking staat in de marge");
     await typInAlinea(red, "De coordinator is de teamleider", " Dat is team Nat beheer.");
@@ -320,16 +344,16 @@ async function typInAlinea(p, bevat, tekst) {
     await red.keyboard.press("Escape");
   });
 
-  await stap("editor: conceptversie weggooien via Afronden", red, async () => {
+  await stap("editor: concept weggooien via Afronden", red, async () => {
     await g.bewerk(red, o.spoed.artikel);
-    await afronden(red, "Conceptversie weggooien");
-    await red.locator("dialog[open] h2", { hasText: "Conceptversie weggooien?" }).waitFor();
+    await afronden(red, "Concept weggooien");
+    await red.locator("dialog[open] h2", { hasText: "Concept weggooien?" }).waitFor();
     ok((await red.evaluate(() => document.activeElement.textContent)) === "Annuleren", "het venster Weggooien staat met de focus op Annuleren");
     await Promise.all([red.waitForNavigation(), vensterKnop(red, "Weggooien").click()]);
     await g.bewerk(red, o.spoed.artikel);
-    ok(!/vier weken/.test(await red.locator(".ProseMirror").first().innerText()), "de conceptversie is weg");
+    ok(!/vier weken/.test(await red.locator(".ProseMirror").first().innerText()), "het concept is weg");
     await red.click(".kb-afronden-knop");
-    ok((await venster(red).locator(".kb-afronden-keuze", { hasText: "Conceptversie weggooien" }).count()) === 0, "zonder conceptversie biedt Afronden geen weggooien aan");
+    ok((await venster(red).locator(".kb-afronden-keuze", { hasText: "Concept weggooien" }).count()) === 0, "zonder concept biedt Afronden geen weggooien aan");
     await red.keyboard.press("Escape");
     await red.goto(B + `/artikel/${o.spoed.artikel}/${o.spoed.slug}`);
     await red.locator("a.tb.primary", { hasText: "Bewerken" }).waitFor();

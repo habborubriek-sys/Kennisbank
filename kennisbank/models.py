@@ -22,7 +22,7 @@ class Omgeving(models.Model):
     reviewproces = models.BooleanField(
         "reviewproces gebruiken",
         default=False,
-        help_text="Redacteuren kunnen een conceptversie ter inzage geven aan een reviewteam. Een review blokkeert "
+        help_text="Redacteuren kunnen een concept ter inzage geven aan een reviewteam. Een review blokkeert "
         "nooit de publicatie.",
     )
 
@@ -871,7 +871,7 @@ class Conceptversie(models.Model):
         verbose_name_plural = "conceptversies"
 
     def __str__(self):
-        return f"Conceptversie van {self.artikel}"
+        return f"Concept van {self.artikel}"
 
     @property
     def stempel(self) -> str:

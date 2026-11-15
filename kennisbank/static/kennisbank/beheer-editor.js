@@ -581,7 +581,7 @@
       bezigMetOpslaan = true;
       setTimeout(function () { if (e.defaultPrevented) bezigMetOpslaan = false; }, 0);
     });
-    // Conceptversie weggooien: dan hoort ook de kopie in deze browser weg, anders vraagt het scherm
+    // Concept weggooien: dan hoort ook de kopie in deze browser weg, anders vraagt het scherm
     // straks "verder gaan?" met het werk dat je net bewust hebt weggegooid.
     form.addEventListener("submit", function (e) {
       if (e.submitter && e.submitter.name === "_weggooien") lokaalWeg();
@@ -630,7 +630,7 @@
         alineas: [
           cfg.nieuw ? "Wat je hebt geschreven, wordt niet bewaard." : "Wat je sinds het laatste opslaan hebt veranderd, gaat verloren.",
           cfg.eenvoudig ? (cfg.nieuw ? "" : "Wat al was opgeslagen, blijft staan.")
-            : cfg.concept ? "De conceptversie zoals die is opgeslagen, blijft gewoon staan." : "Medewerkers blijven de gepubliceerde versie zien.",
+            : cfg.concept ? "Het concept zoals het is opgeslagen, blijft gewoon staan." : "Medewerkers blijven de live versie zien.",
         ].filter(Boolean),
         knoppen: [
           { tekst: "Nee, verder werken" },
@@ -665,7 +665,7 @@
       vensterTonen({
         titel: "Ter inzage geven",
         alineas: [
-          "Je wijzigingen worden eerst opgeslagen als conceptversie. Daarna gaat precies die tekst naar het team, en staat hij op slot tot het team reageert of je hem terugroept.",
+          "Je wijzigingen worden eerst opgeslagen als concept. Daarna gaat precies die tekst naar het team, en staat het concept op slot tot het team reageert of je het terugroept.",
           "Aan welk team?",
         ],
         inhoud: vak,
@@ -718,7 +718,7 @@
       if (cfg.eenvoudig) {
         keuzes = eenvoudigeKeuzes();
       } else if (cfg.op_slot) {
-        keuzes.push({ tekst: "Terugroepen", uitleg: "Haal de conceptversie terug bij het reviewteam. Daarna kun je weer bewerken, publiceren of weggooien.", doen: function () { klik('button[name="_terugroepen"]'); } });
+        keuzes.push({ tekst: "Terugroepen", uitleg: "Haal het concept terug bij het reviewteam. Daarna kun je weer bewerken, publiceren of weggooien.", doen: function () { klik('button[name="_terugroepen"]'); } });
       } else {
         if (!cfg.spoed) {
           keuzes.push({ tekst: "Opslaan als concept", uitleg: "Medewerkers merken niets. Je kunt later verder.", doen: function () { klik('button[name="_conceptversie"]'); } });
@@ -730,7 +730,7 @@
         if (live && live.open) keuzes.unshift({ tekst: "Eerst de wijzigingen langslopen", uitleg: "Neem over wat er in de live versie is veranderd.", doen: window.kbLive.toon });
         keuzes.push({ tekst: "Publiceren", uitleg: cfg.spoed ? "De verbetering gaat meteen live voor alle medewerkers." : "Alle medewerkers zien deze tekst meteen." + verlies, doen: function () { klik('input[name="_save"].kb-publiceren'); } });
         // 1.33.0 (L4): stond onder Meer. De knop zelf vraagt nog om bevestiging.
-        if (cfg.weggooien) keuzes.push({ tekst: "Conceptversie weggooien", uitleg: "Het werk in het concept is daarna weg. Medewerkers blijven de live versie zien.", doen: function () { klik('button[name="_weggooien"]'); }, rustig: true });
+        if (cfg.weggooien) keuzes.push({ tekst: "Concept weggooien", uitleg: "Het werk in het concept is daarna weg. Medewerkers blijven de live versie zien.", doen: function () { klik('button[name="_weggooien"]'); }, rustig: true });
       }
       keuzes.push({ tekst: "Afbreken", uitleg: "Sluiten zonder op te slaan.", doen: afbreken, rustig: true });
 
@@ -787,7 +787,7 @@
     var klein = veld("kleine_correctie");
     if (toel && toel.value.trim()) return false;
     if (klein && klein.checked) return false;
-    // Een conceptversie verschilt per definitie van wat medewerkers nu zien.
+    // Een concept verschilt per definitie van wat medewerkers nu zien.
     if (document.querySelector('input[name="kb_conceptmodus"]')) return true;
     return Object.keys(beginwaarden).some(function (naam) {
       var el = veld(naam);
@@ -959,7 +959,7 @@
     });
   }
 
-  // Ligt de conceptversie ter inzage bij een reviewteam, dan staat hij op slot: alleen-lezen. Publiceren
+  // Ligt het concept bij een reviewteam, dan staat het op slot: alleen-lezen. Publiceren
   // kan pas na terugroepen (besluit 12 november); de server weigert het ook.
   function opSlot() {
     if (!document.getElementById("kb-op-slot")) return;
@@ -1015,7 +1015,7 @@
         vensterTonen({
           titel: "Werk van een collega publiceren?",
           alineas: [
-            "Aan deze conceptversie werkte ook " + collegas.value + ".",
+            "Aan dit concept werkte ook " + collegas.value + ".",
             "Publiceer je nu, dan zien alle medewerkers deze tekst en krijgt " + collegas.value + " daar een e-mail over. Overleg eerst als je twijfelt of het werk af is.",
           ],
           knoppen: [{ tekst: "Annuleren" }, { tekst: "Ja, publiceren", primair: true, doen: function () { setTimeout(naBevestigen, 0); } }],

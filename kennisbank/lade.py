@@ -298,9 +298,10 @@ def lade_actie(request, pk):
     """Eén handeling vanuit de lade. Antwoordt met het bijgewerkte voorstel (of `weg` als het is afgehandeld)."""
     actie = request.POST.get("actie")
     tekst = (request.POST.get("tekst") or "").strip()
-    if actie not in ("bericht", "notitie", "afwijzen", "dubbel", "verbergen", "verwerkt"):
+    # 1.34.0: verbergen voor collega's zit niet meer in de lade maar in de bak (werkoverzicht.werkplek_selectie).
+    if actie not in ("bericht", "notitie", "afwijzen", "dubbel", "verwerkt"):
         return _fout("Onbekende handeling.")
-    if not tekst and actie != "verbergen":
+    if not tekst:
         return _fout("Schrijf eerst je tekst." if actie == "notitie" else "Schrijf eerst je bericht aan de indiener.")
     r = rechten(request)
     with transaction.atomic():
@@ -313,17 +314,7 @@ def lade_actie(request, pk):
         if v is None or not r.is_redacteur:
             raise Http404
         model_admin = admin.site._registry[Verbetervoorstel]
-        if actie == "verbergen":
-            # Verbergen voor collega's (bijvoorbeeld omdat er een naam in staat): de stand die de knop wil.
-            gewenst = request.POST.get("waarde") == "1"
-            if gewenst != v.verborgen:
-                v.verborgen = gewenst
-                v.save(update_fields=["verborgen"])
-                model_admin.log_change(
-                    request, v, "Verborgen voor collega's." if gewenst else "Weer zichtbaar voor collega's."
-                )
-            melding = "Verborgen voor collega's." if gewenst else "Collega's zien het voorstel weer."
-        elif actie == "notitie":
+        if actie == "notitie":
             diensten.notitie_toevoegen(v, request.user, tekst)
             melding = "Notitie bewaard. Alleen redacteuren zien hem."
         elif not v.is_open:
@@ -354,7 +345,7 @@ def lade_actie(request, pk):
                 # De lade vraagt dit zelf al; dit is voor als de tekst intussen is veranderd. Niets versturen.
                 return JsonResponse(
                     {
-                        "fout": "De geciteerde tekst staat nog letterlijk in de gepubliceerde versie. "
+                        "fout": "De geciteerde tekst staat nog letterlijk in de live versie. "
                         "Kies opnieuw Afhandelen en bevestig dat het voorstel toch is verwerkt. "
                         "Er is niets verstuurd.",
                         "voorstel": _item(v, request.user, _andere(v.artikel)),

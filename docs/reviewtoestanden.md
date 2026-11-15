@@ -2,52 +2,67 @@
 
 Wat kan wanneer, voor de redacteur en de reviewer. Dit document is voor beheerders en ontwikkelaars die willen
 weten hoe het reviewproces in elkaar zit. De handleiding voor redacteuren staat in
-[functioneel-beheer](functioneel-beheer.md#reviewproces-een-conceptversie-laten-meelezen).
+[functioneel-beheer](functioneel-beheer.md#reviewproces-een-concept-laten-meelezen).
 
 De regels worden op de server afgedwongen, in `kennisbank/review.py` en `kennisbank/diensten.py`. De schermen
 volgen ze alleen.
 
 ## Begrippen
 
-- **Conceptversie**: de nieuwe versie van een gepubliceerd artikel waar de redactie aan werkt. Er is er hoogstens
+- **Concept**: de nieuwe versie van een gepubliceerd artikel waar de redactie aan werkt. Er is er hoogstens
   één per artikel. Medewerkers zien hem niet.
-- **Ter inzage**: de conceptversie ligt bij een of meer reviewteams. Per team per ronde is er één rij (`Inzage`).
+- **Ter inzage**: het concept ligt bij een of meer reviewteams. Per team per ronde is er één rij (`Inzage`).
 - **Ronde**: elke keer dat de redacteur ter inzage geeft, begint een nieuwe ronde. Alleen de laatste ronde telt
   voor de stand; eerdere rondes blijven zichtbaar met hun opmerkingen.
 - **Op slot**: zolang minstens één team in de laatste ronde nog *Ter inzage* heeft.
-- **Stempel**: het moment waarop de conceptversie voor het laatst is gewijzigd. Een akkoord geldt voor één
+- **Stempel**: het moment waarop het concept voor het laatst is gewijzigd. Een akkoord geldt voor één
   stempel.
 
-## De toestanden van een conceptversie
+## De drie standen die de redacteur ziet (sinds 1.34.0)
+
+De redacteur ziet niet de toestanden hieronder, maar één van drie standen, met de bijzonderheid als regel
+erachter (`review.drie_standen`; voor de bakken op de werkplek `review.standen_voor`, twee databasevragen
+ongeacht het aantal artikelen).
+
+| Stand | Betekenis | Toestanden die eronder vallen |
+|---|---|---|
+| **Bij de redactie** | De tekst is te wijzigen | Concept nog niet ter inzage, Teruggegeven, Teruggeroepen, Akkoord vervallen |
+| **Bij het reviewteam** | Op slot | Ter inzage (nog niet opgepakt), Ter inzage (opgepakt) |
+| **Akkoord** | Klaar om te publiceren | Akkoord |
+
+De toestanden zelf, de rondes, de voorlopige opmerkingen en het slot zijn niet veranderd. De reviewer houdt op
+`/review/` zijn eigen woorden ("nog niet opgepakt", "ligt bij jou"): dat is zijn werklijst.
+
+## De toestanden van een concept
 
 | Toestand | Wanneer | Op slot |
 |---|---|---|
-| Geen conceptversie | Het artikel heeft alleen de gepubliceerde versie | – |
-| Conceptversie, nog niet ter inzage | Opgeslagen met *Opslaan als concept* | nee |
+| Geen concept | Het artikel heeft alleen de live versie | – |
+| Concept, nog niet ter inzage | Opgeslagen met *Opslaan als concept* | nee |
 | Ter inzage, nog niet opgepakt | Ter inzage gegeven; geen reviewer heeft het opgepakt | ja |
 | Ter inzage, opgepakt | Een reviewer heeft *Oppakken* gekozen ("ligt bij …") | ja |
 | Teruggegeven | Het team gaf het terug met opmerkingen | nee |
 | Akkoord | Alle teams van de laatste ronde gaven akkoord, en de tekst is daarna niet gewijzigd | nee |
-| Akkoord vervallen | Er was akkoord, maar de conceptversie is daarna gewijzigd | nee |
+| Akkoord vervallen | Er was akkoord, maar het concept is daarna gewijzigd | nee |
 | Teruggeroepen | De redacteur haalde het terug voordat het team klaar was | nee |
 
-Bij meer teams geldt per team een eigen rij. De conceptversie is op slot zolang één team nog bezig is, en
+Bij meer teams geldt per team een eigen rij. Het concept is op slot zolang één team nog bezig is, en
 "Akkoord" geldt pas als alle teams akkoord zijn.
 
 ## Overgangen
 
 | Van | Handeling | Door | Naar |
 |---|---|---|---|
-| Geen conceptversie | Opslaan als concept | redacteur | Conceptversie |
-| Conceptversie (ook teruggegeven, akkoord, teruggeroepen) | Ter inzage geven | redacteur | Ter inzage, nieuwe ronde |
+| Geen concept | Opslaan als concept | redacteur | Concept |
+| Concept (ook teruggegeven, akkoord, teruggeroepen) | Ter inzage geven | redacteur | Ter inzage, nieuwe ronde |
 | Ter inzage | Oppakken of Overnemen | reviewer van het team | Ter inzage, opgepakt |
 | Ter inzage, opgepakt | Teruggeven met opmerkingen | de reviewer bij wie het ligt | Teruggegeven |
 | Ter inzage, opgepakt | Akkoord | de reviewer bij wie het ligt | Akkoord |
 | Ter inzage | Terugroepen | redacteur | Teruggeroepen |
-| Akkoord | De conceptversie wijzigen en opslaan | redacteur | Akkoord vervallen |
-| Elke toestand die niet op slot is | Publiceren | redacteur | Geen conceptversie; nieuwe versie |
-| Elke toestand die niet op slot is | Conceptversie weggooien | redacteur | Geen conceptversie |
-| Elke toestand | Artikel archiveren of naar een andere omgeving verhuizen | redacteur | De review stopt; de conceptversie blijft |
+| Akkoord | Het concept wijzigen en opslaan | redacteur | Akkoord vervallen |
+| Elke toestand die niet op slot is | Publiceren | redacteur | Geen concept; nieuwe versie |
+| Elke toestand die niet op slot is | Concept weggooien | redacteur | Geen concept |
+| Elke toestand | Artikel archiveren of naar een andere omgeving verhuizen | redacteur | De review stopt; het concept blijft |
 | Elke toestand | Reviewproces van de omgeving uitzetten | beheerder | Alles wat ter inzage ligt, wordt teruggeroepen |
 
 Bij publiceren of weggooien worden de rijen afgesloten: ze tellen niet meer mee voor de stand, maar blijven
@@ -57,9 +72,9 @@ bewaard voor de versiegeschiedenis.
 
 | | Niet ter inzage | Ter inzage (op slot) |
 |---|---|---|
-| De conceptversie wijzigen | ja | nee |
+| Het concept wijzigen | ja | nee |
 | Publiceren | ja | nee, eerst terugroepen |
-| Conceptversie weggooien | ja | nee, eerst terugroepen |
+| Concept weggooien | ja | nee, eerst terugroepen |
 | Ter inzage geven | ja | nee, ligt er al |
 | Terugroepen | – | ja; is een team al bezig, dan eerst een bevestiging |
 | De live versie verbeteren (via *Bewerken* op de site) | ja | ja |
@@ -121,11 +136,11 @@ Een akkoord is niet nodig om te publiceren: de redacteur is eindverantwoordelijk
 | Teruggegeven of akkoord | de redacteur die het ter inzage gaf |
 | Teruggeroepen | de reviewer die het had opgepakt |
 | Review gestopt (archiveren, verhuizen, reviewproces uit) | de reviewer die ermee bezig was |
-| Een collega publiceert jouw conceptversie | de redacteur die hem begon of het laatst bijwerkte |
+| Een collega publiceert jouw concept | de redacteur die het begon of het als laatste bijwerkte |
 
 ## Gelijktijdig werken
 
-- Slaat een collega de conceptversie op terwijl jij hem open hebt, dan wordt jouw opslag geweigerd; je werk staat
+- Slaat een collega het concept op terwijl jij het open hebt, dan wordt jouw opslag geweigerd; je werk staat
   in je kladversie.
 - Geeft de redacteur ter inzage vanaf een verouderd scherm, dan weigert de kennisbank dat: het team zou anders
   een andere tekst lezen dan de redacteur zag.

@@ -1,5 +1,30 @@
 # Wijzigingen
 
+## 1.34.0 – 2026-11-15
+
+Minder begrippen in de schermen, vervolg op 1.33.0 (bouwlijst `bouwlijst-1.34.0-drie-standen-en-termen.md`). Op 15 november liep Alex de rest van de schraplijst langs: kladversies (30 dagen), Ontdubbelen, voorlopige opmerkingen en rondes blijven zoals ze zijn.
+
+**De review in drie standen (N1)**
+- De redacteur ziet één van drie standen: **Bij de redactie** (je kunt de tekst wijzigen), **Bij het reviewteam** (op slot) of **Akkoord** (je kunt publiceren). Wat er precies speelt, staat in de regel erachter: "Teruggegeven door Team Water met 2 opmerkingen", "Team Water: ligt bij Wim", "Het akkoord is vervallen: de tekst is daarna gewijzigd".
+- In de infobalk van het bewerkscherm, het paneel Review en de bakken *Concepten* en *Review* op de werkplek. De bak *Concepten* kreeg daarvoor een kolom *Review*.
+- De bak *Ter inzage* heet **Review**.
+- Onder de motorkap is niets veranderd: toestanden, rondes, voorlopige opmerkingen en het slot werken zoals in 1.33.0.
+
+**Eén woord: concept (N2)**
+- In schermen, meldingen, de geschiedenis (nieuwe regels) en e-mails staat overal *concept* waar eerst *conceptversie* en *concept* door elkaar stonden. Ook gelijkgetrokken: *live versie* (was soms *gepubliceerde versie*), *bak* (was soms *werkbak*) en *bericht* (was soms *terugkoppeling*).
+- Namen in de code, de database, de API en adressen zijn niet gewijzigd.
+
+**Verbergen voor collega's naar de bak (N3)**
+- De knop staat niet meer in de lade van de editor maar in de selectiebalk van de bak op de werkplek: een of meer voorstellen aanvinken, **Verbergen voor collega's** of **Weer tonen**. In de bak staat het label *verborgen voor collega's* bij het voorstel; de lade zegt alleen nog dat het verborgen is.
+
+**Kladversies**
+- De bak *Mijn kladversies* toont per kladversie wanneer hij vervalt, vet in de laatste week. De termijn (30 dagen, `KB_KLADVERSIE_DAGEN`) is niet gewijzigd.
+
+**Techniek en tests**
+- Migratie `0033_tekst_concept`: alleen een helptekst, geen wijziging in de gegevens.
+- 25 nieuwe tests (776 in totaal), waaronder een test die bewaakt dat de oude woorden niet terugkomen in sjablonen, scripts, schermen en e-mails. 18 mutaties: 17 betrapt; één brak niets (de lade weigert de oude actie ook langs een andere weg).
+- Browsertests: `rook.js` 112 controles (was 104), `axe.js` 59 metingen (was 55). De meting vond een bestaande fout: de link in de melding over kladversies boven de artikellijst was alleen aan de kleur te herkennen. Hersteld.
+
 ## 1.33.0 – 2026-11-14
 
 De live versie verbeteren, en in het concept overnemen wat er live veranderde (bouwlijst `bouwlijst-1.33.0-live-versie-bijgewerkt.md`). Aanleiding: de schermen kenden te veel begrippen (kladversie, conceptversie, spoedcorrectie, kleine correctie, review). Twee ervan verdwijnen als begrip, en het menu *Meer* is weg.

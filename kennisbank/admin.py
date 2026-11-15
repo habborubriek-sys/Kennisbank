@@ -374,7 +374,7 @@ class ArtikelForm(forms.ModelForm):
             nu = diensten.concept_stand(self.instance.pk)
         if nu != (data.get("geladen_concept") or ""):
             raise forms.ValidationError(
-                "Een collega heeft de conceptversie van dit artikel opgeslagen, gepubliceerd of weggegooid "
+                "Een collega heeft het concept van dit artikel opgeslagen, gepubliceerd of weggegooid "
                 "terwijl jij het openhad. Je wijzigingen zijn niet opgeslagen; ze staan nog in dit scherm. "
                 "Open het artikel in een nieuw tabblad om te zien wat er nu staat."
             )
@@ -389,7 +389,7 @@ class ArtikelForm(forms.ModelForm):
 
         if self.instance.pk and review.op_slot(self.instance.pk):
             raise forms.ValidationError(
-                "De conceptversie ligt ter inzage bij een reviewteam. Roep hem eerst terug voordat je publiceert. "
+                "Het concept ligt bij een reviewteam. Roep het eerst terug voordat je publiceert. "
                 "Is er een dringende fout in wat medewerkers nu zien? Open het artikel op de site, kies Bewerken en "
                 "daarna 'De live versie verbeteren'."
             )
@@ -1240,7 +1240,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         if getattr(request, "_kb_als_concept", False):
             if getattr(request, "_kb_concept_conflict", False):
                 return None
-            message = "Conceptversie opgeslagen."
+            message = "Concept opgeslagen."
         return super().log_change(request, obj, message)
 
     def response_change(self, request, obj):
@@ -1248,15 +1248,15 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             if getattr(request, "_kb_concept_op_slot", False):
                 self.message_user(
                     request,
-                    "De conceptversie ligt ter inzage bij een reviewteam en staat op slot. Je wijzigingen zijn NIET "
-                    "opgeslagen; ze staan nog in de kladversie in deze browser. Roep de conceptversie eerst terug "
+                    "Het concept ligt bij een reviewteam en staat op slot. Je wijzigingen zijn NIET "
+                    "opgeslagen; ze staan nog in de kladversie in deze browser. Roep het concept eerst terug "
                     "als je verder wilt werken.",
                     messages.ERROR,
                 )
             elif getattr(request, "_kb_concept_conflict", False):
                 self.message_user(
                     request,
-                    "Een collega heeft de conceptversie opgeslagen, gepubliceerd of weggegooid terwijl jij het "
+                    "Een collega heeft het concept opgeslagen, gepubliceerd of weggegooid terwijl jij het "
                     "artikel openhad. Je wijzigingen zijn NIET opgeslagen; ze staan nog in de kladversie in deze "
                     "browser. Kijk wat er nu staat en kies dan of je verder wilt gaan met je kladversie.",
                     messages.ERROR,
@@ -1268,7 +1268,7 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             else:
                 self.message_user(
                     request,
-                    f"Conceptversie opgeslagen. Medewerkers zien nog versie {obj.versie}; zij merken pas iets als "
+                    f"Concept opgeslagen. Medewerkers zien nog versie {obj.versie}; zij merken pas iets als "
                     "je publiceert.",
                     messages.SUCCESS,
                 )
@@ -1304,16 +1304,20 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
             rijen = review.ter_inzage_geven(obj, request.user, teams, concept.stempel if concept else "")
         except review.ReviewFout as e:
             self.message_user(
-                request, f"De conceptversie is opgeslagen, maar ligt nog niet ter inzage: {e}", messages.WARNING
+                request, f"Het concept is opgeslagen, maar is nog niet ter inzage gegeven: {e}", messages.WARNING
             )
             return
         namen = ", ".join(r.team.naam for r in rijen)
         LogEntry.objects.log_actions(
-            request.user.pk, [obj], CHANGE, change_message=f"Conceptversie ter inzage bij {namen}.", single_object=True
+            request.user.pk,
+            [obj],
+            CHANGE,
+            change_message=f"Concept ter inzage gegeven aan {namen}.",
+            single_object=True,
         )
         self.message_user(
             request,
-            f"Opgeslagen en ter inzage gegeven aan {namen}. De conceptversie staat op slot tot het team reageert of "
+            f"Opgeslagen en ter inzage gegeven aan {namen}. Het concept staat op slot tot het team reageert of "
             "je hem terugroept.",
             messages.SUCCESS,
         )
@@ -1337,12 +1341,12 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 request.user.pk,
                 [obj],
                 CHANGE,
-                change_message=f"Conceptversie ter inzage bij {namen}.",
+                change_message=f"Concept ter inzage gegeven aan {namen}.",
                 single_object=True,
             )
             self.message_user(
                 request,
-                f"De conceptversie ligt ter inzage bij {namen}. Hij staat op slot tot het team reageert of je hem "
+                f"Het concept ligt bij {namen}. Het staat op slot tot het team reageert of je het "
                 "terugroept. Publiceren of weggooien kan pas na terugroepen.",
             )
         return redirect(reverse("admin:kennisbank_artikel_change", args=[obj.pk]))
@@ -1418,10 +1422,10 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                 request.user.pk,
                 [obj],
                 CHANGE,
-                change_message="Conceptversie teruggeroepen uit de review.",
+                change_message="Concept teruggeroepen uit de review.",
                 single_object=True,
             )
-            self.message_user(request, "De conceptversie is teruggeroepen. Je kunt er weer aan werken.")
+            self.message_user(request, "Het concept is teruggeroepen. Je kunt er weer aan werken.")
         else:
             # Review 1.20.1, bevinding 14: vanaf een verouderd scherm. Zeg wat er intussen gebeurde.
             stand = review.stand(obj)
@@ -1452,13 +1456,13 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         if weg:
             diensten.klad_afsluiten(request.user, obj)
             LogEntry.objects.log_actions(
-                request.user.pk, [obj], CHANGE, change_message="Conceptversie weggegooid.", single_object=True
+                request.user.pk, [obj], CHANGE, change_message="Concept weggegooid.", single_object=True
             )
             for v in getattr(obj, "_kb_niet_meer_meegenomen", []):
                 admin.site._registry[Verbetervoorstel].log_change(
-                    request, v, "Niet meer meegenomen: de conceptversie is weggegooid."
+                    request, v, "Niet meer meegenomen: het concept is weggegooid."
                 )
-            self.message_user(request, "De conceptversie is weggegooid. Je ziet weer de gepubliceerde tekst.")
+            self.message_user(request, "Het concept is weggegooid. Je ziet weer de live versie.")
         return redirect(reverse("admin:kennisbank_artikel_change", args=[obj.pk]))
 
     def _live_gegevens(self, request, obj, concept, velden=None, besluiten=None):
@@ -1583,10 +1587,10 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
                     "inhoud": schoon(concept.velden.get("inhoud", "")),
                 },
                 "vaste_regel": (
-                    f"conceptversie · bijgewerkt {date_format(timezone.localtime(concept.bijgewerkt_op), 'j F Y H:i')} "
+                    f"concept · bijgewerkt {date_format(timezone.localtime(concept.bijgewerkt_op), 'j F Y H:i')} "
                     f"door {diensten.naam_van(concept.bijgewerkt_door)} · gepubliceerd is versie {obj.versie}"
                 ),
-                "vaste_titelbalk": "Conceptversie",
+                "vaste_titelbalk": "Concept",
             },
         )
 
@@ -2115,7 +2119,7 @@ class VerbetervoorstelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         ),
     ]
 
-    @admin.display(description="Laatste terugkoppeling")
+    @admin.display(description="Laatste bericht")
     def laatste_terugkoppeling(self, obj):
         """Alleen ter informatie: dit is het laatste bericht dat de indiener heeft gekregen."""
         return obj.terugkoppeling or "— nog geen terugkoppeling gestuurd"

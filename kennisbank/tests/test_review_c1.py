@@ -124,7 +124,7 @@ class TerInzageTests(ReviewBasis):
         data = beheerdata(self.a, inhoud="<p>Stiekem iets anders</p>", geladen_concept=c.stempel)
         r = self.post(self.url, data, _save="1")
         self.assertEqual(r.status_code, 200)
-        self.assertIn("Roep hem eerst terug", r.content.decode())
+        self.assertIn("Roep het eerst terug", r.content.decode())
         self.a.refresh_from_db()
         self.assertEqual(self.a.versie, 1)
         self.assertTrue(review.op_slot(self.a.pk))
@@ -211,7 +211,9 @@ class TerInzageTests(ReviewBasis):
         self.ter_inzage()
         html = self.client.get("/beheer/?bak=ter_inzage").content.decode()
         self.assertIn("Rappel versturen", html)
-        self.assertIn("Team Water: ter inzage", html)
+        self.assertIn("<title>Review | ", html)
+        self.assertIn('<span class="kb-vstatus kb-stand-inzage">Bij het reviewteam</span>', html)
+        self.assertIn("Team Water: nog niet opgepakt", html)
 
 
 class ReviewerTests(ReviewBasis):

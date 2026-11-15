@@ -676,9 +676,9 @@ class Schermen(LiveBasis):
         )
         self.assertTrue(afronden["weggooien"])
         self.assertIn('name="_weggooien"', html)
-        self.assertIn('data-kb-vraag-titel="Conceptversie weggooien?"', html)
+        self.assertIn('data-kb-vraag-titel="Concept weggooien?"', html)
         js = self.bron("beheer-editor.js")
-        self.assertIn('tekst: "Conceptversie weggooien"', js)
+        self.assertIn('tekst: "Concept weggooien"', js)
         self.assertIn("if (cfg.weggooien)", js)
         self.assertNotIn("kb-meer", self.bron("artikel-scherm.js") + self.bron("artikel-scherm.css"))
 

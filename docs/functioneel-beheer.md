@@ -11,11 +11,11 @@ Het bewerkscherm (sinds 1.22.0) laat het artikel zien zoals medewerkers het leze
    Ligt er al een concept van het artikel, dan vraagt **Bewerken** eerst wat je wilt: *De live versie
    verbeteren* of *Verder met het concept* (zie *De live versie verbeteren terwijl er een concept ligt*).
 2. **Bovenaan staat een blauwe balk** met links **← Werkplek** en de titel. Daaronder staat een dunne, lichte
-   infobalk met de labels: *Conceptversie* en de stand van de review (bijvoorbeeld *Teruggegeven door Team Water
+   infobalk met de labels: *Concept* en de stand van de review (bijvoorbeeld *Teruggegeven door Team Water
    · 2 opmerkingen*), met klein erachter welke versie medewerkers zien en wie het laatst iets deed. Rechts in de
    blauwe balk staan de knoppen **Opmerkingen**, **Bekijk als medewerker**, **Eigenschappen**, **Geschiedenis** en **Review**,
    met als laatste **Afronden…**. Is de live versie bijgewerkt nadat het concept begon, dan staat er ook **Live
-   wijzigingen**. Het menu *Meer* bestaat sinds 1.33.0 niet meer: de conceptversie weggooien doe je via
+   wijzigingen**. Het menu *Meer* bestaat sinds 1.33.0 niet meer: het concept weggooien doe je via
    *Afronden*, en de live versie bekijk je door in de infobalk op het versienummer te klikken
    (*Medewerkers zien versie n*).
 3. **Titel en samenvatting** staan bovenaan het artikel, op de plek waar de lezer ze ziet. Ze horen bij elk
@@ -54,46 +54,46 @@ Elke keer dat je een gepubliceerd artikel inhoudelijk wijzigt, ontstaat automati
 
 **Een artikel voor het eerst publiceren** gaat langs een laatste controle. De publicatie wordt geweigerd als de titel een bestandsnaam of versie-aanduiding is (`werkinstructie DEFINITIEF.docx`), als de samenvatting leeg of nietszeggend is, of als er een sectie zonder titel in staat — die heet voor de lezer namelijk "Sectie 1". Je krijgt per geval te zien wat eraan moet gebeuren. Ontbreekt alleen een zaaktype of tag, dan volgt een waarschuwing en gaat de publicatie door: slecht vindbaar is soms de bedoeling. Een artikel dat al eens is gepubliceerd, wordt niet opnieuw gekeurd, zodat een typfout altijd te herstellen blijft.
 
-## Conceptversie: rustig werken aan een nieuwe versie
+## Concept: rustig werken aan een nieuwe versie
 
 Onder een gepubliceerd artikel staat één knop: **Afronden…**. Die opent een venster met de keuzes:
 
-- **Opslaan als concept** bewaart je wijziging als **conceptversie**. Medewerkers blijven de gepubliceerde
+- **Opslaan als concept** bewaart je wijziging als **concept**. Medewerkers blijven de gepubliceerde
   versie zien en merken niets: geen nieuwe versie, geen melding, geen e-mail.
 - **Ter inzage geven** (alleen als het reviewproces aanstaat): je wijziging wordt eerst opgeslagen als
-  conceptversie, en daarna gaat precies die tekst naar het reviewteam dat je kiest. Zie *Reviewproces*.
+  concept, en daarna gaat precies die tekst naar het reviewteam dat je kiest. Zie *Reviewproces*.
 - **Publiceren** zet je wijziging meteen live. Een venster vraagt eerst: **Moeten medewerkers dit weten?**
   Kies *Ja* en schrijf in één zin wat er is gewijzigd: medewerkers zien die zin als melding bij het artikel, en wie
   het als favoriet heeft, krijgt een e-mail. Kies *Nee* om stil bij te werken, bijvoorbeeld bij een typfout of
   opmaak; een toelichting is dan niet nodig. Daarna kom je terug op je werkplek.
-- **Conceptversie weggooien** (alleen als er een conceptversie is die niet ter inzage ligt) gooit het werk aan de
+- **Concept weggooien** (alleen als er een concept is dat niet bij een reviewteam ligt) gooit het werk aan de
   nieuwe versie weg, na een bevestiging. Medewerkers blijven de live versie zien.
 - **Afbreken** sluit het artikel zonder op te slaan. Wat je sinds het laatste opslaan veranderde, gaat verloren
-  (ook de kladversie van dit scherm); een opgeslagen conceptversie blijft gewoon staan.
+  (ook de kladversie van dit scherm); een opgeslagen concept blijft gewoon staan.
 
-Ligt de conceptversie ter inzage, dan biedt het venster alleen **Terugroepen** en **Afbreken**. Verbeter je de
+Ligt het concept ter inzage, dan biedt het venster alleen **Terugroepen** en **Afbreken**. Verbeter je de
 live versie terwijl er een concept ligt, dan alleen **Publiceren** en **Afbreken**. Bij een nieuw artikel, of een artikel dat nog nooit is
 gepubliceerd, biedt het venster **Opslaan als concept** (medewerkers zien nog niets), **Publiceren** en
 **Afbreken**. Ter inzage geven kan bij zo'n artikel nog niet.
 
-Is er een conceptversie, dan opent het artikel in het beheer met die conceptversie. De balk bovenaan zegt dat je
-in de conceptversie werkt, wie hem het laatst bijwerkte en welke versie medewerkers nu zien; klik op dat
-versienummer om de live versie te **bekijken**. De conceptversie **weggooien** doe je via *Afronden* (niet als hij
-ter inzage ligt: roep hem dan eerst terug). Gooi je hem weg, dan staan voorstellen die je had *meegenomen* weer op "niet meegenomen". Werk verder
-met *Afronden → Opslaan als concept*; wil je hem publiceren, kies dan *Afronden → Publiceren* en vul de
-toelichting in. De conceptversie is daarna weg en het
+Is er een concept, dan opent het artikel in het beheer met dat concept. De balk bovenaan zegt dat je
+in het concept werkt, wie het als laatste bijwerkte en welke versie medewerkers nu zien; klik op dat
+versienummer om de live versie te **bekijken**. Het concept **weggooien** doe je via *Afronden* (niet als het
+bij een reviewteam ligt: roep het dan eerst terug). Gooi je het weg, dan staan voorstellen die je had *meegenomen* weer op "niet meegenomen". Werk verder
+met *Afronden → Opslaan als concept*; wil je het publiceren, kies dan *Afronden → Publiceren* en vul de
+toelichting in. Het concept is daarna weg en het
 artikel heeft een nieuwe versie.
 
-- **Werk van een collega publiceren.** Begon een collega de conceptversie, of werkte hij hem als laatste bij,
+- **Werk van een collega publiceren.** Begon een collega het concept, of werkte die het als laatste bij,
   dan vraagt de kennisbank eerst of je zijn werk wilt publiceren. Doe je dat, dan krijgt hij een e-mail.
 
-- Er is per artikel **één conceptversie, voor de hele redactie**: een collega die het artikel opent, werkt in
-  dezelfde conceptversie verder. Hebben jullie hem allebei open en slaat de ander eerst op, dan krijg je een
+- Er is per artikel **één concept, voor de hele redactie**: een collega die het artikel opent, werkt in
+  hetzelfde concept verder. Hebben jullie het allebei open en slaat de ander eerst op, dan krijg je een
   melding en wordt jouw opslag geweigerd, net als bij het artikel zelf. Je werk staat dan nog in je kladversie.
-- Op je werkplek staan conceptversies onder **Concepten**, bovenaan, met het label *conceptversie*.
-- Een artikel dat nog nooit is gepubliceerd, heeft geen conceptversie nodig: het is zelf nog een concept.
+- Op je werkplek staan concepten onder **Concepten**, bovenaan, met het label *concept*.
+- Een artikel dat nog nooit is gepubliceerd, is zelf nog een concept: er is dan geen live versie ernaast.
 - **De live versie verbeteren terwijl er een concept ligt.** Zie de paragraaf hieronder.
-- Staat het reviewproces aan, dan kun je een conceptversie **ter inzage** geven aan een reviewteam; zie hieronder.
+- Staat het reviewproces aan, dan kun je een concept **ter inzage** geven aan een reviewteam; zie hieronder.
 
 #### De live versie verbeteren terwijl er een concept ligt
 
@@ -147,16 +147,29 @@ Goed om te weten:
 - De woorden *spoedcorrectie* en *kleine correctie* komen sinds 1.33.0 niet meer voor in de schermen. In oude
   regels van de versiegeschiedenis kan "Spoedcorrectie" nog staan.
 
-## Reviewproces: een conceptversie laten meelezen
+## Reviewproces: een concept laten meelezen
+
+**De drie standen (sinds 1.34.0).** Waar je ook kijkt (de infobalk van het bewerkscherm, het paneel *Review*,
+de bakken *Concepten* en *Review* op je werkplek), een concept staat in één van drie standen. Wat er precies
+speelt, staat in de regel erachter.
+
+| Stand | Wat het voor jou betekent | Voorbeeld van de regel erachter |
+|---|---|---|
+| **Bij de redactie** | Je kunt de tekst wijzigen | "Nog niet ter inzage gegeven", "Teruggegeven door Team Water met 2 opmerkingen", "Teruggeroepen op 14 november", "Het akkoord is vervallen: de tekst is daarna gewijzigd" |
+| **Bij het reviewteam** | De tekst staat op slot; je wacht | "Team Water: nog niet opgepakt", "Team Water: ligt bij Wim" |
+| **Akkoord** | Je kunt publiceren | "Akkoord van Team Water op 14 november" |
+
+Bij meer teams is de stand *Bij het reviewteam* zolang één team nog bezig is, en *Akkoord* pas als alle teams
+akkoord zijn. De regels van de review zelf zijn niet veranderd; de stappen hieronder beschrijven ze.
 
 Staat in de omgeving **Reviewproces gebruiken** aan (een beheerder zet dat aan bij *Omgevingen*), dan kun je
-een conceptversie laten meelezen door een specialistisch team, bijvoorbeeld Team Water. Een akkoord is niet
+een concept laten meelezen door een specialistisch team, bijvoorbeeld Team Water. Een akkoord is niet
 nodig om te publiceren: jij bent eindverantwoordelijk. Maar zolang een team aan het lezen is, publiceer je niet.
 
 1. **Afronden → Ter inzage geven.** Het team van het cluster van het artikel staat al aangevinkt; pas dat
    aan als dat nodig is (meer teams mag). Je wijziging wordt eerst opgeslagen, dus het team leest precies wat
    je op het scherm hebt.
-2. **Op slot.** De conceptversie staat daarna **op slot**: je kunt hem niet wijzigen, publiceren of weggooien
+2. **Op slot.** Het concept staat daarna **op slot**: je kunt het niet wijzigen, publiceren of weggooien
    tot het team reageert. Wil je toch verder, kies dan **Terugroepen** (in het paneel *Review* of via *Afronden*). Is het team er al mee bezig, dan vraagt de
    kennisbank eerst of je het zeker weet. Een reviewer die het had opgepakt, krijgt een e-mail. Wat hij al had
    opgemerkt, blijft bewaard en zie je als *voorlopig*: "mogelijk niet compleet".
@@ -184,26 +197,26 @@ nodig om te publiceren: jij bent eindverantwoordelijk. Maar zolang een team aan 
    - Onder de tekst staan de **eerdere rondes**, per opmerking met "staat er nog hetzelfde" of "tekst is
      aangepast".
    Reviewers bewerken niets en publiceren niets.
-4. **Teruggegeven?** Je krijgt een e-mail. Open het artikel: de balk zegt *Teruggegeven door Team Water · 2
-   opmerkingen*, en de opmerkingen staan meteen **rechts in de marge, op de hoogte van de tekst waar ze over
+4. **Teruggegeven?** Je krijgt een e-mail. Open het artikel: de infobalk zegt *Bij de redactie*, met erachter *Teruggegeven door
+   Team Water met 2 opmerkingen*, en de opmerkingen staan meteen **rechts in de marge, op de hoogte van de tekst waar ze over
    gaan**. Die tekst is paars gemarkeerd met een doorgetrokken lijn eronder en een vierkant nummer; ga je met
    de muis over een opmerking, dan kleurt de markering feller.
    Algemene opmerkingen staan bovenaan. De markering hoort niet bij de tekst en wordt nooit opgeslagen. Pas je
    die zin aan, dan staat bij de opmerking "Tekst is intussen gewijzigd", met het oorspronkelijke citaat. De
    knop **Opmerkingen** zet de marge aan en uit. Opmerkingen zie je pas als het team heeft gereageerd. Daarna:
    *Afronden → Ter inzage geven* voor een nieuwe ronde (eerdere rondes staan in het paneel **Review**).
-5. **Akkoord?** In het paneel **Review** staat dan *Versie n akkoord bevonden door Team Water, datum*, en de balk zegt *Akkoord: Team Water*. Dit label zie je
+5. **Akkoord?** In het paneel **Review** staat dan *Versie n akkoord bevonden door Team Water, datum*, en de infobalk zegt *Akkoord*. Dit label zie je
    alleen in het beheer. **Wijzig je daarna nog iets, dan vervalt het akkoord**; begin je te typen, dan
    waarschuwt een balk daarvoor. Opslaan zonder iets te veranderen laat het akkoord staan. Bij meer teams
    verschijnt het label pas als alle teams akkoord zijn; tot dan zie je per team de stand.
-6. **Publiceren** kan zodra er niets meer ter inzage ligt. In de versiegeschiedenis staat bij die versie
+6. **Publiceren** kan zodra het concept niet meer bij een reviewteam ligt. In de versiegeschiedenis staat bij die versie
    "Akkoord van Team Water", "Gepubliceerd met wijzigingen na het akkoord van Team Water" of "Gepubliceerd
    zonder akkoord van …". Moet er tijdens de review iets dringends in de live versie, verbeter die dan via
    *Bewerken* op de site (*De live versie verbeteren*).
 
 **Wanneer een review vanzelf stopt.** Archiveer je het artikel (via de lijst of het scherm), of verhuist het naar
-een andere omgeving, dan stopt de review: een reviewer die ermee bezig was, krijgt een e-mail, en de conceptversie
-blijft bewaard. Bij archiveren blijft de laatst gepubliceerde tekst in het artikel staan. Zet een beheerder het
+een andere omgeving, dan stopt de review: een reviewer die ermee bezig was, krijgt een e-mail, en het concept
+blijft bewaard. Bij archiveren blijft de live versie in het artikel staan. Zet een beheerder het
 reviewproces van een omgeving **uit**, dan wordt alles wat er ter inzage ligt automatisch teruggeroepen, ook met
 een e-mail aan de reviewer.
 
@@ -214,8 +227,8 @@ het stuk net voor jou op, dan zegt de kennisbank dat; overnemen kan daarna bewus
 
 In de lijst op `/review/` staat wat bij jou ligt bovenaan.
 
-Op je werkplek staat onder *Artikelen* de bak **Ter inzage**, met per artikel de stand per team; wat is
-teruggegeven, staat bovenaan. Reviewers krijgen één e-mail per dag als er iets nieuws ter inzage komt. Wie
+Op je werkplek staat onder *Artikelen* de bak **Review** (tot 1.34.0: *Ter inzage*), met per artikel de stand
+en de regel erachter; wat is teruggegeven, staat bovenaan. Ook de bak *Concepten* toont de stand. Reviewers krijgen één e-mail per dag als er iets nieuws ter inzage komt. Wie
 reviewer is, regelt een beheerder onder **Reviewteams**: een naam, de omgeving, de groep uit Entra ID en de
 clusters waarvoor het team is voorgevuld. Een reviewer ziet in de kennisbank rechtsboven de knop **Review**.
 
@@ -292,7 +305,7 @@ Terwijl je een artikel bewerkt, bewaart de kennisbank je werk als **kladversie**
 - **Na het inloggen** zie je in de kennisbank één keer per sessie een lijstje met kladversies die nog openstaan. In het beheer staat bovenaan de artikelenlijst hoeveel het er zijn, en onder **Kladversies** staan ze allemaal.
 - **Alleen openen is geen kladversie.** Pas als je iets typt, plakt of opmaakt, begint de kennisbank te bewaren.
 
-Een kladversie is nooit zichtbaar voor medewerkers, telt niet als versie en levert geen wijzigingsmelding op. Na **opslaan** of **weggooien** is hij weg. Een kladversie waar niemand meer naar omkijkt, ruimt de kennisbank na 30 dagen op.
+Een kladversie is nooit zichtbaar voor medewerkers, telt niet als versie en levert geen wijzigingsmelding op. Na **opslaan** of **weggooien** is hij weg. Een kladversie waar niemand meer naar omkijkt, ruimt de kennisbank na 30 dagen op (besluit Alex, 15 november: die termijn blijft). In de bak **Mijn kladversies** op je werkplek staat per kladversie wanneer hij vervalt, vet in de laatste week; sla je werk dus op tijd op als concept.
 
 **Collega's zien je kladversie.** Opent een collega het artikel, dan staat bovenaan *"Anna heeft een kladversie van dit artikel (laatst 14:32)"*, met een link om hem te lezen. Zo kan iemand je werk overnemen als je ziek bent. Een collega ziet wat er op de server staat; dat loopt hooguit twee minuten achter op wat jij in je eigen browser hebt. Redacteuren van een andere omgeving zien niets.
 
@@ -437,7 +450,7 @@ de server en geldt ook op de reviewpagina's.
 
 ## Je werkplek in het beheer
 
-Als je het beheer opent, zie je je **werkplek**. Links staat een kolom met je werkbakken, rechts de inhoud
+Als je het beheer opent, zie je je **werkplek**. Links staat een kolom met je bakken, rechts de inhoud
 van wat je aanklikt. Achter elke bak staat hoeveel er in ligt.
 
 - **Werkvoorraad**: de verbetervoorstellen die nog niemand heeft opgepakt, verdeeld over **Algemeen** en
@@ -447,8 +460,9 @@ van wat je aanklikt. Achter elke bak staat hoeveel er in ligt.
   geopend.
 - **Afgehandeld**: het archief met verwerkte en afgewezen voorstellen. Medewerkers zien die niet meer
   (behalve hun eigen voorstellen, met het antwoord dat ze kregen).
-- **Artikelen**: *Concepten*, *Ter inzage* (als het reviewproces aanstaat), *Mijn kladversies* en *Opnieuw
-  nakijken* (artikelen waarvan de herzieningsdatum is verstreken).
+- **Artikelen**: *Concepten*, *Review* (als het reviewproces aanstaat), *Mijn kladversies* en *Opnieuw
+  nakijken* (artikelen waarvan de herzieningsdatum is verstreken). In *Mijn kladversies* staat per kladversie
+  wanneer hij vervalt.
 - Knoppen voor **Nieuw artikel**, **Nieuw bericht** en **Artikel uit Word**, en onderaan **Alle onderdelen**: de gewone lijst
   van het beheer (artikelen, tags, zaaktypen, enz.).
 
@@ -517,16 +531,16 @@ zonder opslaan, dan waarschuwt de browser; het voorstel blijft dan in de bak lig
   ("We hebben het verwerkt in versie n …"). Pas het aan als je wilt en kies *Versturen en afhandelen*; laat je
   het vinkje weg, dan blijft het voorstel open met "Al verwerkt in versie n" in de lade, en handel je het later af.
 - **Verbeter je de live versie terwijl er een concept ligt**, dan kun je ook meenemen (bijvoorbeeld een
-  spelfout); het hoort bij de verbetering die je publiceert. Een voorstel dat is meegenomen in een conceptversie
+  spelfout); het hoort bij de verbetering die je publiceert. Een voorstel dat is meegenomen in een concept
   die **ter inzage** ligt, kun je daar niet meenemen: dat hoort bij de review (het vinkje staat dan uit, met uitleg).
-- **Ligt de conceptversie ter inzage**, dan kun je niet meenemen. Een voorstel dat al is meegenomen, kun je
+- **Ligt het concept ter inzage**, dan kun je niet meenemen. Een voorstel dat al is meegenomen, kun je
   dan ook niet afwijzen tot de review terug is. Dat geldt overal: in de lade, via de API en in oude schermen.
 - Publiceer je **zonder melding aan medewerkers** (*Moeten medewerkers dit weten? Nee*), dan gaan voorstellen
   gewoon mee (sinds 1.31.2). Een voorstel over een tikfout is daar juist een voorbeeld van. Het betekent alleen:
   geen melding en geen e-mail voor medewerkers. De indiener van het voorstel krijgt wel je bericht.
 - Publiceer je **zonder inhoudelijke wijziging** (er komt geen nieuwe versie), dan gelden de meegenomen
   voorstellen **niet als verwerkt**: ze staan weer open in de lade, en de kennisbank zegt dat. Gooi je de
-  conceptversie weg, dan gaat *meenemen* bij de voorstellen ook weer uit.
+  concept weg, dan gaat *meenemen* bij de voorstellen ook weer uit.
 - **Twee redacteuren tegelijk** (sinds 1.28.0): bij opslaan telt alleen wat jíj bij Meenemen hebt veranderd.
   Zette een collega intussen iets anders aan of uit, dan blijft dat staan; je wordt niet ongevraagd eigenaar
   van een voorstel dat je niet hebt aangeraakt. Is een aangevinkt voorstel intussen afgehandeld, dan zegt de
@@ -566,8 +580,8 @@ bericht aan de indiener.
   publiceren niet had aangevinkt. Het venster heeft een voorgevuld bedankbericht ("We hebben het verwerkt in
   versie n …"). Het voorstel krijgt de status *Verwerkt* met dat versienummer; de indiener krijgt een melding en
   een e-mail.
-  - Staat de geciteerde tekst nog letterlijk in de gepubliceerde versie, dan vraagt de kennisbank eerst of je
-    het zeker weet. De kennisbank kijkt naar de gepubliceerde tekst, niet naar een conceptversie.
+  - Staat de geciteerde tekst nog letterlijk in de live versie, dan vraagt de kennisbank eerst of je
+    het zeker weet. De kennisbank kijkt naar de live versie, niet naar een concept.
   - Heb je de tekst wel aangepast maar nog niet gepubliceerd? Vink dan *Meenemen in deze versie* aan en
     publiceer; deze knop is daar niet voor.
   - De knop werkt niet bij een artikel dat niet gepubliceerd is.
@@ -576,7 +590,8 @@ bericht aan de indiener.
   steun gaat niet mee.
 
 Is het voorstel meegenomen in een versie die ter inzage ligt, dan werken deze knoppen niet tot de review terug
-is. Daaronder staat **Verbergen voor collega's**, bijvoorbeeld als er een naam van een collega in staat.
+is. Is een voorstel verborgen voor collega's, dan staat dat er als regel bij; verbergen zelf doe je in de bak
+(zie *Voorstellen verbergen*).
 
 **Iemand anders was je voor.** Stuurde een collega intussen een bericht aan de indiener, of ligt het voorstel
 intussen bij een ander, dan verstuurt de lade niets. Je ziet meteen wat er gebeurde, en je getypte tekst
@@ -609,7 +624,10 @@ heeft het proces een duidelijk einde. Ziet de indiener toch nog iets, dan dient 
 Een bericht aan de indiener kun je na afhandelen nog wel sturen.
 
 **Voorstellen verbergen.** Staat er in een voorstel iets wat collega's niet hoeven te lezen, bijvoorbeeld
-de naam van een collega, zet dan in het voorstel **Verbergen voor collega's** aan. Het staat dan niet meer
+de naam van een collega, verberg het dan **in de bak** op je werkplek (sinds 1.34.0; daarvoor stond de knop in
+de lade van de editor). Vink het voorstel aan, of meer voorstellen tegelijk, en kies in de balk erboven
+**Verbergen voor collega's**. In de bak staat er daarna het label *verborgen voor collega's* bij; met **Weer
+tonen** draai je het terug. Een verborgen voorstel staat niet meer
 onder *Alle voorstellen* en kan niet meer worden gesteund. Ook een **reviewer** ziet het niet; die leest
 alleen "1 voorstel is niet zichtbaar, omdat er persoonlijke gegevens in staan". De indiener ziet het gewoon.
 
@@ -639,7 +657,7 @@ hier als bericht.
 
 Werken met een voorstel gaat zo:
 
-1. **Pak het op** uit de werkbak (vinkje, *Toewijzen aan… → Mijzelf*), of open het en neem het mee.
+1. **Pak het op** uit de bak (vinkje, *Toewijzen aan… → Mijzelf*), of open het en neem het mee.
 2. **Stuur een bericht** met een tussenstand als het even duurt, en zet wat de redactie moet weten in een
    **interne notitie** (beide in de lade).
 3. **Verwerk het**: pas de tekst aan, vink *Meenemen in deze versie* aan en publiceer (met of zonder review).

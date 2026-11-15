@@ -182,7 +182,7 @@ class Bevindingen(ReviewBasis):
         v = self.voorstel(artikel=self.a)
         c = self.als(self.anna)
         for _ in range(2):
-            c.post(f"/beheer/voorstel/{v.pk}/lade/", {"actie": "verbergen", "waarde": "1"})
+            c.post("/beheer/werkplek/selectie/", {"actie": "verbergen", "voorstel": [f"{v.pk}-0"]})
         v.refresh_from_db()
         self.assertTrue(v.verborgen)
 
@@ -212,7 +212,7 @@ class Bevindingen(ReviewBasis):
         c = self.maak_concept()
         self.ter_inzage()
         r = self.post(f"/beheer/kennisbank/artikel/{self.a.pk}/conceptversie/weggooien/", {})
-        self.assertIn("Roep hem eerst terug", meldingen(r))
+        self.assertIn("Roep het eerst terug", meldingen(r))
         self.assertTrue(Conceptversie.objects.filter(artikel=self.a).exists())
         r = self.post(
             self.url,
@@ -591,16 +591,24 @@ class Bewerkscherm(ReviewBasis):
 
     def test_balk_noemt_de_stand_van_de_review(self):
         self.maak_concept()
-        self.assertIn("Review: nog niet ter inzage", self.client.get(self.url).content.decode())
+        self.assertIn(
+            '<span class="kb-stand kb-stand-niet">Bij de redactie</span><span class="kb-stand-regel">Nog niet ter '
+            "inzage gegeven</span>",
+            self.client.get(self.url).content.decode(),
+        )
         self.ter_inzage()
-        self.assertIn("Ter inzage bij Team Water", self.client.get(self.url).content.decode())
+        html = self.client.get(self.url).content.decode()
+        self.assertIn('kb-stand-inzage">Bij het reviewteam</span>', html)
+        self.assertIn("Team Water: nog niet opgepakt", html)
         i = Inzage.objects.get(artikel=self.a)
         self.als(self.wim).post(f"/review/{i.pk}/", {"actie": "oppakken"})
         self.client.force_login(self.anna)
-        self.assertIn("Ter inzage bij Team Water · ligt bij Wim", self.client.get(self.url).content.decode())
+        self.assertIn("Team Water: ligt bij Wim", self.client.get(self.url).content.decode())
         self.als(self.wim).post(f"/review/{i.pk}/", {"actie": "teruggeven", "tekst": "Klopt niet"})
         self.client.force_login(self.anna)
-        self.assertIn("Teruggegeven door Team Water · 1 opmerking", self.client.get(self.url).content.decode())
+        html = self.client.get(self.url).content.decode()
+        self.assertIn('kb-stand-terug">Bij de redactie</span>', html)
+        self.assertIn("Teruggegeven door Team Water met 1 opmerking", html)
 
     def test_balk_akkoord_en_vervallen(self):
         c = self.maak_concept()
@@ -608,19 +616,23 @@ class Bewerkscherm(ReviewBasis):
         i = Inzage.objects.get(artikel=self.a)
         self.als(self.wim).post(f"/review/{i.pk}/", {"actie": "akkoord"})
         self.client.force_login(self.anna)
-        self.assertIn("Akkoord: Team Water", self.client.get(self.url).content.decode())
+        html = self.client.get(self.url).content.decode()
+        self.assertIn('kb-stand-akkoord">Akkoord</span><span class="kb-stand-regel">Akkoord van Team Water op ', html)
         self.post(
             self.url,
             beheerdata(self.a, inhoud="<p>Anders.</p>", wijzigingstoelichting="", geladen_concept=c.stempel),
             _conceptversie="1",
         )
-        self.assertIn("Akkoord vervallen: tekst gewijzigd", self.client.get(self.url).content.decode())
+        html = self.client.get(self.url).content.decode()
+        self.assertIn('kb-stand-niet">Bij de redactie</span>', html)
+        self.assertIn("Het akkoord is vervallen: de tekst is daarna gewijzigd", html)
 
     def test_balk_teruggeroepen(self):
         self.maak_concept()
         self.ter_inzage()
         self.post(f"/beheer/kennisbank/artikel/{self.a.pk}/terugroepen/", {})
-        self.assertIn(">Teruggeroepen<", self.client.get(self.url).content.decode())
+        html = self.client.get(self.url).content.decode()
+        self.assertIn('kb-stand-niet">Bij de redactie</span><span class="kb-stand-regel">Teruggeroepen op ', html)
 
 
 class GeenFlits(ReviewBasis):

@@ -178,7 +178,7 @@ class PublicerenTests(Basis):
         self.assertEqual(r.status_code, 302, r.content[:400])
         aan_anna = [m for m in mail.outbox if m.to == ["anna@example.org"]]
         self.assertEqual(len(aan_anna), 1)
-        self.assertIn("Bram heeft de conceptversie", aan_anna[0].body)
+        self.assertIn("Bram heeft het concept", aan_anna[0].body)
 
     @override_settings(KB_EMAIL_AAN=True)
     def test_eigen_conceptversie_publiceren_geeft_geen_mail_aan_jezelf(self):

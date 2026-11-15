@@ -6,7 +6,7 @@
   <p class="rv-uitleg">Je zit nog in geen reviewteam. Een beheerder koppelt reviewteams aan een groep; vraag procesmanagement
     als je denkt dat je erin hoort.</p>
 {% else %}
-  <p class="rv-uitleg">Conceptversies die procesmanagement aan {% if teams|length == 1 %}je team{% else %}je teams{% endif %}
+  <p class="rv-uitleg">Concepten die procesmanagement aan {% if teams|length == 1 %}je team{% else %}je teams{% endif %}
     ({% for t in teams %}{{ t.naam }}{% if not forloop.last %}, {% endif %}{% endfor %}) heeft voorgelegd. Je leest, plaatst opmerkingen en
     geeft het terug of geeft akkoord. Je bewerkt de tekst niet; publiceren doet procesmanagement.</p>
   <div class="rv-statusbalk" role="status">

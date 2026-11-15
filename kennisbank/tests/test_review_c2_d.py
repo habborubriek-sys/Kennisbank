@@ -135,7 +135,7 @@ class SpoedcorrectieTests(ReviewBasis):
         self.assertIn("Let op: de live versie is bijgewerkt.", self.client.get(self.url).content.decode())
         i = Inzage.objects.get()
         self.assertIn(
-            "de live versie is bijgewerkt nadat deze conceptversie begon",
+            "de live versie is bijgewerkt nadat dit concept begon",
             self.als(self.wim).get(f"/review/{i.pk}/").content.decode(),
         )
 

@@ -263,7 +263,7 @@
       else if (v.citaat && mee[v.id] && i.gevonden) d.appendChild(el("div", "kb-vk-let", "Meegenomen, maar de tekst staat nog ongewijzigd in het artikel. Al aangepast?"));
       else if (v.citaat && !i.gevonden) d.appendChild(el("div", "kb-vk-weg", "Deze tekst staat niet meer letterlijk in het artikel."));
       var spoedSlot = spoed && v.mee && g.op_slot;
-      if (spoed && v.mee) d.appendChild(el("div", "kb-vk-let", spoedSlot ? "Dit voorstel is meegenomen in de conceptversie die ter inzage ligt. Je kunt het hier niet meenemen; het hoort bij de review." : "Dit voorstel is al meegenomen in de conceptversie. Neem je het hier mee, dan geldt het als verwerkt in deze verbetering van de live versie."));
+      if (spoed && v.mee) d.appendChild(el("div", "kb-vk-let", spoedSlot ? "Dit voorstel is meegenomen in het concept dat bij het reviewteam ligt. Je kunt het hier niet meenemen; het hoort bij de review." : "Dit voorstel is al meegenomen in het concept. Neem je het hier mee, dan geldt het als verwerkt in deze verbetering van de live versie."));
       if (v.verwerkt_in_versie) {
         var vw = el("div", "kb-vk-let", "Al verwerkt in versie " + v.verwerkt_in_versie + ", maar nog niet afgehandeld. ");
         var link = el("a", null, "Nu afhandelen");
@@ -390,13 +390,8 @@
       });
       kn.appendChild(afw); kn.appendChild(dub);
       af.appendChild(kn);
-      // Verbergen voor collega's (onder "Alle voorstellen"), bijvoorbeeld als er een naam in staat.
-      var verberg = el("button", "kb-vk-verberg", v.verborgen ? "Weer tonen aan collega's" : "Verbergen voor collega's");
-      verberg.type = "button";
-      verberg.setAttribute("data-kb-focus", "verberg-" + v.id);
-      verberg.title = "Collega's zien het voorstel dan niet meer onder Alle voorstellen en kunnen het niet steunen. De indiener ziet het gewoon.";
-      verberg.addEventListener("click", function () { actie(v, "verbergen", "", "", v.verborgen ? "0" : "1"); });
-      af.appendChild(verberg);
+      // 1.34.0: verbergen voor collega's doe je in de bak op de werkplek. Hier staat alleen dát het verborgen is.
+      if (v.verborgen) af.appendChild(el("p", "kb-vk-uitleg kb-vk-verborgen", "Verborgen voor collega's. Dat wijzig je in de bak op je werkplek."));
       if (!magAf) af.appendChild(el("p", "kb-vk-uitleg", "Dit voorstel is meegenomen in de versie die ter inzage ligt. Afhandelen kan pas als de review terug is."));
       else if (!v.verwerkt_versie) af.appendChild(el("p", "kb-vk-uitleg", "Afhandelen als verwerkt kan pas als het artikel is gepubliceerd."));
       d.appendChild(af);
@@ -404,7 +399,7 @@
       return k;
     }
 
-    // 1.31.2 (K2): de tekst is al aangepast in een gepubliceerde versie. Staat het citaat er nog letterlijk in,
+    // 1.31.2 (K2): de tekst is al aangepast in de live versie. Staat het citaat er nog letterlijk in,
     // dan eerst de vraag of je het zeker weet; daarna het venster met het voorgevulde bedankbericht.
     function verwerkt(v) {
       if (!v.citaat_gepubliceerd) { verwerktBericht(v, false); return; }
@@ -483,7 +478,7 @@
 
     function actie(v, soort, tekst, dubbelVan, waarde, zeker) {
       // Na het antwoord tekent de lade opnieuw: zet de focus dan terug op de knop van deze handeling.
-      var focusNa = { bericht: "stuur-", notitie: "bewaar-", verbergen: "verberg-", afwijzen: "rij-", dubbel: "rij-", verwerkt: "vwk-" }[soort] + v.id;
+      var focusNa = { bericht: "stuur-", notitie: "bewaar-", afwijzen: "rij-", dubbel: "rij-", verwerkt: "vwk-" }[soort] + v.id;
       var data = new FormData();
       data.append("actie", soort);
       data.append("tekst", tekst);

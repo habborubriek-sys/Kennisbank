@@ -85,7 +85,7 @@ def stand(artikel):
         huidige(artikel.pk).select_related("team", "reviewer", "gestart_door").prefetch_related("opmerkingen__auteur")
     )
     if not rijen:
-        return {"rijen": [], "eerder": [], "op_slot": False, "label": None, "ronde": 0}
+        return {"rijen": [], "eerder": [], "op_slot": False, "label": None, "ronde": 0, "drie": drie_standen([], "")}
     ronde = max(r.ronde for r in rijen)
     laatste = [r for r in rijen if r.ronde == ronde]
     eerder = [r for r in rijen if r.ronde < ronde]
@@ -99,6 +99,7 @@ def stand(artikel):
     for r in laatste:
         r.vervallen = r.status == InzageStatus.AKKOORD and r.akkoord_stempel != stempel
     return {
+        "drie": drie_standen(laatste, stempel),
         "rijen": laatste,
         "eerder": eerder,
         "op_slot": any(r.status == InzageStatus.TER_INZAGE for r in laatste),
@@ -131,15 +132,15 @@ def ter_inzage_geven(artikel, door, teams, geladen_stempel: str):
     with transaction.atomic():
         concept = Conceptversie.objects.select_for_update().filter(artikel=artikel).first()
         if concept is None:
-            raise ReviewFout("Sla je wijzigingen eerst op als conceptversie; die gaat ter inzage.")
+            raise ReviewFout("Sla je wijzigingen eerst op als concept; dat gaat ter inzage.")
         if not artikel.omgeving.reviewproces:
             raise ReviewFout("Het reviewproces staat voor deze omgeving niet aan.")
         if (geladen_stempel or "") != concept.stempel:
             raise ReviewFout(
-                "De conceptversie is gewijzigd sinds je dit scherm opende. Ververs de pagina en kijk wat er nu staat."
+                "Het concept is gewijzigd sinds je dit scherm opende. Ververs de pagina en kijk wat er nu staat."
             )
         if op_slot(artikel.pk):
-            raise ReviewFout("De conceptversie ligt al ter inzage.")
+            raise ReviewFout("Het concept ligt al bij het reviewteam.")
         if not teams:
             raise ReviewFout("Kies minstens één reviewteam.")
         if any(t.omgeving_id != artikel.omgeving_id for t in teams):
@@ -191,7 +192,7 @@ def terugroepen(artikel, door, reden: str = "") -> int:
                     f"Teruggeroepen: {artikel.titel}",
                     (
                         reden
-                        or f"{naam_van(door)} heeft de conceptversie van '{artikel.titel}' teruggeroepen uit de review "
+                        or f"{naam_van(door)} heeft het concept van '{artikel.titel}' teruggeroepen uit de review "
                         f"van {r.team.naam}."
                     )
                     + " Je hoeft er nu niets meer mee te doen."
@@ -207,29 +208,92 @@ def terugroepen(artikel, door, reden: str = "") -> int:
     return len(rijen)
 
 
-def balk_stand(stand_) -> dict:
-    """Eén korte regel voor de balk van het bewerkscherm (1.22.0): hoe staat de review ervoor?"""
-    rijen = stand_["rijen"]
+#: 1.34.0: de redacteur ziet de review in drie standen. Wat er precies speelt (teruggegeven, teruggeroepen,
+#: akkoord vervallen, bij wie het ligt) staat in de regel eronder. De toestanden zelf zijn niet veranderd;
+#: zie docs/reviewtoestanden.md.
+STANDEN = {"redactie": "Bij de redactie", "team": "Bij het reviewteam", "akkoord": "Akkoord"}
+
+
+def _maand(moment) -> str:
+    from django.utils.formats import date_format
+
+    return date_format(timezone.localtime(moment), "j F")
+
+
+def drie_standen(rijen, stempel: str, opmerkingen=None) -> dict:
+    """De stand van de review zoals de redacteur hem ziet, uit de inzages van de laatste ronde.
+
+    ``stempel`` is de stempel van de conceptversie: een akkoord telt alleen voor de tekst waar het over ging.
+    ``opmerkingen`` is {inzage-id: aantal}; zonder dat worden ze geteld uit de (vooraf opgehaalde) opmerkingen.
+
+    Geeft {"sleutel", "naam", "regel", "soort"}; ``soort`` is de kleur in het scherm (niet, inzage, terug,
+    akkoord).
+    """
+
+    def aantal(r):
+        return opmerkingen.get(r.pk, 0) if opmerkingen is not None else len(r.opmerkingen.all())
+
+    def uit(sleutel, regel, soort):
+        return {"sleutel": sleutel, "naam": STANDEN[sleutel], "regel": regel, "soort": soort}
+
     if not rijen:
-        return {"soort": "niet", "tekst": "Review: nog niet ter inzage"}
-    if stand_["op_slot"]:
-        bezig = [r for r in rijen if r.status == InzageStatus.TER_INZAGE]
-        teams = ", ".join(r.team.naam for r in bezig)
-        bij = [naam_van(r.reviewer) for r in bezig if r.reviewer_id]
-        return {
-            "soort": "inzage",
-            "tekst": f"Ter inzage bij {teams}" + (f" · ligt bij {', '.join(bij)}" if bij else ""),
-        }
-    if stand_["label"]:
-        return {"soort": "akkoord", "tekst": "Akkoord: " + ", ".join(sorted(r.team.naam for r in rijen))}
+        return uit("redactie", "Nog niet ter inzage gegeven", "niet")
+    geldig = [r for r in rijen if r.status == InzageStatus.AKKOORD and r.akkoord_stempel == stempel]
+    bezig = [r for r in rijen if r.status == InzageStatus.TER_INZAGE]
+    if bezig:
+        delen = [
+            f"{r.team.naam}: " + (f"ligt bij {naam_van(r.reviewer)}" if r.reviewer_id else "nog niet opgepakt")
+            for r in bezig
+        ]
+        delen += [f"{r.team.naam}: akkoord" for r in geldig]
+        delen += [f"{r.team.naam}: teruggegeven" for r in rijen if r.status == InzageStatus.TERUGGEGEVEN]
+        return uit("team", " · ".join(delen), "inzage")
+    if len(geldig) == len(rijen):
+        teams = ", ".join(sorted(r.team.naam for r in geldig))
+        return uit("akkoord", f"Akkoord van {teams} op {_maand(max(r.afgerond_op for r in geldig))}", "akkoord")
     terug = [r for r in rijen if r.status == InzageStatus.TERUGGEGEVEN]
     if terug:
-        n = sum(len(r.opmerkingen.all()) for r in terug)
+        n = sum(aantal(r) for r in terug)
         teams = ", ".join(r.team.naam for r in terug)
-        return {"soort": "terug", "tekst": f"Teruggegeven door {teams} · {n} opmerking{'' if n == 1 else 'en'}"}
-    if any(getattr(r, "vervallen", False) for r in rijen):
-        return {"soort": "niet", "tekst": "Akkoord vervallen: tekst gewijzigd"}
-    return {"soort": "niet", "tekst": "Teruggeroepen"}
+        regel = f"Teruggegeven door {teams} met {n} opmerking{'' if n == 1 else 'en'}"
+        if geldig:
+            regel += " · akkoord van " + ", ".join(r.team.naam for r in geldig)
+        return uit("redactie", regel, "terug")
+    if any(r.status == InzageStatus.AKKOORD for r in rijen):
+        return uit("redactie", "Het akkoord is vervallen: de tekst is daarna gewijzigd", "niet")
+    return uit("redactie", f"Teruggeroepen op {_maand(max(r.afgerond_op or r.gestart_op for r in rijen))}", "niet")
+
+
+def standen_voor(artikel_ids) -> dict:
+    """De drie standen voor een reeks artikelen tegelijk (de bakken op de werkplek): twee databasevragen,
+    hoeveel artikelen het ook zijn. Artikelen zonder inzage in de huidige ronde krijgen "nog niet ter inzage"."""
+    from django.db.models import Count
+
+    ids = list(artikel_ids)
+    stempels = {
+        pk: moment.isoformat()
+        for pk, moment in Conceptversie.objects.filter(artikel_id__in=ids).values_list("artikel_id", "bijgewerkt_op")
+    }
+    per_artikel: dict[int, list] = {}
+    for i in (
+        Inzage.objects.filter(artikel_id__in=ids, afgesloten=False)
+        .select_related("team", "reviewer")
+        .annotate(n_opmerkingen=Count("opmerkingen"))
+        .order_by("team__naam")
+    ):
+        per_artikel.setdefault(i.artikel_id, []).append(i)
+    uit = {}
+    for pk in ids:
+        rijen = per_artikel.get(pk, [])
+        ronde = max((r.ronde for r in rijen), default=0)
+        laatste = [r for r in rijen if r.ronde == ronde]
+        uit[pk] = drie_standen(laatste, stempels.get(pk, ""), {r.pk: r.n_opmerkingen for r in laatste})
+    return uit
+
+
+def balk_stand(stand_) -> dict:
+    """De stand voor de infobalk van het bewerkscherm: een van de drie standen, met de regel erbij."""
+    return stand_["drie"]
 
 
 def terugroep_vraag(stand_) -> str:
@@ -316,7 +380,7 @@ def reviewproces_uitgezet(omgeving, door) -> int:
         n += terugroepen(
             artikel,
             door,
-            reden=f"Het reviewproces voor {omgeving.naam} is uitgezet, daarom is de conceptversie van "
+            reden=f"Het reviewproces voor {omgeving.naam} is uitgezet, daarom is het concept van "
             f"'{artikel.titel}' teruggeroepen.",
         )
     return n
@@ -406,7 +470,7 @@ def _afronden(inzage, door, status, tekst, citaat=""):
         wat = "akkoord bevonden" if status == InzageStatus.AKKOORD else "teruggegeven met opmerkingen"
         mail_na_commit(
             f"Review: {inzage.artikel.titel} — {wat}",
-            f"{inzage.team.naam} ({naam_van(door)}) heeft de conceptversie van '{inzage.artikel.titel}' {wat}.\n\n"
+            f"{inzage.team.naam} ({naam_van(door)}) heeft het concept van '{inzage.artikel.titel}' {wat}.\n\n"
             f"{settings.KB_BASIS_URL}/beheer/kennisbank/artikel/{inzage.artikel_id}/change/",
             [ontvanger.email],
         )
@@ -455,8 +519,8 @@ def verstuur_reviewmail(nu=None) -> int:
             if not regels:
                 continue
             tekst = (
-                f"Er {'ligt' if len(regels) == 1 else 'liggen'} {len(regels)} nieuwe conceptversie"
-                f"{'' if len(regels) == 1 else 's'} ter inzage bij je team:\n\n"
+                f"Er {'ligt' if len(regels) == 1 else 'liggen'} {len(regels)} "
+                f"{'nieuw concept' if len(regels) == 1 else 'nieuwe concepten'} ter inzage bij je team:\n\n"
                 + "\n".join(regels)
                 + f"\n\nLezen en reageren: {settings.KB_BASIS_URL}/review/"
             )

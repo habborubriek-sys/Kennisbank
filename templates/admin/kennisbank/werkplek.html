@@ -1,6 +1,6 @@
 {% extends "admin/base_site.html" %}
 {% comment %}
-  De werkplek van een redacteur (kennisbank/werkoverzicht.py): links de werkbakken, rechts de inhoud.
+  De werkplek van een redacteur (kennisbank/werkoverzicht.py): links de bakken, rechts de inhoud.
 {% endcomment %}
 {% load static %}
 {% block bodyclass %}{{ block.super }} kb-werkplek-pagina{% endblock %}
@@ -40,7 +40,7 @@
       {% if not af %}
       <form method="post" action="{{ w.selectie_url }}" id="kb-selectie" class="kb-selectiebalk">{% csrf_token %}
         <input type="hidden" name="terug" value="{{ w.gekozen }}">
-        <span class="kb-selectie-uitleg" id="kb-selectie-uitleg">Vink voorstellen aan om ze toe te wijzen of te verplaatsen.</span>
+        <span class="kb-selectie-uitleg" id="kb-selectie-uitleg">Vink voorstellen aan om ze toe te wijzen, te verplaatsen of te verbergen voor collega's.</span>
         <span class="kb-selectie-teller" id="kb-selectie-teller" role="status" aria-live="polite"></span>
         <label class="visually-hidden" for="kb-sel-naar">Toewijzen aan</label>
         <select name="naar" id="kb-sel-naar"><option value="">Toewijzen aan…</option>
@@ -53,6 +53,10 @@
           {% for pk, naam in sel.bakken %}<option value="{{ pk }}">{{ naam }}</option>{% endfor %}
         </select>
         <button type="submit" name="actie" value="naar_bak" class="button">Verplaatsen</button>
+        <span class="kb-selectie-groep">
+          <button type="submit" name="actie" value="verbergen" class="button" title="Collega's zien het voorstel dan niet meer onder Alle voorstellen en kunnen het niet steunen. De indiener ziet het gewoon.">Verbergen voor collega's</button>
+          <button type="submit" name="actie" value="tonen" class="button">Weer tonen</button>
+        </span>
       </form>
       {% endif %}
       <table class="kb-tabel kb-bak">
@@ -70,7 +74,7 @@
             {% if not af %}<td class="kb-bak-vink"><input type="checkbox" name="voorstel" value="{{ v.pk }}-{{ v.eigenaar_id|default:0 }}" form="kb-selectie" aria-label="Selecteer: {{ r.titel }} (bij {{ v.artikel.titel }})"></td>{% endif %}
             <td class="kb-bak-stip">{% if r.nog_niet_geopend %}<span class="kb-stip" title="Nog niet geopend" aria-hidden="true"></span><span class="visually-hidden">Nog niet geopend</span>{% endif %}</td>
             <td><a class="kb-bak-link" href="{{ r.url }}">{{ v.artikel.titel }}</a></td>
-            <td class="kb-bak-snip">{{ r.titel }}</td>
+            <td class="kb-bak-snip">{{ r.titel }}{% if v.verborgen %} <span class="kb-label">verborgen voor collega's</span>{% endif %}</td>
             {% if not af and not w.persoonlijk %}<td>{% if r.eigenaar %}{% if r.van_mij %}jij{% else %}{{ r.eigenaar }}{% endif %}{% else %}—{% endif %}</td>{% endif %}
             {% if w.meer_omgevingen %}<td>{{ v.artikel.omgeving.naam }}</td>{% endif %}
             {% if af %}
@@ -99,24 +103,24 @@
         <tbody>
         {% for a in w.inhoud.inzages %}
           <tr{% if a.teruggegeven %} class="kb-rij-let-op"{% endif %}><td><a href="{{ a.url }}">{{ a.titel }}</a></td>
-            <td>{% for t in a.teams %}<span class="kb-vstatus kb-inzage-{{ t.status }}">{{ t.naam }}: {{ t.label }}{% if t.status == "ter_inzage" %} sinds {{ t.sinds|date:"j F" }}{% if t.bij %}, bij {{ t.bij }}{% endif %}{% endif %}</span> {% endfor %}</td>
+            <td><span class="kb-vstatus kb-stand-{{ a.stand.soort }}">{{ a.stand.naam }}</span> <span class="kb-stand-regel">{{ a.stand.regel }}</span></td>
             {% if w.meer_omgevingen %}<td>{{ a.omgeving }}</td>{% endif %}</tr>
         {% endfor %}
         </tbody>
       </table>
       {% else %}
-      <p class="kb-leeg">Er ligt niets ter inzage.</p>
+      <p class="kb-leeg">Er ligt niets bij een reviewteam.</p>
       {% endif %}
 
     {% elif w.inhoud.artikelen is not None %}
       {% if w.inhoud.conceptversies %}
       <h2 class="kb-subkop">Nieuwe versies in bewerking</h2>
       <table class="kb-tabel">
-        <thead><tr><th scope="col">Artikel</th><th scope="col">Gepubliceerd</th><th scope="col">Laatst bijgewerkt</th>{% if w.meer_omgevingen %}<th scope="col">Omgeving</th>{% endif %}</tr></thead>
+        <thead><tr><th scope="col">Artikel</th><th scope="col">Live</th>{% if w.inhoud.met_review %}<th scope="col">Review</th>{% endif %}<th scope="col">Laatst bijgewerkt</th>{% if w.meer_omgevingen %}<th scope="col">Omgeving</th>{% endif %}</tr></thead>
         <tbody>
         {% for c in w.inhoud.conceptversies %}
-          <tr><td><a href="{{ c.url }}">{{ c.titel }}</a> <span class="kb-label">conceptversie</span></td>
-            <td>versie {{ c.versie }}</td><td>{{ c.bijgewerkt_op|date:"j F Y H:i" }} · {{ c.door }}</td>
+          <tr><td><a href="{{ c.url }}">{{ c.titel }}</a> <span class="kb-label">concept</span></td>
+            <td>versie {{ c.versie }}</td>{% if w.inhoud.met_review %}<td>{% if c.stand %}<span class="kb-vstatus kb-stand-{{ c.stand.soort }}">{{ c.stand.naam }}</span> <span class="kb-stand-regel">{{ c.stand.regel }}</span>{% endif %}</td>{% endif %}<td>{{ c.bijgewerkt_op|date:"j F Y H:i" }} · {{ c.door }}</td>
             {% if w.meer_omgevingen %}<td>{{ c.omgeving }}</td>{% endif %}</tr>
         {% endfor %}
         </tbody>
@@ -140,10 +144,10 @@
     {% elif w.inhoud.kladversies is not None %}
       {% if w.inhoud.kladversies %}
       <table class="kb-tabel">
-        <thead><tr><th scope="col">Artikel</th><th scope="col">Bijgewerkt</th></tr></thead>
+        <thead><tr><th scope="col">Artikel</th><th scope="col">Bijgewerkt</th><th scope="col">Vervalt</th></tr></thead>
         <tbody>
         {% for k in w.inhoud.kladversies %}
-          <tr><td><a href="{{ k.url }}">{{ k.titel }}</a></td><td>{{ k.bijgewerkt_op|date:"j F Y H:i" }}</td></tr>
+          <tr><td><a href="{{ k.url }}">{{ k.titel }}</a></td><td>{{ k.bijgewerkt_op|date:"j F Y H:i" }}</td><td{% if k.vervalt.binnenkort %} class="kb-vervalt-snel"{% endif %}>{{ k.vervalt.tekst }}</td></tr>
         {% endfor %}
         </tbody>
       </table>

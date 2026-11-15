@@ -31,7 +31,7 @@ body.kb-scherm .errornote, body.kb-scherm #content-main form > div > ul.errorlis
 /* --- Bovenbalk ------------------------------------------------------------------------- */
 .kb-balk { display: none; }
 /* Eén blauwe regel (1.25.1, wens Alex): ← Werkplek, de titel, de knoppen en Afronden. Daaronder, na de gele lijn,
- * een dunne lichte infobalk met de labels (conceptversie, stand van de review) en de details. Beide in één
+ * een dunne lichte infobalk met de labels (concept, stand van de review) en de details. Beide in één
  * kop-element, zodat ze samen bovenaan blijven staan. */
 body.kb-scherm .kb-balk {
   position: sticky; top: 0; z-index: 40; display: grid; align-items: center; gap: 0 12px;
@@ -69,6 +69,9 @@ body.kb-scherm .kb-balk {
 .kb-stand-inzage { background: #fbe3b0; color: #5a3d00; }
 .kb-stand-terug { background: #f9d4cf; color: #6e1a10; }
 .kb-stand-akkoord { background: #cfe9d6; color: #154a26; }
+.kb-stand-niet { background: #e3e9f1; color: #22364d; }
+.kb-stand-regel { color: #3d4b5c; font-size: 12px; }
+.kb-review-stand { margin: 0 0 10px; }
 .kb-balk-knoppen { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 a.kb-bk { text-decoration: none; display: inline-block; }
 .kb-bk { border: 1px solid #4a6b93; background: transparent; color: #fff; border-radius: 6px; padding: 6px 12px; font-size: 14px; line-height: 20px; cursor: pointer; font-family: inherit; }

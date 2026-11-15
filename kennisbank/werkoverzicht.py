@@ -13,6 +13,7 @@ af van het aantal voorstellen of artikelen (bewaakt door een test).
 from datetime import timedelta
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
@@ -208,7 +209,7 @@ def _menu(request, omgevingen, namen_omgeving):
             1,
             {
                 "sleutel": "ter_inzage",
-                "naam": "Ter inzage",
+                "naam": "Review",
                 "aantal": lopend.values("artikel_id").distinct().count(),
                 "oud": lopend.filter(status=InzageStatus.TERUGGEGEVEN).values("artikel_id").distinct().count(),
             },
@@ -406,10 +407,19 @@ def _werkplek(request, onthouden):
         titel = "Concepten"
         uitleg = (
             "Nieuwe versies van gepubliceerde artikelen waar nog aan wordt gewerkt (medewerkers zien de "
-            "gepubliceerde versie), en artikelen die nog nooit zijn gepubliceerd. Laatst gewijzigd bovenaan."
+            "live versie), en artikelen die nog nooit zijn gepubliceerd. Laatst gewijzigd bovenaan."
         )
         qs = Artikel.objects.filter(status=Status.CONCEPT, omgeving_id__in=omgevingen).select_related("omgeving")
         inhoud = _artikelen(request, qs.order_by("-gewijzigd_op"), bak)
+        concepten = list(
+            Conceptversie.objects.filter(artikel__omgeving_id__in=omgevingen)
+            .select_related("artikel__omgeving", "bijgewerkt_door")
+            .order_by("-bijgewerkt_op")
+        )
+        # 1.34.0: de stand van de review erbij, waar het reviewproces aanstaat.
+        from . import review
+
+        standen = review.standen_voor(c.artikel_id for c in concepten if c.artikel.omgeving.reviewproces)
         inhoud["conceptversies"] = [
             {
                 "titel": c.titel,
@@ -418,47 +428,36 @@ def _werkplek(request, onthouden):
                 "door": diensten.naam_van(c.bijgewerkt_door),
                 "versie": c.artikel.versie,
                 "omgeving": c.artikel.omgeving.naam,
+                "stand": standen.get(c.artikel_id),
             }
-            for c in Conceptversie.objects.filter(artikel__omgeving_id__in=omgevingen)
-            .select_related("artikel__omgeving", "bijgewerkt_door")
-            .order_by("-bijgewerkt_op")
+            for c in concepten
         ]
+        inhoud["met_review"] = bool(standen)
     elif bak == "ter_inzage":
-        titel = "Ter inzage"
+        titel = "Review"
         uitleg = (
-            "Conceptversies die bij een reviewteam liggen of terugkwamen. Teruggegeven met opmerkingen staat "
-            "bovenaan. Publiceren kan pas als je het stuk hebt teruggeroepen of het team heeft gereageerd."
+            "Concepten die bij een reviewteam liggen of daar zijn geweest. Wat is teruggegeven met opmerkingen staat "
+            "bovenaan. Publiceren kan zodra het concept weer bij de redactie ligt of akkoord is."
         )
-        rijen = {}
-        for i in (
-            Inzage.objects.filter(artikel__omgeving_id__in=omgevingen, afgesloten=False)
-            .select_related("artikel", "artikel__omgeving", "team", "reviewer")
-            .order_by("-ronde", "team__naam")
+        from . import review
+
+        artikelen = {}
+        for i in Inzage.objects.filter(artikel__omgeving_id__in=omgevingen, afgesloten=False).select_related(
+            "artikel", "artikel__omgeving"
         ):
-            a = rijen.setdefault(
-                i.artikel_id,
-                {
-                    "titel": i.artikel.titel,
-                    "url": reverse("admin:kennisbank_artikel_change", args=[i.artikel_id]),
-                    "omgeving": i.artikel.omgeving.naam,
-                    "ronde": i.ronde,
-                    "teams": [],
-                    "teruggegeven": False,
-                },
-            )
-            if i.ronde != a["ronde"]:
-                continue  # alleen de laatste ronde
-            a["teams"].append(
-                {
-                    "naam": i.team.naam,
-                    "status": i.status,
-                    "label": i.get_status_display().lower(),
-                    "sinds": i.gestart_op,
-                    "bij": diensten.naam_van(i.reviewer) if i.reviewer_id else None,
-                }
-            )
-            a["teruggegeven"] = a["teruggegeven"] or i.status == InzageStatus.TERUGGEGEVEN
-        inhoud = {"inzages": sorted(rijen.values(), key=lambda r: (not r["teruggegeven"], r["titel"].lower()))}
+            artikelen.setdefault(i.artikel_id, i.artikel)
+        standen = review.standen_voor(artikelen)
+        rijen = [
+            {
+                "titel": a.titel,
+                "url": reverse("admin:kennisbank_artikel_change", args=[pk]),
+                "omgeving": a.omgeving.naam,
+                "stand": standen[pk],
+                "teruggegeven": standen[pk]["soort"] == "terug",
+            }
+            for pk, a in artikelen.items()
+        ]
+        inhoud = {"inzages": sorted(rijen, key=lambda r: (not r["teruggegeven"], r["titel"].lower()))}
     elif bak == "nakijken":
         titel = "Opnieuw nakijken"
         uitleg = "Gepubliceerde artikelen waarvan de herzieningsdatum is verstreken. Langst over datum bovenaan."
@@ -469,7 +468,9 @@ def _werkplek(request, onthouden):
     elif bak == "kladversies":
         titel = "Mijn kladversies"
         uitleg = (
-            "Werk dat je nog niet hebt opgeslagen. Open het artikel om verder te gaan of de kladversie weg te gooien."
+            "Werk dat je nog niet hebt opgeslagen. Open het artikel om verder te gaan of de kladversie weg te gooien. "
+            f"Een kladversie blijft {settings.KB_KLADVERSIE_DAGEN} dagen staan na de laatste wijziging en vervalt "
+            "daarna; sla je werk dus op tijd op als concept."
         )
         klad = (
             Kladversie.objects.filter(gebruiker=request.user, afgesloten_op__isnull=True)
@@ -482,6 +483,8 @@ def _werkplek(request, onthouden):
                 {
                     "titel": k.titel,
                     "bijgewerkt_op": k.bijgewerkt_op,
+                    # 1.34.0 (keuze Alex): laat zien wanneer hij vervalt, dan komt het niet als een verrassing.
+                    "vervalt": _vervalt(k.bijgewerkt_op),
                     "url": reverse("admin:kennisbank_artikel_change", args=[k.artikel_id])
                     if k.artikel_id
                     else reverse("admin:kennisbank_artikel_add"),
@@ -520,6 +523,19 @@ def _werkplek(request, onthouden):
     if bak != "alles":
         request.session[BAK_SLEUTEL] = bak
     return TemplateResponse(request, "admin/kennisbank/werkplek.html", context)
+
+
+def _vervalt(bijgewerkt_op) -> dict:
+    """Wanneer ruimt de dagelijkse opschoning deze kladversie op? {"tekst", "binnenkort"}."""
+    grens = bijgewerkt_op + timedelta(days=settings.KB_KLADVERSIE_DAGEN)
+    dagen = (timezone.localtime(grens).date() - timezone.localdate()).days
+    if dagen <= 0:
+        tekst = "vandaag"
+    elif dagen == 1:
+        tekst = "morgen"
+    else:
+        tekst = f"over {dagen} dagen"
+    return {"tekst": tekst, "binnenkort": dagen <= 7}
 
 
 def werkplek_actie(request):
@@ -596,9 +612,9 @@ def werkplek_actie(request):
 
 
 def werkplek_selectie(request):
-    """POST vanuit de selectiebalk van de werkbak (1.26.0): een of meer voorstellen toewijzen, terugleggen of
-    naar een andere bak verplaatsen. Wat niet kan (al afgehandeld, collega niet van die omgeving), wordt
-    overgeslagen en gemeld; de rest gaat door."""
+    """POST vanuit de selectiebalk van de werkbak (1.26.0): een of meer voorstellen toewijzen, terugleggen,
+    naar een andere bak verplaatsen, of (1.34.0) verbergen voor collega's en weer tonen. Wat niet kan (al
+    afgehandeld, collega niet van die omgeving), wordt overgeslagen en gemeld; de rest gaat door."""
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
     r = rechten(request)
@@ -686,6 +702,28 @@ def werkplek_selectie(request):
             gedaan += 1
         if gedaan:
             messages.success(request, f"{gedaan} voorstel{'len' if gedaan > 1 else ''} verplaatst naar de bak {waar}.")
+    elif actie in ("verbergen", "tonen"):
+        # 1.34.0 (besluit Alex): verbergen voor collega's hoort in de bak, niet in de editor. Bijvoorbeeld omdat
+        # er een naam in het voorstel staat. De indiener blijft het zien; collega's en reviewers niet.
+        gewenst = actie == "verbergen"
+        for v in voorstellen:
+            if v.verborgen == gewenst:
+                continue
+            v.verborgen = gewenst
+            v.save(update_fields=["verborgen"])
+            model_admin.log_change(
+                request, v, "Verborgen voor collega's." if gewenst else "Weer zichtbaar voor collega's."
+            )
+            gedaan += 1
+        n = f"{gedaan} voorstel{'len' if gedaan != 1 else ''}"
+        if not gedaan:
+            messages.info(
+                request, "Dat was al zo: " + ("verborgen voor collega's." if gewenst else "zichtbaar voor collega's.")
+            )
+        elif gewenst:
+            messages.success(request, f"{n} verborgen voor collega's. De indiener ziet het gewoon.")
+        else:
+            messages.success(request, f"{n} weer zichtbaar voor collega's.")
     else:
         raise Http404
     for f in fouten:

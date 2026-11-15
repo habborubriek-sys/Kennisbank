@@ -1,7 +1,7 @@
 {% extends "admin/change_form.html" %}
 {% block bodyclass %}{{ block.super }} kb-scherm{% endblock %}
 {% comment %}
-  Bewerkscherm van een artikel, met de conceptversie (kennisbank/admin.py, ArtikelAdmin).
+  Bewerkscherm van een artikel, met het concept (kennisbank/admin.py, ArtikelAdmin).
 {% endcomment %}
 {% block header %}{% endblock %}
 {% block nav-breadcrumbs %}{% endblock %}
@@ -24,12 +24,12 @@
     <span class="kb-pil kb-pil-spoed">Live versie</span>
     <span class="kb-balk-meta">Je verbetert versie {{ original.versie }}: wat medewerkers nu zien. Het concept blijft zoals het is.</span>
     {% elif kb_concept %}
-    <span class="kb-pil">Conceptversie</span>
-    {% if kb_balk_stand %}<span class="kb-stand kb-stand-{{ kb_balk_stand.soort }}">{{ kb_balk_stand.tekst }}</span>{% endif %}
+    <span class="kb-pil">Concept</span>
+    {# 1.34.0: de review in drie standen (Bij de redactie, Bij het reviewteam, Akkoord), met de bijzonderheid erachter. #}
+    {% if kb_balk_stand %}<span class="kb-stand kb-stand-{{ kb_balk_stand.soort }}">{{ kb_balk_stand.naam }}</span><span class="kb-stand-regel">{{ kb_balk_stand.regel }}</span>{% endif %}
     <span class="kb-balk-meta">Medewerkers zien <a href="{{ kb_live_bekijken }}" target="_blank" rel="noopener" title="Bekijk de live versie in een nieuw tabblad">versie {{ original.versie }}</a> · bijgewerkt door {{ kb_concept_bijgewerkt_door }}, {{ kb_concept.bijgewerkt_op|date:"j F H:i" }}</span><span id="kb-laatst-door" hidden>{{ kb_concept_bijgewerkt_door }}</span>
     {% elif original and original.versie %}
     <span class="kb-pil kb-pil-rustig">{{ original.get_status_display }}</span>
-    {% if kb_balk_stand %}<span class="kb-stand kb-stand-{{ kb_balk_stand.soort }}">{{ kb_balk_stand.tekst }}</span>{% endif %}
     <span class="kb-balk-meta">Versie {{ original.versie }}</span>
     {% elif original %}
     <span class="kb-pil">Nog niet gepubliceerd</span>
@@ -70,8 +70,8 @@
 {% if kb_review.op_slot %}
 <div class="kb-banner" role="status">
   <input type="hidden" id="kb-op-slot" value="1">
-  <p><strong>Deze conceptversie ligt ter inzage en staat op slot.</strong> Je kunt hem pas weer wijzigen, publiceren
-    of weggooien als het team reageert of als je hem terugroept (Afronden → Terugroepen). Een dringende fout in wat
+  <p><strong>Dit concept ligt bij het reviewteam en staat op slot.</strong> Je kunt het pas weer wijzigen, publiceren
+    of weggooien als het team reageert of als je het terugroept (Afronden → Terugroepen). Een dringende fout in wat
     medewerkers nu zien, verbeter je buiten het concept: open het artikel op de site, kies <strong>Bewerken</strong> en
     dan <strong>De live versie verbeteren</strong>.</p>
 </div>
@@ -137,7 +137,7 @@
 
 <aside class="kb-paneel" id="kb-p-eig" aria-label="Eigenschappen">
   <div class="kb-paneel-kop"><h2>Eigenschappen</h2><button type="button" class="kb-paneel-sluit" aria-label="Eigenschappen sluiten">✕</button></div>
-  <p class="kb-paneel-uitleg">{% if kb_concept %}Horen bij de conceptversie: ze gaan pas live als je publiceert.{% else %}Soort, plek in de kennisbank, vindbaarheid en status.{% endif %}</p>
+  <p class="kb-paneel-uitleg">{% if kb_concept %}Horen bij het concept: ze gaan pas live als je publiceert.{% else %}Soort, plek in de kennisbank, vindbaarheid en status.{% endif %}</p>
   {% for fieldset in adminform %}{% if not forloop.first and fieldset.name != "Versie" %}{% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}{% endif %}{% endfor %}
 </aside>
 
@@ -183,6 +183,7 @@
 <aside class="kb-paneel kb-paneel-review" id="kb-p-rev" aria-label="Review">
   <div class="kb-paneel-kop"><h2>Review</h2><button type="button" class="kb-paneel-sluit" aria-label="Review sluiten">✕</button></div>
   <div class="kb-review">
+    <p class="kb-review-stand"><span class="kb-stand kb-stand-{{ kb_review.drie.soort }}">{{ kb_review.drie.naam }}</span> {% if kb_review.drie.sleutel == "redactie" %}Je kunt de tekst wijzigen.{% elif kb_review.drie.sleutel == "team" %}De tekst staat op slot tot het team reageert of je hem terugroept.{% else %}Je kunt publiceren.{% endif %}</p>
     {% if kb_review.label %}<p class="kb-review-label">✓ {{ kb_review.label }}</p>{% endif %}
     {% if kb_review.rijen %}
     <ul class="kb-review-teams">
@@ -202,7 +203,7 @@
       {% endfor %}
     </ul>
     {% else %}
-    <p>Deze conceptversie ligt nog niet ter inzage. Kies <strong>Afronden → Ter inzage geven</strong> om hem aan een team voor te leggen. Je wijzigingen worden dan eerst opgeslagen.</p>
+    <p>Dit concept is nog niet ter inzage gegeven. Kies <strong>Afronden → Ter inzage geven</strong> om het aan een team voor te leggen. Je wijzigingen worden dan eerst opgeslagen.</p>
     {% endif %}
     {% if kb_opmerkingen %}<p class="kb-paneel-uitleg">Klik op <strong>Opmerkingen</strong> in de balk: dan staan ze rechts naast de tekst waar ze over gaan.</p>{{ kb_opmerkingen|json_script:"kb-opmerkingen" }}{% endif %}
     {% if kb_review.op_slot %}
@@ -234,10 +235,10 @@
 {% endif %}
 {% if kb_kan_concept and not kb_review.op_slot and not kb_spoed %}
 <div class="submit-row kb-conceptrij">
-  <button type="submit" class="button kb-concept-opslaan" name="_conceptversie" value="1">Opslaan als conceptversie</button>
+  <button type="submit" class="button kb-concept-opslaan" name="_conceptversie" value="1">Opslaan als concept</button>
   {% if kb_concept %}<button type="submit" class="button kb-concept-weg" name="_weggooien" formaction="{{ kb_concept_weggooien }}" formnovalidate
-    data-kb-vraag-titel="Conceptversie weggooien?" data-kb-vraag="Het werk in de conceptversie is daarna weg. Medewerkers blijven versie {{ original.versie }} zien." data-kb-vraag-knop="Weggooien">Conceptversie weggooien</button>{% endif %}
-  <span class="kb-concepthint">{% if kb_concept %}Publiceren zet de conceptversie live voor alle medewerkers.{% else %}Publiceren zet je wijziging meteen live voor alle medewerkers.{% endif %}</span>
+    data-kb-vraag-titel="Concept weggooien?" data-kb-vraag="Het werk in het concept is daarna weg. Medewerkers blijven versie {{ original.versie }} zien." data-kb-vraag-knop="Weggooien">Concept weggooien</button>{% endif %}
+  <span class="kb-concepthint">{% if kb_concept %}Publiceren zet het concept live voor alle medewerkers.{% else %}Publiceren zet je wijziging meteen live voor alle medewerkers.{% endif %}</span>
 </div>
 {% endif %}
 {# De gewone knoppenrij (verborgen) alleen voor Afronden: het venster drukt op Publiceren daarin. Anders staan #}
