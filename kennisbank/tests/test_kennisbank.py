@@ -834,6 +834,15 @@ class InfraTests(TestCase):
         for bestand, patroon in verwacht.items():
             tekst = (wortel / bestand).read_text()
             self.assertRegex(tekst, re.compile(patroon, re.M), f"{bestand} noemt niet versie {__version__}")
+        # Review 15 november: de releasedatum in publiccode.yml liep een dag achter op de CHANGELOG.
+        kop = rf"^## {re.escape(__version__)} – (\d{{4}}-\d{{2}}-\d{{2}})$"
+        datum = re.search(kop, (wortel / "CHANGELOG.md").read_text(), re.M)
+        self.assertIsNotNone(datum, "de CHANGELOG noemt geen datum bij deze versie")
+        self.assertRegex(
+            (wortel / "publiccode.yml").read_text(),
+            re.compile(rf'^releaseDate: "{datum.group(1)}"$', re.M),
+            "publiccode.yml noemt een andere releasedatum dan de CHANGELOG",
+        )
         self.assertEqual(self.client.get("/api/schema/").status_code, 401)  # anoniem: niet
         self.client.force_login(User.objects.create_user("v"))
         self.assertIn(f"version: {__version__}", self.client.get("/api/schema/").content.decode())

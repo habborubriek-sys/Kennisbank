@@ -252,6 +252,53 @@ class Vergelijken(ReviewBasis):
         self.assertEqual(vergelijk(velden(BASIS), velden(live), velden(BASIS)).wijzigingen, [])
 
 
+class LastigeGevallen(ReviewBasis):
+    """Review 15 november (ChatGPT, bevinding 2): herhaalde alinea's, verplaatsingen en sterk herschreven tekst.
+
+    De koppeling werkt met gelijkenis en kan dus een alinea anders koppelen dan een mens zou doen. Wat hier
+    vaststaat: overnemen levert de live tekst op, en eigen werk in het concept wordt niet vervangen.
+    """
+
+    DUBBEL = "Zie de bijlage voor het formulier."
+
+    def test_dubbele_alinea_de_tweede_is_live_weggehaald(self):
+        basis = S("A", P("Tekst a."), P(self.DUBBEL)) + S("B", P("Tekst b."), P(self.DUBBEL))
+        live = S("A", P("Tekst a."), P(self.DUBBEL)) + S("B", P("Tekst b."))
+        nieuw, gedaan = neem_over(velden(basis), velden(live), velden(basis), "veilig")
+        self.assertEqual((nieuw["inhoud"], len(gedaan)), (live, 1), "de alinea in sectie B verdwijnt, niet die in A")
+
+    def test_dubbele_alinea_waarvan_het_concept_er_zelf_een_weghaalde(self):
+        basis = S("A", P(self.DUBBEL), P("Tekst a.")) + S("B", P(self.DUBBEL), P("Tekst b."))
+        live = basis.replace("Tekst b.", "Tekst b, nieuw.")
+        concept = S("A", P("Tekst a.")) + S("B", P(self.DUBBEL), P("Tekst b."))
+        nieuw, _ = neem_over(velden(basis), velden(live), velden(concept), "veilig")
+        self.assertEqual(nieuw["inhoud"], concept.replace("Tekst b.", "Tekst b, nieuw."))
+
+    def test_verplaatste_alinea_is_weg_en_nieuw_en_komt_goed_terecht(self):
+        lang = "Een lange alinea over termijnen en brieven."
+        basis = S("A", P(lang), P("Tweede alinea.")) + S("B", P("Derde alinea."))
+        live = S("A", P("Tweede alinea.")) + S("B", P("Derde alinea."), P(lang))
+        v = vergelijk(velden(basis), velden(live), velden(basis))
+        self.assertEqual(sorted(w["soort"] for w in v.wijzigingen), ["nieuw", "verwijderd"])
+        nieuw, _ = neem_over(velden(basis), velden(live), velden(basis), "veilig")
+        self.assertEqual(nieuw["inhoud"], live)
+
+    def test_gewisseld_en_gewijzigd_levert_toch_de_live_tekst(self):
+        basis = P("Alfa beta gamma delta epsilon.") + P("Een twee drie vier vijf.") + P("Slot.")
+        live = P("Een twee drie vier zes.") + P("Alfa beta gamma delta zeta.") + P("Slot.")
+        nieuw, _ = neem_over(velden(basis), velden(live), velden(basis), "veilig")
+        self.assertEqual(nieuw["inhoud"], live)
+
+    def test_volledig_herschreven_en_in_het_concept_ook_gewijzigd_blijft_handwerk(self):
+        basis = P("Stuur na twee weken een rappel aan de overtreder.") + P("Bel bij spoed.")
+        live = P("De termijn is voortaan afhankelijk van het zaaktype, zie de tabel.") + P("Bel bij spoed.")
+        concept = P("Stuur na twee weken een rappel aan de overtreder en de gemachtigde.") + P("Bel bij spoed.")
+        v = vergelijk(velden(basis), velden(live), velden(concept))
+        self.assertEqual([(w["soort"], w["auto"]) for w in v.wijzigingen], [("zelf", False)])
+        nieuw, gedaan = neem_over(velden(basis), velden(live), velden(concept), "veilig")
+        self.assertEqual((nieuw["inhoud"], gedaan), (concept, []))
+
+
 class Besluiten(ReviewBasis):
     def test_besluit_bepaalt_de_stand_en_de_telling(self):
         live = BASIS.replace("01 00", "01 42").replace("2 weken", "3 weken")

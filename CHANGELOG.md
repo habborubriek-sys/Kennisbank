@@ -33,6 +33,7 @@ De live versie verbeteren, en in het concept overnemen wat er live veranderde (b
 **Techniek en tests**
 - Nieuwe module `kennisbank/livewijzigingen.py` en het endpoint `…/artikel/<id>/live-wijzigingen/`; het endpoint slaat niets op. Migratie `0032_concept_live_besluiten` (één nieuw veld, leeg voor bestaande conceptversies).
 - 50 nieuwe tests (746 in totaal), alle tegen een bewust kapotte versie gedraaid: 20 mutaties in de servercode en 5 in de scripts. Eén mutatie in de scripts overleefde terecht: de browser zet de focus na het sluiten van het venster zelf al terug.
+- Na de review van 15 november (zelfde versie, geen wijziging in de werking): `publiccode.yml` noemde 13 november als releasedatum, dat is 14 november; een test houdt die datum voortaan gelijk aan deze CHANGELOG. Vijf tests erbij voor lastige gevallen in de vergelijking (herhaalde alinea's, een verplaatste alinea, twee gewisselde alinea's, volledig herschreven tekst): 751 tests in totaal.
 - Browsertests: `rook.js` 104 controles (was 67), met de hele weg van *Bewerken* op de site tot overnemen in het concept; `axe.js` 55 metingen (was 45). De meting vond één fout in het nieuwe werk (een link die alleen aan de kleur te herkennen was), hersteld voor de release.
 
 ## 1.32.0 – 2026-11-13
