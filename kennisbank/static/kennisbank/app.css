@@ -480,3 +480,11 @@ dialog.bewerk-keuze::backdrop{background:rgba(15,30,55,.5)}
 .bk-keuze b{display:block}
 .bk-keuze span{color:var(--fg-muted);font-size:.9rem}
 .bk-voet{display:flex;justify-content:flex-end}
+
+/* 1.35.0: zoekhulp, Meer laden en "Was dit artikel nuttig?" */
+.zoekhulp{margin:0 0 14px;padding:9px 14px;border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;color:var(--fg)}
+.meer-laden{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0 0;color:var(--fg-muted)}
+.oordeel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:18px 0 6px;padding-top:14px;border-top:1px solid var(--line)}
+.oordeel-vraag{font-weight:600}
+.oordeel-dank{color:var(--fg-muted)}
+td.let-op-cel{font-weight:700}

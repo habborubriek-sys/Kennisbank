@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.34.0 .
-docker push registry.example.nl/kennisbank:1.34.0
+docker build -t registry.example.nl/kennisbank:1.35.0 .
+docker push registry.example.nl/kennisbank:1.35.0
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -119,7 +119,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.34.0
+  registry.example.nl/kennisbank:1.35.0
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -141,6 +141,37 @@ De migraties lopen automatisch mee bij het starten (of via `migreer`). Maak voor
 zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens gebeurt; alleen de
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
+
+#### Naar 1.35.0 (vanaf 1.7.0 of later)
+
+Eén migratie, `0034_zoeken`. Die doet meer dan de vorige:
+
+- zet twee **PostgreSQL-extensies** aan: `pg_trgm` en `unaccent`. Beide horen bij PostgreSQL zelf
+  (pakket *contrib*, bij beheerde databases standaard aanwezig) en zijn sinds PostgreSQL 13 "trusted": de
+  eigenaar van de database mag ze aanzetten, er is geen superuser voor nodig. Mag de account waarmee de
+  migraties draaien dat bij jullie niet, laat een databasebeheerder dan vooraf
+  `CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS unaccent;` uitvoeren in de database
+  van de kennisbank. De migratie slaat ze dan over;
+- maakt drie tabellen (synoniemen, woordenlijst voor de zoekhulp, oordelen) en één kolom bij de zoektellingen;
+- bouwt alle zoekdocumenten opnieuw op zonder accenten en vult de woordenlijst. Bij 5.000 artikelen duurt dat
+  enkele seconden; niemand hoeft een artikel opnieuw op te slaan.
+
+Verder:
+
+- **Nieuwe instelling:** `KB_OORDEEL_LIMIET` (standaard `30/hour`). Niets doen is goed.
+- **De geplande taak** `opschonen` bouwt voortaan ook dagelijks de woordenlijst opnieuw op (2 seconden bij
+  5.000 artikelen). Draait hij niet, dan blijft zoeken werken; alleen worden woorden die uit alle artikelen
+  zijn verdwenen dan nog voorgesteld (zonder resultaat, dus zonder gevolg).
+- **De API:** `GET /api/v1/artikelen?q=…` geeft dezelfde lijst als voorheen, met een nieuwe antwoordkop
+  `X-KB-Zoekhulp` als de zoekhulp iets heeft gedaan. Zoeken vindt nu meer (typfouten, synoniemen, "dichtst in
+  de buurt"); een koppeling die rekende op een lege lijst bij een typfout krijgt nu resultaten. Nieuw:
+  `POST /api/v1/artikelen/<id>/oordeel`, de parameter `vervolg_op`, en in `/api/v1/statistieken` de velden
+  `nuttig`, `niet_nuttig`, `synoniem_url` en `zoektermen_met_vervolg`.
+- **Snelheid**, gemeten met 5.000 artikelen en een woordenlijst van 10.000 woorden: een gewone zoekopdracht
+  duurt even lang als voorheen (rond 20 ms). Moet de zoekhulp aan het werk, dan 50 tot 160 ms.
+- **Voor de redactie:** in het beheer staat een nieuwe lijst *Synoniemen*, en *Gebruiksstatistieken* kreeg de
+  knop *Synoniem maken*. Zie [functioneel-beheer.md](functioneel-beheer.md#zoeken-wat-de-kennisbank-zelf-oplost-en-wat-jij-kunt-doen).
+- Ctrl+F5 na de upgrade.
 
 #### Naar 1.34.0 (vanaf 1.7.0 of later)
 

@@ -46,6 +46,7 @@
       if (Date.now() - laatste > 60000) { location.reload(); await new Promise(() => {}); }
     }
     if (!resp.ok) throw new ApiFout(resp.status, data && (data.detail || JSON.stringify(data)));
+    if (opties.kop) return { data, kop: resp.headers.get(opties.kop) };
     return data;
   }
 
@@ -82,6 +83,8 @@
   let onboarding = false;
   const state = { view: "recent", artikel: null, q: "", cluster: null, soort: null, tags: new Set(), zoekresultaat: null };
   let huidigArtikel = null;     // volledig artikel dat nu open is
+  let laatsteZoek = null;       // {term, tijd, geopend}: voor "gevonden maar niet geholpen" (1.35.0)
+  const STAP = 50;              // zoveel artikelen tegelijk in een lijst, daarna "Meer laden" (1.35.0)
   let zoekT, registreerT, zoekVolgnr = 0;
 
   const isPM = () => !!(ik && ik.is_redacteur);
@@ -301,6 +304,9 @@
 
   function renderLijstView() {
     const zoekend = !!state.q.trim();
+    // Een andere lijst (andere pagina, zoekterm of filter) begint weer bij de eerste 50.
+    const sleutel = [state.view, state.q.trim(), state.cluster, state.soort, [...state.tags].join(",")].join("|");
+    if (sleutel !== state.toonSleutel) { state.toon = STAP; state.toonSleutel = sleutel; }
     let bron, titel, leeg = "", when = null;
     if (zoekend) { bron = state.zoekresultaat || []; titel = "Zoekresultaten"; }
     else if (state.view === "favorieten") {
@@ -314,7 +320,7 @@
       when = Object.fromEntries(ik.recent.map((r) => [r.id, ago(r.bezocht_op)]));
       leeg = '<div class="empty">Hier verschijnen de artikelen die je het laatst hebt geopend.<br><br>Zoek hierboven op een trefwoord, of <button class="tb" type="button" data-nav="artikelen">bekijk alle artikelen</button></div>';
     } else { bron = artikelen; titel = "Alle artikelen"; }
-    let html = renderList(filtered(bron), titel, when, leeg, zoekend && state.zoekresultaat === null);
+    let html = renderList(filtered(bron), titel, when, leeg, zoekend && state.zoekresultaat === null, zoekend ? state.zoekhulp : null);
     if (state.view === "gewijzigd" && !zoekend && bron.length) {
       html = html.replace("</h1>", '</h1><p class="lead">Artikelen die inhoudelijk zijn gewijzigd sinds je ze voor het laatst hebt afgevinkt. Open een artikel en klik op <b>Ik snap het</b>, of <button class="link" type="button" id="allesGezien">markeer alles als gezien</button>.</p>');
     }
@@ -349,12 +355,25 @@
     </article>`;
   }
 
-  function renderList(list, title, whenMap, emptyHtml, laden) {
+  /* 1.35.0: wat de zoekhulp deed, als regel boven de resultaten. De woorden komen van de server (uit de
+   * woordenlijst of de synoniemenlijst van de omgeving) en gaan door esc(). */
+  function zoekhulpRegel(h) {
+    if (!h) return "";
+    const b = (w) => `<b>${esc(w)}</b>`, i = (w) => `<i>${esc(w)}</i>`;
+    const zinnen = [];
+    (h.verbeterd || []).forEach((v) => zinnen.push(`Resultaten voor ${v.naar.map(b).join(" of ")}. Je zocht op ${i(v.van)}.`));
+    (h.synoniemen || []).forEach((v) => zinnen.push(`Ook gezocht op ${v.naar.map(b).join(", ")}, omdat dat hetzelfde betekent als ${i(v.van)}.`));
+    if (h.dichtbij) zinnen.push("Geen artikel met al deze woorden. Dit komt het dichtst in de buurt.");
+    return zinnen.length ? `<p class="zoekhulp" role="status">${zinnen.join(" ")}</p>` : "";
+  }
+
+  function renderList(list, title, whenMap, emptyHtml, laden, hulp) {
     const active = [state.cluster, state.soort && soortLabel(state.soort), ...state.tags].filter(Boolean);
     const filterend = active.length || state.q.trim();
     let inhoud;
+    const toon = Math.max(STAP, state.toon || STAP);
     if (laden) inhoud = '<p class="loading">Zoeken…</p>';
-    else if (list.length) inhoud = `<div class="cards">${list.map((a) => cardHTML(a, whenMap && whenMap[a.id])).join("")}</div>`;
+    else if (list.length) inhoud = `${zoekhulpRegel(hulp)}<div class="cards">${list.slice(0, toon).map((a) => cardHTML(a, whenMap && whenMap[a.id])).join("")}</div>${list.length > toon ? `<p class="meer-laden"><span role="status">${toon} van de ${list.length} artikelen.</span> <button class="tb" type="button" id="meerLaden">Meer laden</button></p>` : ""}`;
     else if (emptyHtml && !filterend) inhoud = emptyHtml;
     else inhoud = '<div class="empty">Geen artikelen gevonden. Probeer een ander trefwoord of wis de filters.<br><br>Mis je een artikel? <button class="tb" type="button" id="askBot">Vraag het de assistent</button></div>';
     return `<div class="view"><h1>${esc(title)}</h1>
@@ -411,6 +430,7 @@
       <div class="foot">
        ${a.gerelateerd.length ? `<div class="related"><h2 class="stats-h">Gerelateerd</h2><ul>${a.gerelateerd.map((r) => `<li><a href="${esc(r.url)}" data-open="${r.id}" class="linkbtn">${esc(r.titel)}</a></li>`).join("")}</ul></div>` : ""}
        ${a.tags.length ? `<div class="chips" role="group" aria-label="Tags">${a.tags.map((t) => `<button class="chip" type="button" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</div>` : ""}
+       ${a.status === "gepubliceerd" ? oordeelBlok(a) : ""}
        <p class="hint">Klopt iets niet of mis je iets? Selecteer de tekst, of <button class="link" type="button" id="propBtn">dien een verbetervoorstel in</button>.</p>
       </div>
      </article></div>`;
@@ -530,14 +550,17 @@
       <div class="tile${s.assistent_zonder_bron ? " let-op" : ""}" title="Vragen waarop de assistent niets in de kennisbank kon vinden"><b>${s.assistent_zonder_bron}</b><span>vragen zonder bron${s.assistent_vragen ? ` (${Math.round((s.assistent_zonder_bron / s.assistent_vragen) * 100)}%)` : ""}</span></div>
      </div>
      ${s.assistent_vragen ? `<p class="lead">Van de ${s.assistent_vragen} vragen aan de assistent kon hij er <b>${s.assistent_zonder_bron}</b> niet uit de kennisbank beantwoorden. Dat is, samen met de lijst onderaan, de beste aanwijzing voor welke kennis nog ontbreekt. De vragen zelf worden niet opgeslagen.</p>` : ""}
-     <div class="table-wrap"><table><caption class="visually-hidden">Weergaven per artikel</caption><thead><tr><th scope="col">Artikel</th><th scope="col">Soort</th><th scope="col" class="num">Weergaven</th><th scope="col"><span class="visually-hidden">Verhouding</span></th><th scope="col" class="num">Voorstellen</th></tr></thead><tbody>
-     ${s.artikelen.map((a) => `<tr><td><a href="${esc(a.url)}" class="linkbtn" data-open="${a.id}">${esc(a.titel)}</a>${a.status !== "gepubliceerd" ? ` <span class="versie-badge">(${esc(a.status)})</span>` : ""}</td><td><span class="type ${esc(a.soort)}">${esc(soortLabel(a.soort))}</span></td><td class="num">${a.weergaven}</td><td><div class="bar" aria-hidden="true"><i data-w="${Math.round((a.weergaven / max) * 100)}"></i></div></td><td class="num">${a.voorstellen}</td></tr>`).join("")}
+     <div class="table-wrap"><table><caption class="visually-hidden">Weergaven per artikel</caption><thead><tr><th scope="col">Artikel</th><th scope="col">Soort</th><th scope="col" class="num">Weergaven</th><th scope="col"><span class="visually-hidden">Verhouding</span></th><th scope="col" class="num">Voorstellen</th><th scope="col" class="num">Nuttig</th><th scope="col" class="num">Niet nuttig</th></tr></thead><tbody>
+     ${s.artikelen.map((a) => `<tr><td><a href="${esc(a.url)}" class="linkbtn" data-open="${a.id}">${esc(a.titel)}</a>${a.status !== "gepubliceerd" ? ` <span class="versie-badge">(${esc(a.status)})</span>` : ""}</td><td><span class="type ${esc(a.soort)}">${esc(soortLabel(a.soort))}</span></td><td class="num">${a.weergaven}</td><td><div class="bar" aria-hidden="true"><i data-w="${Math.round((a.weergaven / max) * 100)}"></i></div></td><td class="num">${a.voorstellen}</td><td class="num">${a.nuttig || 0}</td><td class="num${a.niet_nuttig > a.nuttig ? " let-op-cel" : ""}">${a.niet_nuttig || 0}</td></tr>`).join("")}
      </tbody></table></div>
      <h2 class="stats-h">Meest gezochte termen</h2>
      ${s.zoektermen.length ? `<div class="table-wrap"><table><thead><tr><th scope="col">Zoekterm</th><th scope="col" class="num">Zoekopdrachten</th><th scope="col"><span class="visually-hidden">Verhouding</span></th></tr></thead><tbody>${s.zoektermen.map((t) => `<tr><td>${esc(t.term)}</td><td class="num">${t.aantal}</td><td><div class="bar" aria-hidden="true"><i data-w="${Math.round((t.aantal / maxT) * 100)}"></i></div></td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">Nog geen zoekopdrachten in deze periode.</div>'}
      <h2 class="stats-h">Gezocht zonder resultaat</h2>
-     <p class="lead">Hier zoeken collega's naar kennis die (nog) niet in de kennisbank staat.</p>
-     ${s.zoektermen_zonder_resultaat.length ? `<div class="table-wrap"><table><thead><tr><th scope="col">Zoekterm</th><th scope="col" class="num">Keer zonder resultaat</th></tr></thead><tbody>${s.zoektermen_zonder_resultaat.map((t) => `<tr><td>${esc(t.term)}</td><td class="num">${t.aantal}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">Geen zoekopdrachten zonder resultaat.</div>'}
+     <p class="lead">Hier zochten collega's naar iets dat ze niet vonden, of waarbij alleen iets verscheen dat in de buurt kwam. Staat het (nog) niet in de kennisbank, dan is dit een artikel om te schrijven. Staat het er wel, maar onder een ander woord? Maak er dan een synoniem van: wie daarna op die term zoekt, vindt het artikel.</p>
+     ${s.zoektermen_zonder_resultaat.length ? `<div class="table-wrap"><table><thead><tr><th scope="col">Zoekterm</th><th scope="col" class="num">Keer zonder resultaat</th><th scope="col"><span class="visually-hidden">Actie</span></th></tr></thead><tbody>${s.zoektermen_zonder_resultaat.map((t) => `<tr><td>${esc(t.term)}</td><td class="num">${t.aantal}</td><td>${t.synoniem_url ? `<a class="tb" href="${esc(t.synoniem_url)}">Synoniem maken<span class="visually-hidden"> van ${esc(t.term)}</span></a>` : ""}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">Geen zoekopdrachten zonder resultaat.</div>'}
+     <h2 class="stats-h">Gevonden, maar niet geholpen</h2>
+     <p class="lead">Zoektermen waarna collega's binnen een minuut opnieuw zochten zonder een artikel te openen. De resultaten pasten dan waarschijnlijk niet bij de vraag. In de tabel bovenaan zie je bij <b>Nuttig</b> en <b>Niet nuttig</b> wat lezers van een artikel vonden. Alleen aantallen; wie het was, wordt niet bijgehouden.</p>
+     ${(s.zoektermen_met_vervolg || []).length ? `<div class="table-wrap"><table><thead><tr><th scope="col">Zoekterm</th><th scope="col" class="num">Zoekopdrachten</th><th scope="col" class="num">Daarna opnieuw gezocht</th></tr></thead><tbody>${s.zoektermen_met_vervolg.map((t) => `<tr><td>${esc(t.term)}</td><td class="num">${t.aantal}</td><td class="num">${t.vervolg}</td></tr>`).join("")}</tbody></table></div>` : '<div class="empty">Nog niets geteld.</div>'}
     </div>`;
   }
 
@@ -570,6 +593,41 @@
   });
 
   /* ---------- Gedrag ---------- */
+  /* 1.35.0: "Was dit artikel nuttig?" Er wordt alleen een aantal opgeteld, niet wie het vond. Deze browser
+   * onthoudt per artikel en versie dat er is gestemd; lukt dat niet (opslag uit), dan geldt het voor dit bezoek. */
+  const gestemd = {};
+  function oordeelSleutel(a) { return "kb.oordeel." + a.id + "." + a.versie; }
+  function heeftGestemd(a) {
+    const k = oordeelSleutel(a);
+    if (gestemd[k]) return gestemd[k];
+    try { return localStorage.getItem(k); } catch (e) { return null; }
+  }
+  function oordeelBlok(a) {
+    const eerder = heeftGestemd(a);
+    return `<div class="oordeel" id="oordeel" role="group" aria-labelledby="oordeelVraag">
+      <span id="oordeelVraag" class="oordeel-vraag">Was dit artikel nuttig?</span>
+      ${eerder ? oordeelDank(eerder) : '<button class="tb" type="button" data-oordeel="ja">👍 Ja</button> <button class="tb" type="button" data-oordeel="nee">👎 Nee</button>'}
+    </div>`;
+  }
+  function oordeelDank(wat) {
+    return wat === "ja"
+      ? '<span class="oordeel-dank" role="status">Bedankt, dat is genoteerd.</span>'
+      : '<span class="oordeel-dank" role="status">Bedankt, dat is genoteerd. Wat mis je? <button class="link" type="button" id="oordeelProp">Dien een verbetervoorstel in</button>, dan kan procesmanagement het aanpassen.</span>';
+  }
+  async function geefOordeel(a, wat) {
+    const k = oordeelSleutel(a);
+    gestemd[k] = wat;
+    try { localStorage.setItem(k, wat); } catch (e) { /* dan alleen voor dit bezoek */ }
+    const vak = $("#oordeel");
+    if (vak) {
+      vak.querySelectorAll("[data-oordeel]").forEach((b) => b.remove());
+      vak.insertAdjacentHTML("beforeend", oordeelDank(wat));
+      const prop = $("#oordeelProp");
+      if (prop) { prop.addEventListener("click", () => openProp("")); prop.focus(); }
+    }
+    try { await api("artikelen/" + a.id + "/oordeel", { method: "POST", body: { nuttig: wat === "ja" } }); } catch (e) { /* de telling is niet kritisch */ }
+  }
+
   function openArticle(id, sectie) {
     state.artikel = Number(id);
     zetUrl();
@@ -582,6 +640,7 @@
   }
 
   async function registreerWeergave(id) {
+    if (laatsteZoek) laatsteZoek.geopend = true;
     try {
       await api("artikelen/" + id + "/weergave", { method: "POST" });
       ik.recent = [{ id, bezocht_op: new Date().toISOString() }, ...ik.recent.filter((r) => r.id !== id)].slice(0, ik.recent_max || 10);
@@ -617,6 +676,15 @@
     }
     const zm = $("#zaaktypeMeer");
     if (zm) zm.addEventListener("click", () => { zaaktypeAlles = true; render(false); });
+    const meer = $("#meerLaden");
+    if (meer) meer.addEventListener("click", () => {
+      const eerste = state.toon || STAP;
+      state.toon = eerste + STAP;
+      render(false);
+      // De focus naar het eerste artikel dat erbij kwam, zodat je met het toetsenbord verder kunt waar je was.
+      const link = $$(".cards .card-link")[eerste];
+      if (link) link.focus();
+    });
     const ab = $("#askBot");
     if (ab) ab.addEventListener("click", () => { openChat(); $("#chatIn").value = state.q; $("#chatIn").focus(); });
     const ag = $("#allesGezien");
@@ -688,6 +756,9 @@
       window.print();
     });
     $("#propBtn").addEventListener("click", () => openProp(""));
+    $$("[data-oordeel]").forEach((b) => b.addEventListener("click", () => geefOordeel(a, b.dataset.oordeel)));
+    const oordeelProp = $("#oordeelProp");
+    if (oordeelProp) oordeelProp.addEventListener("click", () => openProp(""));
     const wg = $("#wijzGezien");
     if (wg) wg.addEventListener("click", async () => {
       wg.disabled = true;
@@ -731,11 +802,22 @@
     if (!q) { state.zoekresultaat = null; render(false); return; }
     const nr = ++zoekVolgnr;
     const p = new URLSearchParams({ q });
-    if (registreer) p.set("registreer", "1");
+    if (registreer) {
+      p.set("registreer", "1");
+      // 1.35.0, "gevonden maar niet geholpen": zocht je net op iets anders en opende je niets, dan telt dat
+      // anoniem mee bij die vorige term. De server krijgt alleen de twee termen, geen gebruiker.
+      const v = laatsteZoek;
+      // Wie verder typt aan dezelfde term (rap, dan rappel) zoekt niet opnieuw: dat telt niet.
+      const nu = q.toLowerCase();
+      if (v && !v.geopend && Date.now() - v.tijd < 60000 && !nu.startsWith(v.term) && !v.term.startsWith(nu)) p.set("vervolg_op", v.term);
+      laatsteZoek = { term: q.toLowerCase(), tijd: Date.now(), geopend: false };
+    }
     try {
-      const res = await api("artikelen?" + p.toString());
+      const res = await api("artikelen?" + p.toString(), { kop: "X-KB-Zoekhulp" });
       if (nr !== zoekVolgnr) return;  // er is al een nieuwere zoekopdracht
-      state.zoekresultaat = res;
+      state.zoekresultaat = res.data;
+      state.zoekhulp = null;
+      try { state.zoekhulp = res.kop ? JSON.parse(res.kop) : null; } catch (e) { /* geen hulpregel */ }
       if (!state.artikel) render(false);
     } catch (e) { /* stil */ }
   }

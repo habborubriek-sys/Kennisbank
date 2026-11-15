@@ -46,6 +46,7 @@ Alle instellingen zijn omgevingsvariabelen. Elke variabele kan ook uit een besta
 | `KB_API_TOKEN_MAX_DAGEN` | `365` | API-tokens van koppelingen verlopen na dit aantal dagen (`0` = nooit). Nieuw token: `beheer kennisbank_token <account>`. |
 | `KB_ASSISTENT_LIMIET` | `30/min` | Maximaal aantal vragen aan de assistent per gebruiker (per worker bijgehouden). Het dagplafond voor de hele installatie is `KB_ASSISTENT_DAGLIMIET`. |
 | `KB_VOORSTEL_LIMIET` | `20/hour` | Maximaal aantal verbetervoorstellen per gebruiker. |
+| `KB_OORDEEL_LIMIET` | `30/hour` | Maximaal aantal keren dat één gebruiker *Was dit artikel nuttig?* kan beantwoorden (1.35.0). De browser onthoudt per artikel dat er is gestemd; dit is de grens voor wie dat omzeilt. |
 
 ## AI-assistent
 

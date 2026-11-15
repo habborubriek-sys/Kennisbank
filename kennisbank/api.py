@@ -3,6 +3,9 @@
 Documentatie: /api/schema/ (OpenAPI) en /api/docs/ (interactief).
 """
 
+import json
+from urllib.parse import urlencode
+
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Count, Exists, OuterRef, Q, Sum
@@ -28,6 +31,7 @@ from .models import (
     AFGEHANDELD,
     MAX_VOORSTELBERICHT,
     Artikel,
+    ArtikelOordeel,
     ArtikelVersie,
     AssistentTelling,
     Bericht,
@@ -46,7 +50,7 @@ from .models import (
     ZoekTelling,
 )
 from .rechten import rechten
-from .zoeken import zoek_artikelen
+from .zoeken import zoek
 
 # --- Serializers ----------------------------------------------------------------------
 
@@ -532,6 +536,12 @@ def _gezochte_omgevingen(request):
     parameters=[
         OpenApiParameter("q", str, description="Zoektekst"),
         OpenApiParameter("registreer", str, description="'1' = zoekterm meetellen in de statistiek"),
+        OpenApiParameter(
+            "vervolg_op",
+            str,
+            description="Alleen met registreer=1: de vorige zoekterm, als de gebruiker binnen een minuut opnieuw "
+            "zoekt zonder een artikel te openen. Telt anoniem mee als 'gevonden maar niet geholpen'.",
+        ),
         OpenApiParameter("cluster", str),
         OpenApiParameter("soort", str),
         OpenApiParameter("tag", str, many=True),
@@ -540,20 +550,36 @@ def _gezochte_omgevingen(request):
         OpenApiParameter("status", str),
     ],
     responses=ArtikelKortSerializer(many=True),
+    description="Met `q` wordt gezocht op relevantie. Vindt de zoektekst niets, dan helpt de kennisbank (sinds "
+    "1.35.0): een woord dat nergens voorkomt wordt vervangen door een woord dat erop lijkt of het bevat, "
+    "synoniemen van de omgeving tellen mee, en als geen artikel alle woorden bevat volgt wat het dichtst in de "
+    "buurt komt. Wat er is gedaan staat als JSON in de antwoordkop `X-KB-Zoekhulp` "
+    '(`{"verbeterd": [{"van", "naar"}], "synoniemen": [{"van", "naar"}], "dichtbij": true}`; de kop ontbreekt '
+    "als er gewoon is gezocht). Het antwoord zelf blijft een lijst artikelen.",
 )
 @api_view(["GET"])
 def artikelen(request):
     qs = _filter(_artikelen_voor(request), request.query_params)
     q = request.query_params.get("q", "").strip()
+    hulp = {}
     if q:
-        resultaat = zoek_artikelen(qs, q)
+        resultaat, hulp = zoek(qs, q)
         # Alleen meetellen in de statistiek als de client dat vraagt (niet bij elke toetsaanslag).
         if request.query_params.get("registreer") == "1":
-            diensten.registreer_zoekopdracht(q, len(resultaat), _gezochte_omgevingen(request))
+            omgevingen = _gezochte_omgevingen(request)
+            # Kwam er alleen iets "in de buurt", dan stond wat de zoeker zocht er niet: dat telt als zonder
+            # resultaat, zodat de redactie de term blijft zien (en er een synoniem van kan maken).
+            diensten.registreer_zoekopdracht(q, 0 if hulp.get("dichtbij") else len(resultaat), omgevingen)
+            diensten.registreer_vervolgzoekopdracht(request.query_params.get("vervolg_op", ""), q, omgevingen)
     else:
         resultaat = qs.order_by("titel")
     resultaat = list(resultaat)
-    return Response(ArtikelKortSerializer(resultaat, many=True, context=_ctx(request, resultaat)).data)
+    antwoord = Response(ArtikelKortSerializer(resultaat, many=True, context=_ctx(request, resultaat)).data)
+    if hulp:
+        # Als kop, zodat het antwoord een lijst blijft en bestaande koppelingen niets merken. ASCII, want
+        # een kop mag geen andere tekens bevatten.
+        antwoord["X-KB-Zoekhulp"] = json.dumps(hulp, ensure_ascii=True)
+    return antwoord
 
 
 @extend_schema(summary="Eén artikel met secties", responses=ArtikelSerializer)
@@ -568,6 +594,30 @@ def artikel(request, pk):
 def weergave(request, pk):
     a = _artikel_of_404(request, pk)
     diensten.registreer_weergave(request.user, a)
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class OordeelThrottle(UserRateThrottle):
+    """Een oordeel geven kan niet eindeloos: de browser onthoudt per artikel dat er is gestemd, dit vangt de rest."""
+
+    scope = "oordeel"
+
+
+@extend_schema(
+    summary="Was dit artikel nuttig? (anoniem geteld)",
+    request=inline_serializer("Oordeel", {"nuttig": serializers.BooleanField()}),
+    responses={204: None},
+    description="Telt een duim omhoog of omlaag bij de huidige versie van het artikel. Er wordt niet opgeslagen "
+    "wie het oordeel gaf.",
+)
+@api_view(["POST"])
+@throttle_classes([OordeelThrottle])
+def oordeel(request, pk):
+    a = _artikel_of_404(request, pk)
+    nuttig = request.data.get("nuttig")
+    if not isinstance(nuttig, bool):
+        raise serializers.ValidationError({"nuttig": "Geef true of false op."})
+    diensten.registreer_oordeel(a, nuttig)
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -896,6 +946,8 @@ def _voorstel_voor(request, pk):
                     "status": serializers.CharField(),
                     "weergaven": serializers.IntegerField(),
                     "voorstellen": serializers.IntegerField(),
+                    "nuttig": serializers.IntegerField(help_text="Duimen omhoog, alle versies samen"),
+                    "niet_nuttig": serializers.IntegerField(),
                 },
                 many=True,
             ),
@@ -914,7 +966,24 @@ def _voorstel_voor(request, pk):
             ),
             "zoektermen_zonder_resultaat": inline_serializer(
                 "ZoektermZonderResultaat",
-                {"term": serializers.CharField(), "aantal": serializers.IntegerField()},
+                {
+                    "term": serializers.CharField(),
+                    "aantal": serializers.IntegerField(),
+                    "synoniem_url": serializers.CharField(
+                        allow_null=True, help_text="Beheerpagina om van deze term een synoniem te maken"
+                    ),
+                },
+                many=True,
+            ),
+            "zoektermen_met_vervolg": inline_serializer(
+                "ZoektermMetVervolg",
+                {
+                    "term": serializers.CharField(),
+                    "aantal": serializers.IntegerField(),
+                    "vervolg": serializers.IntegerField(
+                        help_text="Keer dat iemand hierna binnen een minuut opnieuw zocht zonder iets te openen"
+                    ),
+                },
                 many=True,
             ),
             "assistent_vragen": serializers.IntegerField(),
@@ -939,6 +1008,13 @@ def statistieken(request):
         .annotate(n=Sum("aantal"))
     )
     voorst = dict(Verbetervoorstel.objects.filter(artikel__in=arts).values_list("artikel_id").annotate(n=Count("id")))
+    # 1.35.0: "Was dit artikel nuttig?", opgeteld over alle versies. Aantallen, zonder gebruiker.
+    oordelen = {
+        o["artikel_id"]: o
+        for o in ArtikelOordeel.objects.filter(artikel__in=arts)
+        .values("artikel_id")
+        .annotate(n=Sum("nuttig"), m=Sum("niet_nuttig"))
+    }
     rijen = sorted(
         (
             {
@@ -950,6 +1026,8 @@ def statistieken(request):
                 "status": a.status,
                 "weergaven": weergaven.get(a.pk, 0),
                 "voorstellen": voorst.get(a.pk, 0),
+                "nuttig": oordelen.get(a.pk, {}).get("n", 0),
+                "niet_nuttig": oordelen.get(a.pk, {}).get("m", 0),
             }
             for a in arts
         ),
@@ -967,6 +1045,31 @@ def statistieken(request):
         .annotate(aantal=Sum("zonder_resultaat"))
         .order_by("-aantal")[:10]
     )
+    # 1.35.0: een knop om van een term zonder resultaat een synoniem te maken, in de omgeving waar het
+    # meest op die term is gezocht.
+    zonder = list(zonder)
+    for z in zonder:
+        omgeving = (
+            ZoekTelling.objects.filter(
+                datum__gte=sinds, term=z["term"], zonder_resultaat__gt=0, omgeving_id__in=r.redactie_omgevingen
+            )
+            .values("omgeving_id")
+            .annotate(n=Sum("zonder_resultaat"))
+            .order_by("-n")
+            .first()
+        )
+        z["synoniem_url"] = (
+            "/beheer/kennisbank/synoniem/add/?"
+            + urlencode({"alternatieven": z["term"], "omgeving": omgeving["omgeving_id"]})
+            if omgeving and omgeving["omgeving_id"]
+            else None
+        )
+    vervolg = (
+        ZoekTelling.objects.filter(datum__gte=sinds, vervolg__gt=0, omgeving_id__in=r.redactie_omgevingen)
+        .values("term")
+        .annotate(aantal=Sum("aantal"), vervolg=Sum("vervolg"))
+        .order_by("-vervolg", "term")[:10]
+    )
     vs = Verbetervoorstel.objects.filter(artikel__in=arts)
     ass = AssistentTelling.objects.filter(datum__gte=sinds, omgeving_id__in=r.redactie_omgevingen).aggregate(
         v=Sum("vragen"), z=Sum("zonder_bron")
@@ -981,7 +1084,8 @@ def statistieken(request):
             "voorstellen_open": vs.filter(status__in=["nieuw", "in_behandeling"]).count(),
             "voorstellen_verwerkt": vs.filter(status="verwerkt").count(),
             "zoektermen": list(termen),
-            "zoektermen_zonder_resultaat": list(zonder),
+            "zoektermen_zonder_resultaat": zonder,
+            "zoektermen_met_vervolg": list(vervolg),
             "assistent_vragen": ass["v"] or 0,
             "assistent_zonder_bron": ass["z"] or 0,
         }

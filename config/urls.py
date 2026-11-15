@@ -19,6 +19,7 @@ api_v1 = [
     path("artikelen", api.artikelen, name="api-artikelen"),
     path("artikelen/<int:pk>", api.artikel, name="api-artikel"),
     path("artikelen/<int:pk>/weergave", api.weergave, name="api-weergave"),
+    path("artikelen/<int:pk>/oordeel", api.oordeel, name="api-oordeel"),
     path("artikelen/<int:pk>/favoriet", api.favoriet, name="api-favoriet"),
     path("artikelen/<int:pk>/versies", api.versies, name="api-versies"),
     path("artikelen/<int:pk>/gezien", api.wijziging_gezien, name="api-wijziging-gezien"),

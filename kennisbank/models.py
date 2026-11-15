@@ -517,6 +517,9 @@ class ZoekTelling(models.Model):
     datum = models.DateField()
     aantal = models.PositiveIntegerField(default=0)
     zonder_resultaat = models.PositiveIntegerField(default=0)
+    #: 1.35.0: hoe vaak iemand na deze term binnen een minuut opnieuw zocht zonder een artikel te openen
+    #: ("gevonden maar niet geholpen"). Een aantal, zonder gebruiker.
+    vervolg = models.PositiveIntegerField(default=0)
 
     class Meta:
         verbose_name = "zoektelling"
@@ -524,6 +527,84 @@ class ZoekTelling(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["omgeving", "term", "datum"], name="uniek_zoekterm_per_dag_omgeving")
         ]
+
+
+class Zoekwoord(models.Model):
+    """De woorden die in de artikelen van een omgeving voorkomen (1.35.0), voor de zoekhulp.
+
+    Vindt een zoekwoord niets, dan zoekt de kennisbank hier naar een woord dat erop lijkt (een typfout) of
+    dat het bevat (*boot* in *zwerfboot*). Kleine letters, zonder accenten. Bijgehouden bij het opslaan van
+    een artikel en dagelijks opgeschoond; een woord dat nergens meer staat, levert geen resultaten op en
+    wordt dan ook niet voorgesteld. Zie zoeken.py.
+    """
+
+    omgeving = models.ForeignKey(Omgeving, on_delete=models.CASCADE, related_name="zoekwoorden")
+    woord = models.CharField(max_length=40)
+
+    class Meta:
+        verbose_name = "zoekwoord"
+        verbose_name_plural = "zoekwoorden"
+        constraints = [models.UniqueConstraint(fields=["omgeving", "woord"], name="uniek_zoekwoord_per_omgeving")]
+        indexes = [GinIndex(fields=["woord"], name="zoekwoord_trgm", opclasses=["gin_trgm_ops"])]
+
+    def __str__(self):
+        return self.woord
+
+
+class Synoniem(models.Model):
+    """Woorden die hetzelfde betekenen (1.35.0), bijgehouden door procesmanagement per omgeving.
+
+    Wie op een van de woorden zoekt, vindt ook de artikelen met de andere. Bedoeld voor de taal van
+    medewerkers die afwijkt van die van de artikelen (*herinnering* voor *rappel*) en voor afkortingen
+    (*LOD* voor *last onder dwangsom*).
+    """
+
+    omgeving = models.ForeignKey(Omgeving, on_delete=models.CASCADE, related_name="synoniemen")
+    woord = models.CharField(
+        "woord in de kennisbank",
+        max_length=80,
+        help_text="Het woord zoals het in de artikelen staat, bijvoorbeeld: rappel.",
+    )
+    alternatieven = models.TextField(
+        "medewerkers zeggen ook",
+        help_text="Eén of meer woorden die hetzelfde betekenen, gescheiden door komma's. Meer woorden achter "
+        "elkaar mag ook. Bijvoorbeeld: herinnering, aanmaning, tweede brief.",
+    )
+    bijgewerkt_op = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "synoniem"
+        verbose_name_plural = "synoniemen"
+        ordering = ["woord"]
+        constraints = [models.UniqueConstraint(fields=["omgeving", "woord"], name="uniek_synoniem_per_omgeving")]
+
+    def __str__(self):
+        return f"{self.woord}: {self.alternatieven}"
+
+    def woorden(self) -> list[str]:
+        """Alle woorden van deze groep, het woord uit de kennisbank eerst."""
+        import re
+
+        delen = [self.woord] + re.split(r"[,;\n]+", self.alternatieven or "")
+        return [" ".join(d.split()) for d in delen if d.strip()]
+
+
+class ArtikelOordeel(models.Model):
+    """"Was dit artikel nuttig?" (1.35.0): aantallen per artikel en per versie, zonder gebruiker.
+
+    Er wordt bewust niet bijgehouden wie wat vond: over lezen en zoeken staat niets per persoon in de
+    database. De browser onthoudt alleen dat er al is gestemd.
+    """
+
+    artikel = models.ForeignKey(Artikel, on_delete=models.CASCADE, related_name="oordelen")
+    versie = models.PositiveIntegerField()
+    nuttig = models.PositiveIntegerField(default=0)
+    niet_nuttig = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "oordeel over een artikel"
+        verbose_name_plural = "oordelen over artikelen"
+        constraints = [models.UniqueConstraint(fields=["artikel", "versie"], name="uniek_oordeel_per_versie")]
 
 
 class AssistentTelling(models.Model):

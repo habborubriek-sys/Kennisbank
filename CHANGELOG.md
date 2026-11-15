@@ -1,5 +1,49 @@
 # Wijzigingen
 
+## 1.35.0 – 2026-11-15
+
+Zoeken dat meedenkt (bouwlijst `bouwlijst-1.35.0-zoeken.md`, punt 37 van de openstaande punten). Tot nu toe vond de zoekbalk alleen wat letterlijk (op de woordstam na) in een artikel stond: één typfout of een ander woord voor hetzelfde gaf een lege lijst.
+
+**Gemeten.** Echte zoekvragen zijn er nog niet (de kennisbank is niet live). Daarom is er een vaste set van 36 zoekvragen bij de voorbeeldinhoud gemaakt, in zeven soorten (`kennisbank/tests/zoekset.py`). Het juiste artikel stond bovenaan bij **15 van de 36** vragen vóór deze versie en bij **35 van de 36** erna. De ene die overblijft is een onregelmatige vervoeging (*geloosd* bij *lozing*); die staat als bekende grens in de set en is op te lossen met een synoniem. Komen er later echte zoekvragen uit de statistieken, dan horen die in deze set.
+
+**Typfouten, accenten en delen van woorden (Z1)**
+- Een woord dat nergens voorkomt wordt vervangen door het woord dat er het meest op lijkt (*rapel* → *rappel*), en boven de resultaten staat wat er is gedaan: "Resultaten voor **rappel**. Je zocht op *rapel*." De resultaten verschijnen meteen; je hoeft niet eerst op een suggestie te klikken.
+- Accenten tellen niet meer mee, in beide richtingen (*cafe* vindt *café*, *rappèl* vindt *rappel*).
+- Een deel van een samengesteld woord vindt het hele woord (*boot* → *zwerfboot*), vanaf vier letters.
+- Vindt het getypte woord zelf iets, dan verandert er niets. Stopwoorden (*hoe*, *voor*, *een*) worden nooit "verbeterd".
+- Een suggestie komt alleen als ze bij déze zoeker iets oplevert. Een woord uit een concept of uit een andere omgeving wordt dus nooit voorgesteld.
+
+**Synoniemen, beheerd door de redactie (Z2)**
+- Nieuwe lijst **Synoniemen** in het beheer, per omgeving: een woord en de woorden die hetzelfde betekenen (ook woordgroepen, zoals *tweede brief*). Werkt in beide richtingen en gaat meteen in.
+- Boven de resultaten staat "Ook gezocht op **zwerfboot**, omdat dat hetzelfde betekent als *wrak*", maar alleen als het getypte woord zelf niets vond.
+- In *Gebruiksstatistieken* staat bij elke zoekterm zonder resultaat de knop **Synoniem maken**; het formulier opent met de term ingevuld. Heeft het woord al een regel, dan komt de term daarbij.
+- De demo-inhoud heeft zes voorbeelden (onder andere *herinnering* en *aanmaning* voor *rappel*).
+
+**Geen artikel met alle woorden (Z3)**
+- Dan volgen de artikelen die het dichtst in de buurt komen (hooguit twintig), met de regel "Geen artikel met al deze woorden. Dit komt het dichtst in de buurt." Een zeldzaam woord weegt zwaarder dan een woord dat in veel artikelen staat.
+- Zo'n zoekopdracht telt in de statistiek als *zonder resultaat*: wat de medewerker zocht, stond er niet.
+
+**Was dit artikel nuttig? en "gevonden, maar niet geholpen" (Z4)**
+- Onder elk gepubliceerd artikel: **Was dit artikel nuttig?** met *Ja* en *Nee*. Bij *Nee* volgt een link naar het verbetervoorstel. Er wordt een aantal opgeteld per artikel en versie; wie het was, wordt niet opgeslagen. De browser onthoudt dat er is gestemd.
+- De statistieken tonen per artikel *nuttig* en *niet nuttig*, en een nieuwe tabel met zoektermen waarna iemand binnen een minuut opnieuw zocht zonder een artikel te openen. Verder typen aan dezelfde term telt niet mee.
+
+**De lijsten en het beheer (Z5)**
+- De lijsten op de site tonen vijftig artikelen tegelijk, met **Meer laden**. De focus gaat daarna naar het eerste artikel dat erbij kwam.
+- Het zoekvak boven de artikellijst in het beheer gebruikt dezelfde zoekindex en dezelfde hulp als de site (was: letterlijk zoeken door alle tekst, traag bij veel artikelen). Het best passende artikel staat bovenaan tot je zelf een kolom kiest. Een getal zoekt ook op het nummer van het artikel.
+- De assistent gebruikt dezelfde synoniemen en dezelfde verbetering van typfouten.
+
+**API**
+- `GET /api/v1/artikelen?q=…`: het antwoord blijft een lijst. Wat de zoekhulp deed staat in de nieuwe antwoordkop `X-KB-Zoekhulp` (JSON). Nieuwe parameter `vervolg_op`.
+- Nieuw: `POST /api/v1/artikelen/<id>/oordeel` met `{"nuttig": true|false}`, begrensd door `KB_OORDEEL_LIMIET` (standaard `30/hour`).
+- `/api/v1/statistieken`: per artikel `nuttig` en `niet_nuttig`; per zoekterm zonder resultaat `synoniem_url`; nieuw `zoektermen_met_vervolg`.
+
+**Techniek en tests**
+- Migratie `0034_zoeken`: zet de PostgreSQL-extensies `pg_trgm` en `unaccent` aan (de eigenaar van de database mag dat zelf), maakt drie tabellen en een kolom, bouwt de zoekdocumenten opnieuw op zonder accenten en vult de woordenlijst. Zie *Naar 1.35.0* in [docs/installatie-en-beheer.md](docs/installatie-en-beheer.md).
+- `opschonen` bouwt de woordenlijst dagelijks opnieuw op.
+- Snelheid met 5.000 artikelen (woordenlijst van 10.000 woorden): gewoon zoeken rond 20 ms, net als voorheen; met zoekhulp 50 tot 160 ms. De woordenlijst herbouwen duurt 2 seconden.
+- 53 nieuwe tests (829 in totaal), waaronder de vaste zoekset en een test dat een bestaande database na de migratie meteen goed zoekt. 45 mutaties (35 in de server, 10 in het script van de site): in de eerste ronde werden er 7 niet betrapt. Zes tests zijn daarop aangescherpt; de zevende wees een overbodige controle aan, die is weggehaald. Daarna alle 45 betrapt.
+- Browsertests: `rook.js` 143 controles (was 112), `axe.js` 70 metingen (was 59), geen overtredingen.
+
 ## 1.34.0 – 2026-11-15
 
 Minder begrippen in de schermen, vervolg op 1.33.0 (bouwlijst `bouwlijst-1.34.0-drie-standen-en-termen.md`). Op 15 november liep Alex de rest van de schraplijst langs: kladversies (30 dagen), Ontdubbelen, voorlopige opmerkingen en rondes blijven zoals ze zijn.

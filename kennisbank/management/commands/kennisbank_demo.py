@@ -30,6 +30,25 @@ from kennisbank.uitwisseling import importeer
 DEMO = Path(settings.BASE_DIR) / "demo"
 
 
+#: Voorbeelden voor de synoniemenlijst (1.35.0): het woord uit de artikelen, en wat medewerkers ook zeggen.
+#: Fictief, net als de rest van de voorbeeldinhoud. Ook de vaste zoekvragen in de tests gebruiken deze lijst.
+DEMO_SYNONIEMEN = [
+    ("rappel", "herinnering, aanmaning, tweede brief"),
+    ("zwerfboot", "wrak, verlaten schip"),
+    ("toezichtbezoek", "inspectie, controlebezoek"),
+    ("melding", "klacht, signaal"),
+    ("mailbox", "postvak, inbox"),
+    ("kwaliteitscontrole", "QC"),
+]
+
+
+def demo_synoniemen(omgeving) -> None:
+    from kennisbank.models import Synoniem
+
+    for woord, alternatieven in DEMO_SYNONIEMEN:
+        Synoniem.objects.get_or_create(omgeving=omgeving, woord=woord, defaults={"alternatieven": alternatieven})
+
+
 class Command(BaseCommand):
     help = "Laad voorbeeldinhoud en maak demo-accounts aan (medewerker, redacteur, beheerder)."
 
@@ -48,6 +67,7 @@ class Command(BaseCommand):
             self._gebruik()
             self._nieuws_en_wijziging()
         omgeving = Omgeving.objects.get(slug="handhaving")
+        demo_synoniemen(omgeving)
         lezers, _ = Group.objects.get_or_create(name="demo-medewerkers")
         redactie, _ = Group.objects.get_or_create(name="demo-procesmanagement")
         reviewgroep, _ = Group.objects.get_or_create(name="demo-review-water")

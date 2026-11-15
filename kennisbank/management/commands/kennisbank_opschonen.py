@@ -65,11 +65,12 @@ class Command(BaseCommand):
         claims = diensten.verlopen_claims_opruimen()
         klad = diensten.kladversies_opruimen()
         bakken = diensten.bakken_rechtzetten()  # vangnet; normaal gebeurt dit al bij de rechtenwijziging
+        woorden = diensten.zoekwoorden_herbouwen()  # 1.35.0: de woordenlijst van de zoekhulp, zonder oude woorden
         diensten.stand_vastleggen(
             "opschonen",
             f"{mails} mail(s) verstuurd, {voorstellenmails} samenvatting(en) voorstellen, "
             f"{claims} claim(s) opgeruimd, {klad} kladversie(s) opgeruimd, "
-            f"{bakken} voorstel(len) teruggelegd",
+            f"{bakken} voorstel(len) teruggelegd, {woorden} zoekwoord(en)",
         )
         self.stdout.write(
             f"Opgeschoond: {recent} recent-bezocht-regels, {stats} statistiekregels, "
@@ -79,5 +80,6 @@ class Command(BaseCommand):
             f"{mails} favorietenmail(s) verstuurd, {voorstellenmails} samenvatting(en) van nieuwe voorstellen, "
             f"{wachtrij} verzonden mailregels opgeruimd, "
             f"{claims} verlopen bewerkclaim(s) opgeruimd, {klad} oude kladversie(s) opgeruimd, "
-            f"{bakken} voorstel(len) teruggelegd in de gezamenlijke bak (eigenaar geen redacteur meer)."
+            f"{bakken} voorstel(len) teruggelegd in de gezamenlijke bak (eigenaar geen redacteur meer), "
+            f"woordenlijst voor de zoekhulp opnieuw opgebouwd: {woorden} zoekwoord(en)."
         )

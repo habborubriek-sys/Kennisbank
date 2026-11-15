@@ -1,13 +1,21 @@
 openapi: 3.0.3
 info:
   title: Kennisbank API
-  version: 1.34.0
+  version: 1.35.0
   description: 'API van de Kennisbank: artikelen, zoeken, assistent, verbetervoorstellen
     en de koppeling met het zaaksysteem.'
 paths:
   /api/v1/artikelen:
     get:
       operationId: v1_artikelen_list
+      description: 'Met `q` wordt gezocht op relevantie. Vindt de zoektekst niets,
+        dan helpt de kennisbank (sinds 1.35.0): een woord dat nergens voorkomt wordt
+        vervangen door een woord dat erop lijkt of het bevat, synoniemen van de omgeving
+        tellen mee, en als geen artikel alle woorden bevat volgt wat het dichtst in
+        de buurt komt. Wat er is gedaan staat als JSON in de antwoordkop `X-KB-Zoekhulp`
+        (`{"verbeterd": [{"van", "naar"}], "synoniemen": [{"van", "naar"}], "dichtbij":
+        true}`; de kop ontbreekt als er gewoon is gezocht). Het antwoord zelf blijft
+        een lijst artikelen.'
       summary: Artikelen zoeken en filteren
       parameters:
       - in: query
@@ -42,6 +50,13 @@ paths:
           type: array
           items:
             type: string
+      - in: query
+        name: vervolg_op
+        schema:
+          type: string
+        description: 'Alleen met registreer=1: de vorige zoekterm, als de gebruiker
+          binnen een minuut opnieuw zoekt zonder een artikel te openen. Telt anoniem
+          mee als ''gevonden maar niet geholpen''.'
       - in: query
         name: zaaktype
         schema:
@@ -143,6 +158,38 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/GezienRequest'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/artikelen/{id}/oordeel:
+    post:
+      operationId: v1_artikelen_oordeel_create
+      description: Telt een duim omhoog of omlaag bij de huidige versie van het artikel.
+        Er wordt niet opgeslagen wie het oordeel gaf.
+      summary: Was dit artikel nuttig? (anoniem geteld)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OordeelRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OordeelRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OordeelRequest'
+        required: true
       security:
       - tokenAuth: []
       - cookieAuth: []
@@ -792,8 +839,15 @@ components:
           type: integer
         voorstellen:
           type: integer
+        nuttig:
+          type: integer
+          description: Duimen omhoog, alle versies samen
+        niet_nuttig:
+          type: integer
       required:
       - id
+      - niet_nuttig
+      - nuttig
       - slug
       - soort
       - status
@@ -1056,6 +1110,13 @@ components:
       - nieuw
       - titel
       - url
+    OordeelRequest:
+      type: object
+      properties:
+        nuttig:
+          type: boolean
+      required:
+      - nuttig
     PatchedIkWijzigenRequest:
       type: object
       properties:
@@ -1149,6 +1210,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ZoektermZonderResultaat'
+        zoektermen_met_vervolg:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZoektermMetVervolg'
         assistent_vragen:
           type: integer
         assistent_zonder_bron:
@@ -1164,6 +1229,7 @@ components:
       - voorstellen_totaal
       - voorstellen_verwerkt
       - zoektermen
+      - zoektermen_met_vervolg
       - zoektermen_zonder_resultaat
     Voorstel:
       type: object
@@ -1396,6 +1462,21 @@ components:
       - aantal
       - term
       - zonder_resultaat
+    ZoektermMetVervolg:
+      type: object
+      properties:
+        term:
+          type: string
+        aantal:
+          type: integer
+        vervolg:
+          type: integer
+          description: Keer dat iemand hierna binnen een minuut opnieuw zocht zonder
+            iets te openen
+      required:
+      - aantal
+      - term
+      - vervolg
     ZoektermZonderResultaat:
       type: object
       properties:
@@ -1403,8 +1484,13 @@ components:
           type: string
         aantal:
           type: integer
+        synoniem_url:
+          type: string
+          nullable: true
+          description: Beheerpagina om van deze term een synoniem te maken
       required:
       - aantal
+      - synoniem_url
       - term
   securitySchemes:
     cookieAuth:

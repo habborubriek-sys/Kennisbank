@@ -5,8 +5,8 @@ houden een push tegen als ze falen.
 
 | Script | Wat het doet |
 |---|---|
-| `axe.js` | Meet 59 schermen en vensters met axe-core (WCAG 2.0/2.1 A en AA). De site en de reviewpagina's in licht én donker; het beheer in licht. |
-| `rook.js` | Loopt de belangrijkste paden af, van begin tot eind: de lade, van voorstel tot gepubliceerde versie met review, de live versie verbeteren terwijl er een concept ligt en dat in het concept overnemen, nieuw artikel, nieuwsbericht, kladversie, en de bediening met het toetsenbord. Bezoekt daarna elk beheerscherm. |
+| `axe.js` | Meet 70 schermen en vensters met axe-core (WCAG 2.0/2.1 A en AA). De site en de reviewpagina's in licht én donker; het beheer in licht. |
+| `rook.js` | Loopt de belangrijkste paden af, van begin tot eind: de lade, van voorstel tot gepubliceerde versie met review, de live versie verbeteren terwijl er een concept ligt en dat in het concept overnemen, nieuw artikel, nieuwsbericht, kladversie, en de bediening met het toetsenbord. Sinds 1.35.0 ook het zoeken op de site (typfout, synoniem, deel van een woord, te veel woorden), *Meer laden*, *Was dit artikel nuttig?* en de statistieken met *Synoniem maken*. Bezoekt daarna elk beheerscherm. |
 | `gemeen.js` | Gedeelde hulpfuncties: inloggen, een stap uitvoeren, meten met axe. |
 | `draai.sh` | Start de testserver, draait `axe.js` en `rook.js`, en herhaalt één keer bij een fout. |
 
@@ -42,6 +42,8 @@ in `.server.log`; in de CI zijn die te downloaden bij de mislukte run.
   - *Browsertest stroom*: een kaal artikel waarop de hele stroom loopt;
   - *Browsertest spoed*: een artikel met een concept dat niet ter inzage ligt;
   - *Browsertest rustig*: een artikel waar niets mee gebeurt;
+  - *Browsertest lijst 01* tot en met *45*: vulling, zodat de site meer dan vijftig artikelen heeft (*Meer laden*);
+  - de synoniemen uit de demo-inhoud (*wrak* voor *zwerfboot*, *herinnering* voor *rappel*, …);
 - schrijft de id's naar `.opzet.json`, waar de scripts ze lezen;
 - start de ontwikkelserver op poort 8765.
 

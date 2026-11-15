@@ -679,13 +679,66 @@ verantwoording voor wat er aan een collega is toegezegd. Zie
 [beveiliging en privacy](beveiliging-en-privacy.md). Een tussentijds bericht schuift die termijn niet
 op; die loopt vanaf het moment dat je de status voor het laatst hebt gezet.
 
+## Zoeken: wat de kennisbank zelf oplost en wat jij kunt doen
+
+Sinds 1.35.0 denkt de zoekbalk mee. Vindt een zoekopdracht niets, dan probeert de kennisbank het in drie
+stappen opnieuw, en zegt in een regel boven de resultaten wat er is gedaan:
+
+| Wat de medewerker typt | Wat er gebeurt | De regel erboven |
+|---|---|---|
+| *rapel* (typfout) | Het woord komt nergens voor; er wordt gezocht op het woord dat er het meest op lijkt | "Resultaten voor **rappel**. Je zocht op *rapel*." |
+| *rappèl*, *cafe* (accent) | Accenten tellen niet mee, in geen van beide richtingen | geen regel: dit is gewoon zoeken |
+| *boot* (deel van een woord) | Er wordt gezocht op woorden waar het in zit (*zwerfboot*). Vanaf vier letters | "Resultaten voor **zwerfboot**. Je zocht op *boot*." |
+| *wrak* (ander woord voor hetzelfde) | De synoniemenlijst van de omgeving, zie hieronder | "Ook gezocht op **zwerfboot**, omdat dat hetzelfde betekent als *wrak*." |
+| *zwerfboot gezonken melden* (geen artikel bevat alle woorden) | De artikelen die er het dichtst bij komen, hooguit twintig. Een zeldzaam woord telt zwaarder dan een woord dat overal staat | "Geen artikel met al deze woorden. Dit komt het dichtst in de buurt." |
+
+Vindt het getypte woord zelf al iets, dan verandert er niets en staat er geen regel. De hulp stelt alleen
+woorden voor die bij déze medewerker iets opleveren: een woord uit een concept of uit een andere omgeving komt
+nooit als suggestie. Dezelfde hulp werkt in de assistent en in het zoekvak boven de artikellijst in het beheer
+(daar staat het best passende artikel bovenaan, tot je zelf op een kolom sorteert).
+
+**Wat de kennisbank niet zelf oplost.** Een woord dat iets anders is dan wat er in de artikelen staat, zonder
+erop te lijken: *herinnering* voor *rappel*, of een onregelmatige vervoeging als *geloosd* bij *lozing*. Daar
+is de synoniemenlijst voor.
+
+### De synoniemenlijst
+
+In het beheer onder **Synoniemen**. Elke regel heeft een woord en een of meer andere woorden die hetzelfde
+betekenen, gescheiden door komma's. Een woordgroep mag ook (*tweede brief*, *verlaten schip*). Het werkt in
+beide richtingen en gaat meteen in: wie op een van de woorden zoekt, vindt ook de artikelen met de andere.
+
+- De lijst is **per omgeving**. Je ziet en beheert alleen de lijst van je eigen omgeving(en).
+- Je hoeft de lijst niet vooraf te bedenken. Onder *Gebruiksstatistieken* staat bij elke zoekterm zonder
+  resultaat de knop **Synoniem maken**: die opent het formulier met de term al ingevuld. Jij vult alleen het
+  woord in dat wél in de artikelen staat.
+- Bestaat dat woord al in de lijst, dan komt de nieuwe term bij die regel. Je krijgt geen foutmelding.
+- Een synoniem weghalen mag de redactie zelf: er hangt niets aan.
+
+### Was dit artikel nuttig?
+
+Onder elk gepubliceerd artikel staat de vraag **Was dit artikel nuttig?** met *Ja* en *Nee*. Bij *Nee* volgt
+een link naar het verbetervoorstel ("Wat mis je?"). Er wordt alleen een aantal opgeteld, per versie van het
+artikel; wie het was, wordt niet opgeslagen. De browser van de medewerker onthoudt dat er is gestemd, zodat
+de knoppen niet nog eens verschijnen.
+
+### De lijst met artikelen
+
+De lijsten op de site tonen vijftig artikelen tegelijk, met daaronder **Meer laden** en hoeveel er in totaal
+zijn. Zoekresultaten staan op volgorde van hoe goed ze passen.
+
 ## Statistieken
 
 Onder **Gebruiksstatistieken** (alleen zichtbaar voor redacteuren), over de laatste 30 dagen:
 
-- weergaven per artikel en aantal voorstellen per artikel;
+- weergaven per artikel en aantal voorstellen per artikel, en sinds 1.35.0 hoe vaak lezers het artikel
+  **nuttig** of **niet nuttig** vonden. Is *niet nuttig* het hoogst, dan staat dat getal vet;
 - meest gezochte termen;
-- **gezocht zonder resultaat**: kennis die collega's zoeken maar niet vinden; een goede bron voor nieuwe artikelen;
+- **gezocht zonder resultaat**: kennis die collega's zoeken maar niet vinden; een goede bron voor nieuwe
+  artikelen. Hier tellen ook de keren mee dat er alleen iets verscheen dat "in de buurt" kwam. Met de knop
+  **Synoniem maken** per term;
+- **gevonden, maar niet geholpen** (1.35.0): zoektermen waarna iemand binnen een minuut opnieuw zocht zonder
+  een artikel te openen. De resultaten pasten dan waarschijnlijk niet bij de vraag. Verder typen aan dezelfde
+  term (*rap*, dan *rappel*) telt niet mee;
 - aantal vragen aan de assistent, en daarnaast **vragen zonder bron**: hoe vaak hij in de kennisbank
   niets kon vinden om op te antwoorden, met het percentage erbij. Samen met de lijst "gezocht zonder
   resultaat" is dat de beste aanwijzing voor welke kennis nog ontbreekt.

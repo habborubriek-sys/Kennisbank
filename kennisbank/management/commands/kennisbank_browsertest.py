@@ -178,6 +178,17 @@ class Command(BaseCommand):
         # 5. Kaal gepubliceerd artikel waar niets aan gebeurt: voor de axe-meting.
         rustig = self.artikel("Browsertest rustig", redacteur, cluster)
 
+        # 6. Genoeg artikelen voor "Meer laden" op de site (1.35.0): de lijst toont er vijftig tegelijk.
+        for n in range(1, 46):
+            a = Artikel.objects.create(
+                omgeving=self.omgeving,
+                titel=f"Browsertest lijst {n:02d}",
+                samenvatting="Vulling voor de lijst met artikelen.",
+                inhoud=TEKST,
+                status=Status.GEPUBLICEERD,
+            )
+            diensten.herbouw_secties(a)
+
         demo = Artikel.objects.get(slug="rappel-versturen")
         assert Conceptversie.objects.count() == 3  # noqa: S101 - controle op de eigen opzet
         return {
@@ -196,4 +207,5 @@ class Command(BaseCommand):
             # Een artikel uit de demo-inhoud, met tags, onboarding en een wijzigingsmelding.
             "demo": {"artikel": demo.pk, "slug": demo.slug},
             "cluster": cluster.pk,
+            "gepubliceerd": Artikel.objects.filter(omgeving=self.omgeving, status=Status.GEPUBLICEERD).count(),
         }

@@ -38,11 +38,13 @@ versie tegen. Zie [scripts/browsertests/README.md](../scripts/browsertests/READM
 | Beheer: concept met de melding dat de live versie is bijgewerkt; paneel *Veranderd in de live versie* in drie standen; venster Afronden met live wijzigingen (1.33.0) | geen overtredingen | – |
 | Site: venster *Dit artikel heeft een concept* bij Bewerken, licht en donker (1.33.0) | geen overtredingen | – |
 | Beheer: bak van een cluster met de selectiebalk; bak *Concepten* en bak *Review* met de drie standen; bak *Mijn kladversies* (1.34.0) | 1 overtreding in de artikellijst, hersteld | De testgegevens kregen een kladversie; daardoor verscheen in de artikellijst de melding "Je hebt 1 kladversie", met een link die alleen aan de kleur te herkennen was. Onderstreept |
+| Site: artikel na *Was dit artikel nuttig?*; zoeken met de regel van de zoekhulp; alle artikelen met *Meer laden*; gebruiksstatistieken met *Synoniem maken* (1.35.0) | geen overtredingen | geen overtredingen |
+| Beheer: synoniemenlijst; nieuw synoniem; artikellijst met de melding van de zoekhulp (1.35.0) | geen overtredingen | – |
 | Beheer: bewerkscherm ter inzage, met lade en opmerking | geen overtredingen | – |
 | Beheer: lade open, en met de steun uitgeklapt | geen overtredingen | – |
 | Beheer: vensters Afhandelen, Afwijzen en Dubbel in de lade | geen overtredingen | – |
 
-Samen 59 metingen (45 tot 1.33.0, 55 in 1.33.0). De uitbreiding in 1.32.0 vond twee fouten die eerder niet waren gemeten; beide zijn hersteld:
+Samen 70 metingen (45 tot 1.33.0, 55 in 1.33.0, 59 in 1.34.0). De uitbreiding in 1.32.0 vond twee fouten die eerder niet waren gemeten; beide zijn hersteld:
 een artikel zonder tags had op de site een lege groep met een naam (`aria-prohibited-attr`), en in donker had
 het gekozen filter bij *Verbetervoorstellen* te weinig contrast (2,2:1; nu ruim boven 4,5:1).
 
@@ -119,6 +121,10 @@ weghalen van een opmerking leest een live-regio de melding voor en gaat de focus
 - **Licht of donker:** standaard volgt de site het apparaat. Met de knop **☾ Donker** draai je dat om. Het
   beheer is altijd licht.
 - Respecteert `prefers-reduced-motion`.
+- **Zoeken (1.35.0):** de regel die zegt waarop is gezocht ("Resultaten voor rappel. Je zocht op rapel.") is
+  een statusmelding en wordt voorgelezen zonder dat de focus de zoekbalk verlaat. Na *Meer laden* gaat de
+  focus naar het eerste artikel dat erbij kwam. *Was dit artikel nuttig?* is een groep met de vraag als naam;
+  na het antwoord gaat de focus naar de link naar het verbetervoorstel (bij *Nee*).
 
 ## Wat nog niet is getoetst
 

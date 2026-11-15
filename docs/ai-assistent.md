@@ -4,7 +4,7 @@ De assistent beantwoordt vragen **uitsluitend op basis van de kennisbank** en ve
 
 ## Hoe het werkt
 
-1. **Zoeken.** De vraag wordt met PostgreSQL full-text search (Nederlandse woordstammen) vergeleken met alle secties van de gepubliceerde artikelen die de gebruiker mag zien. Concepten en artikelen uit andere omgevingen doen nooit mee. Zwakke treffers vallen af. Komt de vraag uit het zaaksysteem, dan wegen artikelen bij dat zaaktype zwaarder.
+1. **Zoeken.** De vraag wordt met PostgreSQL full-text search (Nederlandse woordstammen) vergeleken met alle secties van de gepubliceerde artikelen die de gebruiker mag zien. Concepten en artikelen uit andere omgevingen doen nooit mee. Zwakke treffers vallen af. Sinds 1.35.0 met dezelfde hulp als de zoekbalk: de synoniemen van de omgeving tellen mee, en vindt de vraag niets, dan wordt een woord met een typfout vervangen door het woord dat erop lijkt. Komt de vraag uit het zaaksysteem, dan wegen artikelen bij dat zaaktype zwaarder.
 2. **Zonder taalmodel** (`KB_AI_PROVIDER=uit`, standaard): de assistent toont de best passende sectie letterlijk, met links naar de bronnen. Dit werkt direct, kost niets en stuurt niets naar buiten.
 3. **Met taalmodel**: de vraag en maximaal `KB_AI_MAX_BRONNEN` secties gaan naar het model, met de opdracht:
    - alleen uit de bronnen te antwoorden;

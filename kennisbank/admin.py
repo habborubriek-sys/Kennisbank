@@ -7,6 +7,7 @@
 
 import datetime
 import json
+import re
 
 from django import forms
 from django.conf import settings
@@ -44,6 +45,7 @@ from .models import (
     Sjabloon,
     Soort,
     Status,
+    Synoniem,
     Systeemstand,
     Tag,
     Toegang,
@@ -297,7 +299,9 @@ class ArtikelForm(forms.ModelForm):
             )
         if self.spoed and "omgeving" in self.fields:
             self.fields["omgeving"].disabled = True  # bevinding 2: spoed verhuist niets
-            self.fields["omgeving"].help_text = (
+            self.fields[
+                "omgeving"
+            ].help_text = (
                 "Je verbetert de live versie terwijl er een concept ligt: de omgeving blijft dan zoals hij is."
             )
         if self.instance.pk and not self.is_bound:
@@ -611,7 +615,37 @@ class ArtikelAdmin(RedactieRechtenMixin, admin.ModelAdmin):
         "bekijk",
     ]
     list_filter = ["status", "soort", "omgeving", HerzieningFilter, "clusters", "zaaktypen"]
+    # De velden zijn er alleen om het zoekvak te tonen; het zoeken zelf gaat via de zoekindex (1.35.0).
     search_fields = ["titel", "samenvatting", "inhoud", "=id"]
+    search_help_text = "Zoekt zoals de kennisbank zelf: op woorden, met hulp bij typfouten en synoniemen. Of op nummer."
+
+    def get_search_results(self, request, queryset, search_term):
+        """Zoeken via dezelfde zoekindex als de site (S4 uit de stresstest), met dezelfde hulp.
+
+        Vóór 1.35.0 zocht deze lijst met ``LIKE`` door de volledige tekst van elk artikel: traag bij veel
+        artikelen, en zonder woordstammen. Een getal zoekt nog steeds ook op het nummer van het artikel.
+        """
+        from django.db.models import Case, IntegerField, When
+
+        from .zoeken import hulp_als_zin, zoek
+
+        term = (search_term or "").strip()
+        if not term:
+            return queryset, False
+        gevonden, hulp = zoek(queryset.order_by(), term)
+        ids = [a.pk for a in gevonden]
+        if term.isdigit():
+            ids = [int(term)] + [pk for pk in ids if pk != int(term)]
+        uit = queryset.filter(pk__in=ids)
+        if "o" not in request.GET and ids:
+            # Geen kolom gekozen om op te sorteren: het best passende artikel bovenaan.
+            volgorde = Case(*[When(pk=pk, then=n) for n, pk in enumerate(ids)], output_field=IntegerField())
+            uit = uit.order_by(volgorde)
+        zin = hulp_als_zin(hulp)
+        if zin and uit.exists():
+            messages.info(request, zin)
+        return uit, False
+
     # Clusters als vinkjes: het dubbele keuzevak van Django sprak half Engels ("Choose all") en is voor
     # een handvol clusters overbodig (functionele review 11 november, B7). Zaaktypen kunnen er veel zijn.
     filter_horizontal = ["zaaktypen"]
@@ -2782,6 +2816,80 @@ class ZaaktypeAdmin(OpruimbareKeuzelijstAdmin):
     gebruiksrelatie = "artikel"
     list_display = ["naam", "code", "aantal_artikelen"]
     search_fields = ["naam", "code"]
+
+
+class SynoniemForm(forms.ModelForm):
+    class Meta:
+        model = Synoniem
+        fields = ["omgeving", "woord", "alternatieven"]
+        widgets = {"alternatieven": forms.Textarea(attrs={"rows": 3})}
+
+    def clean(self):
+        from .zoeken import termen
+
+        data = super().clean()
+        woord = " ".join((data.get("woord") or "").split())
+        if woord:
+            data["woord"] = woord
+        if woord and not termen(woord):
+            self.add_error("woord", "Vul een woord in met letters of cijfers.")
+        ruw = re.split(r"[,;\n]+", data.get("alternatieven") or "")
+        alternatieven = [" ".join(d.split()) for d in ruw if d.strip()]
+        bruikbaar = [a for a in alternatieven if termen(a) and termen(a) != termen(woord)]
+        if data.get("alternatieven") is not None and not bruikbaar:
+            self.add_error("alternatieven", "Vul ten minste één ander woord in dat hetzelfde betekent.")
+        # Bestaat het woord al in deze omgeving, dan komen de nieuwe woorden bij die regel. Anders loopt wie
+        # vanuit de statistieken een synoniem maakt vast op "bestaat al" en moet hij de regel gaan zoeken.
+        self.samengevoegd = None
+        if not self.instance.pk and woord and bruikbaar and data.get("omgeving"):
+            bestaand = next(
+                (s for s in Synoniem.objects.filter(omgeving=data["omgeving"]) if termen(s.woord) == termen(woord)),
+                None,
+            )
+            if bestaand:
+                al = [a.strip() for a in bestaand.alternatieven.split(",") if a.strip()]
+                bekend = {tuple(termen(a)) for a in al}
+                nieuw = [a for a in bruikbaar if tuple(termen(a)) not in bekend]
+                self.instance = bestaand
+                self.samengevoegd = (bestaand.woord, nieuw)
+                data["woord"] = bestaand.woord
+                bruikbaar = al + nieuw
+        data["alternatieven"] = ", ".join(dict.fromkeys(bruikbaar))
+        return data
+
+
+@admin.register(Synoniem)
+class SynoniemAdmin(RedactieRechtenMixin, admin.ModelAdmin):
+    """De synoniemenlijst (1.35.0): procesmanagement houdt per omgeving bij welke woorden hetzelfde betekenen.
+
+    Wie op een van de woorden zoekt, vindt ook de artikelen met de andere (zoeken.py). De lijst vult zich
+    vanuit *Gebruiksstatistieken*: bij een zoekterm zonder resultaat staat de knop *Synoniem maken*, die dit
+    formulier opent met de term al ingevuld.
+    """
+
+    form = SynoniemForm
+    list_display = ["woord", "alternatieven", "omgeving", "bijgewerkt_op"]
+    list_filter = ["omgeving"]
+    search_fields = ["woord", "alternatieven"]
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "omgeving" and not request.user.is_superuser:
+            kwargs["queryset"] = Omgeving.objects.filter(pk__in=self._omgevingen(request))
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        samen = getattr(form, "samengevoegd", None)
+        if samen:
+            woord, nieuw = samen
+            if nieuw:
+                messages.info(request, f"Het woord {woord} had al synoniemen. Toegevoegd: {', '.join(nieuw)}.")
+            else:
+                messages.info(request, f"Het woord {woord} had deze synoniemen al. Er is niets veranderd.")
+
+    def has_delete_permission(self, request, obj=None):
+        # Anders dan artikelen mag de redactie een synoniem gewoon weghalen: er hangt niets aan.
+        return self.has_module_permission(request)
 
 
 @admin.register(Kladversie)

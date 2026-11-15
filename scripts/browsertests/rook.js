@@ -42,6 +42,99 @@ async function typInAlinea(p, bevat, tekst) {
   const med = await g.sessie(browser, "medewerker");
   const rev = await g.sessie(browser, "reviewer");
 
+  // --- Zoeken dat meedenkt, Meer laden en "Was dit artikel nuttig?" (1.35.0) -----------------------------
+  const zoekOp = async (p, tekst, enter) => {
+    await p.goto(B + "/"); await p.locator("#q").waitFor();
+    await p.fill("#q", tekst);
+    if (enter) await p.keyboard.press("Enter");
+    await p.waitForTimeout(900);
+    return { hulp: await tekstVan(p.locator(".zoekhulp")), eerste: await tekstVan(p.locator(".cards .card-link")), leeg: await tekstVan(p.locator(".empty")) };
+  };
+  await stap("site: zoeken helpt bij een typfout, een synoniem en te veel woorden", med, async () => {
+    let r = await zoekOp(med, "rappel");
+    ok(/^Rappel versturen/.test(r.eerste) && !r.hulp, "gewoon zoeken: het artikel bovenaan en geen regel erboven", JSON.stringify(r));
+    r = await zoekOp(med, "rapel");
+    ok(/^Rappel versturen/.test(r.eerste), "typfout: toch het goede artikel bovenaan", r.eerste);
+    ok(/Resultaten voor rappel\. Je zocht op rapel\./.test(r.hulp), "typfout: de regel zegt waarop is gezocht", r.hulp);
+    ok((await med.locator(".zoekhulp").getAttribute("role")) === "status", "de regel wordt voorgelezen (role=status)");
+    r = await zoekOp(med, "wrak");
+    ok(/^Zwerfboot aangetroffen/.test(r.eerste) && /Ook gezocht op zwerfboot/.test(r.hulp), "synoniem: gevonden, en de regel noemt het andere woord", JSON.stringify(r));
+    r = await zoekOp(med, "boot");
+    ok(/^Zwerfboot aangetroffen/.test(r.eerste) && /zwerfboot/.test(r.hulp), "deel van een woord: gevonden", JSON.stringify(r));
+    r = await zoekOp(med, "zwerfboot gezonken melden");
+    ok(/^Zwerfboot aangetroffen/.test(r.eerste) && /dichtst in de buurt/.test(r.hulp), "te veel woorden: wat het dichtst in de buurt komt", JSON.stringify(r));
+    r = await zoekOp(med, "xyzabc");
+    ok(!r.eerste && !r.hulp && /Geen artikelen gevonden/.test(r.leeg), "onzin: niets, en geen voorstel", JSON.stringify(r));
+  });
+
+  await stap("site: de lijst toont vijftig artikelen en Meer laden", med, async () => {
+    await med.goto(B + "/"); await med.locator("button[data-view='artikelen']").click();
+    await med.locator("#meerLaden").waitFor();
+    ok((await med.locator(".cards .card-link").count()) === 50, "eerst vijftig artikelen", String(await med.locator(".cards .card-link").count()));
+    ok(new RegExp(`50 van de ${o.gepubliceerd} artikelen`).test(await tekstVan(med.locator(".meer-laden"))), "de regel zegt hoeveel er zijn", await tekstVan(med.locator(".meer-laden")));
+    await med.locator("#meerLaden").focus(); await med.keyboard.press("Enter"); await med.waitForTimeout(400);
+    ok((await med.locator(".cards .card-link").count()) === o.gepubliceerd, "na Meer laden staan ze er allemaal", String(await med.locator(".cards .card-link").count()));
+    ok(!(await med.locator("#meerLaden").count()), "de knop is weg als alles er staat");
+    const naFocus = await med.evaluate(() => [...document.querySelectorAll(".cards .card-link")].indexOf(document.activeElement));
+    ok(naFocus === 50, "de focus staat op het eerste artikel dat erbij kwam", String(naFocus));
+    await med.fill("#q", "browsertest lijst"); await med.waitForTimeout(900);
+    ok((await med.locator(".cards .card-link").count()) === 45 && !(await med.locator("#meerLaden").count()), "zoeken binnen de lijst: 45 artikelen, geen knop", String(await med.locator(".cards .card-link").count()));
+    await med.fill("#q", ""); await med.waitForTimeout(600);
+    ok((await med.locator(".cards .card-link").count()) === 50, "een andere lijst begint weer bij vijftig", String(await med.locator(".cards .card-link").count()));
+  });
+
+  await stap("site: was dit artikel nuttig", med, async () => {
+    await med.goto(B + `/artikel/${o.rustig.artikel}/${o.rustig.slug}`);
+    await med.locator("#oordeel [data-oordeel='nee']").waitFor();
+    ok(/Was dit artikel nuttig\?/.test(await tekstVan(med.locator("#oordeel"))), "de vraag staat onder het artikel");
+    await med.locator("#oordeel [data-oordeel='nee']").focus(); await med.keyboard.press("Enter");
+    await med.locator("#oordeelProp").waitFor();
+    ok(/Bedankt.*Wat mis je\?/.test(await tekstVan(med.locator("#oordeel"))), "bij Nee: bedankt, en de vraag wat je mist", await tekstVan(med.locator("#oordeel")));
+    ok(!(await med.locator("#oordeel [data-oordeel]").count()), "de knoppen zijn weg na het stemmen");
+    ok((await med.evaluate(() => document.activeElement && document.activeElement.id)) === "oordeelProp", "de focus staat op de link naar het verbetervoorstel");
+    await med.keyboard.press("Enter"); await med.locator("#propText").waitFor();
+    ok(true, "de link opent het verbetervoorstel");
+    await med.locator("#propCancel").click();
+    await med.reload(); await med.locator("#oordeel").waitFor(); await med.waitForTimeout(500);
+    ok(!(await med.locator("#oordeel [data-oordeel]").count()) && /Bedankt/.test(await tekstVan(med.locator("#oordeel"))), "na opnieuw laden kun je niet nog eens stemmen");
+    await med.goto(B + `/artikel/${o.demo.artikel}/${o.demo.slug}`);
+    await med.locator("#oordeel [data-oordeel='ja']").click();
+    await med.waitForTimeout(400);
+    ok(/Bedankt, dat is genoteerd\.$/.test(await tekstVan(med.locator("#oordeel"))), "bij Ja: alleen bedankt", await tekstVan(med.locator("#oordeel")));
+  });
+
+  await stap("site: statistieken met oordelen, opnieuw gezocht en Synoniem maken", red, async () => {
+    // De medewerker zoekt op iets dat er niet is, en daarna (zonder iets te openen) op iets anders.
+    // Eerst: wie verder typt aan dezelfde term (rap, rappel) zoekt niet opnieuw.
+    await zoekOp(med, "rap", true);
+    await med.fill("#q", "rappel"); await med.keyboard.press("Enter"); await med.waitForTimeout(900);
+    await zoekOp(med, "kwartaalbrief", true);
+    await med.fill("#q", "rappel"); await med.keyboard.press("Enter"); await med.waitForTimeout(900);
+    await red.goto(B + "/"); await red.locator("button[data-view='statistieken']").click();
+    await red.locator("h1", { hasText: "Gebruiksstatistieken" }).waitFor();
+    const rij = red.locator("tr", { hasText: "Browsertest rustig" }).first();
+    const cellen = await rij.locator("td.num").allInnerTexts();
+    ok(cellen.slice(-2).join("|") === "0|1", "het artikel heeft 0 keer nuttig en 1 keer niet nuttig", cellen.join("|"));
+    const vervolg = red.locator("h2", { hasText: "Gevonden, maar niet geholpen" }).locator("xpath=following-sibling::div[1]");
+    ok(/kwartaalbrief\s+1\s+1/.test(await tekstVan(vervolg)), "de term waarna opnieuw is gezocht staat in de tabel", await tekstVan(vervolg));
+    ok(!/\brap\s+1/.test(await tekstVan(vervolg)), "verder typen aan dezelfde term telt niet als opnieuw zoeken", await tekstVan(vervolg));
+    const knop = red.locator("tr", { hasText: "kwartaalbrief" }).locator("a", { hasText: "Synoniem maken" }).first();
+    await Promise.all([red.waitForNavigation(), knop.click()]);
+    ok((await red.locator("#id_alternatieven").inputValue()) === "kwartaalbrief", "Synoniem maken opent het formulier met de term ingevuld", await red.locator("#id_alternatieven").inputValue());
+    ok((await red.locator("#id_omgeving").inputValue()) !== "", "de omgeving is al gekozen");
+    await red.fill("#id_woord", "rappel");
+    await Promise.all([red.waitForNavigation(), red.locator("input[name='_save']").click()]);
+    ok(/synoniem\/$/.test(new URL(red.url()).pathname), "het synoniem is opgeslagen", red.url());
+    const r = await zoekOp(med, "kwartaalbrief");
+    ok(/^Rappel versturen/.test(r.eerste) && /Ook gezocht op rappel/.test(r.hulp), "daarna vindt de medewerker het artikel met dat woord", JSON.stringify(r));
+  });
+
+  await stap("beheer: de artikellijst zoekt met dezelfde hulp", red, async () => {
+    await red.goto(B + "/beheer/kennisbank/artikel/?q=rapel");
+    ok(/^Rappel versturen/.test(await tekstVan(red.locator("#result_list tbody tr").first().locator("th, td.field-titel"))) || /Rappel versturen/.test(await tekstVan(red.locator("#result_list tbody tr").first())), "typfout in het beheer: het artikel staat bovenaan", await tekstVan(red.locator("#result_list tbody tr").first()));
+    ok(/Resultaten voor rappel; je zocht op rapel\./.test(await tekstVan(red.locator(".messagelist"))), "en de melding zegt waarop is gezocht", await tekstVan(red.locator(".messagelist")));
+  });
+
   // --- 0. De bak: verbergen voor collega's (1.34.0) en wanneer een kladversie vervalt ---------------------
   await stap("bak: verbergen voor collega's en weer tonen", red, async () => {
     await red.goto(B + `/beheer/?bak=cluster-${o.cluster}`);

@@ -231,6 +231,8 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "assistent": env("KB_ASSISTENT_LIMIET", "30/min"),
         "voorstel": env("KB_VOORSTEL_LIMIET", "20/hour"),
+        # 1.35.0: "Was dit artikel nuttig?" De browser onthoudt per artikel dat er is gestemd; dit begrenst de rest.
+        "oordeel": env("KB_OORDEEL_LIMIET", "30/hour"),
     },
     "UNAUTHENTICATED_USER": "django.contrib.auth.models.AnonymousUser",
     # De Nederlandse vertaling van DRF maakt van "throttled" het woord "verstikt"; zie api_fouten.py.

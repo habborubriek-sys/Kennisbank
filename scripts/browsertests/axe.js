@@ -20,7 +20,10 @@ const { B, OPZET: o, meet, stap } = g;
       await m.goto(B + `/artikel/${o.demo.artikel}/${o.demo.slug}`); await m.locator("h1").first().waitFor(); await m.waitForTimeout(800); await meet(m, `${naam}: site artikel met tags en wijzigingsmelding`);
       await m.locator("#propBtn").click(); await m.locator("#dubbel").waitFor(); await meet(m, `${naam}: site venster er ligt al een voorstel`);
       await m.keyboard.press("Escape");
+      await m.locator("#oordeel [data-oordeel='ja']").click(); await m.waitForTimeout(300); await meet(m, `${naam}: site artikel na Was dit artikel nuttig`);
       await m.fill("#q", "rappel"); await m.waitForTimeout(1200); await meet(m, `${naam}: site zoeken`);
+      await m.fill("#q", "rapel"); await m.locator(".zoekhulp").waitFor(); await meet(m, `${naam}: site zoeken met de regel van de zoekhulp`);
+      await m.fill("#q", ""); await m.locator("button[data-view='artikelen']").click(); await m.locator("#meerLaden").waitFor(); await meet(m, `${naam}: site alle artikelen met Meer laden`);
       await m.locator("button[data-view='nieuws']").click(); await m.waitForTimeout(800); await meet(m, `${naam}: site nieuws`);
       await m.locator("button[data-view='voorstellen']").click(); await m.waitForTimeout(800); await meet(m, `${naam}: site verbetervoorstellen`);
     });
@@ -35,8 +38,22 @@ const { B, OPZET: o, meet, stap } = g;
     await m.context().close(); await rv.context().close();
   }
 
+  for (const schema of ["light", "dark"]) {
+    const naam = schema === "light" ? "licht" : "donker";
+    const st = await sessie("redacteur", schema);
+    await stap(`site: statistieken (${naam})`, st, async () => {
+      await st.fill("#q", "kwartaalstaat"); await st.keyboard.press("Enter"); await st.waitForTimeout(900);
+      await st.goto(B + "/statistieken");
+      await st.locator("a", { hasText: "Synoniem maken" }).first().waitFor(); await meet(st, `${naam}: site gebruiksstatistieken`);
+    });
+    await st.context().close();
+  }
+
   const r = await sessie("redacteur", "light");
   await stap("beheer: werkplek en lijsten", r, async () => {
+    await r.goto(B + "/beheer/kennisbank/synoniem/"); await r.waitForTimeout(500); await meet(r, "synoniemenlijst");
+    await r.goto(B + "/beheer/kennisbank/synoniem/add/?alternatieven=aanschrijving"); await r.waitForTimeout(500); await meet(r, "nieuw synoniem");
+    await r.goto(B + "/beheer/kennisbank/artikel/?q=rapel"); await r.waitForTimeout(500); await meet(r, "artikellijst met de melding van de zoekhulp");
     await r.goto(B + "/beheer/"); await r.waitForTimeout(600); await meet(r, "werkplek");
     await r.goto(B + "/beheer/?bak=algemeen"); await r.waitForTimeout(600); await meet(r, "werkbak Algemeen");
     await r.goto(B + "/beheer/"); await r.locator("a.kb-bakregel", { hasText: "Nat beheer" }).first().click(); await r.waitForTimeout(600); await meet(r, "werkbak van een cluster, met voorstellen");

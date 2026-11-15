@@ -81,26 +81,47 @@ def herbouw_secties(artikel: Artikel) -> int:
     return sum(1 for r in rijen if r.volgorde)
 
 
-# Zoekdocumenten in PostgreSQL. Dezelfde SQL staat (bevroren) in migratie 0007 voor de eerste vulling.
+# Zoekdocumenten in PostgreSQL. De eerste vulling staat (bevroren) in migratie 0007; sinds 1.35.0 gaan de
+# teksten eerst door unaccent(), zodat accenten er bij het zoeken niet toe doen (migratie 0034 bouwt alles
+# opnieuw op).
 # Secties: artikeltitel en kop wegen het zwaarst, dan de sectietekst, dan de samenvatting.
 # Artikel: titel en tags het zwaarst, dan samenvatting, dan alle sectieteksten.
 _SQL_SECTIE_VECTOR = """
 UPDATE kennisbank_sectie s SET zoekvector =
-    setweight(to_tsvector('dutch', a.titel), 'A')
- || setweight(to_tsvector('dutch', coalesce(s.kop, '')), 'A')
- || setweight(to_tsvector('dutch', coalesce(s.inhoud, '')), 'B')
- || setweight(to_tsvector('dutch', coalesce(a.samenvatting, '')), 'D')
+    setweight(to_tsvector('dutch', unaccent(a.titel)), 'A')
+ || setweight(to_tsvector('dutch', unaccent(coalesce(s.kop, ''))), 'A')
+ || setweight(to_tsvector('dutch', unaccent(coalesce(s.inhoud, ''))), 'B')
+ || setweight(to_tsvector('dutch', unaccent(coalesce(a.samenvatting, ''))), 'D')
 FROM kennisbank_artikel a WHERE a.id = s.artikel_id AND a.id = %s
 """
 _SQL_ARTIKEL_VECTOR = """
 UPDATE kennisbank_artikel a SET zoekvector =
-    setweight(to_tsvector('dutch', a.titel), 'A')
- || setweight(to_tsvector('dutch', coalesce((SELECT string_agg(t.naam, ' ') FROM kennisbank_artikel_tags at
-        JOIN kennisbank_tag t ON t.id = at.tag_id WHERE at.artikel_id = a.id), '')), 'A')
- || setweight(to_tsvector('dutch', coalesce(a.samenvatting, '')), 'B')
- || setweight(to_tsvector('dutch', coalesce((SELECT string_agg(coalesce(s.kop, '') || ' ' || coalesce(s.inhoud, ''),
-        ' ') FROM kennisbank_sectie s WHERE s.artikel_id = a.id), '')), 'C')
+    setweight(to_tsvector('dutch', unaccent(a.titel)), 'A')
+ || setweight(to_tsvector('dutch', unaccent(coalesce((SELECT string_agg(t.naam, ' ') FROM kennisbank_artikel_tags at
+        JOIN kennisbank_tag t ON t.id = at.tag_id WHERE at.artikel_id = a.id), ''))), 'A')
+ || setweight(to_tsvector('dutch', unaccent(coalesce(a.samenvatting, ''))), 'B')
+ || setweight(to_tsvector('dutch', unaccent(coalesce((SELECT string_agg(coalesce(s.kop, '') || ' '
+        || coalesce(s.inhoud, ''), ' ') FROM kennisbank_sectie s WHERE s.artikel_id = a.id), ''))), 'C')
 WHERE a.id = %s
+"""
+# De woordenlijst voor de zoekhulp (1.35.0): alle woorden van het artikel, kleine letters, zonder accenten,
+# alleen letters, 3 tot 40 tekens. {waar} is een voorwaarde op kennisbank_artikel a; het is altijd een getal
+# of een vaste tekst uit deze module, nooit invoer van een gebruiker. Dezelfde SQL staat (bevroren) in
+# migratie 0034.
+_SQL_ZOEKWOORDEN = """
+INSERT INTO kennisbank_zoekwoord (omgeving_id, woord)
+SELECT DISTINCT d.omgeving_id, w.lexeme
+FROM (
+    SELECT a.omgeving_id, to_tsvector('simple', unaccent(
+        a.titel || ' ' || coalesce(a.samenvatting, '') || ' '
+        || coalesce((SELECT string_agg(t.naam, ' ') FROM kennisbank_artikel_tags at
+             JOIN kennisbank_tag t ON t.id = at.tag_id WHERE at.artikel_id = a.id), '') || ' '
+        || coalesce((SELECT string_agg(coalesce(s.kop, '') || ' ' || coalesce(s.inhoud, ''), ' ')
+             FROM kennisbank_sectie s WHERE s.artikel_id = a.id), ''))) AS doc
+    FROM kennisbank_artikel a WHERE {waar}
+) d, unnest(d.doc) AS w
+WHERE length(w.lexeme) BETWEEN 3 AND 40 AND w.lexeme ~ '^[[:alpha:]]+$'
+ON CONFLICT DO NOTHING
 """
 
 
@@ -109,6 +130,22 @@ def werk_zoekvectoren_bij(artikel_id: int) -> None:
     with connection.cursor() as c:
         c.execute(_SQL_SECTIE_VECTOR, [artikel_id])
         c.execute(_SQL_ARTIKEL_VECTOR, [artikel_id])
+        # 1.35.0: de woorden van dit artikel erbij in de woordenlijst van de omgeving. Weghalen gebeurt
+        # niet hier maar bij de dagelijkse opschoning (zoekwoorden_herbouwen).
+        c.execute(_SQL_ZOEKWOORDEN.format(waar="a.id = %s"), [artikel_id])
+
+
+def zoekwoorden_herbouwen() -> int:
+    """Bouw de woordenlijst voor de zoekhulp opnieuw op uit alle artikelen. Geeft het aantal woorden.
+
+    Dagelijks vanuit ``opschonen``: zo verdwijnen woorden die nergens meer staan.
+    """
+    from .models import Zoekwoord
+
+    with transaction.atomic(), connection.cursor() as c:
+        c.execute("DELETE FROM kennisbank_zoekwoord")
+        c.execute(_SQL_ZOEKWOORDEN.format(waar="true"))
+    return Zoekwoord.objects.count()
 
 
 @transaction.atomic
@@ -415,6 +452,30 @@ def registreer_zoekopdracht(term: str, aantal_resultaten: int, omgevingen):
             aantal=F("aantal") + 1,
             zonder_resultaat=F("zonder_resultaat") + (1 if aantal_resultaten == 0 else 0),
         )
+
+
+def registreer_vervolgzoekopdracht(vorige: str, nieuwe: str, omgevingen) -> None:
+    """"Gevonden maar niet geholpen" (1.35.0): iemand zocht op ``vorige``, opende niets en zoekt binnen een
+    minuut op iets anders. De site meldt dat; er wordt alleen een aantal bij de vorige term opgeteld, voor
+    vandaag, zonder gebruiker. Bestaat de vorige term vandaag niet in de statistiek, dan gebeurt er niets:
+    zo kan een verzonnen term de lijst niet vullen.
+    """
+    vorige = " ".join((vorige or "").lower().split())[:100]
+    nieuwe = " ".join((nieuwe or "").lower().split())[:100]
+    if len(vorige) < 2 or vorige == nieuwe:
+        return
+    ZoekTelling.objects.filter(omgeving_id__in=list(omgevingen), term=vorige, datum=timezone.localdate()).update(
+        vervolg=F("vervolg") + 1
+    )
+
+
+def registreer_oordeel(artikel: Artikel, nuttig: bool) -> None:
+    """"Was dit artikel nuttig?" (1.35.0): tel een duim bij de huidige versie. Zonder gebruiker."""
+    from .models import ArtikelOordeel
+
+    rij, _ = ArtikelOordeel.objects.get_or_create(artikel=artikel, versie=artikel.versie or 0)
+    veld = "nuttig" if nuttig else "niet_nuttig"
+    ArtikelOordeel.objects.filter(pk=rij.pk).update(**{veld: F(veld) + 1})
 
 
 def zet_favoriet(gebruiker, artikel: Artikel, aan: bool):

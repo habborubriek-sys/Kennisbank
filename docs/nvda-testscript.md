@@ -162,3 +162,19 @@ Opslaan als concept* te kiezen.
 40. Open de bakken *Concepten*, *Review* en *Mijn kladversies*.
     - *Verwacht:* de tabellen hebben kolomkoppen (*Review*, *Vervalt*) die bij elke cel worden voorgelezen.
     - De stand en de regel erachter worden als gewone tekst gelezen, niet alleen als kleur.
+
+## I. Zoeken, Meer laden en "Was dit artikel nuttig?" (1.35.0)
+
+41. Als `medewerker`: typ *rapel* in de zoekbalk en wacht.
+    - *Verwacht:* zonder dat de focus de zoekbalk verlaat hoor je "Resultaten voor rappel. Je zocht op rapel."
+    - Typ daarna *wrak*: "Ook gezocht op zwerfboot, omdat dat hetzelfde betekent als wrak."
+42. Open *Alle artikelen* in een omgeving met meer dan vijftig artikelen en ga naar het eind van de lijst.
+    - *Verwacht:* je hoort "50 van de … artikelen" en de knop *Meer laden*.
+    - Na Enter staat de focus op het eerste artikel dat erbij kwam; je hoeft niet terug naar boven.
+43. Open een artikel en ga naar *Was dit artikel nuttig?* onder de tekst.
+    - *Verwacht:* de twee knoppen worden als groep met die vraag voorgelezen ("Ja", "Nee").
+    - Na *Nee* hoor je "Bedankt, dat is genoteerd. Wat mis je?" en staat de focus op de link *Dien een
+      verbetervoorstel in*.
+44. Als `redacteur`: open *Gebruiksstatistieken*.
+    - *Verwacht:* in de tabel *Gezocht zonder resultaat* heet elke knop "Synoniem maken van <term>".
+    - De kolommen *Nuttig* en *Niet nuttig* worden bij elke cel voorgelezen.
