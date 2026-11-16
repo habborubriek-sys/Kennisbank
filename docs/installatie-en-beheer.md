@@ -15,8 +15,8 @@ gebruiker ──https──▶ ingress / reverse proxy (TLS) ──http──▶
 ## 1. Image
 
 ```bash
-docker build -t registry.example.nl/kennisbank:1.35.0 .
-docker push registry.example.nl/kennisbank:1.35.0
+docker build -t registry.example.nl/kennisbank:1.35.1 .
+docker push registry.example.nl/kennisbank:1.35.1
 ```
 
 Moet een goedgekeurde basis-image worden gebruikt, geef die dan mee: `--build-arg BASE_IMAGE=registry.example.nl/python:3.13-slim`. De image:
@@ -119,7 +119,7 @@ Onderdelen: Deployment (2 replica's, probes, resource-limieten, restrictieve sec
 
 ```bash
 docker run -d --name kennisbank -p 8000:8000 --env-file productie.env --read-only --tmpfs /tmp \
-  registry.example.nl/kennisbank:1.35.0
+  registry.example.nl/kennisbank:1.35.1
 ```
 
 Zet er een reverse proxy met TLS voor. De applicatie leest `X-Forwarded-Proto` en `X-Forwarded-Host` (uit te zetten met `KB_ACHTER_PROXY=nee`).
@@ -141,6 +141,13 @@ De migraties lopen automatisch mee bij het starten (of via `migreer`). Maak voor
 zoals bij elke upgrade. Hieronder staat per versie wat er met bestaande gegevens gebeurt; alleen de
 migraties die gegevens *aanraken* zijn vermeld, de rest voegt tabellen of kolommen toe met een veilige
 standaardwaarde.
+
+#### Naar 1.35.1 (vanaf 1.7.0 of later)
+
+Geen migratie, geen nieuwe instelling. Een functioneel beheerder (lid van een groep uit
+`KB_BEHEERDERS_GROEPEN`, en niet via een andere groep redacteur) opent het beheer voortaan op *Alle
+onderdelen*, met de uitkomst van de statuspagina bovenaan. Voor redacteuren verandert niets. Ctrl+F5 na de
+upgrade.
 
 #### Naar 1.35.0 (vanaf 1.7.0 of later)
 

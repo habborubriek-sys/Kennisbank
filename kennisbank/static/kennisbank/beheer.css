@@ -284,3 +284,8 @@ div.breadcrumbs a{text-decoration:underline}
 .kb-tabel .kb-stand-regel{color:var(--body-quiet-color);font-size:.85rem}
 .kb-selectie-groep{display:inline-flex;gap:8px;flex-wrap:wrap;margin-left:auto}
 .kb-vervalt-snel{font-weight:700;color:#7a1220}
+
+/* 1.35.1: de startpagina van de functioneel beheerder (Alle onderdelen) */
+.kb-beheer-seintje { background: #e8f0fb; border-left: 4px solid #1f4e8c; padding: 10px 14px; margin: 0 0 12px; }
+.kb-beheer-seintje.kb-beheer-let-op { background: #fff4d6; border-left-color: #8a5a00; }
+.kb-beheer-seintje a { text-decoration: underline; }

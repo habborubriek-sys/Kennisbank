@@ -49,6 +49,12 @@ const { B, OPZET: o, meet, stap } = g;
     await st.context().close();
   }
 
+  const b = await sessie("beheerder", "light");
+  await stap("beheer: startpagina van de functioneel beheerder", b, async () => {
+    await b.goto(B + "/beheer/"); await b.locator(".kb-beheer-seintje").first().waitFor(); await meet(b, "Alle onderdelen als startpagina van de beheerder");
+  });
+  await b.context().close();
+
   const r = await sessie("redacteur", "light");
   await stap("beheer: werkplek en lijsten", r, async () => {
     await r.goto(B + "/beheer/kennisbank/synoniem/"); await r.waitForTimeout(500); await meet(r, "synoniemenlijst");

@@ -36,6 +36,7 @@ from .models import (
     Omgeving,
     Rol,
     Status,
+    Toegang,
     Verbetervoorstel,
     VoorstelStatus,
 )
@@ -336,17 +337,44 @@ def werkplek(request):
     return _werkplek(request, None)
 
 
+def alleen_beheerder(gebruiker) -> bool:
+    """Functioneel beheerder die in geen enkele omgeving redacteur is via een groep.
+
+    Een beheerder mag overal in (hij telt in elke omgeving als redacteur), maar zijn werk is de inrichting,
+    niet de bakken van de redactie. Wie beheerder én redacteur is, houdt de werkplek van de redactie.
+    """
+    return gebruiker.is_superuser and not Toegang.objects.filter(groep__user=gebruiker, rol=Rol.REDACTEUR).exists()
+
+
+def _statusregel() -> dict:
+    """De uitkomst van de statuspagina in één regel, voor de startpagina van de beheerder."""
+    from . import status
+
+    overzicht = status.overzicht()
+    punten = sum(1 for g in overzicht["groepen"] for rij in g["rijen"] if rij["stand"] != status.GOED)
+    return {
+        "stand": overzicht["totaal"],
+        "punten": punten,
+        "url": reverse("admin:kennisbank_systeemstand_changelist"),
+    }
+
+
 def _werkplek(request, onthouden):
     r = rechten(request)
     if not r.is_redacteur:
         return admin.site.index(request)
+    beheerder = alleen_beheerder(request.user)
     omgevingen = sorted(r.redactie_omgevingen)
     namen_omgeving = dict(Omgeving.objects.filter(pk__in=omgevingen).values_list("pk", "naam"))
     menu = _menu(request, omgevingen, namen_omgeving)
 
     # Liggen er nieuwe voorstellen in je eigen bak (toegewezen door een collega), dan begin je daar.
     eigen = next((p for p in menu["personen"] if p["ik"]), None)
-    if eigen and eigen["nieuw"]:
+    if beheerder:
+        # 1.35.1 (wens Alex): een functioneel beheerder begint bij Alle onderdelen, ook als er iets in zijn
+        # eigen bak ligt. Dat laatste meldt de pagina zelf, zodat het niet ongemerkt blijft liggen.
+        standaard = onthouden or "alles"
+    elif eigen and eigen["nieuw"]:
         standaard = eigen["sleutel"]
     else:
         standaard = onthouden or menu["bakken"][0]["sleutel"]
@@ -510,6 +538,9 @@ def _werkplek(request, onthouden):
             "uitleg": uitleg,
             "inhoud": inhoud,
             "is_alles": bak == "alles",
+            "beheerder": beheerder,
+            "eigen_bak": eigen if beheerder and bak == "alles" and eigen and eigen["aantal"] else None,
+            "status": _statusregel() if beheerder and bak == "alles" else None,
             "actie_url": reverse("beheer-werkplek-actie"),
             "selectie_url": reverse("beheer-werkplek-selectie"),
             "persoonlijk": bak.startswith("u") and bak[1:].isdigit(),
@@ -520,7 +551,9 @@ def _werkplek(request, onthouden):
         },
         "app_list": admin.site.get_app_list(request) if bak == "alles" else [],
     }
-    if bak != "alles":
+    # De redacteur komt met "← Werkplek" terug in zijn laatste bak, niet op Alle onderdelen. Voor de beheerder
+    # ís Alle onderdelen de startpagina, dus die onthouden we voor hem wel.
+    if bak != "alles" or beheerder:
         request.session[BAK_SLEUTEL] = bak
     return TemplateResponse(request, "admin/kennisbank/werkplek.html", context)
 

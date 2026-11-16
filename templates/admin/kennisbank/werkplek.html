@@ -18,6 +18,12 @@
     {% if w.uitleg %}<p class="kb-uitleg">{{ w.uitleg }}</p>{% endif %}
 
     {% if w.is_alles %}
+      {% if w.eigen_bak %}
+      <p class="kb-beheer-seintje kb-beheer-let-op" role="status"><b>Bij jou {% if w.eigen_bak.aantal == 1 %}ligt 1 verbetervoorstel{% else %}liggen {{ w.eigen_bak.aantal }} verbetervoorstellen{% endif %}.</b> {% if w.eigen_bak.aantal == 1 %}Het staat{% else %}Ze staan{% endif %} op jouw naam en niet meer in de werkvoorraad van de redactie. <a href="{% url 'beheer-start' %}?bak={{ w.eigen_bak.sleutel }}">Open je bak</a> om {% if w.eigen_bak.aantal == 1 %}het{% else %}ze{% endif %} te behandelen of terug te leggen.</p>
+      {% endif %}
+      {% if w.status %}
+      <p class="kb-beheer-seintje{% if w.status.stand != "goed" %} kb-beheer-let-op{% endif %}">{% if w.status.stand == "goed" %}<b>Alles loopt.</b> De statuspagina heeft geen aandachtspunten.{% elif w.status.punten == 1 %}<b>1 punt vraagt aandacht</b> op de statuspagina.{% else %}<b>{{ w.status.punten }} punten vragen aandacht</b> op de statuspagina.{% endif %} <a href="{{ w.status.url }}">Naar de statuspagina</a></p>
+      {% endif %}
       {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
 
     {% elif w.inhoud.rijen is not None %}

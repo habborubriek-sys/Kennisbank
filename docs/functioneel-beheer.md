@@ -758,6 +758,19 @@ Clusters, tags en zaaktypen beheer je in het beheerscherm. Redacteuren kunnen ze
 
 ## Functioneel beheerder
 
+**Waar je begint (1.35.1).** Een functioneel beheerder opent het beheer op **Alle onderdelen**, niet op de
+werkplek van de redactie. Bovenaan staat in één regel wat de statuspagina zegt ("Alles loopt" of "2 punten
+vragen aandacht"), met een link. In de kolom links staat *Alle onderdelen* bovenaan, onder de kop **Beheer**;
+de bakken van de redactie staan eronder, want een beheerder kan overal in.
+
+Ligt er een verbetervoorstel op jouw naam (per ongeluk opgepakt, of door een collega toegewezen), dan staat
+dat bovenaan in een gele regel: "Bij jou ligt 1 verbetervoorstel", met een link naar je bak. Het voorstel is
+dan uit de werkvoorraad van de redactie. Behandel het, of vink het in je bak aan en kies *Terug naar de
+werkvoorraad*. Redacteuren zien jouw bak ook, onder *Collega's*, en kunnen het voorstel daar zelf weghalen.
+
+Ben je beheerder én via een groep redacteur in een omgeving, dan begin je zoals een redacteur op je
+werkplek; *Alle onderdelen* staat dan onderaan de kolom.
+
 Een functioneel beheerder (lid van de groep in `KB_BEHEERDERS_GROEPEN`) beheert daarnaast:
 
 - **Omgevingen**: bijv. "Handhaving". Elke omgeving heeft eigen artikelen.

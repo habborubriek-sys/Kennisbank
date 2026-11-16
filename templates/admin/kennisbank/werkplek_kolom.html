@@ -11,6 +11,13 @@
       </div>
       {% if w.word_import_url %}<a class="button kb-knop-word" href="{{ w.word_import_url }}">Artikel uit Word</a>{% endif %}
     </div>
+    {% if w.beheerder %}
+    {# 1.35.1: voor de functioneel beheerder staat zijn eigen startpagina bovenaan, het werk van de redactie eronder. #}
+    <h2 class="kb-kolomkop">Beheer</h2>
+    <ul class="kb-bakkenlijst">
+      <li><a class="kb-bakregel{% if w.is_alles %} gekozen{% endif %}" href="{% url 'beheer-start' %}?bak=alles"{% if w.is_alles %} aria-current="page"{% endif %}>Alle onderdelen</a></li>
+    </ul>
+    {% endif %}
     <h2 class="kb-kolomkop">Werkvoorraad</h2>
     <ul class="kb-bakkenlijst">
       {% for b in w.menu.bakken %}
@@ -45,7 +52,9 @@
         <span>{{ b.naam }}{% if b.oud %} <b class="kb-nieuw">· {{ b.oud }} terug</b>{% endif %}</span><span class="kb-aantal">{{ b.aantal }}</span></a></li>
       {% endfor %}
     </ul>
+    {% if not w.beheerder %}
     <ul class="kb-bakkenlijst kb-gescheiden">
       <li><a class="kb-bakregel{% if w.is_alles %} gekozen{% endif %}" href="{% url 'beheer-start' %}?bak=alles">Alle onderdelen</a></li>
     </ul>
+    {% endif %}
   </nav>

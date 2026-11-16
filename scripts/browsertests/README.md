@@ -5,7 +5,7 @@ houden een push tegen als ze falen.
 
 | Script | Wat het doet |
 |---|---|
-| `axe.js` | Meet 70 schermen en vensters met axe-core (WCAG 2.0/2.1 A en AA). De site en de reviewpagina's in licht én donker; het beheer in licht. |
+| `axe.js` | Meet 71 schermen en vensters met axe-core (WCAG 2.0/2.1 A en AA). De site en de reviewpagina's in licht én donker; het beheer in licht. |
 | `rook.js` | Loopt de belangrijkste paden af, van begin tot eind: de lade, van voorstel tot gepubliceerde versie met review, de live versie verbeteren terwijl er een concept ligt en dat in het concept overnemen, nieuw artikel, nieuwsbericht, kladversie, en de bediening met het toetsenbord. Sinds 1.35.0 ook het zoeken op de site (typfout, synoniem, deel van een woord, te veel woorden), *Meer laden*, *Was dit artikel nuttig?* en de statistieken met *Synoniem maken*. Bezoekt daarna elk beheerscherm. |
 | `gemeen.js` | Gedeelde hulpfuncties: inloggen, een stap uitvoeren, meten met axe. |
 | `draai.sh` | Start de testserver, draait `axe.js` en `rook.js`, en herhaalt één keer bij een fout. |

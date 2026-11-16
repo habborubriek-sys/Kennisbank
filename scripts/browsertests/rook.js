@@ -524,6 +524,20 @@ async function typInAlinea(p, bevat, tekst) {
 
   // --- 5. Elk beheerscherm laadt, zonder scriptfout of CSP-melding ---------------------------------------
   const beh = await g.sessie(browser, "beheerder");
+  await stap("beheer: de functioneel beheerder begint bij Alle onderdelen (1.35.1)", beh, async () => {
+    await beh.goto(B + "/beheer/");
+    ok((await tekstVan(beh.locator("#kb-inhoud-titel"))) === "Alle onderdelen", "de beheerder landt op Alle onderdelen", await tekstVan(beh.locator("#kb-inhoud-titel")));
+    ok(/^beheer$/i.test(await tekstVan(beh.locator(".kb-bakkenkolom .kb-kolomkop").first())), "in de kolom staat Beheer bovenaan", await tekstVan(beh.locator(".kb-bakkenkolom .kb-kolomkop").first()));
+    ok((await beh.locator(".kb-bakkenkolom a[href$='?bak=alles']").count()) === 1, "Alle onderdelen staat één keer in de kolom");
+    const regel = beh.locator(".kb-beheer-seintje", { hasText: "statuspagina" });
+    ok(/Alles loopt|vraagt aandacht|vragen aandacht/.test(await tekstVan(regel)), "bovenaan staat de uitkomst van de statuspagina", await tekstVan(regel));
+    await Promise.all([beh.waitForNavigation(), regel.locator("a").click()]);
+    ok(/systeemstand/.test(beh.url()), "de link opent de statuspagina", beh.url());
+    await beh.goto(B + "/beheer/?bak=concepten");
+    ok((await tekstVan(beh.locator("#kb-inhoud-titel"))) === "Concepten", "de beheerder kan nog steeds in de bakken van de redactie");
+    await red.goto(B + "/beheer/");
+    ok((await tekstVan(red.locator("#kb-inhoud-titel"))) !== "Alle onderdelen" && !(await red.locator(".kb-beheer-seintje").count()), "de redacteur begint zoals altijd in een bak", await tekstVan(red.locator("#kb-inhoud-titel")));
+  });
   await stap("beheer: elk scherm laadt zonder scriptfout of CSP-melding", beh, async () => {
     const voor = g.aantalFouten();
     await beh.goto(B + "/beheer/?bak=alles");

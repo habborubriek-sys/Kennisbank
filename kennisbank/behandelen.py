@@ -29,7 +29,7 @@ from . import diensten
 from .inhoud import naar_platte_tekst
 from .models import Conceptversie, Omgeving, Verbetervoorstel, VoorstelStatus
 from .rechten import rechten
-from .werkoverzicht import _menu, clusters_van, redacteuren_per_omgeving, werkplek_url
+from .werkoverzicht import _menu, alleen_beheerder, clusters_van, redacteuren_per_omgeving, werkplek_url
 
 #: Hoeveel tekens van het artikel er rond het citaat te zien zijn.
 CONTEXT_TEKENS = 350
@@ -125,6 +125,7 @@ def _context(request, v, r, terug, invoer=None, intussen=None):
             "menu": menu,
             "gekozen": terug or "",
             "is_alles": False,
+            "beheerder": alleen_beheerder(request.user),
             "nieuw_artikel_url": reverse("admin:kennisbank_artikel_add"),
             "nieuw_bericht_url": reverse("admin:kennisbank_bericht_add"),
             "word_import_url": reverse("admin:kennisbank_artikel_importeren_word"),

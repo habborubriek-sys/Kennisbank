@@ -44,7 +44,7 @@ versie tegen. Zie [scripts/browsertests/README.md](../scripts/browsertests/READM
 | Beheer: lade open, en met de steun uitgeklapt | geen overtredingen | – |
 | Beheer: vensters Afhandelen, Afwijzen en Dubbel in de lade | geen overtredingen | – |
 
-Samen 70 metingen (45 tot 1.33.0, 55 in 1.33.0, 59 in 1.34.0). De uitbreiding in 1.32.0 vond twee fouten die eerder niet waren gemeten; beide zijn hersteld:
+Samen 71 metingen (45 tot 1.33.0, 55 in 1.33.0, 59 in 1.34.0, 70 in 1.35.0; in 1.35.1 kwam de startpagina van de functioneel beheerder erbij). De uitbreiding in 1.32.0 vond twee fouten die eerder niet waren gemeten; beide zijn hersteld:
 een artikel zonder tags had op de site een lege groep met een naam (`aria-prohibited-attr`), en in donker had
 het gekozen filter bij *Verbetervoorstellen* te weinig contrast (2,2:1; nu ruim boven 4,5:1).
 

@@ -1,5 +1,16 @@
 # Wijzigingen
 
+## 1.35.1 – 2026-11-16
+
+Wens van Alex: een functioneel beheerder is geen redacteur, maar kwam in het beheer als eerste op de werkplek van de redactie terecht.
+
+- **Een functioneel beheerder begint bij *Alle onderdelen*.** Dat geldt voor wie beheerder is en niet via een groep redacteur. In de kolom staat *Alle onderdelen* voor hem bovenaan, onder de kop *Beheer*. De bakken van de redactie staan eronder: een beheerder kan nog steeds overal in.
+- **Bovenaan staat de uitkomst van de statuspagina** in één regel ("Alles loopt" of "2 punten vragen aandacht"), met een link. Alleen de beheerder ziet die regel; de statuspagina zelf was al alleen voor hem.
+- **Ligt er een verbetervoorstel op zijn naam**, dan zegt een gele regel dat ("Bij jou ligt 1 verbetervoorstel"), met een link naar zijn bak. Zo blijft een voorstel dat per ongeluk is opgepakt niet ongemerkt buiten de werkvoorraad liggen.
+- *← Werkplek* brengt de beheerder terug naar waar hij was, ook als dat *Alle onderdelen* is.
+- Voor redacteuren verandert niets. Wie beheerder én redacteur is, houdt de werkplek van de redactie.
+- 11 nieuwe tests (840 in totaal). 15 mutaties: in de eerste ronde werd er één niet betrapt (de statusregel zou ook aan een redacteur zijn getoond zonder dat een test omviel); daar is een test voor bijgekomen, daarna 15 van de 15. Browsertests: `rook.js` 150 controles, `axe.js` 71 metingen, geen overtredingen. Geen migratie.
+
 ## 1.35.0 – 2026-11-15
 
 Zoeken dat meedenkt (bouwlijst `bouwlijst-1.35.0-zoeken.md`, punt 37 van de openstaande punten). Tot nu toe vond de zoekbalk alleen wat letterlijk (op de woordstam na) in een artikel stond: één typfout of een ander woord voor hetzelfde gaf een lege lijst.
