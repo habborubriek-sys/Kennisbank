@@ -107,6 +107,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # --- Taal en tijd -------------------------------------------------------------
 
 LANGUAGE_CODE = "nl"
+# Alleen Nederlands. Zonder deze regel volgt Django de taal van de browser, en staan de beheerlijsten bij een
+# Engelstalige browser half in het Engels ("Add", "Change") tussen de Nederlandse teksten van de kennisbank.
+LANGUAGES = [("nl", "Nederlands")]
 # Aanvullingen op de Nederlandse vertaling van het beheer (kennisbank/locale, zie scripts/maak_mo.py).
 LOCALE_PATHS = [BASE_DIR / "kennisbank" / "locale"]
 TIME_ZONE = env("KB_TIJDZONE", "Europe/Amsterdam")

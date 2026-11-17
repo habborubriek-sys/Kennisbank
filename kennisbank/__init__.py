@@ -1,3 +1,3 @@
 """Kennisbank. Eén versiebron; een test bewaakt dat de andere bestanden hiermee overeenkomen."""
 
-__version__ = "1.36.2"
+__version__ = "1.37.0"

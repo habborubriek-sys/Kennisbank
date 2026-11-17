@@ -540,7 +540,14 @@ async function typInAlinea(p, bevat, tekst) {
     const lijn = await med.locator("#lnkHulp").evaluate((e) => getComputedStyle(e).textDecorationLine);
     ok(lijn === "none", "de knop Hulp is niet onderstreept, net als de knoppen ernaast", lijn);
     await Promise.all([med.waitForNavigation(), med.locator("#lnkHulp").click()]);
-    ok((await tekstVan(med.locator("main h1"))) === "Zoeken en lezen", "medewerker: Hulp op de site opent Zoeken en lezen", await tekstVan(med.locator("main h1")));
+    ok((await tekstVan(med.locator("main h1"))) === "De kennisbank in het kort", "medewerker: Hulp op de site opent het eerste artikel voor medewerkers", await tekstVan(med.locator("main h1")));
+    // 1.37.0: schermafbeeldingen en schema's.
+    await med.locator(".hulp-beeld img").first().scrollIntoViewIfNeeded();
+    const geladen = await med.locator(".hulp-beeld img").evaluateAll((l) => Promise.all(l.map((i) => i.decode().then(() => i.naturalWidth > 600, () => false))));
+    ok(geladen.length >= 1 && geladen.every(Boolean), "de schermafbeelding is geladen", JSON.stringify(geladen));
+    ok(/^Schermafbeelding: .{15,}/.test(await med.locator(".hulp-beeld img").first().getAttribute("alt")), "de schermafbeelding heeft een beschrijving");
+    ok((await med.locator(".hulp-schema .hulp-stroom > li").count()) === 4, "het schema Wie doet wat heeft vier stappen");
+    ok(!/\[\[/.test(await tekstVan(med.locator("main"))), "er staat geen losse verwijzing naar een beeld in de tekst");
     ok((await koppen(med)) === "medewerker", "medewerker ziet alleen het hoofdstuk Medewerker", await koppen(med));
     await med.locator(".hulp-menu a", { hasText: "Een verbetervoorstel indienen" }).focus();
     await Promise.all([med.waitForNavigation(), med.keyboard.press("Enter")]);

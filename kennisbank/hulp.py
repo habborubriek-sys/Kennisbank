@@ -8,14 +8,20 @@ De artikelen zijn niet geheim (de documentatie staat ook in de repository); de t
 Toch geeft een artikel boven je eigen niveau een 404, zodat het menu en de adressen hetzelfde verhaal vertellen.
 """
 
+import html as htmllib
+import re
+from functools import lru_cache
+
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.contrib.staticfiles import finders
 from django.http import Http404
 from django.shortcuts import render
+from django.templatetags.static import static
 from django.utils.safestring import mark_safe
 
 from . import review
-from .hulp_inhoud import STANDAARD
+from .hulp_inhoud import SCHEMAS, STANDAARD
 from .models import HULPNIVEAU, Artikel, Hulpartikel, Hulpdoelgroep, Omgeving, Status
 from .rechten import rechten
 
@@ -26,6 +32,65 @@ BIJ = {
     "werkplek": Hulpdoelgroep.REDACTEUR,
     "beheer": Hulpdoelgroep.BEHEERDER,
 }
+
+
+# --- Beeld in een hulpartikel (1.37.0) ----------------------------------------------------------------------------
+#
+# Een hulpartikel is gewone, opgeschoonde HTML: daar past geen <img> in, en dat willen we ook niet openzetten.
+# Een schermafbeelding of schema staat daarom als een regel tekst in het artikel:
+#
+#     [[beeld:werkplek|De werkplek, met links de bakken]]
+#     [[schema:concept-tot-publicatie]]
+#
+# Bij het tonen wordt zo'n regel vervangen. Alleen namen die het pakket kent doen iets: een schermafbeelding moet
+# als bestand bestaan in static/kennisbank/hulp/, een schema in SCHEMAS. Een onbekende naam verdwijnt. Zo kan de
+# beheerder een beeld verplaatsen of weghalen in de editor, zonder dat er iets onveiligs in de pagina kan komen.
+
+_TEKEN = re.compile(r"<p>\s*\[\[(beeld|schema):([a-z0-9-]+)(?:\|([^\]<]*))?\]\]\s*</p>")
+
+
+@lru_cache(maxsize=256)
+def beeld_bestaat(naam: str) -> bool:
+    return bool(finders.find(f"kennisbank/hulp/{naam}.png"))
+
+
+def _beeld(naam: str, bijschrift: str) -> str:
+    if not beeld_bestaat(naam):
+        return ""
+    tekst = htmllib.escape(htmllib.unescape(bijschrift or "").strip())
+    onderschrift = f"<figcaption>{tekst}</figcaption>" if tekst else ""
+    bron = static(f"kennisbank/hulp/{naam}.png")
+    return (
+        f'<figure class="hulp-beeld"><a href="{bron}" target="_blank" rel="noopener">'
+        f'<img src="{bron}" alt="Schermafbeelding: {tekst or naam}" loading="lazy">'
+        f'<span class="visually-hidden"> (opent groot in een nieuw tabblad)</span></a>{onderschrift}</figure>'
+    )
+
+
+def _schema(naam: str) -> str:
+    s = SCHEMAS.get(naam)
+    if not s:
+        return ""
+    e = htmllib.escape
+    stappen = "".join(
+        f'<li><span class="hulp-rol hulp-rol-{re.sub(r"[^a-z]", "", rol.lower())}">{e(rol)}</span>'
+        f'<strong class="hulp-stap-kop">{e(kop)}</strong><span class="hulp-stap-tekst">{e(tekst)}</span></li>'
+        for rol, kop, tekst in s["stappen"]
+    )
+    noot = f'<p class="hulp-noot">{e(s["noot"])}</p>' if s.get("noot") else ""
+    return (
+        f'<figure class="hulp-schema"><figcaption>{e(s["titel"])}</figcaption>'
+        f'<ol class="hulp-stroom">{stappen}</ol>{noot}</figure>'
+    )
+
+
+def verrijk(tekst: str) -> str:
+    """Vervang de regels [[beeld:…]] en [[schema:…]] door de schermafbeelding of het schema."""
+
+    def vervang(m):
+        return _beeld(m.group(2), m.group(3) or "") if m.group(1) == "beeld" else _schema(m.group(2))
+
+    return _TEKEN.sub(vervang, tekst)
 
 
 def niveau_van(gebruiker, r=None) -> int:
@@ -124,7 +189,8 @@ def pagina(request, slug=None):
             "app_naam": settings.KB_APP_NAAM,
             "groepen": groepen,
             "huidig": huidig,
-            "tekst": mark_safe(huidig.tekst) if huidig else "",  # noqa: S308 - opgeschoond bij opslaan (schoon)
+            # Veilig: de tekst is opgeschoond bij opslaan (schoon); verrijk voegt alleen eigen, ontsnapte HTML toe.
+            "tekst": mark_safe(verrijk(huidig.tekst)) if huidig else "",  # noqa: S308
             "werkafspraken": _werkafspraken(r),
             "mag_bewerken": request.user.is_superuser,
         },

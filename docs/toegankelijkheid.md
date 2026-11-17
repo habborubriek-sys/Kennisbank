@@ -125,6 +125,10 @@ weghalen van een opmerking leest een live-regio de melding voor en gaat de focus
   hoofdinhoud; het gekozen artikel is in het menu aangewezen met `aria-current`. Op een smal scherm is het menu
   een uitklapper, zodat het artikel bovenaan staat. Vanuit het bewerkscherm en een reviewstuk opent Hulp in een
   nieuw tabblad; de link zegt dat erbij.
+- **Beeld in de hulp (1.37.0):** elke schermafbeelding heeft een beschrijving (het bijschrift, voorafgegaan door
+  "Schermafbeelding:") en de stappen staan altijd ook in de tekst; de afbeelding is een aanvulling. Een schema
+  is een genummerde lijst met opmaak: een schermlezer leest de stappen in volgorde, met bij elke stap wie hem
+  zet. De rol staat er als woord, niet alleen als kleur.
 - **Zoeken (1.35.0):** de regel die zegt waarop is gezocht ("Resultaten voor rappel. Je zocht op rapel.") is
   een statusmelding en wordt voorgelezen zonder dat de focus de zoekbalk verlaat. Na *Meer laden* gaat de
   focus naar het eerste artikel dat erbij kwam. *Was dit artikel nuttig?* is een groep met de vraag als naam;

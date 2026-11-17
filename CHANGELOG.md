@@ -1,5 +1,33 @@
 # Wijzigingen
 
+## 1.37.0 – 2026-11-17
+
+De hulpartikelen als werkinstructie, met schermafbeeldingen en schema's (bouwlijst `bouwlijst-1.37.0-hulp-vorm-en-beeld.md`). Reactie van Alex op 1.36.0: de artikelen waren te beknopt en te informeel, en er hoorde beeld bij. Zijn maatstaf: wie alle artikelen van zijn rol heeft gelezen, begrijpt de functies van de kennisbank.
+
+**De artikelen herschreven**
+- Alle hulpartikelen zijn opnieuw geschreven: eerst waar iets voor dient en wat er daarna gebeurt, dan de stappen genummerd, dan wat je moet weten in een kader (*Let op*, *Goed om te weten*). Aanspreekvorm *je*, zakelijk van toon. Keuzes staan in een tabel (wanneer, wat er gebeurt).
+- Eén artikel erbij, *De kennisbank in het kort*, als eerste voor iedereen: wat de kennisbank is, hoe het scherm is opgebouwd en wie wat doet. Samen 21 artikelen.
+- De teksten zijn naast de schermen gelegd; een aantal namen is daarbij gelijkgetrokken (*Favoriet*, *Indienen*, *Toewijzen aan…*, *Meenemen in deze versie*, *Woord in de kennisbank*).
+
+**Schermafbeeldingen**
+- 28 schermafbeeldingen, bij elk artikel minstens één. Een klik opent de afbeelding groot.
+- Ze worden gemaakt door een script (`scripts/browsertests/hulpbeelden.sh`) dat dezelfde testserver gebruikt als de browsertests, met gewone titels in plaats van testtitels. Is een scherm veranderd, dan maakt één opdracht alle afbeeldingen opnieuw. Ze zijn samen 1 MB.
+- Een test bewaakt dat elk beeld dat de hulp noemt bestaat, en dat er geen ongebruikte bestanden blijven liggen.
+
+**Schema's bij een proces**
+- Vier schema's: *Wie doet wat*, *Van verbetervoorstel tot aangepast artikel*, *Van concept tot gepubliceerd artikel* en *Een fout in de live versie herstellen terwijl je concept nog niet af is*. Elke stap zegt wie hem zet.
+- Een schema is een genummerde lijst met opmaak, geen plaatje: het past zich aan het donkere thema en een smal scherm aan, en een schermlezer leest de stappen in volgorde voor.
+
+**Hoe het in de tekst staat**
+- Een schermafbeelding of schema staat in een hulpartikel als een regel tekst: `[[beeld:werkplek|bijschrift]]` of `[[schema:concept-tot-publicatie]]`. De functioneel beheerder kan zo'n regel verplaatsen of weghalen en het bijschrift aanpassen. Alleen namen die het pakket kent doen iets; eigen afbeeldingen toevoegen kan niet.
+
+**Hersteld**
+- **Het beheer stond bij een Engelstalige browser half in het Engels** ("Add", "Change", "Select … to change"), tussen de Nederlandse teksten van de kennisbank. Nederlands is nu de enige taal.
+
+**Techniek en tests**
+- Geen migratie. De nieuwe teksten komen bij `migrate` in de database; artikelen die de beheerder zelf heeft aangepast, blijven zoals ze zijn.
+- 11 nieuwe tests (894 in totaal); 11 van de 11 mutaties betrapt. Browsertests: `rook.js` 175 controles, `axe.js` 77 metingen, geen overtredingen.
+
 ## 1.36.2 – 2026-11-17
 
 Wens van Alex: de knoppen in de bovenbalk stonden niet overal op dezelfde plek (Hulp op de site vooraan, elders achteraan).

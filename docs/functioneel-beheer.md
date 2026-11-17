@@ -783,7 +783,8 @@ rol staat bovenaan. De knop opent het hoofdstuk dat past bij waar je bent: op de
 de reviewpagina dat voor reviewers, in het beheer dat voor redacteuren.
 
 **De artikelen beheren.** Onder *Alle onderdelen* staat **Hulpartikelen** (alleen voor de functioneel
-beheerder). Het pakket levert twintig artikelen mee. Je kunt er een aanpassen, verbergen (*zichtbaar* uit) of
+beheerder). Het pakket levert 21 artikelen mee, geschreven als werkinstructie en met schermafbeeldingen en
+schema's (1.37.0). Je kunt er een aanpassen, verbergen (*zichtbaar* uit) of
 een eigen artikel toevoegen; per artikel kies je de doelgroep en de plaats in het menu.
 
 - Een meegeleverd artikel dat je **niet** hebt aangepast, krijgt bij een nieuwe versie van de kennisbank vanzelf
@@ -792,6 +793,12 @@ een eigen artikel toevoegen; per artikel kies je de doelgroep en de plaats in he
   *Herkomst* ("meegeleverd, zelf aangepast"). Let dan zelf op of de uitleg nog klopt na een upgrade.
 - Wil je de meegeleverde tekst terug: vink het artikel aan en kies **Standaardtekst terugzetten**.
 - Een meegeleverd artikel dat je verwijdert, komt bij de volgende upgrade terug. Wil je het kwijt, verberg het dan.
+
+**Schermafbeeldingen en schema's in een hulpartikel.** In de editor zie je ze als een regel tekst:
+`[[beeld:werkplek|De werkplek, met links de bakken]]` of `[[schema:concept-tot-publicatie]]`. Op de
+hulppagina staat op die plek de afbeelding of het schema. Je kunt zo'n regel verplaatsen of weghalen, en de
+tekst achter de streep (het bijschrift) aanpassen. De regel moet op zichzelf staan, niet midden in een zin.
+Eigen afbeeldingen toevoegen kan niet: alleen de namen die het pakket meelevert werken.
 
 **Jullie eigen werkafspraken.** De hulpartikelen leggen uit hoe de kennisbank werkt. Hoe jullie afdeling ermee
 werkt (wie reviewt wat, binnen welke termijn, wanneer iets een nieuwsbericht wordt) schrijf je als gewoon artikel

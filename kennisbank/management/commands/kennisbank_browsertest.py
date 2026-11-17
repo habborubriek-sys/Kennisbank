@@ -46,8 +46,30 @@ class Command(BaseCommand):
         parser.add_argument("--poort", default="8765")
         parser.add_argument("--opzet", default="", help="Schrijf de id's van de testgegevens naar dit JSON-bestand")
         parser.add_argument("--geen-server", action="store_true", help="Alleen klaarzetten, geen server starten")
+        parser.add_argument(
+            "--voor-hulp",
+            action="store_true",
+            help="Dezelfde testgegevens met gewone titels en zonder vulling: voor de schermafbeeldingen in de hulp "
+            "(scripts/browsertests/hulpbeelden.sh)",
+        )
 
-    def handle(self, poort, opzet, geen_server, **opties):
+    #: De titels van de vaste testartikelen. Met --voor-hulp heten ze zoals een echt artikel zou heten, zodat een
+    #: schermafbeelding in de hulp er niet uitziet als een test (1.37.0).
+    TITELS = {
+        "lade": ("Browsertest lade", "Vergunning controleren"),
+        "inzage": ("Browsertest ter inzage", "Monstername oppervlaktewater"),
+        "stroom": ("Browsertest stroom", "Bezwaar doorsturen"),
+        "spoed": ("Browsertest spoed", "Handhavingsbrief opstellen"),
+        "live": ("Browsertest live", "Overtreding vastleggen"),
+        "klad": ("Browsertest klad", "Proces-verbaal aanvullen"),
+        "rustig": ("Browsertest rustig", "Vaarwegmarkering controleren"),
+    }
+
+    def titel(self, sleutel):
+        return self.TITELS[sleutel][1 if self.voor_hulp else 0]
+
+    def handle(self, poort, opzet, geen_server, voor_hulp=False, **opties):
+        self.voor_hulp = voor_hulp
         if not settings.KB_DEMO_MODUS:
             raise CommandError("Alleen beschikbaar met KB_DEMO_MODUS=aan.")
         # Een eigen database, zoals de testrunner die maakt. Bestaat hij nog van een vorige keer, dan opnieuw.
@@ -69,7 +91,9 @@ class Command(BaseCommand):
         a = Artikel.objects.create(
             omgeving=self.omgeving,
             titel=titel,
-            samenvatting="Vast testartikel voor de browsertests.",
+            samenvatting="Wat je doet als een reactie uitblijft, en wanneer je belt."
+            if self.voor_hulp
+            else "Vast testartikel voor de browsertests.",
             inhoud=TEKST,
             status=Status.GEPUBLICEERD,
         )
@@ -116,7 +140,7 @@ class Command(BaseCommand):
             steuners.append(u)
 
         # 1. De lade: vier open voorstellen, het eerste met steun.
-        lade = self.artikel("Browsertest lade", redacteur, cluster)
+        lade = self.artikel(self.titel("lade"), redacteur, cluster)
         v_steun = self.voorstel(lade, medewerker, "De termijn klopt niet meer. Het is nu drie weken.", "twee weken")
         for u in steuners:
             diensten.steun_geven(v_steun, u)
@@ -125,7 +149,7 @@ class Command(BaseCommand):
         v_dubbel = self.voorstel(lade, steuners[0], "Twee weken is te kort, maak er drie van.", "twee weken")
 
         # 2. Ter inzage, opgepakt door de reviewer, met een opmerking en een meegenomen voorstel.
-        inzage_a = self.artikel("Browsertest ter inzage", redacteur, cluster)
+        inzage_a = self.artikel(self.titel("inzage"), redacteur, cluster)
         v_mee = self.voorstel(inzage_a, medewerker, "Bel ook bij spoed in het weekend.", "Bel bij spoed dezelfde dag")
         c = self.concept(inzage_a, redacteur, TEKST.replace("dezelfde dag", "dezelfde dag, ook in het weekend"))
         Verbetervoorstel.objects.filter(pk=v_mee.pk).update(
@@ -137,16 +161,16 @@ class Command(BaseCommand):
         review.opmerking_toevoegen(inzage, reviewer, "Klopt dit ook op feestdagen?", "ook in het weekend")
 
         # 3. Kaal gepubliceerd artikel: de hele stroom van bewerken tot publiceren loopt hierop.
-        stroom = self.artikel("Browsertest stroom", redacteur, cluster)
+        stroom = self.artikel(self.titel("stroom"), redacteur, cluster)
 
         # 4. Met een conceptversie (niet ter inzage): de live versie verbeteren en het concept weggooien.
-        spoed = self.artikel("Browsertest spoed", redacteur, cluster)
+        spoed = self.artikel(self.titel("spoed"), redacteur, cluster)
         self.concept(spoed, redacteur, TEKST.replace("twee weken", "vier weken"))
 
         # 4b. 1.33.0: een concept waarvan de live versie daarna is verbeterd. Vier wijzigingen, van elke soort:
         #     de eerste alinea is ook in het concept gewijzigd (zelf aanpassen), twee kunnen veilig worden
         #     overgenomen en er is een opsommingspunt bij gekomen.
-        live = self.artikel("Browsertest live", redacteur, cluster)
+        live = self.artikel(self.titel("live"), redacteur, cluster)
         self.concept(live, redacteur, TEKST.replace("twee weken", "vier weken"))
         live.inhoud = (
             TEKST.replace("dezelfde dag.", "dezelfde dag nog.")
@@ -167,19 +191,19 @@ class Command(BaseCommand):
         from kennisbank.models import Kladversie
 
         # Een eigen artikel, zodat het venster "je hebt een kladversie" geen andere stap in de weg zit.
-        klad_artikel = self.artikel("Browsertest klad", redacteur, cluster)
+        klad_artikel = self.artikel(self.titel("klad"), redacteur, cluster)
         klad = Kladversie.objects.create(
-            gebruiker=redacteur, artikel=klad_artikel, velden={"titel": "Browsertest klad"}
+            gebruiker=redacteur, artikel=klad_artikel, velden={"titel": self.titel("klad")}
         )
         Kladversie.objects.filter(pk=klad.pk).update(
             bijgewerkt_op=timezone.now() - timedelta(days=settings.KB_KLADVERSIE_DAGEN - 5)
         )
 
         # 5. Kaal gepubliceerd artikel waar niets aan gebeurt: voor de axe-meting.
-        rustig = self.artikel("Browsertest rustig", redacteur, cluster)
+        rustig = self.artikel(self.titel("rustig"), redacteur, cluster)
 
         # 6. Genoeg artikelen voor "Meer laden" op de site (1.35.0): de lijst toont er vijftig tegelijk.
-        for n in range(1, 46):
+        for n in range(1, 1 if self.voor_hulp else 46):
             a = Artikel.objects.create(
                 omgeving=self.omgeving,
                 titel=f"Browsertest lijst {n:02d}",

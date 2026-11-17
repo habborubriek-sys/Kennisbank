@@ -81,7 +81,7 @@ class PerRol(HulpBasis):
         r, html = self.hulp(self.lies)
         titels = [t for _, t in menu(html)[0][1]]
         self.assertEqual(titels, [s["titel"] for s in STANDAARD if s["doelgroep"] == "medewerker"])
-        self.assertEqual(titels[0], "Zoeken en lezen")
+        self.assertEqual(titels[0], "De kennisbank in het kort")
 
     def test_een_artikel_boven_je_rol_bestaat_voor_jou_niet(self):
         for gebruiker, slug, code in (
@@ -191,7 +191,7 @@ class Standaardset(TestCase):
         )
         self.assertFalse(Hulpartikel.objects.filter(aangepast=True).exists())
         self.assertTrue(all(h.zichtbaar for h in Hulpartikel.objects.all()))
-        self.assertGreaterEqual(len(STANDAARD), 18)
+        self.assertGreaterEqual(len(STANDAARD), 21)
 
     def test_elke_rol_heeft_artikelen_en_de_slugs_zijn_uniek(self):
         self.assertEqual({s["doelgroep"] for s in STANDAARD}, {"medewerker", "reviewer", "redacteur", "beheerder"})
@@ -213,7 +213,7 @@ class Standaardset(TestCase):
         self.assertEqual(uit["overgeslagen"], 1)
         nieuws = Hulpartikel.objects.get(slug="nieuws")
         self.assertEqual(nieuws.titel, "Nieuws")
-        self.assertIn("mededelingen van procesmanagement", nieuws.tekst)
+        self.assertIn("plaatst procesmanagement mededelingen", nieuws.tekst)
         eigen = Hulpartikel.objects.get(slug="assistent")
         self.assertEqual((eigen.tekst, eigen.aangepast), ("<p>Onze eigen uitleg.</p>", True))
 
@@ -257,17 +257,20 @@ class Woorden(TestCase):
     def test_elke_vet_gedrukte_naam_staat_zo_op_een_scherm(self):
         mis = []
         for s in STANDAARD:
-            for naam in re.findall(r"<strong>(.*?)</strong>", s["tekst"], flags=re.S):
+            # Het vette opschrift waarmee een kader begint ("Let op.") is geen naam van een knop.
+            tekst = re.sub(r"<blockquote><p><strong>.*?</strong>", "", s["tekst"], flags=re.S)
+            for naam in re.findall(r"<strong>(.*?)</strong>", tekst, flags=re.S):
                 naam = htmllib.unescape(re.sub(r"\s+", " ", naam))
-                if naam not in self.schermen:
+                # Django zet de eerste letter van een veldnaam als hoofdletter op het scherm.
+                if naam not in self.schermen and naam[0].lower() + naam[1:] not in self.schermen:
                     mis.append((s["slug"], naam))
         self.assertEqual(mis, [])
 
     def test_elk_artikel_noemt_minstens_een_knop_en_blijft_kort(self):
         for s in STANDAARD:
             woorden = len(re.sub(r"<[^>]+>", " ", s["tekst"]).split())
-            self.assertLess(woorden, 230, s["slug"])
-            self.assertGreater(woorden, 40, s["slug"])
+            self.assertLess(woorden, 700, s["slug"])
+            self.assertGreater(woorden, 120, s["slug"])  # 1.37.0: volledige context, geen telegramstijl
             self.assertIn("<strong>", s["tekst"], s["slug"])
             self.assertNotIn("<img", s["tekst"])
             self.assertNotIn("<h1", s["tekst"])
@@ -355,7 +358,7 @@ class Beheer(HulpBasis):
         self.assertIn("1 hulpartikel(en) teruggezet", meldingen)
         self.assertIn("1 artikel(en) overgeslagen", meldingen)
         h.refresh_from_db()
-        self.assertIn("mededelingen van procesmanagement", h.tekst)
+        self.assertIn("plaatst procesmanagement mededelingen", h.tekst)
         self.assertEqual((h.aangepast, h.zichtbaar), (False, True))
         eigen.refresh_from_db()
         ander.refresh_from_db()
@@ -421,3 +424,122 @@ class Werkafspraken(HulpBasis):
         self.artikel_zuid.delete()
         self.noord.refresh_from_db()
         self.assertIsNone(self.noord.werkafspraken_artikel)
+
+
+# --- 1.37.0: schermafbeeldingen en schema's ----------------------------------------------------------------------
+
+
+class Beeld(HulpBasis):
+    MAP = Path(settings.BASE_DIR) / "kennisbank" / "static" / "kennisbank" / "hulp"
+
+    def genoemd(self, soort):
+        return {n for s in STANDAARD for n in re.findall(rf"\[\[{soort}:([a-z0-9-]+)", s["tekst"])}
+
+    def test_elk_genoemd_beeld_bestaat_en_elk_bestand_wordt_gebruikt(self):
+        bestanden = {p.stem for p in self.MAP.glob("*.png")}
+        self.assertEqual(self.genoemd("beeld") - bestanden, set(), "genoemd in de hulp, maar het bestand ontbreekt")
+        self.assertEqual(bestanden - self.genoemd("beeld"), set(), "bestand zonder hulpartikel dat het gebruikt")
+        self.assertGreaterEqual(len(bestanden), 25)
+
+    def test_elk_genoemd_schema_bestaat_en_elk_schema_wordt_gebruikt(self):
+        from kennisbank.hulp_inhoud import SCHEMAS
+
+        self.assertEqual(self.genoemd("schema"), set(SCHEMAS))
+        for naam, s in SCHEMAS.items():
+            self.assertGreaterEqual(len(s["stappen"]), 3, naam)
+            self.assertTrue(all(len(stap) == 3 and all(stap) for stap in s["stappen"]), naam)
+
+    def test_elk_artikel_heeft_beeld_en_staat_er_als_eigen_regel(self):
+        for s in STANDAARD:
+            regels = re.findall(r"\[\[(?:beeld|schema):[^\]]*\]\]", s["tekst"])
+            self.assertTrue(regels, s["slug"])
+            for regel in regels:
+                self.assertIn(f"<p>{regel}</p>", s["tekst"], s["slug"])
+            for bijschrift in re.findall(r"\[\[beeld:[a-z0-9-]+\|([^\]]*)\]\]", s["tekst"]):
+                self.assertGreater(len(bijschrift), 15, s["slug"])
+
+    def test_de_bestanden_zijn_klein_genoeg_voor_het_pakket(self):
+        maten = {p.name: p.stat().st_size for p in self.MAP.glob("*.png")}
+        self.assertTrue(all(p.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n" for p in self.MAP.glob("*.png")))
+        self.assertLess(max(maten.values()), 150_000, max(maten, key=maten.get))
+        self.assertLess(sum(maten.values()), 2_000_000)
+
+    def test_verrijk_maakt_van_de_regel_een_afbeelding(self):
+        uit = hulp.verrijk("<p>Voor.</p><p>[[beeld:werkplek|De werkplek &amp; de bakken]]</p><p>Na.</p>")
+        self.assertIn('<figure class="hulp-beeld">', uit)
+        self.assertIn(
+            '<img src="/static/kennisbank/hulp/werkplek.png" alt="Schermafbeelding: De werkplek &amp; de bakken"', uit
+        )
+        self.assertIn("<figcaption>De werkplek &amp; de bakken</figcaption>", uit)
+        self.assertIn('target="_blank" rel="noopener"', uit)
+        self.assertTrue(uit.startswith("<p>Voor.</p>") and uit.endswith("<p>Na.</p>"))
+        self.assertNotIn("[[", uit)
+
+    def test_verrijk_laat_een_onbekende_naam_verdwijnen_en_tekst_met_rust(self):
+        self.assertEqual(hulp.verrijk("<p>[[beeld:bestaat-niet|x]]</p><p>[[schema:bestaat-niet]]</p>"), "")
+        # Alleen een regel die op zichzelf staat telt; in een zin blijft het gewone tekst.
+        zin = "<p>Typ [[beeld:werkplek|x]] in de tekst.</p>"
+        self.assertEqual(hulp.verrijk(zin), zin)
+        self.assertEqual(hulp.verrijk("<p>[[iets:werkplek]]</p>"), "<p>[[iets:werkplek]]</p>")
+        self.assertEqual(hulp.verrijk("<p>[[beeld:../../geheim|x]]</p>"), "<p>[[beeld:../../geheim|x]]</p>")
+
+    def test_verrijk_laat_geen_opmaak_door_in_het_bijschrift(self):
+        h = Hulpartikel.objects.create(
+            slug="proef",
+            titel="Proef",
+            tekst='<p>[[beeld:werkplek|x" onload="alert(1) &lt;script&gt;alert(2)&lt;/script&gt;]]</p>',
+        )
+        uit = hulp.verrijk(h.tekst)
+        self.assertIn('<figure class="hulp-beeld">', uit)
+        self.assertNotIn("<script", uit)
+        self.assertNotIn('" onload="', uit)
+        self.assertIn("x&quot; onload=&quot;alert(1) &lt;script&gt;", uit)
+
+    def test_verrijk_maakt_van_een_schema_een_genummerde_lijst(self):
+        from kennisbank.hulp_inhoud import SCHEMAS
+
+        uit = hulp.verrijk("<p>[[schema:verbetervoorstel]]</p>")
+        self.assertIn(
+            '<figure class="hulp-schema"><figcaption>Van verbetervoorstel tot aangepast artikel</figcaption>', uit
+        )
+        self.assertEqual(uit.count("<li>"), len(SCHEMAS["verbetervoorstel"]["stappen"]))
+        self.assertIn('<span class="hulp-rol hulp-rol-medewerker">Medewerker</span>', uit)
+        self.assertIn('<strong class="hulp-stap-kop">Voorstel indienen</strong>', uit)
+        self.assertIn('<p class="hulp-noot">', uit)
+        self.assertLess(uit.index("Voorstel indienen"), uit.index("Werkvoorraad"))
+
+    def test_de_hulppagina_toont_beeld_en_schema(self):
+        html = self.hulp(self.lies, "/hulp/verbetervoorstel/")[1]
+        self.assertIn('<ol class="hulp-stroom">', html)
+        self.assertIn('src="/static/kennisbank/hulp/voorstel-indienen.png"', html)
+        self.assertNotIn("[[", html)
+        self.assertNotIn("[[", self.hulp(self.baas, "/hulp/hulp-aanpassen/")[1])
+
+    def test_de_regel_overleeft_opslaan_in_het_beheer(self):
+        h = Hulpartikel.objects.get(slug="nieuws")
+        self.als(self.baas).post(
+            f"{LIJST}{h.pk}/change/",
+            {
+                "titel": h.titel,
+                "tekst": h.tekst + "<p>Extra.</p>",
+                "doelgroep": h.doelgroep,
+                "volgorde": h.volgorde,
+                "slug": h.slug,
+                "zichtbaar": "on",
+            },
+        )
+        h.refresh_from_db()
+        self.assertIn("<p>[[beeld:nieuws|", h.tekst)
+        self.assertIn('src="/static/kennisbank/hulp/nieuws.png"', self.hulp(self.lies, "/hulp/nieuws/")[1])
+
+
+class AltijdNederlands(HulpBasis):
+    """Het beheer volgde de taal van de browser: bij een Engelstalige browser stond er "Add" en "Change" tussen de
+    Nederlandse teksten. Sinds 1.37.0 is Nederlands de enige taal."""
+
+    def test_beheer_is_nederlands_ook_bij_een_engelstalige_browser(self):
+        for taal in ("en-US,en;q=0.9", "nl-NL", "de"):
+            html = self.als(self.baas).get(LIJST, HTTP_ACCEPT_LANGUAGE=taal).content.decode()
+            self.assertIn("Selecteer hulpartikel om te wijzigen", html, taal)
+            self.assertNotIn("Select hulpartikel to change", html, taal)
+            self.assertIn('<html lang="nl', html, taal)

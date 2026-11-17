@@ -76,3 +76,16 @@ nieuwe versie van axe-core kan nieuwe regels meten en dus nieuwe overtredingen v
 - Een echte schermlezer. Daarvoor is `docs/nvda-testscript.md`, een handmatige test.
 - Firefox en Safari. De tests draaien in Chromium, de basis van Edge.
 - Inloggen via Entra ID; de tests gebruiken de demo-accounts.
+
+## Schermafbeeldingen voor de hulp
+
+`hulpbeelden.sh` maakt de schermafbeeldingen die in de hulpartikelen staan (`kennisbank/static/kennisbank/hulp/`).
+Het start dezelfde testserver met `--voor-hulp`: dezelfde vaste gegevens, maar met gewone titels en zonder de
+45 vulartikelen. `hulpbeelden.js` loopt de schermen af en bewaart elk beeld onder een vaste naam; daarna
+worden de bestanden verkleind (Pillow).
+
+    KB_CHROME=/usr/bin/google-chrome scripts/browsertests/hulpbeelden.sh
+
+Draai dit als een scherm is veranderd dat in de hulp staat, en leg de gewijzigde bestanden vast. Een nieuw
+beeld: een regel `beeld("naam", …)` in `hulpbeelden.js` en `[[beeld:naam|bijschrift]]` in
+`kennisbank/hulp_inhoud.py`. Een test bewaakt dat die twee bij elkaar passen.
