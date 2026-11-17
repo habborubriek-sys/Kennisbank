@@ -416,7 +416,6 @@
        <div class="toolbar">
         <button class="tb" type="button" id="favBtn" aria-pressed="${favs.has(a.id)}">${favs.has(a.id) ? "★ Favoriet" : "☆ Favoriet"}</button>
         <button class="tb" type="button" id="shareBtn">⤴ Delen</button>
-        <button class="tb" type="button" id="printBtn">🖨 Afdrukken of opslaan als PDF</button>
         ${EMBED ? `<a class="tb" href="${esc(a.url)}" target="_blank" rel="noopener">↗ Open in kennisbank</a>` : ""}
         ${a.bewerk_url && a.bewerk_concept ? '<button class="tb primary" type="button" id="bewerkBtn" aria-haspopup="dialog">Bewerken</button>'
           : a.bewerk_url ? `<a class="tb primary" href="${esc(a.bewerk_url)}" ${EMBED ? 'target="_blank" rel="noopener"' : ""}>Bewerken</a>` : ""}
@@ -742,18 +741,6 @@
       const klaar = () => toast("Link gekopieerd");
       if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(klaar).catch(() => toast("Link: " + url));
       else toast("Link: " + url);
-    });
-    // Afdrukken: alle secties open, een regel met versie en afdrukdatum erbij, en daarna het
-    // printvenster van de browser. Daar kiest de medewerker zelf "Opslaan als PDF"; we hebben dus geen
-    // PDF-bouwer op de server nodig, en de afdruk komt altijd uit de tekst van nu.
-    $("#printBtn").addEventListener("click", () => {
-      document.querySelectorAll("#artikel details.sec").forEach((d) => { d.open = true; });
-      const regel = document.getElementById("printregel") || document.createElement("p");
-      regel.id = "printregel"; regel.className = "printregel";
-      regel.textContent = `${a.titel} · versie ${a.versie} · afgedrukt op ${datum(new Date().toISOString())} · ${location.origin + a.url}`;
-      const art = document.getElementById("artikel");
-      if (art && regel.parentNode !== art) art.appendChild(regel);
-      window.print();
     });
     $("#propBtn").addEventListener("click", () => openProp(""));
     $$("[data-oordeel]").forEach((b) => b.addEventListener("click", () => geefOordeel(a, b.dataset.oordeel)));

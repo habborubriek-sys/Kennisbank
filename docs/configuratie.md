@@ -16,6 +16,7 @@ Alle instellingen zijn omgevingsvariabelen. Elke variabele kan ook uit een besta
 | `KB_TIJDZONE` | `Europe/Amsterdam` | |
 | `KB_DEBUG` | `nee` | **Nooit aan in productie.** |
 | `KB_DEMO_MODUS` | `nee` | Laadt voorbeeldinhoud en demo-accounts met een bekend wachtwoord, en zet de demopagina van het zaaksysteem aan. **Alleen voor test en demo.** |
+| `KB_DEMO_WACHTWOORD` | leeg (= `demo`) | Het wachtwoord van de demo-accounts (1.37.1). **Zet dit als de demo via internet bereikbaar is**: het account `beheerder` kan alles, ook API-tokens bekijken en maken. De accounts krijgen dit wachtwoord bij elke start. |
 
 ## Inloggen
 

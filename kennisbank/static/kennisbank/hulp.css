@@ -1,7 +1,11 @@
 /* De pagina Hulp (1.36.0): links het menu met hulpartikelen, rechts het artikel. Bouwt op app.css. */
 .hulp-pagina .top{display:flex;align-items:center;gap:16px}
+/* 1.37.1: de site zet de pagina op precies één schermhoogte (de lijst scrolt daar binnen een vak). Een lang
+   hulpartikel scrolt de hele pagina; zonder dit hield de bovenbalk na één schermhoogte op met meelopen. */
+html:has(.hulp-pagina),.hulp-pagina{height:auto;min-height:100%;overflow:visible}
+.hulp-pagina{display:block}
 .hulp-raam{display:grid;grid-template-columns:280px minmax(0,1fr);gap:28px;max-width:1340px;margin:0 auto;padding:24px 20px 60px;align-items:start}
-.hulp-menu{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px 10px 12px}
+.hulp-menu{position:sticky;top:80px;max-height:calc(100vh - 156px);overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px 10px 12px}
 .hulp-menukop{font-family:inherit;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-muted);margin:14px 8px 4px}
 .hulp-menu ul{list-style:none;margin:0;padding:0}
 .hulp-menu a{display:block;padding:7px 8px;border-radius:6px;color:var(--fg);text-decoration:none;line-height:1.3}

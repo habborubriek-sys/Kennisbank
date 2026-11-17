@@ -90,6 +90,20 @@ def _versie_en_modus():
                 "echte inhoud erin staat.",
             )
         )
+        # 1.37.1: een demo die via internet bereikbaar is met het standaardwachtwoord, staat voor iedereen open.
+        from django.contrib.auth import get_user_model
+
+        beheerder = get_user_model().objects.filter(username="beheerder", is_superuser=True).first()
+        if beheerder is not None and beheerder.check_password("demo"):
+            rijen.append(
+                _regel(
+                    "Wachtwoord van de demo-accounts",
+                    FOUT if not settings.DEBUG else LET_OP,
+                    "het standaardwachtwoord",
+                    "Iedereen die het adres kent, kan inloggen als beheerder en ziet dan alles, ook de API-tokens. "
+                    "Is deze demo via internet bereikbaar, zet dan KB_DEMO_WACHTWOORD en herstart.",
+                )
+            )
     if not settings.KB_CONTACT:
         rijen.append(
             _regel(

@@ -53,12 +53,18 @@ class Command(BaseCommand):
     help = "Laad voorbeeldinhoud en maak demo-accounts aan (medewerker, redacteur, beheerder)."
 
     def add_arguments(self, parser):
-        parser.add_argument("--wachtwoord", default=None, help="Wachtwoord voor de demo-accounts (standaard: demo)")
+        parser.add_argument(
+            "--wachtwoord",
+            default=None,
+            help="Wachtwoord voor de demo-accounts (standaard: KB_DEMO_WACHTWOORD, en anders: demo)",
+        )
 
     def handle(self, wachtwoord=None, **opties):
         if not settings.KB_DEMO_MODUS:
             raise CommandError("Alleen beschikbaar met KB_DEMO_MODUS=aan.")
-        wachtwoord = wachtwoord or "demo"
+        # 1.37.1: een demo die via internet bereikbaar is, hoort geen wachtwoord te hebben dat iedereen raadt.
+        opgegeven = wachtwoord or settings.KB_DEMO_WACHTWOORD
+        wachtwoord = opgegeven or "demo"
         if Artikel.objects.exists():
             self.stdout.write("Er staan al artikelen in de database; voorbeeldinhoud wordt niet opnieuw geladen.")
         else:
@@ -90,6 +96,11 @@ class Command(BaseCommand):
                 u.set_password(wachtwoord)
                 u.is_superuser = superuser
                 u.save()
+            elif opgegeven and not u.check_password(wachtwoord):
+                # Een opgegeven wachtwoord geldt ook voor accounts die er al waren: zo is een demo die al draait
+                # met één instelling en een herstart dicht te zetten. Zonder opgave blijft een account met rust.
+                u.set_password(wachtwoord)
+                u.save(update_fields=["password"])
             if groep:
                 u.groups.add(groep)
             werk_staf_status_bij(u)

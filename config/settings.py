@@ -37,6 +37,8 @@ KB_APP_NAAM = env("KB_APP_NAAM", "Kennisbank")
 # een naam. Wordt getoond in de zijbalk en op het scherm voor wie nog geen toegang heeft.
 KB_CONTACT = env("KB_CONTACT", "")
 KB_DEMO_MODUS = env_bool("KB_DEMO_MODUS", False)
+# Wachtwoord van de demo-accounts. Leeg = "demo". Zet dit als de demo via internet bereikbaar is.
+KB_DEMO_WACHTWOORD = env("KB_DEMO_WACHTWOORD", "")
 
 INSTALLED_APPS = [
     "django.contrib.admin",

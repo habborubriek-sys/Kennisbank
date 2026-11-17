@@ -1,5 +1,16 @@
 # Wijzigingen
 
+## 1.37.1 – 2026-11-17
+
+Drie meldingen van Alex bij het proberen van 1.37.0 op de demoserver.
+
+- **Hersteld: in een lang hulpartikel verdween de bovenbalk na één schermhoogte scrollen.** De balk loopt nu mee tot het eind, en het menu links blijft eronder staan in plaats van erachter te schuiven.
+- **De bovenbalk is overal even hoog.** Op de site was hij 60 px met knoppen van 36 px, op de andere pagina's 52 px met knoppen van 32 px. Nu overal 60 en 36.
+- **Een eigen wachtwoord voor de demo-accounts: `KB_DEMO_WACHTWOORD`.** Een demo die via internet bereikbaar is, stond met het wachtwoord `demo` voor iedereen open, ook het account `beheerder` (dat alles kan, waaronder API-tokens bekijken en maken). Met de instelling krijgen de demo-accounts een eigen wachtwoord, ook de accounts die er al waren; zonder instelling verandert er niets. De statuspagina meldt het als fout zolang een server met demo-modus het standaardwachtwoord heeft (op een ontwikkelcomputer als aandachtspunt).
+- **De knop *Afdrukken of opslaan als PDF* is uit het artikel gehaald** (verzoek Alex). Afdrukken kan nog met Ctrl+P van de browser; de nette afdrukopmaak is gebleven, alleen de regel met versie en afdrukdatum onderaan vervalt.
+- De API-documentatie is niet gewijzigd: die toont geen tokens en was al alleen na inloggen te zien.
+- 8 nieuwe tests (902 in totaal); 8 van de 8 mutaties betrapt. `rook.js` 180 controles, waaronder de balk die blijft staan, de gelijke hoogte en het artikel zonder afdrukknop. De schermafbeeldingen van de hulp zijn opnieuw gemaakt. Geen migratie.
+
 ## 1.37.0 – 2026-11-17
 
 De hulpartikelen als werkinstructie, met schermafbeeldingen en schema's (bouwlijst `bouwlijst-1.37.0-hulp-vorm-en-beeld.md`). Reactie van Alex op 1.36.0: de artikelen waren te beknopt en te informeel, en er hoorde beeld bij. Zijn maatstaf: wie alle artikelen van zijn rol heeft gelezen, begrijpt de functies van de kennisbank.

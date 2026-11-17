@@ -21,7 +21,7 @@ services:
 
   app:
     build: .
-    image: kennisbank:1.37.0
+    image: kennisbank:1.37.1
     depends_on:
       db:
         condition: service_healthy
@@ -35,6 +35,7 @@ services:
       KB_BASIS_URL: ${KB_BASIS_URL:-http://localhost:8000}
       KB_AUTH_MODUS: ${KB_AUTH_MODUS:-lokaal}
       KB_DEMO_MODUS: ${KB_DEMO_MODUS:-aan}
+      KB_DEMO_WACHTWOORD: ${KB_DEMO_WACHTWOORD:-}
       KB_COOKIES_SECURE: ${KB_COOKIES_SECURE:-nee}   # alleen omdat de demo over http draait
       KB_AI_PROVIDER: ${KB_AI_PROVIDER:-uit}
       KB_AI_BASE_URL: ${KB_AI_BASE_URL:-}

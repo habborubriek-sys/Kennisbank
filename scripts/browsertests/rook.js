@@ -87,6 +87,9 @@ async function typInAlinea(p, bevat, tekst) {
     await med.goto(B + `/artikel/${o.rustig.artikel}/${o.rustig.slug}`);
     await med.locator("#oordeel [data-oordeel='nee']").waitFor();
     ok(/Was dit artikel nuttig\?/.test(await tekstVan(med.locator("#oordeel"))), "de vraag staat onder het artikel");
+    // 1.37.1 (verzoek Alex): geen afdrukknop meer; Favoriet en Delen staan er nog.
+    const knoppen = (await med.locator("#artikel .toolbar .tb").allTextContents()).join(" | ");
+    ok(/Favoriet/.test(knoppen) && /Delen/.test(knoppen) && !/fdrukken|PDF/.test(knoppen), "het artikel heeft Favoriet en Delen, en geen afdrukknop", knoppen);
     await med.locator("#oordeel [data-oordeel='nee']").focus(); await med.keyboard.press("Enter");
     await med.locator("#oordeelProp").waitFor();
     ok(/Bedankt.*Wat mis je\?/.test(await tekstVan(med.locator("#oordeel"))), "bij Nee: bedankt, en de vraag wat je mist", await tekstVan(med.locator("#oordeel")));
@@ -537,6 +540,13 @@ async function typInAlinea(p, bevat, tekst) {
     await red.goto(B + "/hulp/");
     ok((await balk(red)) === "Kennisbank Werkplek Hulp*", "hulp: dezelfde volgorde, Hulp aan", await balk(red));
     ok((await balk(med)) === "Kennisbank* Hulp", "medewerker: zonder Werkplek, de rest op dezelfde plaats", await balk(med));
+    // 1.37.1 (melding Alex): de balk is overal even hoog, met even grote knoppen.
+    const maat = async (p, pad) => { await p.goto(B + pad); await p.locator("header a.tb", { hasText: /^Hulp$/ }).waitFor();
+      return p.evaluate(() => { const h = document.querySelector("header"); const k = [...h.querySelectorAll("a.tb")].find((e) => e.textContent.trim() === "Hulp");
+        return Math.round(h.getBoundingClientRect().height) + "/" + Math.round(k.getBoundingClientRect().height) + "/" + getComputedStyle(k).fontSize; }); };
+    const maten = {};
+    for (const pad of ["/", "/hulp/", "/beheer/", "/beheer/kennisbank/synoniem/"]) maten[pad] = await maat(red, pad);
+    ok(new Set(Object.values(maten)).size === 1, "de bovenbalk en de knoppen zijn op de site, in de hulp en in het beheer even groot", JSON.stringify(maten));
     const lijn = await med.locator("#lnkHulp").evaluate((e) => getComputedStyle(e).textDecorationLine);
     ok(lijn === "none", "de knop Hulp is niet onderstreept, net als de knoppen ernaast", lijn);
     await Promise.all([med.waitForNavigation(), med.locator("#lnkHulp").click()]);
@@ -548,6 +558,14 @@ async function typInAlinea(p, bevat, tekst) {
     ok(/^Schermafbeelding: .{15,}/.test(await med.locator(".hulp-beeld img").first().getAttribute("alt")), "de schermafbeelding heeft een beschrijving");
     ok((await med.locator(".hulp-schema .hulp-stroom > li").count()) === 4, "het schema Wie doet wat heeft vier stappen");
     ok(!/\[\[/.test(await tekstVan(med.locator("main"))), "er staat geen losse verwijzing naar een beeld in de tekst");
+    // 1.37.1 (melding Alex): in een lang artikel blijven de bovenbalk en het menu in beeld.
+    await med.setViewportSize({ width: 1280, height: 700 }); await med.goto(B + "/hulp/zoeken-en-lezen/");
+    await med.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await med.waitForTimeout(300);
+    const plek = await med.evaluate(() => { const r = (q) => document.querySelector(q).getBoundingClientRect(); return { y: Math.round(scrollY), balk: Math.round(r("header").top), balkOnder: Math.round(r("header").bottom), menu: Math.round(r(".hulp-menu").top) }; });
+    ok(plek.y > 900, "het artikel is langer dan het scherm", JSON.stringify(plek));
+    ok(plek.balk === 0, "onderaan het artikel staat de bovenbalk nog in beeld", JSON.stringify(plek));
+    ok(plek.menu >= plek.balkOnder, "het menu staat onder de bovenbalk, niet erachter", JSON.stringify(plek));
+    await med.setViewportSize({ width: 1440, height: 900 });
     ok((await koppen(med)) === "medewerker", "medewerker ziet alleen het hoofdstuk Medewerker", await koppen(med));
     await med.locator(".hulp-menu a", { hasText: "Een verbetervoorstel indienen" }).focus();
     await Promise.all([med.waitForNavigation(), med.keyboard.press("Enter")]);
