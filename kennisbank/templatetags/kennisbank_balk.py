@@ -1,7 +1,8 @@
 """De bovenbalk die de kennisbank, de reviewpagina's en het beheer delen (1.25.0).
 
-Zelfde blauwe balk, logo en knoppen als de site (app.html), zodat je overal hetzelfde ziet: Review, Werkplek,
-Naar de kennisbank, je naam en Uitloggen. De knop van de pagina waar je bent, staat "aan".
+Zelfde blauwe balk, logo en knoppen als de site (app.html), zodat je overal hetzelfde ziet: Kennisbank,
+Review, Werkplek, Hulp, je naam en Uitloggen, overal in die volgorde. De knop van de pagina waar je bent,
+staat "aan".
 """
 
 from django import template
@@ -21,11 +22,14 @@ def bovenbalk(context, actief="", titel=""):
     ingelogd = bool(gebruiker and gebruiker.is_authenticated)
     knoppen = []
     if ingelogd:
+        # 1.36.2 (wens Alex): overal dezelfde volgorde. Eerst de plekken (Kennisbank, Review, Werkplek), dan
+        # Hulp. Een knop die niet voor jou is, ontbreekt; de rest schuift daardoor niet van plaats. De site
+        # (app.html) houdt dezelfde volgorde aan; de test `test_bovenbalk_1362` bewaakt dat.
+        knoppen.append({"naam": "kennisbank", "tekst": "Kennisbank", "url": "/"})
         if review.is_reviewer(gebruiker):
             knoppen.append({"naam": "review", "tekst": "Review", "url": "/review/"})
         if gebruiker.is_staff:
             knoppen.append({"naam": "werkplek", "tekst": "Werkplek", "url": "/beheer/"})
-        knoppen.append({"naam": "kennisbank", "tekst": "Naar de kennisbank", "url": "/"})
         # 1.36.0: Hulp opent bij het hoofdstuk dat past bij waar je bent. Vanaf de hulppagina zelf zonder herkomst.
         bij = {"review": "review", "werkplek": "werkplek"}.get(actief, "")
         if bij == "werkplek" and alleen_beheerder(gebruiker):

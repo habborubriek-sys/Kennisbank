@@ -44,7 +44,7 @@ class Bovenbalk(ReviewBasis):
         self.assertNotIn("<h1>Ter inzage</h1>", html)
         self.assertIn('class="top kb-top"', html)
         self.assertRegex(html, r'<a class="tb on-accent" href="/review/" aria-current="page">Review</a>')
-        self.assertIn("Naar de kennisbank", html)
+        self.assertIn('<a class="tb on-accent" href="/">Kennisbank</a>', html)
         self.assertIn(">Uitloggen</button>", html)
         # Wim is geen redacteur: geen knop Werkplek.
         self.assertNotIn(">Werkplek</a>", html)

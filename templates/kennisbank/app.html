@@ -24,9 +24,11 @@
     <button class="tb side-toggle on-accent" id="sideToggle" type="button" aria-controls="side" aria-expanded="false">Menu</button>
     <button class="toggle" id="onbToggle" type="button" aria-pressed="false" title="Toon extra uitleg voor nieuwe collega's"><span class="sw" aria-hidden="true"></span>Onboarding</button>
     <button class="tb on-accent kb-thema" type="button" data-kb-thema aria-pressed="false" hidden><span class="kb-thema-icoon" aria-hidden="true">☾</span>Donker</button>
-    <a class="tb on-accent" id="lnkHulp" href="/hulp/?bij=kennisbank">Hulp</a>
+    {# 1.36.2: dezelfde knoppen in dezelfde volgorde als de bovenbalk van review, hulp en beheer (kennisbank_balk.py). #}
+    <a class="tb on-accent" id="lnkKennisbank" href="/" aria-current="page">Kennisbank</a>
     <a class="tb on-accent werkplek-link" id="lnkReview" href="/review/" hidden>Review</a>
     <a class="tb on-accent werkplek-link" id="lnkWerkplek" href="/beheer/" hidden>Werkplek</a>
+    <a class="tb on-accent" id="lnkHulp" href="/hulp/?bij=kennisbank">Hulp</a>
     <span class="user" id="user"></span>
   </div>
 </header>

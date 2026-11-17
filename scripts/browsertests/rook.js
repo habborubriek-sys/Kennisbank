@@ -528,6 +528,15 @@ async function typInAlinea(p, bevat, tekst) {
   const koppen = (p) => p.locator(".hulp-menukop").allInnerTexts().then((l) => l.map((t) => t.toLowerCase()).join("|"));
   await stap("hulp: de knop en de artikelen per rol", med, async () => {
     await med.goto(B + "/"); await med.locator("#lnkHulp").waitFor();
+    // 1.36.2: de knoppen staan op de site in dezelfde volgorde als in het beheer, met de eigen plek aan.
+    const balk = (p) => p.locator(".topbtns a.tb").evaluateAll((l) => l.filter((e) => e.offsetParent !== null).map((e) => e.textContent.trim() + (e.getAttribute("aria-current") ? "*" : "")).join(" "));
+    await red.goto(B + "/"); await red.locator("#lnkWerkplek:not([hidden])").waitFor();
+    ok((await balk(red)) === "Kennisbank* Werkplek Hulp", "site: Kennisbank (aan), Werkplek, Hulp", await balk(red));
+    await red.goto(B + "/beheer/");
+    ok((await balk(red)) === "Kennisbank Werkplek* Hulp", "beheer: dezelfde volgorde, Werkplek aan", await balk(red));
+    await red.goto(B + "/hulp/");
+    ok((await balk(red)) === "Kennisbank Werkplek Hulp*", "hulp: dezelfde volgorde, Hulp aan", await balk(red));
+    ok((await balk(med)) === "Kennisbank* Hulp", "medewerker: zonder Werkplek, de rest op dezelfde plaats", await balk(med));
     const lijn = await med.locator("#lnkHulp").evaluate((e) => getComputedStyle(e).textDecorationLine);
     ok(lijn === "none", "de knop Hulp is niet onderstreept, net als de knoppen ernaast", lijn);
     await Promise.all([med.waitForNavigation(), med.locator("#lnkHulp").click()]);

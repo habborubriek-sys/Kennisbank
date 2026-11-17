@@ -300,6 +300,8 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .user a{color:inherit}
 .topbtns .tb.on-accent{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.35);color:inherit}
 .topbtns .tb.on-accent:hover{background:rgba(255,255,255,.22);color:inherit;border-color:#fff}
+/* 1.36.2: de knop van de plek waar je bent licht op, zoals in de bovenbalk van review, hulp en beheer. */
+.topbtns .tb.on-accent[aria-current="page"],.topbtns .tb.on-accent[aria-current="page"]:hover{background:var(--accent-fg);color:var(--accent);border-color:var(--accent-fg);font-weight:600}
 .side .meer{font-size:.82rem;color:var(--fg-muted);margin-top:auto;border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:2px}
 .side .meer a{display:block;padding:6px 8px;border-radius:6px;color:var(--fg);text-decoration:none}
 .side .meer a:hover{background:var(--surface-2)}

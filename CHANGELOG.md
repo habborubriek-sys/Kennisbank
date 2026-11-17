@@ -1,5 +1,14 @@
 # Wijzigingen
 
+## 1.36.2 – 2026-11-17
+
+Wens van Alex: de knoppen in de bovenbalk stonden niet overal op dezelfde plek (Hulp op de site vooraan, elders achteraan).
+
+- **Overal dezelfde volgorde:** *Kennisbank · Review · Werkplek · Hulp*, met ervoor de weergave (Onboarding en Donker, waar die er zijn) en erachter je naam en Uitloggen.
+- **De plek waar je bent licht op.** Op de site staat daarom nu ook de knop *Kennisbank*, aan. Een knop die niet voor jou is, ontbreekt; de rest blijft op zijn plaats.
+- *Naar de kennisbank* heet in de balk nu **Kennisbank**, zoals *Review* en *Werkplek*. Op foutpagina's blijft de link *Naar de kennisbank* heten: daar is het een opdracht, geen menu.
+- 5 nieuwe tests (883 in totaal) die de balk van de site en die van de andere pagina's gelijk houden; 5 van de 5 mutaties betrapt. `rook.js` 171 controles. Geen migratie.
+
 ## 1.36.1 – 2026-11-17
 
 - **Hersteld (melding Alex):** de knop *Hulp* in de bovenbalk van de site was onderstreept, anders dan de knoppen ernaast. Elke knop in die balk die een link is, ziet er nu uit als de rest.
