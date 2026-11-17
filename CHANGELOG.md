@@ -1,5 +1,11 @@
 # Wijzigingen
 
+## 1.36.1 – 2026-11-17
+
+- **Hersteld (melding Alex):** de knop *Hulp* in de bovenbalk van de site was onderstreept, anders dan de knoppen ernaast. Elke knop in die balk die een link is, ziet er nu uit als de rest.
+- **Hersteld:** de link *Alle berichten* in het blok "Nieuw sinds je laatste bezoek" brak op een telefoon over twee regels.
+- Eén controle erbij in `rook.js` (167). Geen migratie.
+
 ## 1.36.0 – 2026-11-17
 
 Hulp per rol (bouwlijst `bouwlijst-1.36.0-hulp.md`). Tot nu toe stond de uitleg voor gebruikers alleen in `docs/functioneel-beheer.md`, een naslagwerk in de repository waar een redacteur niet komt; voor medewerkers en reviewers was er niets.

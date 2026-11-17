@@ -528,6 +528,8 @@ async function typInAlinea(p, bevat, tekst) {
   const koppen = (p) => p.locator(".hulp-menukop").allInnerTexts().then((l) => l.map((t) => t.toLowerCase()).join("|"));
   await stap("hulp: de knop en de artikelen per rol", med, async () => {
     await med.goto(B + "/"); await med.locator("#lnkHulp").waitFor();
+    const lijn = await med.locator("#lnkHulp").evaluate((e) => getComputedStyle(e).textDecorationLine);
+    ok(lijn === "none", "de knop Hulp is niet onderstreept, net als de knoppen ernaast", lijn);
     await Promise.all([med.waitForNavigation(), med.locator("#lnkHulp").click()]);
     ok((await tekstVan(med.locator("main h1"))) === "Zoeken en lezen", "medewerker: Hulp op de site opent Zoeken en lezen", await tekstVan(med.locator("main h1")));
     ok((await koppen(med)) === "medewerker", "medewerker ziet alleen het hoofdstuk Medewerker", await koppen(med));
