@@ -49,9 +49,21 @@ const { B, OPZET: o, meet, stap } = g;
     await st.context().close();
   }
 
+  for (const schema of ["light", "dark"]) {
+    const naam = schema === "light" ? "licht" : "donker";
+    const h = await sessie("redacteur", schema);
+    await stap(`hulp (${naam})`, h, async () => {
+      await h.goto(B + "/hulp/"); await h.locator("main h1").waitFor(); await meet(h, `${naam}: hulppagina`);
+      await h.setViewportSize({ width: 390, height: 800 }); await h.goto(B + "/hulp/publiceren/"); await h.locator("main h1").waitFor(); await meet(h, `${naam}: hulppagina op een smal scherm`);
+    });
+    await h.context().close();
+  }
+
   const b = await sessie("beheerder", "light");
   await stap("beheer: startpagina van de functioneel beheerder", b, async () => {
     await b.goto(B + "/beheer/"); await b.locator(".kb-beheer-seintje").first().waitFor(); await meet(b, "Alle onderdelen als startpagina van de beheerder");
+    await b.goto(B + "/beheer/kennisbank/hulpartikel/"); await b.waitForTimeout(400); await meet(b, "lijst met hulpartikelen");
+    await b.locator("#result_list .field-titel a").first().click(); await b.locator(".ProseMirror").waitFor(); await b.waitForTimeout(500); await meet(b, "bewerkscherm van een hulpartikel");
   });
   await b.context().close();
 

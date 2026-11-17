@@ -9,6 +9,7 @@ from django.conf import settings
 
 from kennisbank import review
 from kennisbank.diensten import naam_van
+from kennisbank.werkoverzicht import alleen_beheerder
 
 register = template.Library()
 
@@ -25,6 +26,11 @@ def bovenbalk(context, actief="", titel=""):
         if gebruiker.is_staff:
             knoppen.append({"naam": "werkplek", "tekst": "Werkplek", "url": "/beheer/"})
         knoppen.append({"naam": "kennisbank", "tekst": "Naar de kennisbank", "url": "/"})
+        # 1.36.0: Hulp opent bij het hoofdstuk dat past bij waar je bent. Vanaf de hulppagina zelf zonder herkomst.
+        bij = {"review": "review", "werkplek": "werkplek"}.get(actief, "")
+        if bij == "werkplek" and alleen_beheerder(gebruiker):
+            bij = "beheer"
+        knoppen.append({"naam": "hulp", "tekst": "Hulp", "url": "/hulp/" + (f"?bij={bij}" if bij else "")})
     for k in knoppen:
         k["actief"] = k["naam"] == actief
     return {
@@ -37,4 +43,5 @@ def bovenbalk(context, actief="", titel=""):
         "csrf_token": context.get("csrf_token"),
         # 1.28.0: de knop Licht/Donker staat op de site en de reviewpagina's, niet in het beheer (altijd licht).
         "thema": actief != "werkplek",
+
     }

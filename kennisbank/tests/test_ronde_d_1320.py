@@ -107,7 +107,7 @@ class GeenInlineInSjablonen(SimpleTestCase):
         js = (WORTEL / "kennisbank/static/kennisbank/artikel-editor.js").read_text(encoding="utf-8")
         self.assertIn("injectCSS: false", js)
         admin_py = (WORTEL / "kennisbank/admin.py").read_text(encoding="utf-8")
-        self.assertEqual(admin_py.count("vendor/tiptap/tiptap.css"), 2, "artikelen en nieuwsberichten")
+        self.assertEqual(admin_py.count("vendor/tiptap/tiptap.css"), 3, "artikelen, nieuwsberichten en hulpartikelen")
 
     def test_d2_de_basisstijl_van_tiptap_hoort_bij_de_versie_van_de_bundel(self):
         versie = json.loads((VENDOR / "componenten.json").read_text())["componenten"][0]["versie"]

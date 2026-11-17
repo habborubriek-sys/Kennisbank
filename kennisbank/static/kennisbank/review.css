@@ -226,3 +226,6 @@ dialog.rv-lees::backdrop{background:rgba(15,27,45,.55)}
 .rv-lees iframe{flex:1;border:none;background:#f3f5f8;border-radius:0 0 10px 10px;width:100%}
 .rv-voorstellen .rv-link{color:#154273}
 .rv-fout{color:var(--crit);font-size:.85rem;margin:6px 0 0}
+
+/* 1.36.0: Hulp in de balk van een stuk is een link, geen knop. */
+a.rv-bk{text-decoration:none;display:inline-block}

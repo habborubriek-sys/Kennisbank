@@ -4,7 +4,7 @@ from django.contrib.auth.views import LogoutView
 from django.urls import include, path, re_path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView
 
-from kennisbank import api, behandelen, lade, reviewweergave, views, werkoverzicht
+from kennisbank import api, behandelen, hulp, lade, reviewweergave, views, werkoverzicht
 
 admin.site.site_header = f"{settings.KB_APP_NAAM} – beheer"
 admin.site.site_title = f"{settings.KB_APP_NAAM} – beheer"
@@ -72,6 +72,9 @@ urlpatterns = [
     path("review/", reviewweergave.lijst, name="review-lijst"),
     path("review/<int:pk>/", reviewweergave.stuk, name="review-stuk"),
     path("review/<int:pk>/voorbeeld/", reviewweergave.voorbeeld, name="review-voorbeeld"),
+    # Hulp (1.36.0): uitleg per rol, los van de kennisartikelen.
+    path("hulp/", hulp.pagina, name="hulp"),
+    path("hulp/<slug:slug>/", hulp.pagina, name="hulp-artikel"),
     path("login-voltooid/", views.login_voltooid, name="login-voltooid"),
     path("demo/zaaksysteem/", views.demo_zaaksysteem, name="demo-zaaksysteem"),
     path("zaaktype/<str:code>", views.ingebed, name="ingebed"),

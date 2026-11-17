@@ -524,6 +524,56 @@ async function typInAlinea(p, bevat, tekst) {
 
   // --- 5. Elk beheerscherm laadt, zonder scriptfout of CSP-melding ---------------------------------------
   const beh = await g.sessie(browser, "beheerder");
+  // --- Hulp per rol (1.36.0) ------------------------------------------------------------------------------
+  const koppen = (p) => p.locator(".hulp-menukop").allInnerTexts().then((l) => l.map((t) => t.toLowerCase()).join("|"));
+  await stap("hulp: de knop en de artikelen per rol", med, async () => {
+    await med.goto(B + "/"); await med.locator("#lnkHulp").waitFor();
+    await Promise.all([med.waitForNavigation(), med.locator("#lnkHulp").click()]);
+    ok((await tekstVan(med.locator("main h1"))) === "Zoeken en lezen", "medewerker: Hulp op de site opent Zoeken en lezen", await tekstVan(med.locator("main h1")));
+    ok((await koppen(med)) === "medewerker", "medewerker ziet alleen het hoofdstuk Medewerker", await koppen(med));
+    await med.locator(".hulp-menu a", { hasText: "Een verbetervoorstel indienen" }).focus();
+    await Promise.all([med.waitForNavigation(), med.keyboard.press("Enter")]);
+    ok((await tekstVan(med.locator("main h1"))) === "Een verbetervoorstel indienen", "met het toetsenbord naar een ander artikel");
+    ok((await med.locator(".hulp-menu a[aria-current='page']").innerText()) === "Een verbetervoorstel indienen", "het menu wijst het gekozen artikel aan");
+    const r = await med.context().request.get(B + "/hulp/publiceren/");  // niet openen: met DEBUG heeft de foutpagina van Django eigen stijlen
+    ok(r.status() === 404, "een artikel voor redacteuren bestaat voor de medewerker niet", String(r.status()));
+
+    await red.goto(B + "/beheer/");
+    await Promise.all([red.waitForNavigation(), red.locator(".kb-top a", { hasText: /^Hulp$/ }).click()]);
+    ok((await tekstVan(red.locator("main h1"))) === "De werkplek en de bakken", "redacteur: Hulp in het beheer opent het hoofdstuk voor redacteuren", await tekstVan(red.locator("main h1")));
+    ok((await koppen(red)) === "redacteur|reviewer|medewerker", "redacteur ziet drie hoofdstukken, het eigen bovenaan", await koppen(red));
+    ok(!(await red.locator(".hulp-bewerk").count()), "de redacteur kan de hulp niet aanpassen");
+    await red.goto(B + `/beheer/kennisbank/artikel/${o.rustig.artikel}/change/`);
+    const link = red.locator("a.kb-bk-hulp");
+    ok((await link.getAttribute("target")) === "_blank" && /bij=werkplek/.test(await link.getAttribute("href")), "in het bewerkscherm opent Hulp in een nieuw tabblad");
+  });
+
+  await stap("hulp: de beheerder past een hulpartikel aan", beh, async () => {
+    await beh.goto(B + "/beheer/");
+    await Promise.all([beh.waitForNavigation(), beh.locator(".kb-top a", { hasText: /^Hulp$/ }).click()]);
+    ok((await koppen(beh)) === "functioneel beheerder|redacteur|reviewer|medewerker", "beheerder ziet alle vier de hoofdstukken", await koppen(beh));
+    await beh.goto(B + "/hulp/assistent/");
+    await Promise.all([beh.waitForNavigation(), beh.locator(".hulp-bewerk a").click()]);
+    await beh.locator(".ProseMirror").waitFor();
+    await beh.locator(".ProseMirror p").first().click();
+    await beh.keyboard.press("Home"); await beh.keyboard.type("Aangepast voor onze afdeling. ");
+    await Promise.all([beh.waitForNavigation(), beh.locator("input[name='_save'].kb-balk-opslaan").click()]);
+    ok(/hulpartikel\/$/.test(new URL(beh.url()).pathname), "opslaan brengt je terug naar de lijst", beh.url());
+    ok(/meegeleverd, zelf aangepast/.test(await tekstVan(beh.locator("#result_list tr", { hasText: "De assistent" }))), "de lijst zegt dat het artikel zelf is aangepast");
+    await med.goto(B + "/hulp/assistent/");
+    ok(/Aangepast voor onze afdeling\./.test(await tekstVan(med.locator(".hulp-tekst"))), "de medewerker ziet de aangepaste tekst");
+  });
+
+  await stap("hulp: op een telefoon staat het artikel bovenaan", med, async () => {
+    const tel = await g.sessie(browser, "medewerker", { breedte: 390, hoogte: 800 });
+    await tel.goto(B + "/hulp/"); await tel.locator(".hulp-uitklap summary").waitFor();
+    ok(!(await tel.locator(".hulp-uitklap").evaluate((d) => d.open)), "het menu is dichtgeklapt");
+    const y = await tel.locator("main h1").evaluate((e) => e.getBoundingClientRect().top);
+    ok(y < 400, "de titel van het artikel staat in beeld", String(Math.round(y)));
+    await tel.locator(".hulp-uitklap summary").focus(); await tel.keyboard.press("Enter");
+    ok(await tel.locator(".hulp-menu a", { hasText: "Nieuws" }).isVisible(), "het menu klapt open met het toetsenbord");
+    await tel.context().close();
+  });
   await stap("beheer: de functioneel beheerder begint bij Alle onderdelen (1.35.1)", beh, async () => {
     await beh.goto(B + "/beheer/");
     ok((await tekstVan(beh.locator("#kb-inhoud-titel"))) === "Alle onderdelen", "de beheerder landt op Alle onderdelen", await tekstVan(beh.locator("#kb-inhoud-titel")));

@@ -14,6 +14,7 @@
     <button type="button" class="rv-bk" id="rv-wijz-knop" aria-pressed="true" hidden>Wijzigingen tonen</button>
     <button type="button" class="rv-bk" id="rv-lees-knop" data-url="{% url 'review-voorbeeld' i.pk %}" hidden>Bekijk als medewerker</button>
     <button class="rv-bk kb-thema" type="button" data-kb-thema aria-pressed="false" hidden><span class="kb-thema-icoon" aria-hidden="true">☾</span>Donker</button>
+    <a class="rv-bk rv-bk-hulp" href="/hulp/?bij=review" target="_blank" rel="noopener">Hulp<span class="kb-sr"> (opent in een nieuw tabblad)</span></a>
   </nav>
   <div class="rv-balk-afronden">
     {% if open and not van_mij %}

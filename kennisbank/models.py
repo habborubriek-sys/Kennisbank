@@ -25,6 +25,18 @@ class Omgeving(models.Model):
         help_text="Redacteuren kunnen een concept ter inzage geven aan een reviewteam. Een review blokkeert "
         "nooit de publicatie.",
     )
+    #: 1.36.0: de eigen werkafspraken van de afdeling over het werken met de kennisbank. De hulppagina linkt
+    #: ernaar; de uitleg over de knoppen zelf staat in de hulpartikelen (model Hulpartikel).
+    werkafspraken_artikel = models.ForeignKey(
+        "Artikel",
+        verbose_name="artikel met eigen werkafspraken",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text="Een gepubliceerd artikel uit deze omgeving waarin staat hoe jullie met de kennisbank werken "
+        "(wie reviewt wat, binnen welke termijn). De hulppagina toont er een link naar. Leeg = geen link.",
+    )
 
     class Meta:
         verbose_name = "omgeving"
@@ -1142,3 +1154,69 @@ class ReviewOpmerking(models.Model):
 
     def __str__(self):
         return f"Opmerking bij {self.inzage}"
+
+
+class Hulpdoelgroep(models.TextChoices):
+    """Voor wie een hulpartikel is. De volgorde is een trap: wie hoger staat, ziet ook wat eronder staat."""
+
+    MEDEWERKER = "medewerker", "Medewerker"
+    REVIEWER = "reviewer", "Reviewer"
+    REDACTEUR = "redacteur", "Redacteur"
+    BEHEERDER = "beheerder", "Functioneel beheerder"
+
+
+#: Besluit Alex (17 november 2026): medewerker -> reviewer -> redacteur -> beheerder.
+HULPNIVEAU = {
+    Hulpdoelgroep.MEDEWERKER: 1,
+    Hulpdoelgroep.REVIEWER: 2,
+    Hulpdoelgroep.REDACTEUR: 3,
+    Hulpdoelgroep.BEHEERDER: 4,
+}
+
+
+class Hulpartikel(models.Model):
+    """Uitleg over het werken met de kennisbank zelf, op de pagina Hulp (1.36.0).
+
+    Los van de kennisartikelen: geen omgeving, geen versies, geen review. Het pakket levert een standaardset
+    mee (`hulp_inhoud.py`); die wordt bij elke `migrate` bijgewerkt, behalve de artikelen die de functioneel
+    beheerder zelf heeft aangepast (`aangepast`).
+    """
+
+    slug = models.SlugField(unique=True, help_text="Het laatste deel van het adres: /hulp/<slug>/.")
+    titel = models.CharField(max_length=200)
+    doelgroep = models.CharField(
+        max_length=20,
+        choices=Hulpdoelgroep.choices,
+        default=Hulpdoelgroep.MEDEWERKER,
+        help_text="Wie dit artikel ziet. Een reviewer ziet ook de artikelen voor medewerkers, een redacteur "
+        "ook die voor reviewers, een functioneel beheerder alles.",
+    )
+    volgorde = models.PositiveIntegerField(default=100, help_text="Plaats in het menu binnen de doelgroep.")
+    tekst = models.TextField(help_text="De uitleg. Zelfde opmaakmogelijkheden als een nieuwsbericht.")
+    zichtbaar = models.BooleanField(default=True, help_text="Uit = het artikel staat niet op de hulppagina.")
+    aangepast = models.BooleanField(
+        "zelf aangepast",
+        default=False,
+        editable=False,
+        help_text="Aan zodra het artikel in het beheer is gewijzigd. Een nieuwe versie van de kennisbank "
+        "laat het dan met rust.",
+    )
+    gewijzigd_op = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "hulpartikel"
+        verbose_name_plural = "hulpartikelen"
+        ordering = ["volgorde", "titel"]
+
+    def __str__(self):
+        return self.titel
+
+    def save(self, *args, **kwargs):
+        from .inhoud import schoon
+
+        self.tekst = schoon(self.tekst)
+        super().save(*args, **kwargs)
+
+    @property
+    def niveau(self) -> int:
+        return HULPNIVEAU.get(self.doelgroep, 4)

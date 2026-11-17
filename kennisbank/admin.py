@@ -37,6 +37,7 @@ from .models import (
     Cluster,
     Conceptversie,
     GroepLabel,
+    Hulpartikel,
     InzageStatus,
     Kladversie,
     Omgeving,
@@ -2517,12 +2518,110 @@ class ReviewteamAdmin(admin.ModelAdmin):
         return self._beheerder(request)
 
 
+class HulpartikelForm(forms.ModelForm):
+    class Meta:
+        model = Hulpartikel
+        fields = ["titel", "tekst", "doelgroep", "volgorde", "slug", "zichtbaar"]
+        widgets = {
+            "titel": forms.TextInput(attrs={"placeholder": "Titel: wat wil de lezer doen?", "aria-label": "Titel"}),
+            "tekst": forms.Textarea(attrs={"class": "kb-editor", "rows": 12}),
+        }
+
+
+@admin.register(Hulpartikel)
+class HulpartikelAdmin(admin.ModelAdmin):
+    """Hulpartikelen (1.36.0): uitleg over de kennisbank zelf, per rol. Alleen voor de functioneel beheerder:
+    de hulp geldt voor alle omgevingen."""
+
+    form = HulpartikelForm
+    list_display = ["titel", "doelgroep", "volgorde", "zichtbaar", "herkomst", "gewijzigd_op"]
+    list_filter = ["doelgroep", "zichtbaar", "aangepast"]
+    search_fields = ["titel", "tekst"]
+    ordering = ["doelgroep", "volgorde", "titel"]
+    prepopulated_fields = {"slug": ["titel"]}
+    actions = ["standaardtekst_terugzetten"]
+    fieldsets = [
+        (None, {"fields": ["titel", "tekst"]}),
+        ("Voor wie en waar", {"fields": ["doelgroep", "volgorde", "slug", "zichtbaar"]}),
+    ]
+
+    class Media:
+        # Hetzelfde scherm en dezelfde editor als bij nieuwsberichten.
+        css = {
+            "all": [
+                "kennisbank/fonts.css",
+                "kennisbank/vendor/tiptap/tiptap.css",
+                "kennisbank/beheer-editor.css",
+                "kennisbank/artikel-scherm.css",
+            ]
+        }
+        js = [
+            "kennisbank/vendor/tiptap/tiptap.min.js",
+            "kennisbank/artikel-editor.js",
+            "kennisbank/artikel-scherm.js",
+            "kennisbank/beheer-editor.js",
+        ]
+
+    @admin.display(description="Herkomst")
+    def herkomst(self, obj):
+        from .hulp_inhoud import STANDAARD
+
+        if obj.slug not in {s["slug"] for s in STANDAARD}:
+            return "eigen artikel"
+        return "meegeleverd, zelf aangepast" if obj.aangepast else "meegeleverd"
+
+    def get_prepopulated_fields(self, request, obj=None):
+        # Het adres van een bestaand artikel verandert niet vanzelf mee met de titel: knoppen linken ernaar.
+        return {} if obj else super().get_prepopulated_fields(request, obj)
+
+    def save_model(self, request, obj, form, change):
+        # Volgorde of zichtbaarheid wijzigen in de lijst is geen aanpassing van de tekst: een nieuwe versie mag
+        # de tekst dan nog bijwerken. Een wijziging van titel, tekst of doelgroep wel.
+        if not change or {"titel", "tekst", "doelgroep"} & set(form.changed_data):
+            obj.aangepast = True
+        super().save_model(request, obj, form, change)
+
+    @admin.action(description="Standaardtekst terugzetten")
+    def standaardtekst_terugzetten(self, request, queryset):
+        from .hulp import laad_standaard
+        from .hulp_inhoud import STANDAARD
+
+        meegeleverd = {s["slug"] for s in STANDAARD}
+        gekozen = set(queryset.values_list("slug", flat=True))
+        eigen = gekozen - meegeleverd
+        terug = gekozen & meegeleverd
+        if terug:
+            laad_standaard(terugzetten=terug)
+            messages.success(request, f"{len(terug)} hulpartikel(en) teruggezet naar de meegeleverde tekst.")
+        if eigen:
+            messages.warning(
+                request, f"{len(eigen)} artikel(en) overgeslagen: eigen artikelen hebben geen standaardtekst."
+            )
+
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    has_view_permission = has_add_permission = has_change_permission = has_delete_permission = (
+        lambda self, request, obj=None: request.user.is_superuser
+    )
+
+
 @admin.register(Omgeving)
 class OmgevingAdmin(admin.ModelAdmin):
     list_display = ["naam", "slug", "aantal_groepen", "aantal_artikelen"]
     prepopulated_fields = {"slug": ["naam"]}
     inlines = [ToegangInline]
     actions = ["vullen_met_sjablonen"]
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "werkafspraken_artikel":
+            # 1.36.0: alleen een gepubliceerd artikel uit deze omgeving. Bij een nieuwe omgeving valt er nog
+            # niets te kiezen.
+            from .hulp import werkafspraken_keuze
+
+            pk = request.resolver_match.kwargs.get("object_id") if request.resolver_match else None
+            kwargs["queryset"] = werkafspraken_keuze(pk) if pk else Artikel.objects.none()
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     @admin.action(description="Vullen met de sjablonen (als concept)")
     def vullen_met_sjablonen(self, request, queryset):

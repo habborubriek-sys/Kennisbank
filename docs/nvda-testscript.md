@@ -175,6 +175,12 @@ Opslaan als concept* te kiezen.
     - *Verwacht:* de twee knoppen worden als groep met die vraag voorgelezen ("Ja", "Nee").
     - Na *Nee* hoor je "Bedankt, dat is genoteerd. Wat mis je?" en staat de focus op de link *Dien een
       verbetervoorstel in*.
+45. Klik op een willekeurige pagina op **Hulp** in de bovenbalk.
+    - *Verwacht:* de titel van de pagina noemt het hulpartikel. Met de oriëntatiepunten (D) vind je het menu
+      *Hulpartikelen* en de hoofdinhoud.
+    - In het menu wordt het gekozen artikel voorgelezen als "huidige pagina".
+    - Vanuit het bewerkscherm zegt de link "Hulp, opent in een nieuw tabblad".
+
 44. Als `redacteur`: open *Gebruiksstatistieken*.
     - *Verwacht:* in de tabel *Gezocht zonder resultaat* heet elke knop "Synoniem maken van <term>".
     - De kolommen *Nuttig* en *Niet nuttig* worden bij elke cel voorgelezen.

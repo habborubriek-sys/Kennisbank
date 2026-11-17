@@ -44,7 +44,7 @@ versie tegen. Zie [scripts/browsertests/README.md](../scripts/browsertests/READM
 | Beheer: lade open, en met de steun uitgeklapt | geen overtredingen | – |
 | Beheer: vensters Afhandelen, Afwijzen en Dubbel in de lade | geen overtredingen | – |
 
-Samen 71 metingen (45 tot 1.33.0, 55 in 1.33.0, 59 in 1.34.0, 70 in 1.35.0; in 1.35.1 kwam de startpagina van de functioneel beheerder erbij). De uitbreiding in 1.32.0 vond twee fouten die eerder niet waren gemeten; beide zijn hersteld:
+Samen 77 metingen (in 1.36.0 kwamen de hulppagina in licht en donker, ook op een smal scherm, en de lijst en het bewerkscherm van hulpartikelen erbij; daarvoor: 45 tot 1.33.0, 55 in 1.33.0, 59 in 1.34.0, 70 in 1.35.0; in 1.35.1 kwam de startpagina van de functioneel beheerder erbij). De uitbreiding in 1.32.0 vond twee fouten die eerder niet waren gemeten; beide zijn hersteld:
 een artikel zonder tags had op de site een lege groep met een naam (`aria-prohibited-attr`), en in donker had
 het gekozen filter bij *Verbetervoorstellen* te weinig contrast (2,2:1; nu ruim boven 4,5:1).
 
@@ -121,6 +121,10 @@ weghalen van een opmerking leest een live-regio de melding voor en gaat de focus
 - **Licht of donker:** standaard volgt de site het apparaat. Met de knop **☾ Donker** draai je dat om. Het
   beheer is altijd licht.
 - Respecteert `prefers-reduced-motion`.
+- **Hulp (1.36.0):** de hulppagina heeft een eigen navigatiegebied (*Hulpartikelen*) en het artikel als
+  hoofdinhoud; het gekozen artikel is in het menu aangewezen met `aria-current`. Op een smal scherm is het menu
+  een uitklapper, zodat het artikel bovenaan staat. Vanuit het bewerkscherm en een reviewstuk opent Hulp in een
+  nieuw tabblad; de link zegt dat erbij.
 - **Zoeken (1.35.0):** de regel die zegt waarop is gezocht ("Resultaten voor rappel. Je zocht op rapel.") is
   een statusmelding en wordt voorgelezen zonder dat de focus de zoekbalk verlaat. Na *Meer laden* gaat de
   focus naar het eerste artikel dat erbij kwam. *Was dit artikel nuttig?* is een groep met de vraag als naam;

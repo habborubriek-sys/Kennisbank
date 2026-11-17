@@ -1,0 +1,43 @@
+{% load static kennisbank_balk %}<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% if huidig %}{{ huidig.titel }} – {% endif %}Hulp – {{ app_naam }}</title>
+<link rel="icon" href="{% static 'kennisbank/favicon.svg' %}" type="image/svg+xml">
+<link rel="stylesheet" href="{% static 'kennisbank/fonts.css' %}">
+<link rel="stylesheet" href="{% static 'kennisbank/app.css' %}"><script src="{% static 'kennisbank/thema.js' %}"></script>
+<link rel="stylesheet" href="{% static 'kennisbank/bovenbalk.css' %}">
+<link rel="stylesheet" href="{% static 'kennisbank/hulp.css' %}">
+<script src="{% static 'kennisbank/hulp.js' %}" defer></script></head>
+<body class="hulp-pagina">
+<a class="skip" href="#main">Naar de inhoud</a>
+{% bovenbalk "hulp" "Hulp" %}
+<div class="hulp-raam">
+  <nav class="hulp-menu" aria-label="Hulpartikelen">
+    {# Op een smal scherm klapt hulp.js dit dicht, zodat het artikel meteen in beeld staat. Zonder script blijft het open. #}
+    <details class="hulp-uitklap" open><summary>Alle hulpartikelen</summary>
+    {% if werkafspraken %}
+    <h2 class="hulp-menukop">Zo werken wij</h2>
+    <ul>
+      {% for w in werkafspraken %}<li><a href="{{ w.url }}">{{ w.titel }}{% if werkafspraken|length > 1 %} <span class="hulp-omgeving">({{ w.omgeving }})</span>{% endif %}</a></li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% for g in groepen %}
+    <h2 class="hulp-menukop">{{ g.naam }}</h2>
+    <ul>
+      {% for a in g.artikelen %}<li><a href="{% url 'hulp-artikel' a.slug %}"{% if a.pk == huidig.pk %} aria-current="page"{% endif %}>{{ a.titel }}</a></li>{% endfor %}
+    </ul>
+    {% endfor %}
+    </details>
+  </nav>
+  <main class="hulp-blad" id="main">
+    {% if huidig %}
+    <p class="hulp-soort">Hulp · {{ huidig.get_doelgroep_display }}</p>
+    <h1>{{ huidig.titel }}</h1>
+    <div class="hulp-tekst">{{ tekst }}</div>
+    {% if mag_bewerken %}<p class="hulp-bewerk"><a href="{% url 'admin:kennisbank_hulpartikel_change' huidig.pk %}">Dit hulpartikel aanpassen</a></p>{% endif %}
+    {% else %}
+    <h1>Hulp</h1>
+    <p>Er staan nog geen hulpartikelen.</p>
+    {% endif %}
+  </main>
+</div>
+</body></html>

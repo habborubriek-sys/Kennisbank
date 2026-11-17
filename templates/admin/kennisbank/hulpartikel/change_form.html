@@ -1,0 +1,62 @@
+{% extends "admin/change_form.html" %}
+{% load admin_urls %}
+{% block bodyclass %}{{ block.super }} kb-scherm{% endblock %}
+{% comment %}
+  Bewerkscherm van een hulpartikel (1.36.0): hetzelfde soort scherm als bij nieuwsberichten
+  (bericht/change_form.html), zonder Afronden: een hulpartikel heeft geen concept, alleen zichtbaar of niet.
+{% endcomment %}
+{% block header %}{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block messages %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block content_subtitle %}{% endblock %}
+{% block object-tools %}{% endblock %}
+
+{% block form_top %}
+<header class="kb-balk" aria-label="Hulpartikel">
+  <a class="kb-balk-terug" href="{% url 'admin:kennisbank_hulpartikel_changelist' %}">← Hulpartikelen</a>
+  <div class="kb-balk-titel">{% if original %}{{ original.titel }}{% else %}Nieuw hulpartikel{% endif %}</div>
+  <div class="kb-balk-sub">
+    <span class="kb-pil">Hulpartikel</span>
+    {% if original %}<span class="kb-balk-meta">voor: {{ original.get_doelgroep_display|lower }}{% if not original.zichtbaar %} · verborgen{% endif %}{% if original.aangepast %} · zelf aangepast{% endif %}</span>
+    {% else %}<span class="kb-balk-meta">Nog niet opgeslagen</span>{% endif %}
+  </div>
+  <nav class="kb-balk-knoppen" aria-label="Panelen">
+    <button type="button" class="kb-bk" data-kb-paneel="eig" aria-expanded="false" aria-controls="kb-p-eig">Eigenschappen</button>
+    {% if original and original.zichtbaar %}<a class="kb-bk" href="{% url 'hulp-artikel' original.slug %}" target="_blank" rel="noopener">Bekijk op de hulppagina<span class="kb-sr"> (opent in een nieuw tabblad)</span></a>{% endif %}
+  </nav>
+  <div class="kb-balk-afronden">
+    <input type="submit" name="_continue" value="Opslaan en verder" class="kb-balk-opslaan kb-balk-opslaan-2">
+    <input type="submit" name="_save" value="Opslaan" class="kb-balk-opslaan">
+  </div>
+</header>
+{% if messages %}<ul class="messagelist">{% for message in messages %}<li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message|capfirst }}</li>{% endfor %}</ul>{% endif %}
+{% endblock %}
+
+{% block field_sets %}
+{% with f=adminform.form %}
+{% for veld in f.hidden_fields %}{{ veld }}{% endfor %}
+<div class="kb-ae-werkbalk"><div class="kb-ae-werkbalk-in" role="toolbar" aria-label="Opmaak van de tekst"></div></div>
+
+<div class="kb-werkvlak">
+  <div class="kb-blad kb-blad-bericht">
+    <span class="kb-blad-soort">Hulp</span>
+    <div class="kb-vast" data-kb-plek="titel"><span class="kb-vast-label">Titel · verplicht</span>{{ f.titel }}{{ f.titel.errors }}</div>
+    <div class="kb-blad-lijn"></div>
+    <div data-kb-plek="tekst">{{ f.tekst }}{% if f.tekst.help_text %}<span class="kb-sr" id="{{ f.tekst.id_for_label }}_helptext">{{ f.tekst.help_text }}</span>{% endif %}{{ f.tekst.errors }}</div>
+  </div>
+</div>
+
+<aside class="kb-paneel" id="kb-p-eig" aria-label="Eigenschappen">
+  <div class="kb-paneel-kop"><h2>Eigenschappen</h2><button type="button" class="kb-paneel-sluit" aria-label="Eigenschappen sluiten">✕</button></div>
+  <p class="kb-paneel-uitleg">Voor wie het artikel is, en waar het in het menu staat.</p>
+  {% for fieldset in adminform %}{% if not forloop.first %}{% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}{% endif %}{% endfor %}
+  {% if original and has_delete_permission %}
+  <p class="kb-paneel-weg"><a href="{% url opts|admin_urlname:'delete' original.pk|admin_urlquote %}" class="deletelink">Verwijderen</a></p>
+  {% endif %}
+</aside>
+{% endwith %}
+{% endblock %}
+
+{% block submit_buttons_bottom %}{% endblock %}

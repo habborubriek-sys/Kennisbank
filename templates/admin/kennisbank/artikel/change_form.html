@@ -41,6 +41,7 @@
   <nav class="kb-balk-knoppen" aria-label="Panelen">
     {% if kb_opmerkingen %}<button type="button" class="kb-bk" data-kb-opm>Opmerkingen ({{ kb_opmerkingen|length }})</button>{% endif %}
     <button type="button" class="kb-bk" data-kb-lees>Bekijk als medewerker</button>
+    <a class="kb-bk kb-bk-hulp" href="/hulp/?bij=werkplek" target="_blank" rel="noopener">Hulp<span class="kb-sr"> (opent in een nieuw tabblad)</span></a>
     <button type="button" class="kb-bk" data-kb-paneel="eig" aria-expanded="false" aria-controls="kb-p-eig">Eigenschappen</button>
     {% if original %}<button type="button" class="kb-bk" data-kb-paneel="gesch" aria-expanded="false" aria-controls="kb-p-gesch">Geschiedenis</button>{% endif %}
     {% if kb_review_teams %}<button type="button" class="kb-bk" data-kb-paneel="rev" aria-expanded="false" aria-controls="kb-p-rev">Review</button>{% endif %}

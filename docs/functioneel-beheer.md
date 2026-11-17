@@ -771,6 +771,33 @@ werkvoorraad*. Redacteuren zien jouw bak ook, onder *Collega's*, en kunnen het v
 Ben je beheerder én via een groep redacteur in een omgeving, dan begin je zoals een redacteur op je
 werkplek; *Alle onderdelen* staat dan onderaan de kolom.
 
+### Hulp (1.36.0)
+
+In elke bovenbalk staat de knop **Hulp**. Hij opent een eigen pagina met links een menu en rechts een
+hulpartikel. De hulpartikelen staan los van de kennisartikelen: ze hebben geen omgeving, geen versies en geen
+review, en ze komen niet in de zoekresultaten.
+
+Wat iemand ziet, is een trap. Een medewerker ziet de artikelen voor medewerkers; een reviewer ook die voor
+reviewers; een redacteur ook die voor redacteuren; de functioneel beheerder alles. Het hoofdstuk van je eigen
+rol staat bovenaan. De knop opent het hoofdstuk dat past bij waar je bent: op de site dat voor medewerkers, op
+de reviewpagina dat voor reviewers, in het beheer dat voor redacteuren.
+
+**De artikelen beheren.** Onder *Alle onderdelen* staat **Hulpartikelen** (alleen voor de functioneel
+beheerder). Het pakket levert twintig artikelen mee. Je kunt er een aanpassen, verbergen (*zichtbaar* uit) of
+een eigen artikel toevoegen; per artikel kies je de doelgroep en de plaats in het menu.
+
+- Een meegeleverd artikel dat je **niet** hebt aangepast, krijgt bij een nieuwe versie van de kennisbank vanzelf
+  de nieuwe tekst.
+- Een artikel dat je **wel** hebt aangepast, blijft zoals jij het hebt gemaakt. De lijst toont dat in de kolom
+  *Herkomst* ("meegeleverd, zelf aangepast"). Let dan zelf op of de uitleg nog klopt na een upgrade.
+- Wil je de meegeleverde tekst terug: vink het artikel aan en kies **Standaardtekst terugzetten**.
+- Een meegeleverd artikel dat je verwijdert, komt bij de volgende upgrade terug. Wil je het kwijt, verberg het dan.
+
+**Jullie eigen werkafspraken.** De hulpartikelen leggen uit hoe de kennisbank werkt. Hoe jullie afdeling ermee
+werkt (wie reviewt wat, binnen welke termijn, wanneer iets een nieuwsbericht wordt) schrijf je als gewoon artikel
+in de kennisbank. Wijs dat bij de omgeving aan in het veld **artikel met eigen werkafspraken**. De hulppagina
+toont er dan bovenaan een link naar, onder de kop *Zo werken wij*, voor iedereen die de omgeving mag lezen.
+
 Een functioneel beheerder (lid van de groep in `KB_BEHEERDERS_GROEPEN`) beheert daarnaast:
 
 - **Omgevingen**: bijv. "Handhaving". Elke omgeving heeft eigen artikelen.

@@ -1,5 +1,32 @@
 # Wijzigingen
 
+## 1.36.0 – 2026-11-17
+
+Hulp per rol (bouwlijst `bouwlijst-1.36.0-hulp.md`). Tot nu toe stond de uitleg voor gebruikers alleen in `docs/functioneel-beheer.md`, een naslagwerk in de repository waar een redacteur niet komt; voor medewerkers en reviewers was er niets.
+
+**De knop Hulp (H1)**
+- In de bovenbalk van de site, de reviewpagina's en het beheer, en in de balk van het bewerkscherm en van een reviewstuk.
+- De knop opent het hoofdstuk dat past bij waar je bent: op de site dat voor medewerkers, op de reviewpagina dat voor reviewers, in het beheer dat voor redacteuren (of voor de beheerder).
+- Vanuit het bewerkscherm en een reviewstuk opent Hulp in een nieuw tabblad, zodat je werk blijft staan.
+
+**De hulppagina (H2)**
+- Een eigen pagina, `/hulp/`, met links een menu en rechts het artikel. Op een telefoon klapt het menu dicht, zodat het artikel bovenaan staat.
+- De hulpartikelen staan los van de kennisartikelen: geen omgeving, geen versies, geen review, niet in de zoekresultaten.
+- Wat je ziet is een trap (besluit Alex): medewerker → reviewer → redacteur → functioneel beheerder. Wie hoger staat, ziet ook wat eronder staat; het hoofdstuk van je eigen rol staat bovenaan. Een artikel boven je rol bestaat voor jou niet (404).
+
+**Twintig meegeleverde artikelen, aan te passen in het beheer (H3)**
+- Kort en op taken, zonder schermafbeeldingen: zes voor medewerkers, twee voor reviewers, acht voor redacteuren, vier voor de functioneel beheerder.
+- Ze worden na elke `migrate` geladen en bijgewerkt. De functioneel beheerder kan ze onder *Hulpartikelen* aanpassen, verbergen of aanvullen, in hetzelfde scherm als een nieuwsbericht. Wat hij heeft aangepast, laat een nieuwe versie met rust; **Standaardtekst terugzetten** haalt de meegeleverde tekst terug.
+- Een test bewaakt dat de meegeleverde hulp de woorden van de schermen gebruikt en dat elke vet gedrukte naam (een knop, een menu, een bak) ook echt zo op een scherm staat.
+
+**De eigen werkafspraken van de afdeling (H4)**
+- Bij een omgeving kan de functioneel beheerder een gepubliceerd artikel aanwijzen als *artikel met eigen werkafspraken*. De hulppagina toont er bovenaan een link naar ("Zo werken wij"), voor wie die omgeving mag lezen.
+
+**Techniek en tests**
+- Migratie `0035_hulp`. Geen nieuwe instelling, geen wijziging in de API.
+- 38 nieuwe tests (878 in totaal). 34 mutaties (31 in de server, 3 in de schermen): 33 betrapt; de ene die overleefde wees een controle aan die dubbel was, en die is weggehaald.
+- Browsertests: `rook.js` 166 controles (was 150), `axe.js` 77 metingen (was 71), geen overtredingen. De meting vond twee fouten vóór de push: te weinig contrast op het gekozen artikel in het donkere thema, en invulvelden zonder label in de lijst met hulpartikelen. Beide hersteld.
+
 ## 1.35.1 – 2026-11-16
 
 Wens van Alex: een functioneel beheerder is geen redacteur, maar kwam in het beheer als eerste op de werkplek van de redactie terecht.

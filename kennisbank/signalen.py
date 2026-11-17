@@ -9,13 +9,31 @@ Vóór versie 1.5 gebeurde dat alleen bij het inloggen.
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.db.models.signals import m2m_changed, post_delete, post_save, pre_delete, pre_save
+from django.db.models.signals import m2m_changed, post_delete, post_migrate, post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
 from .models import Artikel, Omgeving, Status, Tag, Toegang
 from .rechten import werk_staf_status_bij
 
 User = get_user_model()
+
+
+@receiver(post_migrate)
+def hulpartikelen_bijwerken(sender, **kwargs):
+    """Na elke `migrate` de meegeleverde hulpartikelen laden of bijwerken (1.36.0).
+
+    Zo krijgt een nieuwe installatie ze meteen, en een bestaande bij elke upgrade de tekst van die versie.
+    Artikelen die de functioneel beheerder heeft aangepast, blijven met rust.
+    """
+    if sender.name != "kennisbank":
+        return
+    from django.db import connection
+
+    if "kennisbank_hulpartikel" not in connection.introspection.table_names():
+        return  # migreren naar een versie van vóór 1.36.0 (bijvoorbeeld in een migratietest)
+    from .hulp import laad_standaard
+
+    laad_standaard()
 
 
 @receiver(m2m_changed, sender=User.groups.through)
