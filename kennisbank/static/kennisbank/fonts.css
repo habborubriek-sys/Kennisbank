@@ -5,3 +5,22 @@
 @font-face{font-family:"Source Sans 3";font-style:normal;font-weight:700;font-display:swap;src:url(fonts/source-sans-3-latin-700-normal.woff2) format("woff2")}
 @font-face{font-family:"Source Serif 4";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/source-serif-4-latin-600-normal.woff2) format("woff2")}
 @font-face{font-family:"Source Serif 4";font-style:normal;font-weight:700;font-display:swap;src:url(fonts/source-serif-4-latin-700-normal.woff2) format("woff2")}
+
+/* ---- Vaste set maten (1.38.0) ---------------------------------------------------------------------
+ * Eén plek voor de hele kennisbank: site, hulp, review en beheer laden dit bestand allemaal.
+ * Vijf lettergroottes en één knophoogte. Bediening (knoppen, menu's, lijsten) is --kb-fs-s; tekst die je
+ * lang leest (een artikel, een hulpartikel, een reviewstuk, de editor) is --kb-fs-m. Gebruik in een
+ * stijlbestand geen losse font-size meer, maar een van deze vijf; een test bewaakt dat.
+ * Op een aanraakscherm blijven knoppen en balk groot (vinger in plaats van muis). */
+:root{
+  --kb-fs-xs:.75rem;   /* 12 px: labels, tellers */
+  --kb-fs-s:.875rem;   /* 14 px: bediening */
+  --kb-fs-m:1rem;      /* 16 px: leestekst */
+  --kb-fs-l:1.125rem;  /* 18 px: tussenkop, samenvatting */
+  --kb-fs-xl:1.5rem;   /* 24 px: paginatitel */
+  --kb-knop-h:32px;
+  --kb-balk-h:52px;
+}
+@media (pointer:coarse){
+  :root{--kb-knop-h:44px;--kb-balk-h:64px}
+}

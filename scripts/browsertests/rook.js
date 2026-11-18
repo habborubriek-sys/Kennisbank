@@ -547,6 +547,36 @@ async function typInAlinea(p, bevat, tekst) {
     const maten = {};
     for (const pad of ["/", "/hulp/", "/beheer/", "/beheer/kennisbank/synoniem/"]) maten[pad] = await maat(red, pad);
     ok(new Set(Object.values(maten)).size === 1, "de bovenbalk en de knoppen zijn op de site, in de hulp en in het beheer even groot", JSON.stringify(maten));
+    ok(maten["/"] === "52/32/14px", "de bovenbalk is compact: 52 px hoog, knoppen 32 px, letter 14 px", maten["/"]);
+    // 1.38.0 (opmaak compact en gelijk): één lettertype, vijf lettergroottes, één knophoogte, op elk soort scherm.
+    const opmaak = (p) => p.evaluate(() => {
+      const zicht = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+      const vast = ["12px", "14px", "16px", "18px", "24px"], vreemd = new Set(), types = new Set();
+      const loop = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      while (loop.nextNode()) { const t = loop.currentNode; if (!t.textContent.trim()) continue; const e = t.parentElement;
+        if (!e || !zicht(e) || e.closest("sup, sub, code, pre, select, option")) continue;
+        const st = getComputedStyle(e); if (!vast.includes(st.fontSize)) vreemd.add(st.fontSize + " " + e.tagName.toLowerCase() + "." + e.className);
+        types.add(st.fontFamily.split(",")[0].replace(/"/g, "")); }
+      const knoppen = new Set(); document.querySelectorAll("a.tb, button.tb, .button, input[type=submit], .kb-bk, .rv-knop, .rv-hoofdknop, .kb-afronden-knop").forEach((e) => { if (zicht(e)) knoppen.add(Math.round(e.getBoundingClientRect().height)); });
+      const h1 = [...document.querySelectorAll("h1")].find(zicht);
+      return { vreemd: [...vreemd].slice(0, 4), types: [...types].sort().join("+"), knoppen: [...knoppen].join(","), body: getComputedStyle(document.body).fontSize, h1: h1 ? getComputedStyle(h1).fontSize + " " + getComputedStyle(h1).fontFamily.split(",")[0].replace(/"/g, "") : "" };
+    });
+    const schermen = [[red, "/"], [red, `/artikel/${o.rustig.artikel}/${o.rustig.slug}`], [red, "/hulp/"], [red, "/beheer/"], [beh, "/beheer/?bak=alles"], [red, "/beheer/kennisbank/artikel/"],
+      [beh, "/beheer/kennisbank/omgeving/"], [red, `/beheer/kennisbank/artikel/${o.rustig.artikel}/change/`], [rev, "/review/"]];
+    for (const [p, pad] of schermen) {
+      await p.goto(B + pad); await p.waitForLoadState("networkidle"); await g.dichtVensters(p);
+      const m = await opmaak(p);
+      ok(m.vreemd.length === 0, `${pad}: alleen lettergroottes uit de vaste set`, JSON.stringify(m.vreemd));
+      ok(/^Source Sans 3(\+Source Serif 4)?$/.test(m.types), `${pad}: één lettertype (met de titelletter)`, m.types);
+      ok(m.knoppen === "32", `${pad}: alle knoppen even hoog`, m.knoppen);
+      ok(m.body === "14px", `${pad}: de bediening is 14 px`, m.body);
+      if (m.h1) ok(m.h1 === "24px Source Serif 4", `${pad}: de paginatitel is 24 px in de titelletter`, m.h1);
+    }
+    await red.goto(B + `/artikel/${o.rustig.artikel}/${o.rustig.slug}`); await red.locator("details.sec .body").first().waitFor();
+    const lees = await red.evaluate(() => { const d = document.querySelector("details.sec"); d.open = true; return getComputedStyle(d.querySelector(".body")).fontSize; });
+    ok(lees === "16px", "de tekst van een artikel blijft 16 px", lees);
+    await red.goto(B + "/hulp/"); const leesHulp = await red.locator(".hulp-tekst p").first().evaluate((e) => getComputedStyle(e).fontSize);
+    ok(leesHulp === "16px", "de tekst van een hulpartikel blijft 16 px", leesHulp);
     const lijn = await med.locator("#lnkHulp").evaluate((e) => getComputedStyle(e).textDecorationLine);
     ok(lijn === "none", "de knop Hulp is niet onderstreept, net als de knoppen ernaast", lijn);
     await Promise.all([med.waitForNavigation(), med.locator("#lnkHulp").click()]);

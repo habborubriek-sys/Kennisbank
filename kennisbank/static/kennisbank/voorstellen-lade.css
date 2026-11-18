@@ -8,26 +8,26 @@ body.kb-lade-open .kb-lade { transform: none; }
 .kb-lade[hidden] { display: none; }
 .kb-lade-scroll { height: 100%; overflow: auto; padding-bottom: 40px; }
 .kb-lade-kop { padding: 12px 14px 4px; }
-.kb-lade-kop h2 { font-size: 16px; margin: 0; color: #17212b; background: none; padding: 0; text-transform: none; letter-spacing: 0; }
-.kb-lade-uitleg { font-size: 13px; color: #5b6b7d; margin: 0 14px 10px; }
+.kb-lade-kop h2 { font-size: var(--kb-fs-m); margin: 0; color: #17212b; background: none; padding: 0; text-transform: none; letter-spacing: 0; }
+.kb-lade-uitleg { font-size: var(--kb-fs-s); color: #5b6b7d; margin: 0 14px 10px; }
 /* Het tabblad: steekt uit de linkerrand, schuift mee met de lade. */
 .kb-lip { position: fixed; left: 0; top: calc(var(--kb-lade-top) + 24px); z-index: 36; width: 38px; padding: 12px 0 10px;
   background: #154273; color: #fff; border: none; border-radius: 0 10px 10px 0; cursor: pointer; display: flex; flex-direction: column;
-  align-items: center; gap: 8px; box-shadow: 3px 2px 8px rgba(23,33,43,.18); font: 600 13px "Source Sans 3", system-ui, sans-serif;
+  align-items: center; gap: 8px; box-shadow: 3px 2px 8px rgba(23,33,43,.18); font: 600 var(--kb-fs-s) "Source Sans 3", system-ui, sans-serif;
   transition: left .22s ease; }
 .kb-lip:hover { background: #1d5594; }
 .kb-lip[hidden] { display: none; }
 body.kb-lade-open .kb-lip { left: var(--kb-lade-b); }
 .kb-lip-tekst { writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: .03em; }
-.kb-lip-teller { background: #f4c32f; color: #3a2c00; border-radius: 9px; padding: 0 6px; font-size: 11px; }
-.kb-lip-pijl { font-size: 12px; opacity: .85; }
+.kb-lip-teller { background: #f4c32f; color: #3a2c00; border-radius: 9px; padding: 0 6px; font-size: var(--kb-fs-xs); }
+.kb-lip-pijl { font-size: var(--kb-fs-xs); opacity: .85; }
 /* Het blad schuift mee als de lade open is. */
 body.kb-met-lade .kb-werkvlak { transition: margin .22s ease; }
 @media (min-width: 900px) {
   body.kb-lade-open .kb-werkvlak { margin-left: calc(var(--kb-lade-b) + 50px); }
 }
 /* Meldingen in de lade */
-.kb-lade-melding { margin: 0 14px 10px; padding: 8px 10px; border-radius: 6px; font-size: 13px; }
+.kb-lade-melding { margin: 0 14px 10px; padding: 8px 10px; border-radius: 6px; font-size: var(--kb-fs-s); }
 .kb-lade-slot { background: #fff4d6; border: 1px solid #f0d58a; color: #5a3d00; }
 .kb-lade-spoed { background: #fde8e5; border: 1px solid #f0b4ab; color: #6e1a10; }
 .kb-lade-onbewaard { background: #eaf2fb; border: 1px solid #b9d0ea; color: #123b66; }
@@ -36,41 +36,41 @@ body.kb-met-lade .kb-werkvlak { transition: margin .22s ease; }
 .kb-vk-rij { display: flex; align-items: center; gap: 8px; padding: 9px 12px 9px 10px; cursor: pointer; }
 .kb-vk-rij:hover { background: #f5f8fc; }
 .kb-vk-open .kb-vk-rij { background: #eef4fb; }
-.kb-vk-nr { flex: none; width: 22px; height: 22px; border-radius: 50%; background: #e3eaf3; color: #154273; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.kb-vk-nr { flex: none; width: 22px; height: 22px; border-radius: 50%; background: #e3eaf3; color: #154273; font-size: var(--kb-fs-xs); font-weight: 700; display: grid; place-items: center; }
 .kb-vk-open .kb-vk-nr { background: #154273; color: #fff; }
 .kb-vk-titelblok { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 /* 1.29.1: niets afkappen; titel en regel mogen over twee regels lopen. */
-.kb-vk-titel { font-weight: 600; font-size: 14px; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.kb-vk-sub { font-size: 12px; color: #5b6b7d; overflow-wrap: anywhere; }
+.kb-vk-titel { font-weight: 600; font-size: var(--kb-fs-s); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.kb-vk-sub { font-size: var(--kb-fs-xs); color: #5b6b7d; overflow-wrap: anywhere; }
 .kb-vk-stip { width: 9px; height: 9px; border-radius: 50%; flex: none; background: #2a5a92; }
 .kb-vk-stip-onbewaard { background: transparent; border: 2px solid #2a5a92; }
-.kb-vk-pijl { flex: none; color: #5b6b7d; font-size: 12px; }
-.kb-vk-detail { padding: 4px 14px 14px 40px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
-.kb-vk-citaat { font-style: italic; color: #5b6b7d; border-left: 3px solid #b9d0ea; padding-left: 8px; font-size: 13px; }
+.kb-vk-pijl { flex: none; color: #5b6b7d; font-size: var(--kb-fs-xs); }
+.kb-vk-detail { padding: 4px 14px 14px 40px; display: flex; flex-direction: column; gap: 8px; font-size: var(--kb-fs-s); }
+.kb-vk-citaat { font-style: italic; color: #5b6b7d; border-left: 3px solid #b9d0ea; padding-left: 8px; font-size: var(--kb-fs-s); }
 .kb-vk-tekst { white-space: pre-line; }
-.kb-vk-meta { font-size: 12px; color: #5b6b7d; }
-.kb-vk-ok { font-size: 12px; color: #1d5b30; background: #e3f3e6; border-radius: 4px; padding: 3px 7px; align-self: flex-start; }
-.kb-vk-weg, .kb-vk-let { font-size: 12px; color: #8a5a00; background: #fff4d6; border-radius: 4px; padding: 3px 7px; align-self: flex-start; }
-.kb-vk-mee { display: flex; gap: 8px; align-items: center; background: #f4f7fb; border: 1px solid #d9e1ea; border-radius: 8px; padding: 8px 10px; cursor: pointer; font-size: 14px; }
+.kb-vk-meta { font-size: var(--kb-fs-xs); color: #5b6b7d; }
+.kb-vk-ok { font-size: var(--kb-fs-xs); color: #1d5b30; background: #e3f3e6; border-radius: 4px; padding: 3px 7px; align-self: flex-start; }
+.kb-vk-weg, .kb-vk-let { font-size: var(--kb-fs-xs); color: #8a5a00; background: #fff4d6; border-radius: 4px; padding: 3px 7px; align-self: flex-start; }
+.kb-vk-mee { display: flex; gap: 8px; align-items: center; background: #f4f7fb; border: 1px solid #d9e1ea; border-radius: 8px; padding: 8px 10px; cursor: pointer; font-size: var(--kb-fs-s); }
 .kb-vk-mee input { width: 17px; height: 17px; margin: 0; }
 .kb-vk-mee-uit { opacity: .6; cursor: not-allowed; }
-.kb-vk-uitleg { font-size: 12px; color: #5b6b7d; margin: 0; }
+.kb-vk-uitleg { font-size: var(--kb-fs-xs); color: #5b6b7d; margin: 0; }
 .kb-vk-tabs { display: flex; border-bottom: 1px solid #d9e1ea; margin-top: 4px; }
-.kb-vk-tab { background: none; border: none; border-bottom: 3px solid transparent; padding: 6px 10px; font-size: 13px; font-weight: 600; color: #5b6b7d; cursor: pointer; }
+.kb-vk-tab { background: none; border: none; border-bottom: 3px solid transparent; padding: 6px 10px; font-size: var(--kb-fs-s); font-weight: 600; color: #5b6b7d; cursor: pointer; }
 .kb-vk-tab-bericht.kb-vk-tab-aan { color: #154273; border-bottom-color: #154273; }
 .kb-vk-tab-notitie.kb-vk-tab-aan { color: #6b4e00; border-bottom-color: #8a6500; }
 .kb-vk-vak { border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
 .kb-vk-vak-bericht { border: 1px solid #b9d0ea; background: #f3f8fd; }
 .kb-vk-vak-notitie { border: 1px dashed #e2b100; background: #fffbea; }
-.kb-vk-vakkop { font-size: 12px; font-weight: 700; }
+.kb-vk-vakkop { font-size: var(--kb-fs-xs); font-weight: 700; }
 .kb-vk-vak-bericht .kb-vk-vakkop { color: #154273; }
 .kb-vk-vak-notitie .kb-vk-vakkop { color: #7a5a00; }
-.kb-vk-vak textarea, .kb-vk-afsluiten textarea { width: 100%; min-height: 64px; border: 1px solid #7d8b9b; border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 14px; box-sizing: border-box; }
-.kb-vk-bericht, .kb-vk-notitie { font-size: 13px; background: #fff; border-radius: 6px; padding: 6px 8px; white-space: pre-line; }
-.kb-vk-bericht small, .kb-vk-notitie small { display: block; color: #5b6b7d; font-size: 11px; }
+.kb-vk-vak textarea, .kb-vk-afsluiten textarea { width: 100%; min-height: 64px; border: 1px solid #7d8b9b; border-radius: 6px; padding: 6px 8px; font: inherit; font-size: var(--kb-fs-s); box-sizing: border-box; }
+.kb-vk-bericht, .kb-vk-notitie { font-size: var(--kb-fs-s); background: #fff; border-radius: 6px; padding: 6px 8px; white-space: pre-line; }
+.kb-vk-bericht small, .kb-vk-notitie small { display: block; color: #5b6b7d; font-size: var(--kb-fs-xs); }
 .kb-vk-voorbeeld { background: #f3f8fd; border: 1px solid #b9d0ea; margin-top: 6px; }
 .kb-vk-knoppen { display: flex; gap: 6px; flex-wrap: wrap; }
-.kb-vk-af h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #5b6b7d; margin: 6px 0 4px; background: none; padding: 0; }
+.kb-vk-af h3 { font-size: var(--kb-fs-xs); text-transform: uppercase; letter-spacing: .05em; color: #5b6b7d; margin: 6px 0 4px; background: none; padding: 0; }
 .kb-gevaar { color: #a6192e !important; border-color: #e3b3ba !important; }
 .kb-vk-afsluiten { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
 .kb-vk-afsluiten select { padding: 4px 6px; border-radius: 6px; border: 1px solid #c5d1de; }
@@ -78,7 +78,7 @@ body.kb-met-lade .kb-werkvlak { transition: margin .22s ease; }
 .kb-ae-vs { background: #e3eefb; border-bottom: 2px dotted #2a5a92; border-radius: 2px; }
 .kb-ae-vs.kb-ae-vs-actief { background: #b9d4f3; }
 sup.kb-ae-vsnr { display: inline-grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; background: #154273; color: #fff;
-  font: 700 10px/1 "Source Sans 3", system-ui, sans-serif; margin-left: 2px; vertical-align: super; cursor: pointer; user-select: none; }
+  font: 700 var(--kb-fs-xs)/1 "Source Sans 3", system-ui, sans-serif; margin-left: 2px; vertical-align: super; cursor: pointer; user-select: none; }
 sup.kb-ae-vsnr-actief { box-shadow: 0 0 0 3px #b9d4f3; }
 /* Infobalk: aantal en legenda */
 .kb-lade-info { display: inline-flex; gap: 10px; align-items: center; margin-left: auto; }
@@ -88,7 +88,7 @@ sup.kb-ae-vsnr-actief { box-shadow: 0 0 0 3px #b9d4f3; }
 .kb-leg-vs { background: #e3eefb; border-bottom: 2px dotted #2a5a92; }
 .kb-leg-opm { background: #efe4f7; border-bottom: 2px solid #6b2d8f; }
 /* Korte melding na een handeling */
-.kb-lade-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #17212b; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 200; max-width: 90vw; }
+.kb-lade-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #17212b; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: var(--kb-fs-s); z-index: 200; max-width: 90vw; }
 .kb-lade-toast-fout { background: #a6192e; }
 .kb-vk-verborgen { font-style: italic; }
 .kb-vk-let a { color: inherit; font-weight: 700; }
@@ -99,8 +99,8 @@ sup.kb-ae-vsnr-actief { box-shadow: 0 0 0 3px #b9d4f3; }
 /* 1.31.3: geen rand om de kop. Hij krijgt de focus als de lade opent (voor de schermlezer), maar is geen knop
    en staat niet in de Tab-volgorde; met een rand leek het er wel een. */
 .kb-lade-kop h2:focus { outline: none; }
-.kb-lade-sluit { margin-left: auto; border: 1px solid #c3cbd6; background: #fff; border-radius: 6px; width: 32px; height: 32px; font-size: 15px; cursor: pointer; color: #17212b; }
-.kb-vk-toon { align-self: flex-start; background: none; border: none; padding: 0; color: #154273; text-decoration: underline; font: inherit; font-size: 13px; cursor: pointer; }
+.kb-lade-sluit { margin-left: auto; border: 1px solid #c3cbd6; background: #fff; border-radius: 6px; width: 32px; height: 32px; font-size: var(--kb-fs-s); cursor: pointer; color: #17212b; }
+.kb-vk-toon { align-self: flex-start; background: none; border: none; padding: 0; color: #154273; text-decoration: underline; font: inherit; font-size: var(--kb-fs-s); cursor: pointer; }
 .kb-vk-tab[aria-pressed="true"] { text-decoration: none; }
 /* Smal scherm of 400% zoom: de lade vult het scherm (WCAG 1.4.10). */
 @media (max-width: 899px) {
@@ -123,9 +123,9 @@ sup.kb-ae-vsnr-actief { box-shadow: 0 0 0 3px #b9d4f3; }
 }
 
 /* 1.29.1: steun als korte lijst, de rest uitklapbaar. */
-.kb-vk-steuners { margin: 2px 0 0; padding-left: 18px; font-size: 12px; color: #4a5565; }
+.kb-vk-steuners { margin: 2px 0 0; padding-left: 18px; font-size: var(--kb-fs-xs); color: #4a5565; }
 .kb-vk-steuners li { margin: 0; }
 /* 1.31.3: één regel "[naam] en [n] anderen steunen dit voorstel"; klikken klapt de namen uit. */
-.kb-vk-steun { font-size: 12px; color: #4a5565; }
-.kb-vk-steun-knop { background: none; border: none; padding: 0; color: #154273; text-decoration: underline; font: inherit; font-size: 12px; cursor: pointer; text-align: left; }
+.kb-vk-steun { font-size: var(--kb-fs-xs); color: #4a5565; }
+.kb-vk-steun-knop { background: none; border: none; padding: 0; color: #154273; text-decoration: underline; font: inherit; font-size: var(--kb-fs-xs); cursor: pointer; text-align: left; }
 .kb-vk-steun-knop:focus-visible { outline: 2px solid #154273; outline-offset: 2px; }

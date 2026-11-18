@@ -115,6 +115,7 @@ weghalen van een opmerking leest een live-regio de melding voor en gaat de focus
 - Semantische opbouw: kop, navigatie, `main`, koppen per niveau; skip-link "Naar de inhoud".
 - Met het toetsenbord te bedienen; zichtbare focus; `/` springt naar zoeken; `Esc` sluit vensters.
 - Inklapbare secties met native `<details>`/`<summary>`.
+- Maten (1.38.0): leestekst 16 px, bediening 14 px, niets kleiner dan 12 px. Knoppen zijn 32 px hoog (WCAG 2.2, 2.5.8 vraagt minstens 24 px); op een aanraakscherm 44 px. Alles in `rem`, dus de tekst groeit mee met de instelling van de browser.
 - Statusmeldingen (toasts, zoekresultaten, antwoorden van de assistent) via `aria-live`.
 - Schakelaars met `aria-pressed`; menu en assistent met `aria-expanded`.
 - Werkt bij 400% zoom en op 320 px breedte. Het bewerkscherm doet dat ook, met de lade over de volle breedte.

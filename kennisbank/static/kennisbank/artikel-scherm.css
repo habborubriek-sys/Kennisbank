@@ -51,37 +51,37 @@ body.kb-scherm .kb-balk {
 }
 .kb-balk a { color: #fff; }
 /* Alle knoppen in de balk even hoog: dezelfde rand, binnenruimte en letter. */
-.kb-balk-terug { text-decoration: none; font-size: 14px; line-height: 20px; padding: 6px 12px; border: 1px solid #4a6b93; border-radius: 6px; white-space: nowrap; justify-self: start; }
+.kb-balk-terug { text-decoration: none; font-size: var(--kb-fs-s); line-height: 20px; padding: 6px 12px; border: 1px solid #4a6b93; border-radius: 6px; white-space: nowrap; justify-self: start; }
 .kb-balk-terug:hover { background: var(--kb-blauw-2); }
-.kb-balk-titel { min-width: 0; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kb-balk-titel { min-width: 0; font-size: var(--kb-fs-m); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* De infobalk: licht, klein, rustig. */
 .kb-balk-sub { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin: 8px -20px 0; padding: 4px 20px;
-  background: #f4f7fb; color: #3d4b5c; border-top: 3px solid var(--kb-geel); border-bottom: 1px solid var(--kb-lijn); font-size: 12px; line-height: 18px; }
+  background: #f4f7fb; color: #3d4b5c; border-top: 3px solid var(--kb-geel); border-bottom: 1px solid var(--kb-lijn); font-size: var(--kb-fs-xs); line-height: 18px; }
 .kb-balk-meta { color: #5b6b7d; margin-left: 2px; }
 /* Een link midden in een zin is aan meer dan de kleur te herkennen (WCAG 1.4.1). */
 .kb-balk-meta a, .kb-paneel-live .kb-paneel-uitleg a { color: #154273; text-decoration: underline; }
-.kb-balk-sub .kb-pil, .kb-balk-sub .kb-stand { font-size: 12px; font-weight: 600; padding: 0 7px; border-radius: 9px; line-height: 18px; }
+.kb-balk-sub .kb-pil, .kb-balk-sub .kb-stand { font-size: var(--kb-fs-xs); font-weight: 600; padding: 0 7px; border-radius: 9px; line-height: 18px; }
 .kb-pil.kb-pil-rustig { background: #e3eaf3; color: #154273; }
 .kb-balk-sub button.kb-balk-link { background: none; border: none; padding: 0; color: #ffd7d7; text-decoration: underline; font: inherit; cursor: pointer; }
 .kb-pil { background: var(--kb-geel); color: #3a2c00; font-weight: 700; padding: 1px 8px; border-radius: 10px; }
 .kb-pil-spoed { background: #f9d4cf; color: #6e1a10; }
-.kb-stand { font-size: 13px; font-weight: 700; padding: 1px 8px; border-radius: 10px; background: var(--kb-blauw-2); color: #fff; white-space: nowrap; }
+.kb-stand { font-size: var(--kb-fs-s); font-weight: 700; padding: 1px 8px; border-radius: 10px; background: var(--kb-blauw-2); color: #fff; white-space: nowrap; }
 .kb-stand-inzage { background: #fbe3b0; color: #5a3d00; }
 .kb-stand-terug { background: #f9d4cf; color: #6e1a10; }
 .kb-stand-akkoord { background: #cfe9d6; color: #154a26; }
 .kb-stand-niet { background: #e3e9f1; color: #22364d; }
-.kb-stand-regel { color: #3d4b5c; font-size: 12px; }
+.kb-stand-regel { color: #3d4b5c; font-size: var(--kb-fs-xs); }
 .kb-review-stand { margin: 0 0 10px; }
 .kb-balk-knoppen { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-a.kb-bk { text-decoration: none; display: inline-block; }
-.kb-bk { border: 1px solid #4a6b93; background: transparent; color: #fff; border-radius: 6px; padding: 6px 12px; font-size: 14px; line-height: 20px; cursor: pointer; font-family: inherit; }
+a.kb-bk { text-decoration: none; display: inline-flex; align-items: center; }
+.kb-bk { border: 1px solid #4a6b93; background: transparent; color: #fff; border-radius: 6px; padding: 2px 12px; min-height: var(--kb-knop-h); box-sizing: border-box; font-size: var(--kb-fs-s); line-height: 20px; cursor: pointer; font-family: inherit; }
 .kb-bk:hover { background: var(--kb-blauw-2); }
 .kb-bk.kb-aan { border-color: var(--kb-geel); background: var(--kb-blauw-2); }
 .kb-balk-afronden { display: flex; gap: 8px; align-items: center; }
 .kb-balk-afronden .kb-afronden-knop,
 .kb-balk-afronden .kb-balk-opslaan {
   background: var(--kb-geel) !important; color: #2b2000 !important; border: 1px solid var(--kb-geel) !important; border-radius: 6px !important;
-  padding: 6px 16px !important; font-weight: 700 !important; font-size: 14px !important; line-height: 20px !important;
+  padding: 2px 16px !important; min-height: var(--kb-knop-h) !important; box-sizing: border-box !important; font-weight: 700 !important; font-size: var(--kb-fs-s) !important; line-height: 20px !important;
   height: auto !important; margin: 0 !important; cursor: pointer; font-family: inherit !important;
 }
 .kb-balk-afronden .kb-afronden-knop:hover, .kb-balk-afronden .kb-balk-opslaan:hover { background: #ffd451 !important; }
@@ -101,15 +101,15 @@ body.kb-scherm .kb-ae-werkbalk {
   background: #fff; border-bottom: 1px solid var(--kb-lijn);
 }
 .kb-ae-werkbalk-in { width: 100%; max-width: 900px; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 6px 10px; }
-.kb-ae-knop { min-width: 34px; height: 34px; border: none; background: none; border-radius: 6px; color: #3a4553; font-size: 15px; padding: 0 7px; cursor: pointer; font-family: inherit; }
-.kb-ae-knop small { font-size: 11px; margin-left: 2px; }
+.kb-ae-knop { min-width: var(--kb-knop-h); height: var(--kb-knop-h); border: none; background: none; border-radius: 6px; color: #3a4553; font-size: var(--kb-fs-s); padding: 0 7px; cursor: pointer; font-family: inherit; }
+.kb-ae-knop small { font-size: var(--kb-fs-xs); margin-left: 2px; }
 .kb-ae-knop:hover:not(:disabled) { background: #eef1f5; }
 .kb-ae-knop:disabled { opacity: .35; cursor: default; }
 .kb-ae-knop.kb-ae-aan { background: #dfe8f4; color: var(--kb-blauw); }
-.kb-ae-tekst { font-size: 13px; font-weight: 600; color: var(--kb-blauw); }
+.kb-ae-tekst { font-size: var(--kb-fs-s); font-weight: 600; color: var(--kb-blauw); }
 .kb-ae-sterk { font-weight: 700; }
 .kb-ae-scheid { width: 1px; height: 22px; background: var(--kb-lijn); margin: 0 6px; }
-.kb-ae-soort { height: 32px; border: 1px solid var(--kb-lijn); border-radius: 6px; padding: 0 6px; font: inherit; font-size: 13px; background: #fff; }
+.kb-ae-soort { height: 32px; border: 1px solid var(--kb-lijn); border-radius: 6px; padding: 0 6px; font: inherit; font-size: var(--kb-fs-s); background: #fff; }
 .kb-ae-tabelknoppen { display: inline-flex; gap: 2px; padding-left: 8px; margin-left: 4px; border-left: 1px solid var(--kb-lijn); }
 .kb-ae-tabelknoppen[hidden] { display: none; }
 
@@ -119,19 +119,19 @@ body.kb-scherm .kb-werkvlak { display: flex; gap: 20px; align-items: flex-start;
 body.kb-scherm.kb-met-opm .kb-werkvlak { max-width: 1240px; }
 .kb-blad {
   flex: 1 1 auto; min-width: 0; background: #fff; border: 1px solid var(--kb-lijn); border-radius: 12px; padding: 26px 34px 40px;
-  font-family: "Source Sans 3", system-ui, sans-serif; font-size: 16px; line-height: 1.55; color: #17212b;
+  font-family: "Source Sans 3", system-ui, sans-serif; font-size: var(--kb-fs-m); line-height: 1.55; color: #17212b;
 }
-.kb-blad-soort { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #154273; background: #dfe8f4; padding: 3px 8px; border-radius: 4px; }
+.kb-blad-soort { display: inline-block; font-size: var(--kb-fs-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #154273; background: #dfe8f4; padding: 3px 8px; border-radius: 4px; }
 .kb-vast { position: relative; padding-top: 20px; }
-.kb-vast-label { position: absolute; left: 0; top: 0; font-size: 12px; font-weight: 600; color: var(--kb-blauw-2); background: #e3ebf5; border-radius: 4px; padding: 1px 6px; opacity: 0; transition: opacity .15s; pointer-events: none; white-space: nowrap; }
+.kb-vast-label { position: absolute; left: 0; top: 0; font-size: var(--kb-fs-xs); font-weight: 600; color: var(--kb-blauw-2); background: #e3ebf5; border-radius: 4px; padding: 1px 6px; opacity: 0; transition: opacity .15s; pointer-events: none; white-space: nowrap; }
 .kb-vast:focus-within .kb-vast-label { opacity: 1; }
 body.kb-scherm .kb-blad input[name="titel"],
 body.kb-scherm .kb-blad textarea[name="samenvatting"] {
   display: block; width: 100%; box-sizing: border-box; border: 1px solid transparent; border-radius: 6px; background: transparent;
   padding: 2px 4px; margin: 0 -5px; resize: none; overflow: hidden; outline: none;
 }
-body.kb-scherm .kb-blad input[name="titel"] { font-family: "Source Serif 4", Georgia, serif; font-size: 30px; font-weight: 700; line-height: 1.25; color: #17212b; height: auto; }
-body.kb-scherm .kb-blad textarea[name="samenvatting"] { font-family: inherit; font-size: 17px; line-height: 1.5; color: #4a5565; min-height: 28px; }
+body.kb-scherm .kb-blad input[name="titel"] { font-family: "Source Serif 4", Georgia, serif; font-size: var(--kb-fs-xl); font-weight: 700; line-height: 1.25; color: #17212b; height: auto; }
+body.kb-scherm .kb-blad textarea[name="samenvatting"] { font-family: inherit; font-size: var(--kb-fs-m); line-height: 1.5; color: #4a5565; min-height: 28px; }
 body.kb-scherm .kb-blad input[name="titel"]:hover, body.kb-scherm .kb-blad textarea[name="samenvatting"]:hover { border-color: #e1e6ec; }
 body.kb-scherm .kb-blad input[name="titel"]:focus, body.kb-scherm .kb-blad textarea[name="samenvatting"]:focus { border-color: #5f7896; background: #fafbfc; }
 body.kb-scherm .kb-blad input[name="titel"]::placeholder, body.kb-scherm .kb-blad textarea[name="samenvatting"]::placeholder { color: #8f9aa8; font-style: italic; font-weight: 400; }
@@ -143,8 +143,8 @@ body.kb-scherm .kb-blad input[name="titel"]::placeholder, body.kb-scherm .kb-bla
 .kb-ae-inhoud { outline: none; min-height: 160px; padding: 4px 0 8px; }
 .kb-ae-inhoud > * { margin-top: 0; }
 .kb-ae-inhoud p { margin: 0 0 10px; }
-.kb-ae-inhoud h3 { font-size: 1.15rem; margin: 18px 0 6px; }
-.kb-ae-inhoud h4 { font-size: 1rem; margin: 14px 0 4px; }
+.kb-ae-inhoud h3 { font-size: var(--kb-fs-l); margin: 18px 0 6px; }
+.kb-ae-inhoud h4 { font-size: var(--kb-fs-m); margin: 14px 0 4px; }
 .kb-ae-inhoud ul, .kb-ae-inhoud ol { margin: 0 0 10px; padding-left: 24px; }
 .kb-ae-inhoud li p { margin: 0 0 4px; }
 .kb-ae-inhoud blockquote { margin: 0 0 10px; padding: 6px 12px; border-left: 3px solid var(--kb-lijn); color: var(--kb-zacht); }
@@ -160,31 +160,31 @@ body.kb-scherm .kb-blad input[name="titel"]::placeholder, body.kb-scherm .kb-bla
 /* Sectie: een kaart zoals in de kennisbank, tijdens het bewerken altijd open. */
 .kb-ae-sectie { position: relative; border: 1px solid var(--kb-lijn); border-radius: 8px; background: #fff; margin: 0 0 12px; transition: box-shadow .15s, border-color .15s; }
 .kb-ae-sectie:focus-within { border-color: #7c9cc2; box-shadow: 0 0 0 3px #e3ebf5; }
-.kb-ae-pijl { position: absolute; left: 14px; top: 13px; color: var(--kb-zacht); font-size: 12px; user-select: none; }
-.kb-ae-smenu { position: absolute; right: 6px; top: 6px; width: 32px; height: 32px; border: none; background: none; border-radius: 6px; color: var(--kb-zacht); font-size: 18px; line-height: 1; cursor: pointer; opacity: .25; }
+.kb-ae-pijl { position: absolute; left: 14px; top: 13px; color: var(--kb-zacht); font-size: var(--kb-fs-xs); user-select: none; }
+.kb-ae-smenu { position: absolute; right: 6px; top: 6px; width: 32px; height: 32px; border: none; background: none; border-radius: 6px; color: var(--kb-zacht); font-size: var(--kb-fs-l); line-height: 1; cursor: pointer; opacity: .25; }
 .kb-ae-sectie:hover .kb-ae-smenu, .kb-ae-sectie:focus-within .kb-ae-smenu, .kb-ae-smenu:focus { opacity: 1; }
 .kb-ae-smenu:hover { background: #eef1f5; }
 .kb-ae-sectie-inhoud { padding: 0 16px 12px 34px; }
-.kb-ae-sectie-inhoud > h2.sectie-kop { font-size: 16.5px; font-weight: 600; margin: 0 30px 8px -6px; padding: 10px 6px 4px; line-height: 1.4; font-family: inherit; color: #17212b; }
+.kb-ae-sectie-inhoud > h2.sectie-kop { font-size: var(--kb-fs-m); font-weight: 600; margin: 0 30px 8px -6px; padding: 10px 6px 4px; line-height: 1.4; font-family: inherit; color: #17212b; }
 .kb-ae-sectie-inhoud > h2.sectie-kop:empty::before,
 .kb-ae-sectie-inhoud > h2.sectie-kop:has(> br:only-child)::before { content: "Kop van de sectie"; color: #8f9aa8; font-weight: 400; font-style: italic; }
 
 /* Onboarding: het gele kader dat nieuwe collega's zien. */
 .kb-ae-inhoud div.onboarding { background: var(--kb-onb); border-left: 3px solid var(--kb-onb-lijn); border-radius: 0 6px 6px 0; padding: 8px 12px; margin: 6px 0 10px; }
-.kb-ae-inhoud div.onboarding::before { content: "Voor nieuwe collega's"; display: block; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; font-weight: 700; color: #6b4e00; user-select: none; }
+.kb-ae-inhoud div.onboarding::before { content: "Voor nieuwe collega's"; display: block; font-size: var(--kb-fs-xs); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; font-weight: 700; color: #6b4e00; user-select: none; }
 .kb-ae-inhoud div.onboarding p:last-child { margin-bottom: 0; }
 
 /* De + tussen blokken. */
 .kb-ae-tussen { position: absolute; left: 0; right: 0; height: 24px; z-index: 5; pointer-events: none; }
 .kb-ae-tussen[hidden] { display: none; }
 .kb-ae-lijntje { position: absolute; left: 0; right: 0; top: 11px; height: 2px; background: #7c9cc2; opacity: .7; }
-.kb-ae-plus { pointer-events: auto; position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 26px; height: 26px; border-radius: 13px; border: 1px solid #7c9cc2; background: #fff; color: var(--kb-blauw); font-weight: 700; font-size: 16px; line-height: 22px; padding: 0; cursor: pointer; }
+.kb-ae-plus { pointer-events: auto; position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 26px; height: 26px; border-radius: 13px; border: 1px solid #7c9cc2; background: #fff; color: var(--kb-blauw); font-weight: 700; font-size: var(--kb-fs-m); line-height: 22px; padding: 0; cursor: pointer; }
 .kb-ae-plus:hover, .kb-ae-plus:focus { background: var(--kb-blauw); color: #fff; }
 
 /* Menu's (sectiemenu en invoegen). */
 .kb-ae-menu { position: absolute; z-index: 60; background: #fff; border: 1px solid #c3cbd6; border-radius: 8px; box-shadow: 0 8px 24px rgba(15, 27, 45, .18); padding: 6px; display: flex; flex-direction: column; min-width: 210px; font-family: "Source Sans 3", system-ui, sans-serif; }
-.kb-ae-menuknop { border: none; background: none; text-align: left; padding: 8px 10px; border-radius: 6px; font-size: 14px; color: #17212b; cursor: pointer; font-family: inherit; }
-.kb-ae-menuknop small { display: block; color: var(--kb-zacht); font-size: 12px; }
+.kb-ae-menuknop { border: none; background: none; text-align: left; padding: 8px 10px; border-radius: 6px; font-size: var(--kb-fs-s); color: #17212b; cursor: pointer; font-family: inherit; }
+.kb-ae-menuknop small { display: block; color: var(--kb-zacht); font-size: var(--kb-fs-xs); }
 .kb-ae-menuknop:hover:not(:disabled), .kb-ae-menuknop:focus { background: #eef1f5; outline: none; }
 .kb-ae-menuknop:disabled { opacity: .4; cursor: default; }
 .kb-ae-menuknop.kb-ae-gevaar span { color: #a11b12; }
@@ -208,15 +208,15 @@ body.kb-op-slot .kb-blad { background: #fbfbfc; }
 .kb-ae-opm.kb-ae-vs.kb-ae-vs-actief, .kb-ae-opm .kb-ae-vs.kb-ae-vs-actief, .kb-ae-vs.kb-ae-vs-actief .kb-ae-opm { background: #b9d4f3; }
 .kb-marge { display: none; position: relative; flex: 0 0 300px; align-self: stretch; }
 body.kb-met-opm .kb-marge { display: block; }
-.kb-ae-kaart { position: absolute; left: 0; right: 0; background: #fff; border: 1px solid #c6a3df; border-radius: 8px; padding: 10px 12px; font: 13px/1.45 "Source Sans 3", system-ui, sans-serif; display: flex; gap: 8px; text-align: left; cursor: pointer; color: #17212b; transition: top .15s, box-shadow .15s; }
+.kb-ae-kaart { position: absolute; left: 0; right: 0; background: #fff; border: 1px solid #c6a3df; border-radius: 8px; padding: 10px 12px; font: var(--kb-fs-s)/1.45 "Source Sans 3", system-ui, sans-serif; display: flex; gap: 8px; text-align: left; cursor: pointer; color: #17212b; transition: top .15s, box-shadow .15s; }
 .kb-ae-kaart:hover, .kb-ae-kaart.kb-ae-actief { box-shadow: 0 4px 14px rgba(15, 27, 45, .15); border-color: #6b2d8f; }
 .kb-ae-kaart::before { content: ""; position: absolute; left: -21px; top: 15px; width: 20px; border-top: 2px solid #6b2d8f; }
 .kb-ae-kaart.kb-ae-alg::before { display: none; }
-.kb-ae-nr { flex: none; min-width: 22px; height: 22px; padding: 0 4px; border-radius: 4px; background: #6b2d8f; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+.kb-ae-nr { flex: none; min-width: 22px; height: 22px; padding: 0 4px; border-radius: 4px; background: #6b2d8f; color: #fff; font-size: var(--kb-fs-xs); font-weight: 700; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
 /* Vierkant en paars: zo verschillen opmerkingen van de review van de ronde blauwe nummers van verbetervoorstellen (1.26.0). */
 .kb-ae-nr.kb-ae-alg { background: #d5dbe3; color: #17212b; }
 .kb-ae-kaarttekst { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.kb-ae-wie { font-size: 12px; color: var(--kb-zacht); }
+.kb-ae-wie { font-size: var(--kb-fs-xs); color: var(--kb-zacht); }
 .kb-ae-weg { color: #8a5a00; font-style: italic; }
 .kb-ae-opmtekst { white-space: pre-line; }
 
@@ -227,12 +227,12 @@ body.kb-scherm .kb-paneel.kb-open {
   background: #fff; border: 1px solid #c3cbd6; border-radius: 10px; box-shadow: 0 8px 28px rgba(15, 27, 45, .22); overflow: auto; padding: 16px 18px; z-index: 35;
 }
 .kb-paneel-kop { display: flex; align-items: center; gap: 8px; }
-.kb-paneel-kop h2 { margin: 0; font-size: 18px; color: #17212b; background: none; padding: 0; text-transform: none; letter-spacing: 0; }
-.kb-paneel-sluit { margin-left: auto; border: 1px solid #c3cbd6; background: #fff; border-radius: 6px; width: 36px; height: 36px; font-size: 16px; cursor: pointer; }
-.kb-paneel-uitleg { margin: 0; color: var(--kb-zacht); font-size: 13px; }
+.kb-paneel-kop h2 { margin: 0; font-size: var(--kb-fs-l); color: #17212b; background: none; padding: 0; text-transform: none; letter-spacing: 0; }
+.kb-paneel-sluit { margin-left: auto; border: 1px solid #c3cbd6; background: #fff; border-radius: 6px; width: var(--kb-knop-h); height: var(--kb-knop-h); font-size: var(--kb-fs-m); cursor: pointer; }
+.kb-paneel-uitleg { margin: 0; color: var(--kb-zacht); font-size: var(--kb-fs-s); }
 /* In het paneel: de velden onder elkaar in plaats van label links, veld rechts. */
 .kb-paneel fieldset.module { margin: 0; border: none; padding: 0; }
-.kb-paneel fieldset.module h2.fieldset-heading { background: none; color: #17212b; font-size: 14px; padding: 8px 0 4px; margin: 0; text-transform: none; letter-spacing: 0; border-bottom: 1px solid #e1e6ec; }
+.kb-paneel fieldset.module h2.fieldset-heading { background: none; color: #17212b; font-size: var(--kb-fs-s); padding: 8px 0 4px; margin: 0; text-transform: none; letter-spacing: 0; border-bottom: 1px solid #e1e6ec; }
 .kb-paneel .form-row { padding: 8px 0; border: none; }
 .kb-paneel .form-row .flex-container { flex-direction: column; align-items: stretch; gap: 4px; }
 .kb-paneel .form-row .flex-container.checkbox-row { flex-direction: row; align-items: center; }
@@ -242,8 +242,8 @@ body.kb-scherm .kb-paneel.kb-open {
 .kb-paneel .selector { width: 100% !important; float: none; }
 .kb-paneel .selector .selector-available, .kb-paneel .selector .selector-chosen { width: 100% !important; }
 .kb-paneel .inline-group { margin: 0; }
-.kb-paneel .inline-group h2 { background: none; color: #17212b; font-size: 14px; padding: 8px 0 4px; text-transform: none; letter-spacing: 0; }
-.kb-paneel .tabular td, .kb-paneel .tabular th { padding: 6px 4px; font-size: 13px; }
+.kb-paneel .inline-group h2 { background: none; color: #17212b; font-size: var(--kb-fs-s); padding: 8px 0 4px; text-transform: none; letter-spacing: 0; }
+.kb-paneel .tabular td, .kb-paneel .tabular th { padding: 6px 4px; font-size: var(--kb-fs-s); }
 .kb-paneel-review ul.kb-review-teams { padding-left: 18px; }
 
 /* --- Bekijk als medewerker ------------------------------------------------------------- */
@@ -252,8 +252,8 @@ dialog.kb-lees { position: fixed; inset: 0; width: 100%; height: 100%; max-width
 dialog.kb-lees[open] { display: flex; flex-direction: column; }
 dialog.kb-lees::backdrop { background: rgba(15, 27, 45, .55); }
 .kb-lees-balk { display: flex; align-items: center; gap: 12px; background: #1f4a7a; color: #fff; padding: 10px 16px; border-radius: 10px 10px 0 0; font-family: "Source Sans 3", system-ui, sans-serif; }
-.kb-lees-balk .kb-lees-tag { font-size: 11px; font-weight: 600; letter-spacing: .08em; border: 1px solid #fff; border-radius: 10px; padding: 1px 8px; }
-.kb-lees-balk button { margin-left: auto; border: 1px solid #fff; background: transparent; color: #fff; border-radius: 6px; padding: 7px 14px; cursor: pointer; font: inherit; }
+.kb-lees-balk .kb-lees-tag { font-size: var(--kb-fs-xs); font-weight: 600; letter-spacing: .08em; border: 1px solid #fff; border-radius: 10px; padding: 1px 8px; }
+.kb-lees-balk button { margin-left: auto; border: 1px solid #fff; background: transparent; color: #fff; border-radius: 6px; padding: 2px 14px; min-height: var(--kb-knop-h); cursor: pointer; font: inherit; }
 .kb-lees iframe { flex: 1; border: none; background: #f3f5f8; border-radius: 0 0 10px 10px; width: 100%; }
 
 @media (max-width: 900px) {
@@ -270,7 +270,7 @@ body.kb-scherm #container { min-width: 0; }
 .kb-ae-inhoud ul li { list-style-type: disc; padding: 0; }
 .kb-ae-inhoud ol li { list-style-type: decimal; padding: 0; }
 .kb-ae-inhoud h3, .kb-ae-inhoud h4 { color: #17212b; text-transform: none; letter-spacing: 0; background: none; padding: 0; }
-.kb-paneel fieldset.module h2, .kb-paneel .inline-group h2 { background: none !important; border: none !important; border-bottom: 1px solid #e1e6ec !important; color: #17212b !important; font-size: 14px !important; font-weight: 700; padding: 10px 0 4px !important; margin: 4px 0 0 !important; text-transform: none !important; letter-spacing: 0 !important; }
+.kb-paneel fieldset.module h2, .kb-paneel .inline-group h2 { background: none !important; border: none !important; border-bottom: 1px solid #e1e6ec !important; color: #17212b !important; font-size: var(--kb-fs-s) !important; font-weight: 700; padding: 10px 0 4px !important; margin: 4px 0 0 !important; text-transform: none !important; letter-spacing: 0 !important; }
 .kb-paneel .inline-group { overflow-x: auto; }
 .kb-paneel .readonly { margin-left: 0 !important; padding-left: 0 !important; }
 /* Leeg artikel: uitleg in de eerste regel. */
@@ -305,13 +305,13 @@ body.kb-scherm .kb-ae-werkbalk-in { min-height: 46px; box-sizing: border-box; }
 .kb-live-melding[hidden] { display: none; }
 .kb-live-melding-tekst { flex: 1 1 300px; min-width: 0; }
 .kb-live-melding.kb-live-klaar { background: #e3f3e7; border-color: #9ccfaa; border-left-color: #1e7a3c; color: #0f3d1f; }
-.kb-live-melding .button { background: #154273; color: #fff; border: 1px solid #154273; border-radius: 6px; padding: 7px 14px; font-weight: 600; cursor: pointer; }
+.kb-live-melding .button { background: #154273; color: #fff; border: 1px solid #154273; border-radius: 6px; padding: 2px 14px; min-height: var(--kb-knop-h); font-weight: 600; cursor: pointer; }
 .kb-live-melding.kb-live-klaar .button { background: #fff; color: #17212b; border-color: #9fb3cc; }
 /* Het paneel: dezelfde plek als de andere panelen, maar het blad schuift opzij zodat het zichtbaar en bewerkbaar blijft. */
 body.kb-scherm .kb-paneel-live.kb-open { gap: 10px; padding-bottom: 0; }
 .kb-live-nav { display: flex; align-items: center; gap: 8px; }
-.kb-live-teller { flex: 1; text-align: center; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; color: #17212b; }
-.kb-paneel-live .button { border-radius: 6px; padding: 6px 12px; font-size: 14px; cursor: pointer; border: 1px solid #154273; background: #154273; color: #fff; font-weight: 600; }
+.kb-live-teller { flex: 1; text-align: center; font-weight: 700; font-size: var(--kb-fs-s); font-variant-numeric: tabular-nums; color: #17212b; }
+.kb-paneel-live .button { border-radius: 6px; padding: 2px 12px; min-height: var(--kb-knop-h); font-size: var(--kb-fs-s); cursor: pointer; border: 1px solid #154273; background: #154273; color: #fff; font-weight: 600; }
 .kb-paneel-live .button.kb-knop-rustig { background: #fff; color: #17212b; border-color: #9fb3cc; font-weight: 400; }
 .kb-paneel-live .button:disabled { opacity: .45; cursor: default; }
 .kb-live-stippen { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
@@ -319,30 +319,30 @@ body.kb-scherm .kb-paneel-live.kb-open { gap: 10px; padding-bottom: 0; }
 .kb-live-stip.kb-live-stip-klaar { background: #1e7a3c; }
 .kb-live-stip.kb-live-stip-niet { background: #6b7786; }
 .kb-live-stip[aria-current="true"] { outline: 2px solid #154273; outline-offset: 2px; }
-.kb-live-lijf { flex: 1; min-height: 120px; overflow-y: auto; color: #17212b; font-size: 15px; line-height: 1.5; }
-.kb-live-waar { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: 13px; color: #3d4b5c; margin-bottom: 8px; }
-.kb-live-waar b { font-size: 15px; color: #17212b; }
-.kb-live-stand { margin-left: auto; font-weight: 700; border-radius: 999px; padding: 1px 10px; font-size: 13px; background: #fde9a8; color: #4a3800; }
+.kb-live-lijf { flex: 1; min-height: 120px; overflow-y: auto; color: #17212b; font-size: var(--kb-fs-s); line-height: 1.5; }
+.kb-live-waar { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: var(--kb-fs-s); color: #3d4b5c; margin-bottom: 8px; }
+.kb-live-waar b { font-size: var(--kb-fs-s); color: #17212b; }
+.kb-live-stand { margin-left: auto; font-weight: 700; border-radius: 999px; padding: 1px 10px; font-size: var(--kb-fs-s); background: #fde9a8; color: #4a3800; }
 .kb-live-stand-klaar { background: #d9f2df; color: #0f3d1f; }
 .kb-live-stand-niet { background: #e6eaf0; color: #3d4b5c; }
-.kb-live-lijf h3 { margin: 10px 0 4px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #5a6675; background: none; padding: 0; }
+.kb-live-lijf h3 { margin: 10px 0 4px; font-size: var(--kb-fs-xs); letter-spacing: .06em; text-transform: uppercase; color: #5a6675; background: none; padding: 0; }
 .kb-live-vak { border: 1px solid #d3d9e2; border-radius: 8px; padding: 10px 12px 2px; }
 .kb-live-vak p { margin: 0 0 8px; }
-.kb-live-uitleg { margin: 0; font-size: 14px; color: #3d4b5c; background: #f4f7fb; border-radius: 6px; padding: 7px 10px; }
+.kb-live-uitleg { margin: 0; font-size: var(--kb-fs-s); color: #3d4b5c; background: #f4f7fb; border-radius: 6px; padding: 7px 10px; }
 .kb-live-uitleg.kb-live-let { background: #fdf3d8; color: #5b4a12; }
 .kb-live-rij { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .kb-paneel-live ins { background: #d9f2df; color: #0f3d1f; text-decoration: none; border-bottom: 2px solid #1e7a3c; border-radius: 2px; padding: 0 1px; }
 .kb-paneel-live del { background: #fde2e4; color: #7f1d1d; text-decoration: line-through; }
 .kb-live-voet { position: sticky; bottom: 0; margin: 0 -18px; padding: 10px 18px 14px; border-top: 1px solid #d3d9e2; background: #f7f9fc; display: flex; flex-direction: column; gap: 8px; border-radius: 0 0 10px 10px; }
-.kb-live-voortgang { font-size: 14px; color: #3d4b5c; display: flex; justify-content: space-between; gap: 8px; }
-.kb-live-legenda { font-size: 13px; white-space: nowrap; }
-.kb-live-onbewaard { margin: 0; font-size: 13px; color: #5b4a12; }
+.kb-live-voortgang { font-size: var(--kb-fs-s); color: #3d4b5c; display: flex; justify-content: space-between; gap: 8px; }
+.kb-live-legenda { font-size: var(--kb-fs-s); white-space: nowrap; }
+.kb-live-onbewaard { margin: 0; font-size: var(--kb-fs-s); color: #5b4a12; }
 /* De alinea waar de wijziging over gaat, in het blad. */
 .kb-ae-inhoud .kb-ae-live { background: #eaf1fb; box-shadow: -4px 0 0 #2f6fc2; border-radius: 3px; }
 .kb-ae-inhoud .kb-ae-live-na { background: none; box-shadow: 0 3px 0 #2f6fc2; }
 .kb-ae-inhoud .kb-ae-live-voor { background: none; box-shadow: 0 -3px 0 #2f6fc2; }
-.kb-ae-inhoud .kb-ae-live-na::after { content: "\2191  hier staat live nieuwe tekst"; display: block; font-size: 13px; font-weight: 600; color: #1f4f96; }
-.kb-ae-inhoud .kb-ae-live-voor::before { content: "\2193  hier staat live nieuwe tekst"; display: block; font-size: 13px; font-weight: 600; color: #1f4f96; }
+.kb-ae-inhoud .kb-ae-live-na::after { content: "\2191  hier staat live nieuwe tekst"; display: block; font-size: var(--kb-fs-s); font-weight: 600; color: #1f4f96; }
+.kb-ae-inhoud .kb-ae-live-voor::before { content: "\2193  hier staat live nieuwe tekst"; display: block; font-size: var(--kb-fs-s); font-weight: 600; color: #1f4f96; }
 .kb-ae-inhoud .kb-ae-live-net { background: #d9f2df; box-shadow: -4px 0 0 #1e7a3c; }
 .kb-vast.kb-live-hier { background: #eaf1fb; box-shadow: -4px 0 0 #2f6fc2; border-radius: 3px; }
 /* Het paneel is met rand en binnenruimte 468px breed en staat 8px van de kant. */

@@ -4,6 +4,181 @@
 html:root {
   --primary:#154273;--secondary:#1f4f86;--accent:#ffd23f;--header-bg:#154273;--breadcrumbs-bg:#f4f7fb;--breadcrumbs-fg:#3d4b5c;--breadcrumbs-link-fg:#154273;--link-fg:#154273;--link-hover-color:#0b2a4d;--button-bg:#fff;--button-fg:#154273;--button-hover-bg:#eef3f9;--default-button-bg:#154273;--default-button-hover-bg:#0b2a4d;--selected-row:#dfe8f4
 }
+
+/* ---- Lettergroottes van het standaardbeheer naar de vaste set (1.38.0) ---------------------------------
+ * Django gebruikt in zijn eigen stijl negen groottes tussen 9 en 20 px. Hier krijgt elke regel daarvan een van
+ * de vijf uit fonts.css, met dezelfde selector, zodat ze precies die regel vervangen en niets anders. Eigen
+ * regels verderop in dit bestand gaan voor. Gemaakt uit de stijlbestanden van Django 5.2; komt er bij een
+ * nieuwe Django een grootte bij, dan meldt de browsertest dat (rook.js, "vaste set lettergroottes"). */
+html:root{--font-family-primary:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif}h4,
+h5,
+blockquote,
+code,
+pre,
+.small,
+.mini,
+.help,
+p.help,
+form p.help,
+div.help,
+form div.help,
+div.help li,
+thead th,
+tfoot td,
+.module caption,
+.inline-group h2,
+html:root .inline-group h2,
+.description,
+.object-tools,
+.object-tools a:link,
+.object-tools a:visited,
+#user-tools,
+#logout-form button,
+.inline-related h3 span.delete label,
+html:root .inline-related h3 span.delete label,
+.inline-group .tabular td.original p,
+html:root .inline-group .tabular td.original p,
+.inline-group div.add-row a,
+html:root .inline-group div.add-row a,
+.inline-group .tabular tr.add-row td a,
+html:root .inline-group .tabular tr.add-row td a,
+.selector .helptext,
+html:root .selector .helptext,
+.selector .selector-filter,
+html:root .selector .selector-filter,
+.datetime span,
+html:root .datetime span,
+table p.datetime,
+html:root table p.datetime,
+.timezonewarning,
+html:root .timezonewarning,
+p.url,
+html:root p.url,
+p.file-upload,
+html:root p.file-upload,
+span.clearable-file-input label,
+html:root span.clearable-file-input label,
+.calendarbox,
+html:root .calendarbox,
+.clockbox,
+html:root .clockbox,
+.calendar caption,
+html:root .calendar caption,
+.calendarbox h2,
+html:root .calendarbox h2,
+.calendar th,
+html:root .calendar th,
+.calendar td,
+html:root .calendar td,
+.calendarnav,
+html:root .calendarnav,
+.calendar-shortcuts,
+html:root .calendar-shortcuts,
+.calendar-cancel,
+html:root .calendar-cancel,
+.datetime .timezonewarning,
+html:root .datetime .timezonewarning{font-size:var(--kb-fs-xs)}body,
+h3,
+li,
+dt,
+dd,
+td,
+th,
+input,
+textarea,
+select,
+.form-row p,
+html:root .form-row p,
+form .button,
+.module h2,
+ul.messagelist li,
+.errornote,
+html:root .errornote,
+ul.errorlist li,
+#branding h2,
+#content-related h4,
+.paginator,
+.paginator .this-page,
+#toolbar form input,
+html:root #toolbar form input,
+#toolbar #searchbar,
+html:root #toolbar #searchbar,
+#toolbar form input[type="submit"],
+html:root #toolbar form input[type="submit"],
+#changelist-filter h2,
+html:root #changelist-filter h2,
+#changelist-filter #changelist-filter-extra-actions,
+html:root #changelist-filter #changelist-filter-extra-actions,
+.change-list .toplinks a,
+html:root .change-list .toplinks a,
+#changelist .actions span.all,
+html:root #changelist .actions span.all,
+#changelist .actions span.action-counter,
+html:root #changelist .actions span.action-counter,
+#changelist .actions span.clear,
+html:root #changelist .actions span.clear,
+#changelist .actions span.question,
+html:root #changelist .actions span.question,
+#changelist .actions select,
+html:root #changelist .actions select,
+#changelist .actions label,
+html:root #changelist .actions label,
+#changelist .actions .button,
+html:root #changelist .actions .button,
+label,
+html:root label,
+fieldset .fieldset-heading,
+html:root fieldset .fieldset-heading,
+fieldset .inline-heading,
+html:root fieldset .inline-heading,
+:not(.inline-related) .collapse summary,
+html:root :not(.inline-related) .collapse summary,
+.inline-related h4,
+html:root .inline-related h4,
+.inline-related:not(.tabular) .collapse summary,
+html:root .inline-related:not(.tabular) .collapse summary,
+td .changelink,
+html:root td .changelink,
+td .addlink,
+.aligned p.file-upload,
+html:root .aligned p.file-upload,
+table#change-history tbody th,
+html:root table#change-history tbody th,
+table#change-history tbody td,
+html:root table#change-history tbody td,
+table.model tbody th,
+html:root table.model tbody th,
+table.model tbody td,
+html:root table.model tbody td{font-size:var(--kb-fs-s)}
+h2{font-size:var(--kb-fs-m)}
+/* Invoervelden: Django maakt ze op een smal scherm 16 px; hier overal de maat van de bediening. */
+.form-row input:not([type]),
+html:root .form-row input:not([type]),
+.form-row input[type=text],
+html:root .form-row input[type=text],
+.form-row input[type=password],
+html:root .form-row input[type=password],
+.form-row input[type=email],
+html:root .form-row input[type=email],
+.form-row input[type=url],
+html:root .form-row input[type=url],
+.form-row input[type=tel],
+html:root .form-row input[type=tel],
+.form-row input[type=number],
+html:root .form-row input[type=number],
+.form-row textarea,
+html:root .form-row textarea,
+.form-row select,
+html:root .form-row select,
+.form-row .vTextField,
+html:root .form-row .vTextField{font-size:var(--kb-fs-s)}#content-related .module h2{font-size:var(--kb-fs-l)}h1{font-size:var(--kb-fs-xl)}
+/* Eén stijl voor de paginatitel: dezelfde letter als op de site, de hulp en de review. */
+h1{font-family:"Source Serif 4",Georgia,"Times New Roman",serif;font-weight:700;line-height:1.2}
+/* Een knop neemt van zichzelf het lettertype van de pagina niet over (dan wordt het Arial). */
+button{font-family:inherit}
+/* Eén knophoogte, ook in het beheer. */
+.button, form .button, input[type=submit], input[type=button], .submit-row input, a.button, .delete-confirmation form input[type="submit"]{padding:2px 12px;min-height:var(--kb-knop-h);line-height:1.25;box-sizing:border-box;font-size:var(--kb-fs-s)}
+a.button{display:inline-flex;align-items:center;justify-content:center}
 /* Eén knoppenstijl (1.25.0): de hoofdactie donkerblauw gevuld (class default, Openen, Nieuw artikel), de rest
  * omrand. Op de donkere balk van de bewerkschermen gelden eigen regels (artikel-scherm.css). */
 html:root .button, html:root input[type=submit], html:root input[type=button] {
@@ -16,18 +191,18 @@ html:root .button.default, html:root input[type=submit].default, html:root a.but
 html:root .button.default:hover, html:root input[type=submit].default:hover, html:root a.button.kb-openen:hover, html:root a.button.kb-knop:hover {
   background: #0b2a4d; color: #fff;
 }
-.inline-group textarea{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
+.inline-group textarea{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--kb-fs-s)}
 
 /* Werkplek (startpagina van het beheer) — kennisbank/werkoverzicht.py en admin/kennisbank/werkplek.html */
 .kb-werkplek-pagina #content{padding:0;max-width:none}
-.kb-werkplek{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:calc(100vh - 60px)}
+.kb-werkplek{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:calc(100vh - var(--kb-balk-h))}
 .kb-bakkenkolom{border-right:1px solid var(--hairline-color);background:var(--darkened-bg);padding:16px 12px 24px}
-.kb-kolomkop{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--body-quiet-color);margin:14px 8px 6px;font-weight:700;background:none;padding:0}
+.kb-kolomkop{font-size:var(--kb-fs-xs);letter-spacing:.06em;text-transform:uppercase;color:var(--body-quiet-color);margin:14px 8px 6px;font-weight:700;background:none;padding:0}
 .kb-kolomkop:first-child{margin-top:0}
 .kb-bakkenlijst{list-style:none;margin:0;padding:0}
 .kb-bakkenlijst li{list-style:none;padding:0;margin:0}
 .kb-gescheiden{border-top:1px solid var(--hairline-color);margin-top:10px;padding-top:10px}
-a.kb-bakregel{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 10px;line-height:1.35;border-radius:6px;color:var(--body-fg);text-decoration:none;font-size:.92rem}
+a.kb-bakregel{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 10px;line-height:1.35;border-radius:6px;color:var(--body-fg);text-decoration:none;font-size:var(--kb-fs-s)}
 a.kb-bakregel:hover{background:var(--selected-row)}
 a.kb-bakregel.gekozen{background:var(--primary);color:#fff}
 a.kb-bakregel.gekozen .kb-aantal,a.kb-bakregel.gekozen .kb-jij{color:#fff}
@@ -41,17 +216,17 @@ a.kb-bakregel.gekozen .kb-nieuw{color:#ffd23f}
 .kb-aantal.oud{color:#a6192e}
 .kb-kolomknoppen{display:flex;flex-direction:column;gap:6px;margin:0 8px 14px}
 .kb-kolomknoppen-rij{display:flex;gap:6px}
-.kb-kolomknoppen-rij a.button{flex:1;padding:7px 6px;font-size:.88rem;white-space:nowrap}
-a.button.kb-knop,a.button.kb-knop-word{display:block;text-align:center;padding:8px 12px;border-radius:6px}
-a.button.kb-knop-word{background:#fff;color:#154273;padding:6px 12px;font-size:.88rem}
+.kb-kolomknoppen-rij a.button{flex:1;padding:2px 6px;font-size:var(--kb-fs-s);white-space:nowrap}
+a.button.kb-knop,a.button.kb-knop-word{display:flex;align-items:center;justify-content:center;text-align:center;padding:2px 12px;border-radius:6px}
+a.button.kb-knop-word{background:#fff;color:#154273;padding:2px 12px;font-size:var(--kb-fs-s)}
 .kb-inhoud{padding:20px 32px 40px;max-width:1000px}
-.kb-inhoud h1{margin:0 0 4px;font-size:1.5rem}
+.kb-inhoud h1{margin:0 0 4px;font-size:var(--kb-fs-xl)}
 .kb-uitleg{color:var(--body-quiet-color);margin:0 0 16px}
 .kb-voorstellen{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
 .kb-voorstel{list-style:none;border:1px solid var(--hairline-color);border-radius:8px;padding:12px 16px;background:var(--body-bg)}
 .kb-vkop{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-a.kb-vtitel{font-weight:600;font-size:1rem}
-.kb-vstatus,.kb-label{font-size:.75rem;padding:2px 8px;border-radius:999px;background:var(--darkened-bg);color:var(--body-quiet-color)}
+a.kb-vtitel{font-weight:600;font-size:var(--kb-fs-m)}
+.kb-vstatus,.kb-label{font-size:var(--kb-fs-xs);padding:2px 8px;border-radius:999px;background:var(--darkened-bg);color:var(--body-quiet-color)}
 .kb-status-nieuw{background:#dfe8f4;color:#154273}
 .kb-status-in_behandeling{background:#fff1cc;color:#7a5200}
 .kb-status-verwerkt{background:#dff1e3;color:#1e6b34}
@@ -60,7 +235,7 @@ a.kb-vtitel{font-weight:600;font-size:1rem}
 .kb-label{background:#f8e0e3;color:#a6192e}
 .kb-vcitaat{margin:8px 0 0;padding:4px 10px;border-left:3px solid var(--hairline-color);color:var(--body-quiet-color);font-style:italic}
 .kb-vtekst{margin:8px 0 4px;white-space:pre-wrap}
-.kb-vmeta{margin:0;font-size:.85rem;color:var(--body-quiet-color)}
+.kb-vmeta{margin:0;font-size:var(--kb-fs-s);color:var(--body-quiet-color)}
 .kb-vacties{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--hairline-color)}
 /* Op de werkplek: elke actie (knop + bijbehorende keuzelijst) als eigen groepje, met een streepje ertussen. */
 .kb-voorstel .kb-vacties{gap:10px 0}
@@ -68,7 +243,7 @@ a.kb-vtitel{font-weight:600;font-size:1rem}
 .kb-voorstel .kb-vacties form:first-child{padding-left:0}
 .kb-voorstel .kb-vacties form + form{border-left:1px solid var(--hairline-color)}
 .kb-vacties form{margin:0;display:flex;gap:6px;align-items:center}
-.kb-vacties .button{padding:6px 12px}
+.kb-vacties .button{padding:2px 12px}
 .kb-vacties select{padding:5px 6px}
 a.button.kb-openen{margin-left:auto}
 .kb-tabel{width:100%}
@@ -76,7 +251,7 @@ a.button.kb-openen{margin-left:auto}
 .kb-paginas{display:flex;gap:16px;align-items:center;margin-top:16px}
 @media (max-width: 900px){.kb-werkplek{grid-template-columns:1fr}.kb-bakkenkolom{border-right:0;border-bottom:1px solid var(--hairline-color)}}
 .kb-clusterbak{padding-left:22px}
-.kb-clusterlabel{font-size:.75rem;padding:2px 8px;border-radius:999px;border:1px solid var(--hairline-color);color:var(--body-quiet-color)}
+.kb-clusterlabel{font-size:var(--kb-fs-xs);padding:2px 8px;border-radius:999px;border:1px solid var(--hairline-color);color:var(--body-quiet-color)}
 
 /* Het concept in het bewerkscherm (1.17.0) */
 .kb-conceptbalk{border:2px solid #b58500;background:#fff8e1;color:#3d2e00;border-radius:8px;padding:10px 16px;margin:0 0 16px}
@@ -86,8 +261,8 @@ a.button.kb-openen{margin-left:auto}
 .kb-conceptuitleg{border-left:3px solid var(--hairline-color);padding:2px 12px;margin:0 0 12px;color:var(--body-quiet-color)}
 .kb-conceptrij{display:flex;align-items:center;gap:12px;margin-bottom:0}
 .kb-conceptrij .kb-concept-opslaan{background:#b58500;color:#fff;border:0;padding:10px 15px;border-radius:4px;cursor:pointer;font-weight:600}
-.kb-concepthint{color:var(--body-quiet-color);font-size:.85rem}
-.kb-subkop{font-size:1rem;margin:18px 0 8px;background:none;color:var(--body-fg);padding:0}
+.kb-concepthint{color:var(--body-quiet-color);font-size:var(--kb-fs-s)}
+.kb-subkop{font-size:var(--kb-fs-m);margin:18px 0 8px;background:none;color:var(--body-fg);padding:0}
 /* Gevaarknop (weggooien) — ronde 1, punt 9 */
 .button.kb-gevaar,button.kb-gevaar{background:var(--body-bg)!important;color:#a6192e!important;border:1px solid #a6192e!important}
 .button.kb-gevaar:hover,button.kb-gevaar:hover{background:#f8e0e3!important}
@@ -97,14 +272,14 @@ a.button.kb-openen{margin-left:auto}
 .kb-behandel h1 a{color:inherit}
 .kb-behandel-raster{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:28px;align-items:start;margin-top:12px}
 @media (max-width:1100px){.kb-behandel-raster{grid-template-columns:1fr}}
-.kb-behandel .kb-hint{color:var(--body-quiet-color);font-size:.85rem;margin:.35rem 0}
+.kb-behandel .kb-hint{color:var(--body-quiet-color);font-size:var(--kb-fs-s);margin:.35rem 0}
 .kb-context{border-left:3px solid var(--hairline-color);padding:.6rem .9rem;background:var(--darkened-bg);line-height:1.6;border-radius:4px}
 .kb-context mark{background:#ffe58a;color:#111;padding:0 2px;border-radius:2px}
-.kb-voorsteltekst{font-size:1rem;margin-top:.8rem}
+.kb-voorsteltekst{font-size:var(--kb-fs-m);margin-top:.8rem}
 .kb-gesprek,.kb-notities{list-style:none;margin:0;padding:0}
 .kb-gesprek li,.kb-notities li{border:1px solid var(--hairline-color);border-radius:6px;padding:.5rem .8rem;margin:0 0 .5rem}
 .kb-gesprek li.pm{border-left:3px solid #154273}
-.kb-gesprek .wie,.kb-notities .wie{display:block;font-size:.8rem;color:var(--body-quiet-color);margin-bottom:.2rem}
+.kb-gesprek .wie,.kb-notities .wie{display:block;font-size:var(--kb-fs-xs);color:var(--body-quiet-color);margin-bottom:.2rem}
 .kb-notities li{background:#fffbea;border-color:#f0e2a8}
 .kb-berichtvak textarea,.kb-behandel-zij textarea{width:100%;box-sizing:border-box;font:inherit;padding:.5rem}
 .kb-knoppenrij{display:flex;gap:8px;flex-wrap:wrap;margin:.5rem 0}
@@ -114,14 +289,14 @@ a.button.kb-openen{margin-left:auto}
 .kb-vacties-kolom{display:flex;flex-direction:column;align-items:stretch;gap:0;border-top:0;padding-top:0;margin-top:0}
 .kb-vacties-kolom form{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:12px 0;border-bottom:1px solid var(--hairline-color);margin:0}
 .kb-vacties-kolom form:first-child{padding-top:4px}
-.kb-vacties-kolom .kb-actielabel{flex-basis:100%;font-size:.8rem;font-weight:600;color:var(--body-quiet-color);margin:0}
+.kb-vacties-kolom .kb-actielabel{flex-basis:100%;font-size:var(--kb-fs-xs);font-weight:600;color:var(--body-quiet-color);margin:0}
 .kb-vacties-kolom select{flex:1;min-width:0}
 .kb-verbergen{margin:12px 0}
 .kb-verbergen .kb-hint{display:block}
 .kb-intussen{border:1px solid #a6192e;background:#fdecee;border-radius:6px;padding:.4rem .9rem;margin:.6rem 0}
 .kb-afgehandeld-zoek{display:flex;gap:8px;margin:0 0 12px}
-.kb-afgehandeld-zoek input[type=search]{flex:1;max-width:420px;padding:.4rem}
-.kb-behandel button.button,.kb-afgehandeld-zoek .button{padding:7px 14px;font-size:.85rem}
+.kb-afgehandeld-zoek input[type=search]{flex:1;max-width:420px;padding:2px 8px;min-height:var(--kb-knop-h);box-sizing:border-box}
+.kb-behandel button.button,.kb-afgehandeld-zoek .button{padding:2px 14px;font-size:var(--kb-fs-s)}
 .kb-behandel .kb-knop-rustig,.kb-afgehandeld-zoek .kb-knop-rustig{background:transparent;color:var(--link-fg);border:1px solid var(--hairline-color)}
 .kb-behandel .kb-knop-rustig:hover{background:var(--darkened-bg)}
 .kb-behandel-zij form{margin:0 0 8px}
@@ -129,7 +304,7 @@ a.button.kb-openen{margin-left:auto}
 
 /* Review in de gele balk (stap C) */
 .kb-review{border-top:1px solid #c6a3df;margin-top:10px;padding-top:8px}
-.kb-review h3{margin:0 0 6px;font-size:.95rem;background:none;color:inherit;padding:0}
+.kb-review h3{margin:0 0 6px;font-size:var(--kb-fs-s);background:none;color:inherit;padding:0}
 .kb-review-label{font-weight:700;color:#1e6b34}
 .kb-review-teams{margin:0 0 8px;padding-left:18px}
 .kb-review-teams>li{margin:4px 0}
@@ -137,7 +312,7 @@ a.button.kb-openen{margin-left:auto}
 .kb-review-vervallen{color:#7a5200}
 .kb-review-opmerkingen{list-style:none;margin:4px 0 6px;padding:0}
 .kb-review-opmerkingen li{background:#fff;border:1px solid #c6a3df;border-radius:6px;padding:6px 10px;margin:4px 0;color:#222}
-.kb-review .wie{display:block;font-size:.8rem;color:#55226f}
+.kb-review .wie{display:block;font-size:var(--kb-fs-xs);color:#55226f}
 .kb-review-keuze{border:0;padding:0;margin:4px 0 8px;display:flex;flex-wrap:wrap;gap:4px 16px}
 .kb-review-keuze legend{font-weight:600;padding:0;margin-bottom:4px}
 .kb-review-eerder{margin-top:8px}
@@ -158,9 +333,9 @@ div.kb-meegenomen ul{margin:4px 0 0;padding-left:18px}
 .kb-afhandel-rij textarea{width:100%;box-sizing:border-box;font:inherit;padding:.5rem}
 .kb-afhandel-vink{display:block;margin:6px 0}
 .kb-afhandel-label{display:block;font-weight:600;margin:6px 0 4px}
-.kb-afhandelen .button{padding:7px 14px}
+.kb-afhandelen .button{padding:2px 14px}
 .kb-review-citaat{display:block;font-style:italic;color:#555;border-left:3px solid #c6a3df;padding-left:6px;margin:2px 0}
-.kb-review-voorlopig{display:block;font-size:.85rem;color:#7a5200;font-style:italic}
+.kb-review-voorlopig{display:block;font-size:var(--kb-fs-s);color:#7a5200;font-style:italic}
 
 /* Eén knop Afronden (1.21.0): de losse knoppen blijven bestaan, maar uit beeld. */
 .kb-met-afronden .submit-row:not(.kb-afrondenrij) { display: none; }
@@ -177,13 +352,13 @@ div.kb-meegenomen ul{margin:4px 0 0;padding-left:18px}
 .kb-afronden-keuze span { color: var(--body-quiet-color, #666); font-size: .92em; }
 .kb-afronden-rustig { border-style: dashed; }
 .kb-afronden-teamkeuze .kb-venster-keuze { display: block; margin: 4px 0; }
-.kb-afrondenrij .kb-afronden-knop { padding: 10px 24px; font-size: 0.95rem; line-height: 1.2; height: auto; }
+.kb-afrondenrij .kb-afronden-knop { padding: 2px 24px; font-size: var(--kb-fs-s); line-height: 1.2; height: auto; min-height: var(--kb-knop-h); }
 
 /* Knoppen rechtsboven in de lijsten (Artikel toevoegen, Importeren uit Word): zelfde stijl als de andere
  * knoppen in plaats van de grijze pillen van Django (1.25.0). */
 .object-tools a, .object-tools a:link, .object-tools a:visited {
   background: #fff; color: #154273; border: 1px solid #9fb3cc; border-radius: 6px; text-transform: none;
-  letter-spacing: 0; font-size: .85rem; font-weight: 600; padding: 6px 12px; line-height: 1.3;
+  letter-spacing: 0; font-size: var(--kb-fs-s); font-weight: 600; padding: 6px 12px; line-height: 1.3;
 }
 .object-tools a:hover, .object-tools a:focus { background: #eef3f9; border-color: #154273; color: #154273; }
 .object-tools a.addlink { background: #154273; color: #fff; border-color: #154273; padding-right: 12px; }
@@ -194,8 +369,8 @@ div.kb-meegenomen ul{margin:4px 0 0;padding-left:18px}
 /* De werkbak als rustige lijst (1.26.0): één regel per voorstel, de hele regel is klikbaar. Toewijzen en
  * verplaatsen via de vinkjes en de balk erboven; de balk licht op zodra er iets is aangevinkt. */
 .kb-selectiebalk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px;padding:8px 12px;border:1px solid var(--hairline-color);border-radius:8px;background:#f7f9fb;color:var(--body-quiet-color)}
-.kb-selectiebalk select{padding:5px 6px;max-width:220px}
-.kb-selectie-uitleg{font-size:.85rem;margin-right:auto}
+.kb-selectiebalk select{padding:2px 6px;min-height:var(--kb-knop-h);box-sizing:border-box;max-width:220px}
+.kb-selectie-uitleg{font-size:var(--kb-fs-s);margin-right:auto}
 .kb-werkplek-pagina .kb-inhoud:has(.kb-bak input:checked) .kb-selectiebalk{background:#eef4fb;border-color:#b9d0ea;color:var(--body-fg)}
 table.kb-bak{width:100%}
 .kb-bak-rij{position:relative}
@@ -217,23 +392,23 @@ table.kb-bak td:nth-child(3){min-width:9em}
 /* Artikel uit Word (1.28.0, ronde A A22): dezelfde rust als de werkplek, zonder Django-zijbalk. */
 .kb-import-pagina #content{max-width:760px;margin:0 auto;padding:24px 20px 48px}
 .kb-import-terug{margin:0 0 8px}
-.kb-import h1{font-size:1.6rem;margin:0 0 10px;color:#154273}
-.kb-import-uitleg{font-size:1rem;margin:0 0 8px}
+.kb-import h1{font-size:var(--kb-fs-xl);margin:0 0 10px;color:#154273}
+.kb-import-uitleg{font-size:var(--kb-fs-m);margin:0 0 8px}
 .kb-import-lijst{margin:0 0 20px;padding-left:20px;line-height:1.5}
 .kb-import-form{border:1px solid var(--hairline-color);border-radius:10px;padding:18px 20px;background:#fff}
 .kb-import-veld{display:flex;flex-direction:column;gap:4px;margin:0 0 14px}
 .kb-import-veld > label{font-weight:600}
 .kb-import-veld select,.kb-import-veld input[type=file]{max-width:420px}
 .kb-import-keuze label{font-weight:400;display:flex;gap:8px;align-items:flex-start}
-.kb-import-veld .help{color:var(--body-quiet-color);font-size:.85rem;margin:0}
+.kb-import-veld .help{color:var(--body-quiet-color);font-size:var(--kb-fs-s);margin:0}
 .kb-import-veld.errors select,.kb-import-veld.errors input[type=file]{outline:2px solid #ba2121;outline-offset:2px}
 .kb-import-knoppen{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
-.kb-import-knoppen .button,.kb-import-knoppen input{padding:8px 16px}
-.kb-selectie-teller{font-size:.85rem;font-weight:600;color:#154273}
+.kb-import-knoppen .button,.kb-import-knoppen input{padding:2px 16px}
+.kb-selectie-teller{font-size:var(--kb-fs-s);font-weight:600;color:#154273}
 
 /* 1.29.1: collega's in- en uitklapbaar; je eigen bak blijft altijd in beeld. */
 .kb-collegas{margin:0}
-.kb-collegas > summary.kb-bakregel{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 10px;border-radius:6px;cursor:pointer;list-style:none;font-size:.92rem;color:var(--body-fg)}
+.kb-collegas > summary.kb-bakregel{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 10px;border-radius:6px;cursor:pointer;list-style:none;font-size:var(--kb-fs-s);color:var(--body-fg)}
 .kb-collegas > summary::-webkit-details-marker{display:none}
 .kb-collegas > summary > span:first-child::before{content:"▸";display:inline-block;width:1em;color:var(--body-quiet-color)}
 .kb-collegas[open] > summary > span:first-child::before{content:"▾"}
@@ -242,12 +417,12 @@ table.kb-bak td:nth-child(3){min-width:9em}
 
 /* 1.31.0 (review 1.27.0, M15): de overgebleven Django-schermen rustiger. Een lichte kruimelregel (zoals de
  * infobalk van de editor) in plaats van een tweede blauwe balk. */
-div.breadcrumbs{border-bottom:1px solid #d3d9e2;font-size:.85rem;padding:6px 40px}
+div.breadcrumbs{border-bottom:1px solid #d3d9e2;font-size:var(--kb-fs-s);padding:6px 40px}
 div.breadcrumbs a{text-decoration:underline}
 #content > h1{color:#154273}
 /* Versiegeschiedenis in het paneel: geen herhaalde regel met de naam van de versie boven elke rij. */
 .kb-paneel .inline-group td.original p, .inline-group.kb-versies td.original p{display:none}
-.kb-afhandelen h1{font-size:1.6rem;margin:0 0 10px;color:#154273}
+.kb-afhandelen h1{font-size:var(--kb-fs-xl);margin:0 0 10px;color:#154273}
 .kb-import-pagina .kb-afhandelen{max-width:860px}
 /* De artikellijst: is de tabel breder dan het scherm, dan schuif je hem opzij in plaats van dat kolommen wegvallen. */
 #changelist .results{overflow-x:auto}
@@ -255,12 +430,12 @@ div.breadcrumbs a{text-decoration:underline}
 
 /* 1.32.0 (ronde D, M9): stijlen die inline in de sjablonen stonden. Het beheer staat geen inline scripts meer
    toe; de stijlen staan hier, zodat de sjablonen zelf niets inline hebben. */
-.kb-status h2{font-size:1rem;margin:22px 0 6px}
+.kb-status h2{font-size:var(--kb-fs-m);margin:22px 0 6px}
 .kb-status table{width:100%;border-collapse:collapse}
 .kb-status td{padding:7px 10px;border-bottom:1px solid var(--hairline-color,#e5e5e5);vertical-align:top}
-.kb-status td.s{width:26px;text-align:center;font-size:1.1rem;line-height:1.3}
+.kb-status td.s{width:26px;text-align:center;font-size:var(--kb-fs-l);line-height:1.3}
 .kb-status td.n{width:260px;font-weight:600}
-.kb-status .advies{color:#555;font-size:.92rem;margin:3px 0 0;max-width:80ch}
+.kb-status .advies{color:#555;font-size:var(--kb-fs-s);margin:3px 0 0;max-width:80ch}
 .kb-status .kop{padding:12px 14px;border-radius:6px;margin:0 0 6px}
 .kb-status .kop.goed{background:#e8f4ea;border-left:4px solid #2e7d32}
 .kb-status .kop.let_op{background:#fdf3d8;border-left:4px solid #c89b1c}
@@ -281,7 +456,7 @@ div.breadcrumbs a{text-decoration:underline}
 .kb-vstatus.kb-stand-terug{background:#f8e0e3;color:#7a1220}
 .kb-vstatus.kb-stand-niet{background:#e3e9f1;color:#22364d}
 .kb-vstatus[class*="kb-stand-"]{font-weight:600;white-space:nowrap}
-.kb-tabel .kb-stand-regel{color:var(--body-quiet-color);font-size:.85rem}
+.kb-tabel .kb-stand-regel{color:var(--body-quiet-color);font-size:var(--kb-fs-s)}
 .kb-selectie-groep{display:inline-flex;gap:8px;flex-wrap:wrap;margin-left:auto}
 .kb-vervalt-snel{font-weight:700;color:#7a1220}
 

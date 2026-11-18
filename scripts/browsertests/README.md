@@ -89,3 +89,10 @@ worden de bestanden verkleind (Pillow).
 Draai dit als een scherm is veranderd dat in de hulp staat, en leg de gewijzigde bestanden vast. Een nieuw
 beeld: een regel `beeld("naam", …)` in `hulpbeelden.js` en `[[beeld:naam|bijschrift]]` in
 `kennisbank/hulp_inhoud.py`. Een test bewaakt dat die twee bij elkaar passen.
+
+## De opmaak meten
+
+`meet-opmaak.js` drukt per scherm af welke lettertypes, lettergroottes en knophoogtes er echt in beeld staan.
+Handig als je een stijl aanpast; de vaste controles staan in `rook.js`. Met de testserver aan:
+
+    KB_CHROME=/usr/bin/google-chrome KB_URL=http://127.0.0.1:8765 node meet-opmaak.js

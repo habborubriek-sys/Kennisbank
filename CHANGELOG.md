@@ -1,5 +1,20 @@
 # Wijzigingen
 
+## 1.38.0 – 2026-11-18
+
+De opmaak is compact en overal gelijk (opmerking Alex: "een ratjetoe aan verschillende regels", en "de kennisbank zelf voelt groot aan"). Bouwlijst: `claude/bouwlijst-1.38.0-opmaak.md`.
+
+- **Eén vaste set maten, op één plek** (`fonts.css`, dat elke pagina laadt): vijf lettergroottes (12, 14, 16, 18 en 24 px), één knophoogte (32 px) en één balkhoogte (52 px). De stijlbestanden gebruikten ruim twintig lettergroottes; dat zijn er nu vijf. Een test weigert een losse lettergrootte in een stijlbestand.
+- **Bediening compact, leestekst niet.** Knoppen, menu's, zijbalk, kaarten en lijsten zijn 14 px met minder ruimte eromheen. De tekst van een artikel, een hulpartikel, een reviewstuk en de editor blijft 16 px.
+- **De bovenbalk is overal 52 px met knoppen van 32 px**, ook op de site (was daar 60 en 36; in 1.37.1 was de rest daaraan gelijkgetrokken, dat is teruggedraaid naar de compacte maat).
+- **Eén lettertype.** Het beheer gebruikt nu Source Sans 3, zoals de site, de hulp en de review (was Segoe UI of Arial). De negen lettergroottes van het standaardbeheer van Django zijn op de vaste set gezet.
+- **Eén stijl voor de paginatitel:** 24 px in de titelletter, op de site, in de hulp, de review en het beheer. De titel van een artikel ging van 30 naar 24 px.
+- **Alle knoppen even hoog** (32 px): site, beheer, editor, lade en review. Knoppen in formulieren van het beheer hadden nauwelijks ruimte links en rechts van de tekst; dat is hersteld.
+- **Op een aanraakscherm blijven knoppen groot** (44 px, was 36).
+- **Niets is kleiner dan 12 px** (er waren labels van 11 en 11,5 px).
+- Kleuren, indeling en teksten zijn niet veranderd. Geen wijziging in de werking; geen migratie.
+- 7 nieuwe tests (909 in totaal); 8 van de 8 mutaties betrapt. `rook.js` 227 controles: op negen schermen het lettertype, de lettergroottes, de knophoogte en de paginatitel. De toegankelijkheidsmeting blijft op 0 overtredingen (77 schermen). Nieuw hulpmiddel `scripts/browsertests/meet-opmaak.js`. De schermafbeeldingen van de hulp zijn opnieuw gemaakt.
+
 ## 1.37.1 – 2026-11-17
 
 Drie meldingen van Alex bij het proberen van 1.37.0 op de demoserver.
